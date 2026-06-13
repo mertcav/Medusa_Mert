@@ -1,0 +1,27 @@
+# Sırlar / kimlik bilgileri — ASLA commit edilmez
+.env
+.env.*
+*.pem
+*.key
+.git-credentials
+secrets/
+
+# Orchestrator çıktıları
+reports/
+
+# Üretilen artifact'ler
+docs/dist/
+
+# Bağımlılıklar / build
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+dist/
+build/
+
+# OS / editör
+.DS_Store
+*.swp
+.idea/
+.vscode/
