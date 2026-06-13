@@ -1,0 +1,24 @@
+{
+  "provider": "llm-cloud-C-degraded",
+  "_note": "İLLÜSTRATİF kasıtlı-zayıf profil — gerçek sağlayıcı DEĞİL. Yalnız ABD bölgesi (residency yok) + no-train kapalı + yüksek first-token + yavaş küçük-tier + token stall (downstream ölü hava). Çoklu kapı elemesini göstermek için. Gerçek değerler 0.3.x PoC'ta ölçülür.",
+  "config": {
+    "model_small": "mini", "model_large": "max",
+    "no_train": false, "data_retention": "PROVIDER_DEFAULT",
+    "region": "US", "region_pinned": false, "available_regions": ["US"],
+    "streaming": true, "fallback_supported": false
+  },
+  "turns": [
+    {"id": "en-routine-001", "language": "en", "tier": "small", "turn_class": "routine",
+     "first_token_ms": 240, "quality": 0.94, "requires_tool": false,
+     "tokens": [{"t_ms": 240}, {"t_ms": 300}, {"t_ms": 700}, {"t_ms": 760}, {"t_ms": 820}]},
+    {"id": "tr-routine-001", "language": "tr", "tier": "small", "turn_class": "routine",
+     "first_token_ms": 265, "quality": 0.88, "requires_tool": false,
+     "tokens": [{"t_ms": 265}, {"t_ms": 320}, {"t_ms": 760}, {"t_ms": 815}]},
+    {"id": "en-complex-001", "language": "en", "tier": "large", "turn_class": "complex",
+     "first_token_ms": 460, "quality": 0.95, "requires_tool": true, "tool_call_valid": false,
+     "tokens": [{"t_ms": 460}, {"t_ms": 520}, {"t_ms": 980}, {"t_ms": 1040}]},
+    {"id": "tr-complex-001", "language": "tr", "tier": "large", "turn_class": "complex",
+     "first_token_ms": 520, "quality": 0.90, "requires_tool": true, "tool_call_valid": false,
+     "tokens": [{"t_ms": 520}, {"t_ms": 580}, {"t_ms": 1100}, {"t_ms": 1160}]}
+  ]
+}

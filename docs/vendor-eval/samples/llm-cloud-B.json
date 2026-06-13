@@ -1,0 +1,33 @@
+{
+  "provider": "llm-cloud-B",
+  "_note": "İLLÜSTRATİF mühendislik profili — gerçek sağlayıcı benchmark'ı DEĞİL. Gecikme + uygunluk + tiering sağlıklı, ANCAK TR görev kalitesi zayıf (en-kötü-dil kapısını eler). STT-B / TTS-B 'TR zayıf' aynası. Gerçek değerler 0.3.x PoC'ta ölçülür.",
+  "config": {
+    "model_small": "lite", "model_large": "pro",
+    "no_train": true, "data_retention": "EPHEMERAL",
+    "region": "EU", "region_pinned": true, "available_regions": ["EU", "UK"],
+    "streaming": true, "fallback_supported": true
+  },
+  "turns": [
+    {"id": "en-routine-001", "language": "en", "tier": "small", "turn_class": "routine",
+     "first_token_ms": 150, "quality": 0.96, "requires_tool": false,
+     "tokens": [{"t_ms": 150}, {"t_ms": 184}, {"t_ms": 218}, {"t_ms": 252}, {"t_ms": 286}]},
+    {"id": "en-routine-002", "language": "en", "tier": "small", "turn_class": "routine",
+     "first_token_ms": 160, "quality": 0.95, "requires_tool": false,
+     "tokens": [{"t_ms": 160}, {"t_ms": 194}, {"t_ms": 228}, {"t_ms": 262}]},
+    {"id": "tr-routine-001", "language": "tr", "tier": "small", "turn_class": "routine",
+     "first_token_ms": 170, "quality": 0.82, "requires_tool": false,
+     "tokens": [{"t_ms": 170}, {"t_ms": 205}, {"t_ms": 240}, {"t_ms": 275}]},
+    {"id": "tr-routine-002", "language": "tr", "tier": "small", "turn_class": "routine",
+     "first_token_ms": 185, "quality": 0.80, "requires_tool": false,
+     "tokens": [{"t_ms": 185}, {"t_ms": 220}, {"t_ms": 255}, {"t_ms": 290}]},
+    {"id": "en-complex-001", "language": "en", "tier": "large", "turn_class": "complex",
+     "first_token_ms": 300, "quality": 0.95, "requires_tool": true, "tool_call_valid": true,
+     "tokens": [{"t_ms": 300}, {"t_ms": 336}, {"t_ms": 372}, {"t_ms": 408}]},
+    {"id": "tr-complex-001", "language": "tr", "tier": "large", "turn_class": "complex",
+     "first_token_ms": 330, "quality": 0.81, "requires_tool": true, "tool_call_valid": true,
+     "tokens": [{"t_ms": 330}, {"t_ms": 366}, {"t_ms": 402}, {"t_ms": 438}]},
+    {"id": "tr-risky-001", "language": "tr", "tier": "large", "turn_class": "risky",
+     "first_token_ms": 345, "quality": 0.83, "requires_tool": true, "tool_call_valid": true,
+     "tokens": [{"t_ms": 345}, {"t_ms": 381}, {"t_ms": 417}, {"t_ms": 453}]}
+  ]
+}

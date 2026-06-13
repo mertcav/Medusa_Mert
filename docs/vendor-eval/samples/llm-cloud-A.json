@@ -1,0 +1,39 @@
+{
+  "provider": "llm-cloud-A",
+  "_note": "İLLÜSTRATİF mühendislik profili — gerçek sağlayıcı benchmark'ı DEĞİL. Bölgesel endpoint + no-train, küçük/büyük tier streaming LLM. Gerçek değerler 0.3.x PoC'ta canlı ölçülür. Sağlayıcı adı kasıtlı genel (vendor-neutral, ADR-002).",
+  "config": {
+    "model_small": "tier1-fast", "model_large": "tier2-reason",
+    "no_train": true, "data_retention": "NONE",
+    "region": "EU", "region_pinned": true, "available_regions": ["EU", "UK", "TR"],
+    "streaming": true, "fallback_supported": true
+  },
+  "turns": [
+    {"id": "en-routine-001", "language": "en", "tier": "small", "turn_class": "routine",
+     "first_token_ms": 140, "quality": 0.96, "requires_tool": false,
+     "tokens": [{"t_ms": 140}, {"t_ms": 172}, {"t_ms": 205}, {"t_ms": 238}, {"t_ms": 270}, {"t_ms": 303}, {"t_ms": 336}]},
+    {"id": "en-routine-002", "language": "en", "tier": "small", "turn_class": "routine",
+     "first_token_ms": 155, "quality": 0.95, "requires_tool": false,
+     "tokens": [{"t_ms": 155}, {"t_ms": 188}, {"t_ms": 220}, {"t_ms": 253}, {"t_ms": 286}]},
+    {"id": "tr-routine-001", "language": "tr", "tier": "small", "turn_class": "routine",
+     "first_token_ms": 165, "quality": 0.91, "requires_tool": false,
+     "tokens": [{"t_ms": 165}, {"t_ms": 200}, {"t_ms": 235}, {"t_ms": 270}, {"t_ms": 305}]},
+    {"id": "tr-routine-002", "language": "tr", "tier": "small", "turn_class": "routine",
+     "first_token_ms": 180, "quality": 0.90, "requires_tool": false,
+     "tokens": [{"t_ms": 180}, {"t_ms": 214}, {"t_ms": 248}, {"t_ms": 282}, {"t_ms": 316}]},
+    {"id": "tr-routine-003", "language": "tr", "tier": "small", "turn_class": "routine",
+     "first_token_ms": 190, "quality": 0.92, "requires_tool": false,
+     "tokens": [{"t_ms": 190}, {"t_ms": 223}, {"t_ms": 256}, {"t_ms": 289}]},
+    {"id": "en-complex-001", "language": "en", "tier": "large", "turn_class": "complex",
+     "first_token_ms": 290, "quality": 0.96, "requires_tool": true, "tool_call_valid": true,
+     "tokens": [{"t_ms": 290}, {"t_ms": 326}, {"t_ms": 362}, {"t_ms": 398}, {"t_ms": 434}, {"t_ms": 470}]},
+    {"id": "tr-complex-001", "language": "tr", "tier": "large", "turn_class": "complex",
+     "first_token_ms": 320, "quality": 0.90, "requires_tool": true, "tool_call_valid": true,
+     "tokens": [{"t_ms": 320}, {"t_ms": 356}, {"t_ms": 392}, {"t_ms": 428}, {"t_ms": 464}]},
+    {"id": "tr-risky-001", "language": "tr", "tier": "large", "turn_class": "risky",
+     "first_token_ms": 350, "quality": 0.91, "requires_tool": true, "tool_call_valid": true,
+     "tokens": [{"t_ms": 350}, {"t_ms": 388}, {"t_ms": 426}, {"t_ms": 464}, {"t_ms": 502}]},
+    {"id": "en-risky-001", "language": "en", "tier": "large", "turn_class": "risky",
+     "first_token_ms": 360, "quality": 0.95, "requires_tool": true, "tool_call_valid": true,
+     "tokens": [{"t_ms": 360}, {"t_ms": 398}, {"t_ms": 436}, {"t_ms": 474}]}
+  ]
+}
