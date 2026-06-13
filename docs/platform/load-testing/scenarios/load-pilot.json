@@ -1,0 +1,35 @@
+{
+  "name": "pilot-100-250",
+  "seed": 42,
+  "_note": "İllüstratif F1 PİLOT yük senaryosu (0.4.8). BRD §20 Faz 1: 100–250 eş zamanlı çağrı. Düşük CPS, hibrit medya density (worker_cap≈354, 0.3.4). Tüm kapılar geniş headroom'la geçer → pilot yük testi tasarım kapasitesini güvenle sürer. Gerçek ölçüm DEĞİL; SAD §16/§20 + 0.3.2/0.3.3/0.3.4 hedeflerinden türetildi (FR-TST-008, sentetik). Canlı testte (F1 §18.5) gerçek call-generator ile dolar.",
+  "load": {
+    "target_cps": 3,
+    "target_concurrency": 250,
+    "mean_call_seconds": 90,
+    "call_p95_seconds": 200,
+    "ramp_seconds": 40,
+    "soak_seconds": 240,
+    "burst_multiplier": 2.0,
+    "burst_seconds": 30
+  },
+  "fleet": {
+    "worker_capacity": 354,
+    "workers_min": 2,
+    "workers_max": 4,
+    "warm_pool_workers": 1,
+    "scale_up_seconds": 20,
+    "scale_step_workers": 2
+  },
+  "admission": {
+    "util_threshold": 0.92,
+    "max_cps": 20,
+    "soak_reject_budget": 0.01,
+    "burst_reject_budget": 0.05
+  },
+  "under_load": {
+    "base_latency": {"p50": 632, "p95": 863},
+    "congestion_k": 0.03,
+    "base_call_mem": {"p50": 11.5, "p95": 13.9},
+    "load_mem_growth": 0.03
+  }
+}

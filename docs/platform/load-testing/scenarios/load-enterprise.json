@@ -1,0 +1,35 @@
+{
+  "name": "enterprise-1k-3k",
+  "seed": 42,
+  "_note": "İllüstratif F2 ENTERPRISE yük senaryosu (0.4.8). BRD §20 Faz 2: 1.000–3.000 eş zamanlı çağrı. target 30 CPS × 100s tutma → offered ≈ 3000 (Little). Hibrit density worker_cap≈354, autoscale 16 worker tavanı (headroom). 2x ani trafik warm pool + autoscale ile emilir. Tüm kapılar geçer. Gerçek ölçüm DEĞİL (FR-TST-008, sentetik); SAD §16/§20 + 0.3.x hedeflerinden türetildi.",
+  "load": {
+    "target_cps": 30,
+    "target_concurrency": 3000,
+    "mean_call_seconds": 100,
+    "call_p95_seconds": 220,
+    "ramp_seconds": 60,
+    "soak_seconds": 300,
+    "burst_multiplier": 2.0,
+    "burst_seconds": 30
+  },
+  "fleet": {
+    "worker_capacity": 354,
+    "workers_min": 4,
+    "workers_max": 16,
+    "warm_pool_workers": 6,
+    "scale_up_seconds": 20,
+    "scale_step_workers": 4
+  },
+  "admission": {
+    "util_threshold": 0.92,
+    "max_cps": 80,
+    "soak_reject_budget": 0.01,
+    "burst_reject_budget": 0.05
+  },
+  "under_load": {
+    "base_latency": {"p50": 632, "p95": 863},
+    "congestion_k": 0.04,
+    "base_call_mem": {"p50": 11.5, "p95": 13.9},
+    "load_mem_growth": 0.04
+  }
+}

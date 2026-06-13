@@ -1,0 +1,35 @@
+{
+  "name": "burst-2x-spike",
+  "seed": 42,
+  "_note": "İllüstratif 2x ANİ TRAFİK senaryosu (0.4.8) — NFR 10.3 'ani trafik 2x kısa süreli (warm pool + autoscale)'. Orta steady yük (40 CPS / 4000 conc) üstüne keskin 60s'lik 2x burst (80 CPS). Bol warm pool (12 worker) + hızlı autoscale burst'ü emer → burst_reject ≤ %5 ve util≤~1.0. burst_2x_absorbed kapısının yeşil davranışını izole gösterir. Gerçek ölçüm DEĞİL (FR-TST-008, sentetik); SAD §16.2'den türetildi.",
+  "load": {
+    "target_cps": 40,
+    "target_concurrency": 4000,
+    "mean_call_seconds": 100,
+    "call_p95_seconds": 220,
+    "ramp_seconds": 60,
+    "soak_seconds": 240,
+    "burst_multiplier": 2.0,
+    "burst_seconds": 60
+  },
+  "fleet": {
+    "worker_capacity": 354,
+    "workers_min": 6,
+    "workers_max": 30,
+    "warm_pool_workers": 12,
+    "scale_up_seconds": 15,
+    "scale_step_workers": 6
+  },
+  "admission": {
+    "util_threshold": 0.92,
+    "max_cps": 110,
+    "soak_reject_budget": 0.01,
+    "burst_reject_budget": 0.05
+  },
+  "under_load": {
+    "base_latency": {"p50": 632, "p95": 863},
+    "congestion_k": 0.04,
+    "base_call_mem": {"p50": 11.5, "p95": 13.9},
+    "load_mem_growth": 0.04
+  }
+}
