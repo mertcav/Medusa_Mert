@@ -23,12 +23,19 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 MIG = os.path.join(HERE, "migrations")
 
-# Kapsamdaki tablolar (DB.md §4 varlık 1–4 + türevleri)
+# Kapsamdaki tablolar (DB.md §4 varlık 1–4 + türevleri) — WBS 1.1.1
 TENANT_SCOPED = ["organisation_unit", "app_user", "user_role_assignment"]
 GLOBAL_TABLES = ["role", "permission_key", "role_permission"]
 ALL_TABLES = ["tenant"] + TENANT_SCOPED + GLOBAL_TABLES
 RLS_TABLES = ["tenant"] + TENANT_SCOPED  # tenant: Root self-policy
 UUIDV7_PK = ["tenant", "organisation_unit", "app_user", "role", "user_role_assignment"]
+
+# Agent ve Yapılandırma (DB.md §4 varlık 5–11) — WBS 1.1.2. Hepsi saf tenant-scoped.
+AGENT_TABLES = ["agent", "agent_version", "prompt", "conversation_flow",
+                "voice_profile", "model_profile", "stt_profile"]
+AGENT_WORM = ["agent_version"]  # WORM/append-only (DB.md §6.5, FR-AGT-006)
+# İzlenebilirlik: agent-config tasarım kararları → DB.md kaynak token (non-circular)
+AGENT_TRACE_TOKENS = ["FR-AGT-001", "FR-AGT-003", "FR-AGT-006", "FR-LLM-012"]
 
 # Sabit rol kümesi (CLAUDE.md RBAC; FR-IAM-011, ADR-012)
 EXPECTED_ROLES = {
@@ -95,6 +102,41 @@ def has_with_check(sql, table):
     return all("WITH CHECK" in b for b in blocks) and len(blocks) >= 1
 
 
+def has_immutable_trigger(sql, table):
+    """WORM: BEFORE UPDATE OR DELETE ON <table> ... raise_immutable_violation
+    trigger'ı tanımlı mı? (DB.md §6.5 append-only zorlama)."""
+    n = norm(sql)
+    m = re.search(
+        r"CREATE TRIGGER\s+\w+\s+BEFORE UPDATE OR DELETE ON %s\b[^;]*raise_immutable_violation"
+        % re.escape(table), n)
+    return m is not None
+
+
+def worm_grant_ok(sql, table):
+    """app_rw'ye yalnız INSERT+SELECT verilmiş, UPDATE/DELETE verilmemiş mi?
+    (DB.md §6.5 — WORM tablosu grant düzeyi koruması)."""
+    n = norm(sql)
+    has_si = bool(re.search(
+        r"GRANT[^;]*\bSELECT\b[^;]*\bINSERT\b[^;]*ON %s\b[^;]*app_rw" % re.escape(table), n)) or \
+        bool(re.search(
+        r"GRANT[^;]*\bINSERT\b[^;]*\bSELECT\b[^;]*ON %s\b[^;]*app_rw" % re.escape(table), n))
+    no_ud = not re.search(
+        r"GRANT[^;]*\b(UPDATE|DELETE)\b[^;]*ON %s\b[^;]*app_rw" % re.escape(table), n)
+    return has_si and no_ud
+
+
+def deferred_circular_fk_ok(ddl):
+    """agent.active_version_id dairesel FK'si CREATE TABLE içinde DEĞİL (deferred),
+    ALTER TABLE ile eklenmiş mi? (DB.md §10 dairesel FK)."""
+    body = table_body(ddl, "agent") or ""
+    inline_fk = bool(re.search(r"active_version_id\s+UUID\s+REFERENCES", body))
+    n = norm(ddl)
+    altered = bool(re.search(
+        r"ALTER TABLE agent ADD CONSTRAINT \w+ FOREIGN KEY \(active_version_id\) "
+        r"REFERENCES agent_version\(id\)", n))
+    return (not inline_fk) and altered
+
+
 # -----------------------------------------------------------------------------
 # validate
 # -----------------------------------------------------------------------------
@@ -117,6 +159,10 @@ def run_validate():
         "0002d": "0002_tenant_org_iam.down.sql",
         "0003u": "0003_rls_tenant_org_iam.up.sql",
         "0003d": "0003_rls_tenant_org_iam.down.sql",
+        "0004u": "0004_agent_config.up.sql",
+        "0004d": "0004_agent_config.down.sql",
+        "0005u": "0005_rls_agent_config.up.sql",
+        "0005d": "0005_rls_agent_config.down.sql",
     }
     raw = {}
     for k, fn in files.items():
@@ -225,11 +271,78 @@ def run_validate():
     for tok in TRACE_TOKENS:
         add("O trace:%s" % tok, tok in dbmd, "DB.md'de kaynak referans")
 
+    # =========================================================================
+    # WBS 1.1.2 — Agent ve Yapılandırma (DB.md §5.2). 0004 (şema) + 0005 (RLS).
+    # =========================================================================
+    ddl2 = raw["0004u"]
+    rls2 = raw["0005u"]
+
+    # P. Tablolar mevcut + UUIDv7 PK
+    for t in AGENT_TABLES:
+        body = table_body(ddl2, t)
+        add("P table:%s" % t, body is not None, "CREATE TABLE")
+        add("P pk-uuidv7:%s" % t,
+            "id UUID PRIMARY KEY DEFAULT gen_uuid_v7()" in (body or ""),
+            "id UUID PK DEFAULT gen_uuid_v7()")
+
+    # Q. Tenant-scoped: tenant_id NOT NULL + FK tenant(id)
+    for t in AGENT_TABLES:
+        body = table_body(ddl2, t) or ""
+        add("Q tenant_id-notnull:%s" % t,
+            ("tenant_id UUID NOT NULL REFERENCES tenant(id)" in body),
+            "tenant_id UUID NOT NULL REFERENCES tenant(id)")
+
+    # R. RLS: enable+force+policy + WITH CHECK (her 7 tablo standart izolasyon)
+    for t in AGENT_TABLES:
+        add("R rls:%s" % t, table_rls_ok(rls2, t), "ENABLE+FORCE+POLICY")
+        add("R with-check:%s" % t, has_with_check(rls2, t), "WITH CHECK (cross-tenant write koruması)")
+
+    # S. Fail-closed (iki-argümanlı current_setting) — 0005 politikaları
+    add("S fail-closed", fail_closed_ok(rls2), "current_setting('app.*', true) → GUC yoksa 0 satır")
+
+    # T. Dairesel FK: agent.active_version_id inline DEĞİL, ALTER ile eklenmiş
+    add("T circular-fk", deferred_circular_fk_ok(ddl2),
+        "active_version_id → agent_version(id) ALTER ile (DB.md §10)")
+
+    # U. WORM (agent_version): immutable trigger (0004) + grant INSERT+SELECT (0005)
+    for t in AGENT_WORM:
+        add("U worm-trigger:%s" % t, has_immutable_trigger(ddl2, t),
+            "BEFORE UPDATE OR DELETE → raise_immutable_violation (DB.md §6.5)")
+        add("U worm-grant:%s" % t, worm_grant_ok(rls2, t),
+            "app_rw yalnız INSERT+SELECT (UPDATE/DELETE yok)")
+
+    # V. İndeksler: GIN flow graph + FK/sorgu indeksleri
+    for idx in ["ix_agent_tenant", "ix_agent_orgunit", "ix_agent_state",
+                "ix_agent_active_version", "ix_agentver_agent", "ix_prompt_agent",
+                "ix_flow_agent", "ix_voiceprofile_tenant", "ix_modelprofile_tenant",
+                "ix_sttprofile_tenant"]:
+        add("V index:%s" % idx, ("CREATE INDEX %s" % idx) in norm(ddl2), "FK/sorgu indeksi")
+    add("V gin:flow-graph",
+        bool(re.search(r"CREATE INDEX ix_flow_graph ON conversation_flow USING gin", norm(ddl2))),
+        "conversation_flow.graph GIN (DB.md §7.1)")
+
+    # W. Down migration'lar: tablolar + dairesel FK + RLS politikaları düşer
+    for t in AGENT_TABLES:
+        add("W down-drop:%s" % t,
+            ("DROP TABLE IF EXISTS %s" % t) in norm(raw["0004d"]), "down DROP TABLE")
+    add("W down-fk", "DROP CONSTRAINT IF EXISTS fk_agent_active_version" in norm(raw["0004d"]),
+        "down dairesel FK kaldırma")
+    add("W down-policy", raw["0005d"].count("DROP POLICY") >= len(AGENT_TABLES), "down DROP POLICY")
+
+    # X. agent_version'a UPDATE/DELETE grant'i HİÇBİR yerde verilmemiş (WORM bütünlüğü)
+    add("X worm-no-write",
+        not re.search(r"GRANT[^;]*\b(UPDATE|DELETE)\b[^;]*ON agent_version\b", norm(rls2)),
+        "agent_version'a UPDATE/DELETE grant yok")
+
+    # Y. İzlenebilirlik: agent-config kaynak token'ları DB.md'de
+    for tok in AGENT_TRACE_TOKENS:
+        add("Y trace:%s" % tok, tok in dbmd, "DB.md'de kaynak referans")
+
     # Rapor
     passed = sum(1 for _, ok, _ in checks if ok)
     total = len(checks)
     failed = [(c, d) for c, ok, d in checks if not ok]
-    print("== schema_probe validate — Tenant/Org/User/Role + RLS (WBS 1.1.1) ==")
+    print("== schema_probe validate — Tenant/Org/User/Role (1.1.1) + Agent/Config (1.1.2) + RLS ==")
     for cid, ok, detail in checks:
         print("  %s %s — %s" % ("PASS" if ok else "FAIL", cid, detail))
     print("-" * 60)
@@ -290,6 +403,31 @@ def run_selftest():
     # policy_blocks sayımı
     check("policy:count", len(policy_blocks(rls_good, "foo")) == 1)
 
+    # has_immutable_trigger (WORM)
+    worm_good = ("CREATE TRIGGER trg_x BEFORE UPDATE OR DELETE ON agent_version "
+                 "FOR EACH ROW EXECUTE FUNCTION raise_immutable_violation();")
+    worm_bad = ("CREATE TRIGGER trg_x BEFORE UPDATE ON agent_version "
+                "FOR EACH ROW EXECUTE FUNCTION set_updated_at();")
+    check("worm-trigger:good", has_immutable_trigger(worm_good, "agent_version") is True)
+    check("worm-trigger:bad", has_immutable_trigger(worm_bad, "agent_version") is False)
+
+    # worm_grant_ok (yalnız INSERT+SELECT)
+    g_good = "REVOKE ALL ON agent_version FROM app_rw; GRANT SELECT, INSERT ON agent_version TO app_rw;"
+    g_bad = "GRANT SELECT, INSERT, UPDATE, DELETE ON agent_version TO app_rw;"
+    check("worm-grant:good", worm_grant_ok(g_good, "agent_version") is True)
+    check("worm-grant:bad", worm_grant_ok(g_bad, "agent_version") is False)
+
+    # deferred_circular_fk_ok
+    fk_good = ("CREATE TABLE agent (\n  id UUID PRIMARY KEY DEFAULT gen_uuid_v7(),\n"
+               "  active_version_id UUID,\n  tenant_id UUID NOT NULL REFERENCES tenant(id)\n);\n"
+               "ALTER TABLE agent ADD CONSTRAINT fk_a FOREIGN KEY (active_version_id) "
+               "REFERENCES agent_version(id) ON DELETE RESTRICT;")
+    fk_bad = ("CREATE TABLE agent (\n  id UUID PRIMARY KEY DEFAULT gen_uuid_v7(),\n"
+              "  active_version_id UUID REFERENCES agent_version(id),\n"
+              "  tenant_id UUID NOT NULL REFERENCES tenant(id)\n);")
+    check("circular-fk:good", deferred_circular_fk_ok(fk_good) is True)
+    check("circular-fk:bad-inline", deferred_circular_fk_ok(fk_bad) is False)
+
     passed = sum(1 for _, ok in results if ok)
     total = len(results)
     print("== schema_probe selftest ==")
@@ -302,8 +440,8 @@ def run_selftest():
 
 def run_schema():
     print(json.dumps({
-        "task": "WBS 1.1.1 — PostgreSQL şeması: Tenant, Org Unit, User, Role (+ RLS)",
-        "source": ["BRD §16 (1–4)", "SAD §13.1", "DB.md §5.1/§6"],
+        "task": "WBS 1.1.1 (Tenant/Org/User/Role) + 1.1.2 (Agent/Config) PostgreSQL şeması + RLS",
+        "source": ["BRD §16 (1–11)", "SAD §13.1", "DB.md §5.1/§5.2/§6"],
         "tables": ALL_TABLES,
         "tenant_scoped": TENANT_SCOPED,
         "global_tables": GLOBAL_TABLES,
@@ -311,6 +449,9 @@ def run_schema():
         "uuidv7_pk": UUIDV7_PK,
         "expected_roles": EXPECTED_ROLES,
         "trace_tokens": TRACE_TOKENS,
+        "agent_tables": AGENT_TABLES,
+        "agent_worm": AGENT_WORM,
+        "agent_trace_tokens": AGENT_TRACE_TOKENS,
         "session_contract": {
             "tenant_realm": "SET LOCAL app.tenant_id = '<uuid>'",
             "platform_realm": "SET LOCAL app.platform = 'on'",

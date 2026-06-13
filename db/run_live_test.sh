@@ -24,14 +24,21 @@ echo "==> Migration'lar uygulanıyor (up)"
 "${PSQL[@]}" -f "$HERE/migrations/0001_extensions_helpers.up.sql"
 "${PSQL[@]}" -f "$HERE/migrations/0002_tenant_org_iam.up.sql"
 "${PSQL[@]}" -f "$HERE/migrations/0003_rls_tenant_org_iam.up.sql"
+"${PSQL[@]}" -f "$HERE/migrations/0004_agent_config.up.sql"
+"${PSQL[@]}" -f "$HERE/migrations/0005_rls_agent_config.up.sql"
 
 echo "==> Seed (roller)"
 "${PSQL[@]}" -f "$HERE/seeds/roles.sql"
 
-echo "==> RLS davranış testi"
+echo "==> RLS davranış testi (Tenant/Org/User)"
 "${PSQL[@]}" -f "$HERE/tests/rls_isolation.sql"
 
+echo "==> RLS + WORM davranış testi (Agent/Config)"
+"${PSQL[@]}" -f "$HERE/tests/agent_config_isolation.sql"
+
 echo "==> Temizlik (down)"
+"${PSQL[@]}" -f "$HERE/migrations/0005_rls_agent_config.down.sql"
+"${PSQL[@]}" -f "$HERE/migrations/0004_agent_config.down.sql"
 "${PSQL[@]}" -f "$HERE/migrations/0003_rls_tenant_org_iam.down.sql"
 "${PSQL[@]}" -f "$HERE/migrations/0002_tenant_org_iam.down.sql"
 
