@@ -15,8 +15,9 @@ kurumsal sistemlerde gerçek işlem yapar ve gerektiğinde insan temsilciye kesi
 - `docs/SAD.md` — Çözüm Mimarisi (Solution Architecture). Teknik tasarım, ADR'ler.
 - `docs/SRS.md` — Sistem Gereksinimleri (System Requirements). FR/NFR → doğrulanabilir `SR-*` (yöntem T/A/I/D + kabul ölçütü).
 - `docs/RTM.md` — İzlenebilirlik Matrisi (Requirements Traceability Matrix). FR/NFR ↔ SR ↔ Test Case (`TC-<ALAN>-NNN`) ↔ WBS. Tabloları `docs/gen_rtm.py` ile **türetilir** (repo kökünden çalıştır); kaynak değişince yeniden üret.
+- `docs/DB.md` — Veri Tabanı Tasarımı (Database Design). BRD §16'daki 28 varlık → PostgreSQL şeması (PK/FK, indeks, **RLS politikaları**), tenancy sınıfı, partition, residency/KMS, WORM audit, retention/legal-hold. SAD §12/§13/§14.4 esas.
 - `docs/build-docx.sh` + `docs/assets/rmc-reference.docx` — `.md` → markalı `.docx` artifact (pandoc).
-- Sıradaki dokümanlar: **DB tasarımı (0.1.3)** → **API/SPI tasarımı (0.1.4)** → Faz 1 kod.
+- Sıradaki dokümanlar: **API/SPI tasarımı (0.1.4)** → Faz 1 kod.
 - **`.md` source of truth'tur; `.docx` üretilen artifact'tir.** İçeriği `.md`'de değiştir, `.docx`'i build et.
 
 ## Yazım kuralları
