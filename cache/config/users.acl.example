@@ -1,0 +1,22 @@
+# Redis ACL — ÖRNEK / şablon (gerçek parola repoya YAZILMAZ)
+# WBS 1.1.5 · SEC-15 (en-az-yetki, tenant namespace) · SAD §14.4
+#
+# Kullanım: bu dosyayı kopyalayıp parolaları deployment secret'ından (Vault/KMS, WBS 0.4.5)
+# enjekte edin; redis.conf'ta `aclfile /etc/redis/users.acl` ile bağlayın.
+# Parola alanları ${...} placeholder'dır — düz metin parola repoda BULUNMAZ.
+
+# Varsayılan kullanıcı kapalı (anonim erişim yok).
+user default off nopass ~* &* -@all
+
+# Voice runtime (orchestrator) — session pool: kendi anahtar deseninde tam CRUD,
+# admin/tehlikeli komutlar kapalı.
+user voice_runtime on >${REDIS_RUNTIME_PASSWORD} ~{t:*}:sess:* resetchannels +@read +@write +@string +@hash +ttl +expire +pexpire -@admin -@dangerous
+
+# Cache yazıcı — semantic + tts index: kendi desenlerinde CRUD.
+user cache_writer on >${REDIS_CACHE_PASSWORD} ~{t:*}:sem:* ~{t:*}:tts:* resetchannels +@read +@write +@string +ttl +expire -@admin -@dangerous
+
+# Salt-okunur gözlem (metrik/health) — veri okumaz, yalnız INFO/PING.
+user observer on >${REDIS_OBSERVER_PASSWORD} resetchannels resetkeys +ping +info +client|getname -@all
+
+# NOT: Dedicated tenant'ta (FR-TEN-005) per-tenant kullanıcı + ~{t:<tenant_id>}:*
+# deseni ile fiziksel anahtar-uzay daraltması yapılabilir (SEC-15).
