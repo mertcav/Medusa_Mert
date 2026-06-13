@@ -45,6 +45,18 @@ CALL_WORM = ["tool_execution"]  # WORM/append-only + idempotent (DB.md §6.5/P4,
 # call_id MANTIKSAL FK'dir (partition'lı parent → REFERENCES yok, DB.md §7.2).
 CALL_TRACE_TOKENS = ["FR-TEL-012", "FR-TEL-007", "FR-REC-004", "FR-REC-005", "FR-TOOL-009"]
 
+# Outbound/Operasyon/Yönetişim (DB.md §4 varlık 16–18, 25–28) — WBS 1.1.4.
+# 0008 (şema) + 0009 (RLS).
+GOV_NONPART = ["campaign", "contact", "consent", "call_evaluation", "incident"]
+GOV_PART = ["usage_record", "audit_log"]                       # RANGE (created_at) partition'lı
+GOV_TABLES = GOV_NONPART + GOV_PART
+GOV_TENANT_SCOPED = ["campaign", "contact", "consent", "call_evaluation", "usage_record"]  # standart izolasyon
+GOV_MIXED = ["audit_log", "incident"]                          # platform + tenant karışık (DB.md §6.3)
+GOV_WORM = ["consent", "audit_log"]                            # append-only (DB.md §6.5, P4)
+GOV_TENANT_FK = ["campaign", "contact", "consent", "call_evaluation"]  # tenant_id NOT NULL gerçek FK (non-part)
+# audit_log: tenant_id/actor_user_id FK YOK (WORM bağımsızlık, DB.md §5.6).
+GOV_TRACE_TOKENS = ["FR-OUT-003", "FR-BIL-001", "FR-IAM-006", "FR-REC-009", "FR-ANA-001"]
+
 # Sabit rol kümesi (CLAUDE.md RBAC; FR-IAM-011, ADR-012)
 EXPECTED_ROLES = {
     "platform_owner": "L0", "platform_sre": "L0", "platform_billing": "L0",
@@ -167,6 +179,19 @@ def worm_grant_ok(sql, table):
     return has_si and no_ud
 
 
+def mixed_policy_ok(sql, table):
+    """Karışık (platform + tenant) politika: en az bir politika bloğunda hem tenant
+    eşitliği hem (tenant_id IS NULL AND app.platform = 'on') kolu var mı?
+    (DB.md §6.3 — audit_log/incident)."""
+    blocks = policy_blocks(sql, table)
+    if not blocks:
+        return False
+    tok = "tenant_id IS NULL AND current_setting('app.platform', true) = 'on'"
+    return any(
+        ("NULLIF(current_setting('app.tenant_id', true), '')::uuid" in norm(b)
+         and norm(tok) in norm(b)) for b in blocks)
+
+
 def deferred_circular_fk_ok(ddl):
     """agent.active_version_id dairesel FK'si CREATE TABLE içinde DEĞİL (deferred),
     ALTER TABLE ile eklenmiş mi? (DB.md §10 dairesel FK)."""
@@ -209,6 +234,10 @@ def run_validate():
         "0006d": "0006_call_interaction.down.sql",
         "0007u": "0007_rls_call_interaction.up.sql",
         "0007d": "0007_rls_call_interaction.down.sql",
+        "0008u": "0008_outbound_ops_governance.up.sql",
+        "0008d": "0008_outbound_ops_governance.down.sql",
+        "0009u": "0009_rls_outbound_ops_governance.up.sql",
+        "0009d": "0009_rls_outbound_ops_governance.down.sql",
     }
     raw = {}
     for k, fn in files.items():
@@ -488,11 +517,124 @@ def run_validate():
     for tok in CALL_TRACE_TOKENS:
         add("AK trace:%s" % tok, tok in dbmd, "DB.md'de kaynak referans")
 
+    # =========================================================================
+    # WBS 1.1.4 — Outbound/Operasyon/Yönetişim (DB.md §5.4/§5.6). 0008 + 0009 (RLS).
+    # =========================================================================
+    ddl4 = raw["0008u"]
+    rls4 = raw["0009u"]
+
+    # AL. Non-partition tablolar: var + UUIDv7 tekil PK
+    for t in GOV_NONPART:
+        body = table_body(ddl4, t)
+        add("AL table:%s" % t, body is not None, "CREATE TABLE (non-partition)")
+        add("AL pk-uuidv7:%s" % t,
+            "id UUID PRIMARY KEY DEFAULT gen_uuid_v7()" in (body or ""),
+            "id UUID PK DEFAULT gen_uuid_v7()")
+
+    # AM. Partition'lı tablolar (usage_record, audit_log): RANGE + (id, created_at) PK +
+    #     UUIDv7 default + DEFAULT partition
+    for t in GOV_PART:
+        body = pg_table_body(ddl4, t)
+        add("AM table:%s" % t, body is not None, "CREATE TABLE ... PARTITION BY RANGE (created_at)")
+        add("AM partitioned:%s" % t, is_partitioned(ddl4, t), "PARTITION BY RANGE (created_at)")
+        add("AM pk-composite:%s" % t,
+            "PRIMARY KEY (id, created_at)" in (body or ""), "PK: (id, created_at)")
+        add("AM uuidv7:%s" % t,
+            "id UUID NOT NULL DEFAULT gen_uuid_v7()" in (body or ""),
+            "id UUID NOT NULL DEFAULT gen_uuid_v7()")
+        add("AM default-part:%s" % t, default_partition_ok(ddl4, t),
+            "CREATE TABLE IF NOT EXISTS %s_default PARTITION OF %s DEFAULT" % (t, t))
+
+    # AN. Tenant FK'li tablolar: tenant_id NOT NULL + GERÇEK FK tenant(id)
+    for t in GOV_TENANT_FK:
+        body = table_body(ddl4, t) or ""
+        add("AN tenant_id-notnull:%s" % t,
+            "tenant_id UUID NOT NULL REFERENCES tenant(id)" in body,
+            "tenant_id UUID NOT NULL REFERENCES tenant(id)")
+    # usage_record (partition'lı) da tenant_id NOT NULL gerçek FK
+    add("AN tenant_id-notnull:usage_record",
+        "tenant_id UUID NOT NULL REFERENCES tenant(id)" in (pg_table_body(ddl4, "usage_record") or ""),
+        "usage_record.tenant_id NOT NULL FK")
+
+    # AO. Karışık tablolar: tenant_id NULL'lanabilir (NOT NULL DEĞİL)
+    inc_body = table_body(ddl4, "incident") or ""
+    add("AO incident-nullable-tenant",
+        ("tenant_id UUID REFERENCES tenant(id)" in inc_body
+         and "tenant_id UUID NOT NULL" not in inc_body),
+        "incident.tenant_id nullable FK (NULL => platform geneli)")
+    aud_body = pg_table_body(ddl4, "audit_log") or ""
+    add("AO audit-nullable-tenant",
+        ("tenant_id UUID," in aud_body and "tenant_id UUID NOT NULL" not in aud_body),
+        "audit_log.tenant_id nullable")
+    # AP. audit_log WORM bağımsızlık: hiç FK yok (tenant_id/actor_user_id REFERENCES yok)
+    add("AP audit-no-fk", "REFERENCES" not in aud_body,
+        "audit_log FK taşımaz (WORM bağımsızlık, DB.md §5.6)")
+
+    # AQ. Mantıksal FK: call_evaluation/usage_record call'a REFERENCES YOK (partition'lı)
+    add("AQ logical-fk:call_id", "REFERENCES call(" not in ddl4,
+        "call_id mantıksal FK (REFERENCES call yok)")
+
+    # AR. Gecikmeli FK: 0008 call'a campaign FK'sini ALTER ile ekler (0006 ileri-yönlü)
+    add("AR deferred-fk:call->campaign",
+        bool(re.search(
+            r"ALTER TABLE call ADD CONSTRAINT fk_call_campaign FOREIGN KEY \(campaign_id\) "
+            r"REFERENCES campaign\(id\)", norm(ddl4))),
+        "call.campaign_id → campaign(id) ALTER ile (DB.md §5.5)")
+
+    # AS. RLS: 5 standart izolasyon + 2 karışık politika (her biri WITH CHECK'li)
+    for t in GOV_TENANT_SCOPED:
+        add("AS rls:%s" % t, table_rls_ok(rls4, t), "ENABLE+FORCE+POLICY")
+        add("AS with-check:%s" % t, has_with_check(rls4, t), "WITH CHECK (cross-tenant write koruması)")
+    for t in GOV_MIXED:
+        add("AS rls:%s" % t, table_rls_ok(rls4, t), "ENABLE+FORCE+POLICY")
+        add("AS with-check:%s" % t, has_with_check(rls4, t), "WITH CHECK var")
+        add("AS mixed:%s" % t, mixed_policy_ok(rls4, t),
+            "tenant eşitliği OR (tenant_id IS NULL AND platform=on) (DB.md §6.3)")
+
+    # AT. Fail-closed + NULLIF boş-string koruması — 0009 politikaları
+    add("AT fail-closed", fail_closed_ok(rls4), "current_setting('app.*', true) → GUC yoksa 0 satır")
+    add("AT null-safe-uuid", null_safe_uuid_ok(rls4),
+        "NULLIF(current_setting(...),'')::uuid (DB.md §6.2)")
+
+    # AU. WORM (consent, audit_log): immutable trigger (0008) + grant INSERT+SELECT (0009)
+    for t in GOV_WORM:
+        add("AU worm-trigger:%s" % t, has_immutable_trigger(ddl4, t),
+            "BEFORE UPDATE OR DELETE → raise_immutable_violation (DB.md §6.5)")
+        add("AU worm-grant:%s" % t, worm_grant_ok(rls4, t),
+            "app_rw yalnız INSERT+SELECT (UPDATE/DELETE yok)")
+        add("AU worm-no-write:%s" % t,
+            not re.search(r"GRANT[^;]*\b(UPDATE|DELETE)\b[^;]*ON %s\b" % t, norm(rls4)),
+            "%s'a UPDATE/DELETE grant yok" % t)
+
+    # AV. İndeksler: tenant-öncelikli kompozit + FK + DNC/son-durum partial
+    for idx in ["ix_campaign_tenant_status", "ix_campaign_orgunit", "ix_campaign_agent",
+                "ix_contact_campaign", "ix_consent_lookup", "ix_consent_contact",
+                "ix_eval_call", "ix_eval_evaluator", "ix_usage_tenant_time",
+                "ix_usage_call", "ix_audit_tenant_time", "ix_audit_resource",
+                "ix_incident_status", "ix_incident_tenant"]:
+        add("AV index:%s" % idx, ("CREATE INDEX %s" % idx) in norm(ddl4), "FK/sorgu indeksi")
+    add("AV partial:contact-dnc",
+        bool(re.search(r"CREATE INDEX ix_contact_dnc ON contact \(tenant_id, e164\) WHERE do_not_call = true",
+                       norm(ddl4))),
+        "DNC partial index (DB.md §7.1)")
+
+    # AW. Down migration'lar: tablolar + call FK düşer + RLS politikaları düşer
+    for t in GOV_TABLES:
+        add("AW down-drop:%s" % t,
+            ("DROP TABLE IF EXISTS %s" % t) in norm(raw["0008d"]), "down DROP TABLE")
+    add("AW down-fk", "DROP CONSTRAINT IF EXISTS fk_call_campaign" in norm(raw["0008d"]),
+        "down call→campaign FK kaldırma")
+    add("AW down-policy", raw["0009d"].count("DROP POLICY") >= len(GOV_TABLES), "down DROP POLICY")
+
+    # AX. İzlenebilirlik: outbound/yönetişim kaynak token'ları DB.md'de
+    for tok in GOV_TRACE_TOKENS:
+        add("AX trace:%s" % tok, tok in dbmd, "DB.md'de kaynak referans")
+
     # Rapor
     passed = sum(1 for _, ok, _ in checks if ok)
     total = len(checks)
     failed = [(c, d) for c, ok, d in checks if not ok]
-    print("== schema_probe validate — 1.1.1 (Tenant/Org/User/Role) + 1.1.2 (Agent/Config) + 1.1.3 (Çağrı/Etkileşim) + RLS ==")
+    print("== schema_probe validate — 1.1.1 (Tenant/Org/User/Role) + 1.1.2 (Agent/Config) + 1.1.3 (Çağrı/Etkileşim) + 1.1.4 (Outbound/Operasyon/Yönetişim) + RLS ==")
     for cid, ok, detail in checks:
         print("  %s %s — %s" % ("PASS" if ok else "FAIL", cid, detail))
     print("-" * 60)
@@ -603,6 +745,19 @@ def run_selftest():
     check("default-part:good", default_partition_ok(dp_good, "call") is True)
     check("default-part:bad", default_partition_ok("CREATE TABLE x();", "call") is False)
 
+    # mixed_policy_ok (platform + tenant karışık — 1.1.4 audit_log/incident)
+    mp_good = ("CREATE POLICY tenant_or_platform ON incident "
+               "USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid "
+               "OR (tenant_id IS NULL AND current_setting('app.platform', true) = 'on')) "
+               "WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid "
+               "OR (tenant_id IS NULL AND current_setting('app.platform', true) = 'on'));")
+    mp_plain = ("CREATE POLICY tenant_isolation ON incident "
+                "USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid) "
+                "WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);")
+    check("mixed-policy:good", mixed_policy_ok(mp_good, "incident") is True)
+    check("mixed-policy:plain", mixed_policy_ok(mp_plain, "incident") is False)
+    check("mixed-policy:none", mixed_policy_ok("SELECT 1;", "incident") is False)
+
     passed = sum(1 for _, ok in results if ok)
     total = len(results)
     print("== schema_probe selftest ==")
@@ -615,8 +770,8 @@ def run_selftest():
 
 def run_schema():
     print(json.dumps({
-        "task": "WBS 1.1.1 (Tenant/Org/User/Role) + 1.1.2 (Agent/Config) + 1.1.3 (Çağrı/Etkileşim) PostgreSQL şeması + RLS",
-        "source": ["BRD §16 (1–24)", "SAD §13.1", "DB.md §5.1/§5.2/§5.5/§6/§7.2"],
+        "task": "WBS 1.1.1 (Tenant/Org/User/Role) + 1.1.2 (Agent/Config) + 1.1.3 (Çağrı/Etkileşim) + 1.1.4 (Outbound/Operasyon/Yönetişim) PostgreSQL şeması + RLS",
+        "source": ["BRD §16 (1–28)", "SAD §13.1", "DB.md §5.1/§5.2/§5.4/§5.5/§5.6/§6/§7.2"],
         "tables": ALL_TABLES,
         "tenant_scoped": TENANT_SCOPED,
         "global_tables": GLOBAL_TABLES,
@@ -631,6 +786,12 @@ def run_schema():
         "call_worm": CALL_WORM,
         "call_partitioned": CALL_TABLES,
         "call_trace_tokens": CALL_TRACE_TOKENS,
+        "gov_tables": GOV_TABLES,
+        "gov_partitioned": GOV_PART,
+        "gov_tenant_scoped": GOV_TENANT_SCOPED,
+        "gov_mixed": GOV_MIXED,
+        "gov_worm": GOV_WORM,
+        "gov_trace_tokens": GOV_TRACE_TOKENS,
         "session_contract": {
             "tenant_realm": "SET LOCAL app.tenant_id = '<uuid>'",
             "platform_realm": "SET LOCAL app.platform = 'on'",
