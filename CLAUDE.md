@@ -14,8 +14,9 @@ kurumsal sistemlerde gerçek işlem yapar ve gerektiğinde insan temsilciye kesi
 - `docs/BRD.md` — İş Gereksinimleri (Business Requirements). İş seviyesi; FR/NFR'ler burada.
 - `docs/SAD.md` — Çözüm Mimarisi (Solution Architecture). Teknik tasarım, ADR'ler.
 - `docs/SRS.md` — Sistem Gereksinimleri (System Requirements). FR/NFR → doğrulanabilir `SR-*` (yöntem T/A/I/D + kabul ölçütü).
+- `docs/RTM.md` — İzlenebilirlik Matrisi (Requirements Traceability Matrix). FR/NFR ↔ SR ↔ Test Case (`TC-<ALAN>-NNN`) ↔ WBS. Tabloları `docs/gen_rtm.py` ile **türetilir** (repo kökünden çalıştır); kaynak değişince yeniden üret.
 - `docs/build-docx.sh` + `docs/assets/rmc-reference.docx` — `.md` → markalı `.docx` artifact (pandoc).
-- Sıradaki dokümanlar: **izlenebilirlik matrisi (0.1.2)** → **DB/API tasarımı** → Faz 1 kod.
+- Sıradaki dokümanlar: **DB tasarımı (0.1.3)** → **API/SPI tasarımı (0.1.4)** → Faz 1 kod.
 - **`.md` source of truth'tur; `.docx` üretilen artifact'tir.** İçeriği `.md`'de değiştir, `.docx`'i build et.
 
 ## Yazım kuralları
@@ -24,6 +25,8 @@ kurumsal sistemlerde gerçek işlem yapar ve gerektiğinde insan temsilciye kesi
   ilgili alanın sırasından devam ettir; mevcut ID/numaralandırmayı **bozma**.
 - **SR-ID şeması (SRS):** `SR-<ALAN>-NNN`; `<ALAN>` kodu BRD FR/NFR alanını yansıtır (ör. `SR-RTC-007`→`FR-RTC-002`).
   NFR alanları: `PERF/DEN/SCAL/AVL/DR/SEC/LOC`. Her SR: kaynak FR/NFR + yöntem (T/A/I/D) + ölçülebilir kabul ölçütü.
+- **TC-ID şeması (RTM):** `TC-<ALAN>-NNN`; baz test-case SR ile 1:1 hizalanır (`SR-XXX-NNN ⇒ TC-XXX-NNN`).
+  Test türü SR yönteminden (T/D/A/I) devralınır. Bir SR gerekirse `TC-XXX-NNN-a/-b`'ye bölünebilir.
 - Öncelik: MoSCoW (Must / Should / Could).
 - Sürüm artışında: doküman bilgisi + Sürüm Geçmişi tablosu + (varsa) TOC güncellenir.
 
