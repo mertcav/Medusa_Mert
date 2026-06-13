@@ -20,6 +20,9 @@ tekrarlanabilir.** PoC'lar BRD/SAD'ın mimari hipotezlerini çalışan spike'lar
 | `latency-budget.md` | Gecikme bütçesi ölçümü tasarımı: end-of-utterance→ilk ses metriği, lognormal bileşen modeli, NFR 10.1 HARD kapı, bileşen atfı/headroom | 0.3.2 · NFR 10.1/SAD §20 |
 | `latency_budget_probe.py` | Monte-Carlo gecikme bütçesi hattı (`measure`/`compare`/`selftest`/`schema`); P50/P95/P99 + barge-in kesme + tool overhead kapısı + bileşen atfı; deterministik tohumlu örnekleme | 0.3.2 |
 | `samples/latency-*.json` | İllüstratif gecikme profilleri: `green-baseline` (geçer), `tail-heavy` (P95 eler — kuyruk riski), `red-degraded` (çoklu kapı eler) | 0.3.2 |
+| `density-measurement.md` | Density ölçümü tasarımı: oturum-başı bellek (medya hariç) + worker bellek∩CPU kapasitesi, lognormal bileşen modeli, NFR 10.2 HARD kapı (15MB + ≥250/500), medya-konumu duyarlılığı | 0.3.3 · NFR 10.2/ADR-003, SAD §15 |
+| `density_probe.py` | Monte-Carlo density hattı (`measure`/`compare`/`selftest`/`schema`); oturum-başı bellek P50/P95/P99 + CPU + bellek∩CPU density kapasitesi + bileşen atfı; medya draw'ları ayrı RNG stream (bütçe medya-hariç) | 0.3.3 |
+| `samples/density-*.json` | İllüstratif density profilleri: `green-baseline` (geçer, ≥500), `media-colocated` (HARD geçer ama stretch ıskalar — 0.3.4 duyarlılığı), `red-degraded` (bütçe+density eler — ADR-003 ihlali) | 0.3.3 |
 
 ## Hızlı başvuru
 ```bash
@@ -33,10 +36,14 @@ python3 docs/poc/e2e_inbound_poc.py run --scenario docs/poc/samples/inbound-happ
 python3 docs/poc/latency_budget_probe.py selftest
 python3 docs/poc/latency_budget_probe.py measure --profile docs/poc/samples/latency-green-baseline.json
 python3 docs/poc/latency_budget_probe.py compare docs/poc/samples/latency-green-baseline.json docs/poc/samples/latency-tail-heavy.json docs/poc/samples/latency-red-degraded.json
+
+# Density ölç (0.3.3): oturum-başı bellek (medya hariç) + worker density + NFR 10.2 HARD kapı
+python3 docs/poc/density_probe.py selftest
+python3 docs/poc/density_probe.py measure --profile docs/poc/samples/density-green-baseline.json
+python3 docs/poc/density_probe.py compare docs/poc/samples/density-green-baseline.json docs/poc/samples/density-media-colocated.json docs/poc/samples/density-red-degraded.json
 ```
 
 ## Sıradaki PoC görevleri (0.3.x)
-- **0.3.3** Density ölçümü (oturum/worker, ~15MB/oturum, NFR 10.2/ADR-003).
 - **0.3.4** Medya işleme konumu deneyi (edge vs merkez) → **ADR-009 kararı**.
 - **0.3.5** Hot-path dil doğrulaması (Go/Rust async runtime, ADR-003).
 

@@ -1,0 +1,22 @@
+{
+  "name": "red-degraded",
+  "samples": 20000,
+  "seed": 42,
+  "_note": "ADR-003 İHLALİ analog: thread-per-call / GC-ağır runtime + özetsiz büyüyen diyalog geçmişi (FR-RES-010 yok) + medya eş-konumlu. Şişkin oturum belleği (bütçe>15) + yüksek per-oturum CPU (thread stack) → density<250. Bu profil ADR-003'ün NEDEN gerekli olduğunu gösterir.",
+  "worker": { "vcpu": 8, "mem_gb": 16, "os_reserve_mb": 1024, "mem_headroom_pct": 0.15, "cpu_target_util": 0.70 },
+  "mix": { "rag_active_share": 0.60, "long_session_share": 0.50, "media_colocated": true },
+  "components_mb": {
+    "session_state":    { "p50": 2.5, "p95": 4.0 },
+    "dialogue_memory":  { "p50": 7.0, "p95": 12.0 },
+    "dialogue_long":    { "p50": 13.0, "p95": 20.0 },
+    "prompt_context":   { "p50": 3.0, "p95": 5.0 },
+    "rag_context":      { "p50": 4.0, "p95": 7.0 },
+    "adapter_state":    { "p50": 3.0, "p95": 5.0 },
+    "runtime_overhead": { "p50": 4.0, "p95": 7.0 },
+    "media_colocated":  { "p50": 10.0, "p95": 16.0 }
+  },
+  "components_mcore": {
+    "cpu_session": { "p50": 22.0, "p95": 45.0 },
+    "cpu_media":   { "p50": 10.0, "p95": 22.0 }
+  }
+}

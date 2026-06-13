@@ -1,0 +1,21 @@
+{
+  "name": "green-baseline",
+  "samples": 20000,
+  "seed": 42,
+  "worker": { "vcpu": 8, "mem_gb": 16, "os_reserve_mb": 1024, "mem_headroom_pct": 0.15, "cpu_target_util": 0.70 },
+  "mix": { "rag_active_share": 0.30, "long_session_share": 0.20, "media_colocated": false },
+  "components_mb": {
+    "session_state":    { "p50": 1.2, "p95": 1.8 },
+    "dialogue_memory":  { "p50": 3.2, "p95": 5.8 },
+    "dialogue_long":    { "p50": 6.5, "p95": 10.0 },
+    "prompt_context":   { "p50": 1.4, "p95": 2.0 },
+    "rag_context":      { "p50": 1.8, "p95": 3.2 },
+    "adapter_state":    { "p50": 1.4, "p95": 2.2 },
+    "runtime_overhead": { "p50": 0.9, "p95": 1.4 },
+    "media_colocated":  { "p50": 7.0, "p95": 10.0 }
+  },
+  "components_mcore": {
+    "cpu_session": { "p50": 9.0, "p95": 20.0 },
+    "cpu_media":   { "p50": 5.0, "p95": 11.0 }
+  }
+}
