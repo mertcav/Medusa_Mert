@@ -1,0 +1,41 @@
+{
+  "provider": "vdb-managed-degraded",
+  "_note": "İLLÜSTRATİF ELENEN profil — kapıların nasıl elediğini göstermek için. Yalnız ABD bölgesi (residency yok), hassas içerik dış sağlayıcı loglarına gidebilir, RLS yok + sonuçlarda cross-tenant sızıntı, filtreli sorguda yetkisiz doküman, yapısal sorguda recall düşük, retrieval P95 bütçe-aşımı. Vendor-neutral (ADR-002).",
+  "config": {
+    "engine": "managed-cloud-vdb",
+    "index_type": "ivfflat",
+    "supports_namespace": true,
+    "rls": false,
+    "metadata_filter": true,
+    "hybrid_search": false,
+    "incremental_upsert": true,
+    "delete_support": false,
+    "residency_pinned": false,
+    "region": "US",
+    "available_regions": ["US"],
+    "no_external_log": false,
+    "operational_stackfit": "low"
+  },
+  "queries": [
+    {"id": "q-en-factual-001", "query_class": "factual", "tenant": "tenantA", "namespace": "ns-A", "k": 10, "latency_ms": 140,
+     "retrieved_ids": ["d3", "d7", "d1", "d12", "d5", "d9", "d2", "d8", "d4", "d6"],
+     "relevant_ids": ["d3", "d7", "d1", "d12", "d5", "d9", "d2", "d8", "d4", "d6"],
+     "forbidden_ids": ["tenantB-d44"], "filter_applied": true},
+    {"id": "q-tr-semantic-001", "query_class": "semantic", "tenant": "tenantA", "namespace": "ns-A", "k": 10, "latency_ms": 205,
+     "retrieved_ids": ["d5", "d9", "d2", "tenantB-d44", "d3", "d18", "d7", "d1", "d11", "d22"],
+     "relevant_ids": ["d5", "d9", "d2", "d14", "d3", "d18", "d7", "d1", "d11", "d8"],
+     "forbidden_ids": ["tenantB-d44"], "filter_applied": true},
+    {"id": "q-en-semantic-002", "query_class": "semantic", "tenant": "tenantA", "namespace": "ns-A", "k": 10, "latency_ms": 233,
+     "retrieved_ids": ["d2", "d7", "d13", "d1", "d9", "d4", "d16", "d3", "d8", "d21"],
+     "relevant_ids": ["d2", "d7", "d13", "d1", "d9", "d4", "d16", "d3", "d8", "d5"],
+     "forbidden_ids": [], "filter_applied": true},
+    {"id": "q-tr-structured-001", "query_class": "structured", "tenant": "tenantA", "namespace": "ns-A", "k": 10, "latency_ms": 268,
+     "retrieved_ids": ["d10", "z1", "z2", "d17", "z3", "z4", "d12", "z5", "z6", "z7"],
+     "relevant_ids": ["d10", "d4", "d1", "d17", "d6", "d2", "d12", "d8", "d3", "d14"],
+     "forbidden_ids": [], "filter_applied": true},
+    {"id": "q-tr-structured-002", "query_class": "structured", "tenant": "tenantA", "namespace": "ns-A", "k": 10, "latency_ms": 290,
+     "retrieved_ids": ["d6", "z8", "z9", "d3", "z10", "d18", "z11", "d5", "z12", "z13"],
+     "relevant_ids": ["d6", "d1", "d11", "d3", "d8", "d18", "d2", "d5", "d13", "d9"],
+     "forbidden_ids": ["tenantB-d51"], "filter_applied": true}
+  ]
+}

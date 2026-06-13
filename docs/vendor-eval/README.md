@@ -22,9 +22,11 @@ kategorisi için **ölçüt-tabanlı, sağlayıcı-nötr ve tekrarlanabilir** de
 | `tts_eval_probe.py` | TTS değerlendirme hattı (score/compare/selftest; TTFB/barge-in/MOS/ölü-hava/telaffuz + kapı) | 0.2.3 |
 | `llm-eval.md` | LLM sağlayıcı eval — first-token (genel+küçük/büyük tier), no-train/no-log, bölgesel endpoint, kalite (EN+TR), tool-call, stall | 0.2.4 · FR-LLM-001..014, FR-RES-005, FR-KB-010, NFR 10.1/10.7, SAD §8.1/§9/§20 |
 | `llm_eval_probe.py` | LLM değerlendirme hattı (score/compare/selftest; TTFT/tier/kalite/no-train/bölge/stall/tool-call + kapı) | 0.2.4 |
-| `samples/*.json` | İllüstratif profiller: telefoni gecikme (`managed-*`/`raw-*`) + STT (`stt-*`) + TTS (`tts-*`) + LLM (`llm-*`) test setleri; PoC'ta gerçek ölçümle değişir | 0.2.1/0.2.2/0.2.3/0.2.4 |
+| `vector-db-eval.md` | Vector DB eval (pgvector vs OpenSearch) — RAG retrieval recall@k (en-kötü sorgu sınıfı), retrieval gecikme, tenant namespace izolasyon, metadata/ACL filtre, residency/no-log | 0.2.5 · SAD §12.1/§10/§20, FR-KB-003..011, FR-TEN-002, NFR 10.7 |
+| `vector_db_eval_probe.py` | Vector DB değerlendirme hattı (score/compare/selftest; recall@k/retrieval-gecikme/cross-tenant+ACL leak/residency + kapı) | 0.2.5 |
+| `samples/*.json` | İllüstratif profiller: telefoni gecikme (`managed-*`/`raw-*`) + STT (`stt-*`) + TTS (`tts-*`) + LLM (`llm-*`) + Vector DB (`vdb-*`) test setleri; PoC'ta gerçek ölçümle değişir | 0.2.1/0.2.2/0.2.3/0.2.4/0.2.5 |
 
-> Sıradaki: `0.2.5` Vector DB eval → `0.2.6` karar raporu.
+> Sıradaki: `0.2.6` Vendor karar raporu (kategori başına ≥2 aday + DPA/alt-işleyen taslağı).
 
 ## Harness hızlı başvuru
 ```bash
@@ -79,3 +81,16 @@ python3 docs/vendor-eval/llm_eval_probe.py score docs/vendor-eval/samples/llm-cl
 python3 docs/vendor-eval/llm_eval_probe.py compare /tmp/llm-*.json --out /tmp/llm-compare.md
 ```
 Çıkış kodu: tüm kapılar geçerse `0`, biri elerse `1`. Görev kalitesi dış girdidir (kalibre set / LLM-judge); credential yalnız ortam değişkeniyle, **repoya yazılmaz**.
+
+### Vector DB eval (0.2.5)
+```bash
+# 1) Self-test (credential'sız): recall@k/leak/residency/percentile çekirdek doğrulama
+python3 docs/vendor-eval/vector_db_eval_probe.py selftest
+
+# 2) Bir aday sorgu test setini puanla + kapı (recall en-kötü sınıf, retrieval P95, izolasyon/ACL sızıntı, residency)
+python3 docs/vendor-eval/vector_db_eval_probe.py score docs/vendor-eval/samples/vdb-pgvector.json --out /tmp/vdb-pgvector.json
+
+# 3) Çok adaylı karşılaştırma matrisi (pgvector vs OpenSearch vs ...)
+python3 docs/vendor-eval/vector_db_eval_probe.py compare /tmp/vdb-*.json --out /tmp/vdb-compare.md
+```
+Çıkış kodu: tüm kapılar geçerse `0`, biri elerse `1`. `relevant_ids` = exact-kNN ground-truth (dış girdi); managed dış DB credential'ı yalnız ortam değişkeniyle, **repoya yazılmaz**.
