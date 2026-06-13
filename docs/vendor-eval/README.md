@@ -18,9 +18,11 @@ kategorisi için **ölçüt-tabanlı, sağlayıcı-nötr ve tekrarlanabilir** de
 | `media_latency_probe.py` | Medya-streaming gecikme ölçüm hattı (serve/probe/stats/compare) | 0.2.1 |
 | `stt-eval.md` | STT sağlayıcı eval — WER/CER (EN+TR), partial/final, confidence, final-gecikme, 8 kHz | 0.2.2 · FR-STT-001..008, FR-RES-008, NFR 10.1, SAD §8.1/§20 |
 | `stt_eval_probe.py` | STT değerlendirme hattı (score/compare/selftest; WER/CER/gecikme/kalibrasyon + kapı) | 0.2.2 |
-| `samples/*.json` | İllüstratif profiller: telefoni gecikme (`managed-*`/`raw-*`) + STT test setleri (`stt-*`); PoC'ta gerçek ölçümle değişir | 0.2.1/0.2.2 |
+| `tts-eval.md` | TTS sağlayıcı eval — first-byte, barge-in kesme, ses kalitesi (MOS EN+TR), ölü hava, telaffuz, 8 kHz | 0.2.3 · FR-TTS-001..010, FR-RTC-002, FR-RES-008/009, NFR 10.1, SAD §6.1/§8.1/§20 |
+| `tts_eval_probe.py` | TTS değerlendirme hattı (score/compare/selftest; TTFB/barge-in/MOS/ölü-hava/telaffuz + kapı) | 0.2.3 |
+| `samples/*.json` | İllüstratif profiller: telefoni gecikme (`managed-*`/`raw-*`) + STT (`stt-*`) + TTS (`tts-*`) test setleri; PoC'ta gerçek ölçümle değişir | 0.2.1/0.2.2/0.2.3 |
 
-> Sıradaki: `0.2.3` TTS, `0.2.4` LLM, `0.2.5` Vector DB eval → `0.2.6` karar raporu.
+> Sıradaki: `0.2.4` LLM, `0.2.5` Vector DB eval → `0.2.6` karar raporu.
 
 ## Harness hızlı başvuru
 ```bash
@@ -49,3 +51,16 @@ python3 docs/vendor-eval/stt_eval_probe.py score docs/vendor-eval/samples/stt-cl
 python3 docs/vendor-eval/stt_eval_probe.py compare /tmp/stt-*.json --out /tmp/stt-compare.md
 ```
 Çıkış kodu: tüm kapılar geçerse `0`, biri elerse `1`. Sağlayıcı API anahtarı yalnız ortam değişkeniyle (canlı PoC); **repoya yazılmaz**.
+
+### TTS eval (0.2.3)
+```bash
+# 1) Self-test (credential'sız): TTFB/barge-in/MOS/ölü-hava çekirdek doğrulama
+python3 docs/vendor-eval/tts_eval_probe.py selftest
+
+# 2) Bir sağlayıcı test setini puanla + kapı (first-byte P95, barge-in P95, MOS en-kötü-dil, ölü hava)
+python3 docs/vendor-eval/tts_eval_probe.py score docs/vendor-eval/samples/tts-cloud-A.json --out /tmp/tts-A.json
+
+# 3) Çok sağlayıcılı karşılaştırma matrisi
+python3 docs/vendor-eval/tts_eval_probe.py compare /tmp/tts-*.json --out /tmp/tts-compare.md
+```
+Çıkış kodu: tüm kapılar geçerse `0`, biri elerse `1`. MOS dış girdidir (panel/kalibre vekil); credential yalnız ortam değişkeniyle, **repoya yazılmaz**.

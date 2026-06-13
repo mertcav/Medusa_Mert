@@ -1,0 +1,31 @@
+{
+  "provider": "tts-cloud-C-degraded",
+  "_note": "İLLÜSTRATİF mühendislik profili — gerçek sağlayıcı benchmark'ı DEĞİL. Wideband-only model (8kHz native YOK → ekstra resample → yüksek first-byte), streaming gerçek-zamana ayak uyduramıyor (ölü hava/underrun), barge-in kesme yavaş (>200ms). Birden çok kapı KIRMIZI. Sağlayıcı adı kasıtlı genel (vendor-neutral, ADR-002).",
+  "config": {"sample_rate_hz": 16000, "model": "studio-wideband", "data_retention": "30d", "native_8khz": false, "residency": "US", "voice_consistency": "random_per_request", "pronunciation_dict": false, "cache": false},
+  "utterances": [
+    {"id": "en-greet-001", "language": "en", "field_type": "general",
+     "text": "thank you for calling, how can i help you today",
+     "mos": 4.2, "first_byte_ms": 280, "cached": false,
+     "barge_in": {"cancel_req_ms": 5000, "audio_stopped_ms": 5340},
+     "chunks": [{"t_ms": 280, "dur_ms": 40}, {"t_ms": 370, "dur_ms": 40}, {"t_ms": 460, "dur_ms": 40}, {"t_ms": 550, "dur_ms": 40}, {"t_ms": 640, "dur_ms": 40}]},
+    {"id": "en-confirm-002", "language": "en", "field_type": "general",
+     "text": "i have updated your address, is there anything else",
+     "mos": 4.1, "first_byte_ms": 310, "cached": false,
+     "barge_in": {"cancel_req_ms": 5000, "audio_stopped_ms": 5365},
+     "chunks": [{"t_ms": 310, "dur_ms": 40}, {"t_ms": 405, "dur_ms": 40}, {"t_ms": 500, "dur_ms": 40}, {"t_ms": 595, "dur_ms": 40}]},
+    {"id": "tr-greet-003", "language": "tr", "field_type": "general",
+     "text": "bizi aradığınız için teşekkürler, size nasıl yardımcı olabilirim",
+     "mos": 4.0, "first_byte_ms": 330, "cached": false,
+     "barge_in": {"cancel_req_ms": 5000, "audio_stopped_ms": 5380},
+     "chunks": [{"t_ms": 330, "dur_ms": 40}, {"t_ms": 425, "dur_ms": 40}, {"t_ms": 520, "dur_ms": 40}, {"t_ms": 615, "dur_ms": 40}, {"t_ms": 710, "dur_ms": 40}]},
+    {"id": "tr-confirm-004", "language": "tr", "field_type": "general",
+     "text": "adresinizi güncelledim, başka bir konuda yardımcı olabilir miyim",
+     "mos": 3.9, "first_byte_ms": 345, "cached": false,
+     "barge_in": {"cancel_req_ms": 5000, "audio_stopped_ms": 5395},
+     "chunks": [{"t_ms": 345, "dur_ms": 40}, {"t_ms": 440, "dur_ms": 40}, {"t_ms": 535, "dur_ms": 40}, {"t_ms": 630, "dur_ms": 40}]},
+    {"id": "tr-currency-005", "language": "tr", "field_type": "currency",
+     "text": "bin iki yüz elli lira elli kuruş",
+     "mos": 3.8, "first_byte_ms": 320, "cached": false, "pronunciation_ok": false,
+     "chunks": [{"t_ms": 320, "dur_ms": 40}, {"t_ms": 415, "dur_ms": 40}, {"t_ms": 510, "dur_ms": 40}]}
+  ]
+}
