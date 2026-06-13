@@ -29,7 +29,7 @@
 ## 0. Program Yönetimi & Temel Altyapı (Foundation)
 
 ### 0.1 Doküman ve gereksinim hattı
-- [ ] **0.1.1** SRS (System Requirements Specification) yaz — FR/NFR'leri test edilebilir sistem gereksinimlerine indir — `F0` · `Must` · →BRD §24
+- [x] **0.1.1** SRS (System Requirements Specification) yaz — FR/NFR'leri test edilebilir sistem gereksinimlerine indir — `F0` · `Must` · →BRD §24 · ⇒ `docs/SRS.md` v1.0 (236 SR, 193/193 FR + NFR 10.1–10.7 kapsandı)
 - [ ] **0.1.2** Tam izlenebilirlik matrisi (FR ↔ SRS ↔ test case ↔ WBS) oluştur — `F0` · `Must`
 - [ ] **0.1.3** Veri Tabanı tasarım dokümanı (BRD §16 varlıkları: PK/FK, indeks, RLS politikaları) — `F0` · `Must` · →BRD §16
 - [ ] **0.1.4** API tasarım dokümanı (OpenAPI sözleşmeleri + adapter SPI sözleşmeleri) — `F0` · `Must` · →SAD §8.1, §14.4

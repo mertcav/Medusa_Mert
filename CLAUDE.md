@@ -13,14 +13,17 @@ kurumsal sistemlerde gerçek işlem yapar ve gerektiğinde insan temsilciye kesi
 ## Doküman yapısı (docs-as-code)
 - `docs/BRD.md` — İş Gereksinimleri (Business Requirements). İş seviyesi; FR/NFR'ler burada.
 - `docs/SAD.md` — Çözüm Mimarisi (Solution Architecture). Teknik tasarım, ADR'ler.
+- `docs/SRS.md` — Sistem Gereksinimleri (System Requirements). FR/NFR → doğrulanabilir `SR-*` (yöntem T/A/I/D + kabul ölçütü).
 - `docs/build-docx.sh` + `docs/assets/rmc-reference.docx` — `.md` → markalı `.docx` artifact (pandoc).
-- Sıradaki dokümanlar: **SRS** (System Requirements) → **DB/API tasarımı** → Faz 1 kod.
+- Sıradaki dokümanlar: **izlenebilirlik matrisi (0.1.2)** → **DB/API tasarımı** → Faz 1 kod.
 - **`.md` source of truth'tur; `.docx` üretilen artifact'tir.** İçeriği `.md`'de değiştir, `.docx`'i build et.
 
 ## Yazım kuralları
 - Ana metin **Türkçe**, teknik terimler İngilizce (mevcut register'a uy).
 - **FR-ID şeması:** `FR-<ALAN>-NNN` (ör. `FR-TEN-001`, `FR-IAM-009`, `FR-RES-016`). Yeni ID'leri
   ilgili alanın sırasından devam ettir; mevcut ID/numaralandırmayı **bozma**.
+- **SR-ID şeması (SRS):** `SR-<ALAN>-NNN`; `<ALAN>` kodu BRD FR/NFR alanını yansıtır (ör. `SR-RTC-007`→`FR-RTC-002`).
+  NFR alanları: `PERF/DEN/SCAL/AVL/DR/SEC/LOC`. Her SR: kaynak FR/NFR + yöntem (T/A/I/D) + ölçülebilir kabul ölçütü.
 - Öncelik: MoSCoW (Must / Should / Could).
 - Sürüm artışında: doküman bilgisi + Sürüm Geçmişi tablosu + (varsa) TOC güncellenir.
 
