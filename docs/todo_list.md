@@ -32,7 +32,7 @@
 - [x] **0.1.1** SRS (System Requirements Specification) yaz — FR/NFR'leri test edilebilir sistem gereksinimlerine indir — `F0` · `Must` · →BRD §24 · ⇒ `docs/SRS.md` v1.0 (236 SR, 193/193 FR + NFR 10.1–10.7 kapsandı)
 - [x] **0.1.2** Tam izlenebilirlik matrisi (FR ↔ SRS ↔ test case ↔ WBS) oluştur — `F0` · `Must` · ⇒ `docs/RTM.md` v1.0 (193 FR + 7 NFR → 236 SR → 236 TC → 168 WBS; FR→SR %100, FR→WBS %93,8; üretici `docs/gen_rtm.py`)
 - [x] **0.1.3** Veri Tabanı tasarım dokümanı (BRD §16 varlıkları: PK/FK, indeks, RLS politikaları) — `F0` · `Must` · →BRD §16 · ⇒ `docs/DB.md` v1.0 (28 varlık → tablo + PK/FK + indeks + RLS; tenancy sınıfı, partition, residency/KMS, WORM audit, retention/legal-hold)
-- [ ] **0.1.4** API tasarım dokümanı (OpenAPI sözleşmeleri + adapter SPI sözleşmeleri) — `F0` · `Must` · →SAD §8.1, §14.4
+- [x] **0.1.4** API tasarım dokümanı (OpenAPI sözleşmeleri + adapter SPI sözleşmeleri) — `F0` · `Must` · →SAD §8.1, §14.4 · ⇒ `docs/API.md` v1.0 (5 yüzey: L0/L1/L2 + Public Developer API OpenAPI 3.1 + Adapter SPI; ortak konvansiyonlar RFC 9457/idempotency/pagination; webhook event kataloğu + imzalama/retry; STT/TTS/LLM/Telephony SPI + ortak yetenekler + hata taksonomisi + fallback; permission-key→endpoint eşlemesi; YAML/JSON örnekleri parse-doğrulandı)
 - [ ] **0.1.5** Threat model (STRIDE) ve güvenlik tasarım derinleştirme — `F0` · `Must` · →SAD §24
 - [ ] **0.1.6** DPIA şablonu + compliance profile parametre seti (TR/UK/EU/ME) — `F0` · `Must` · →BRD §14
 - [ ] **0.1.7** `.docx` üretim hattı (pandoc + branded reference-doc) operasyonelleştir — `F0` · `Should` · →docs/build-docx.sh

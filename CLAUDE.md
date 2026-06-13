@@ -16,8 +16,9 @@ kurumsal sistemlerde gerçek işlem yapar ve gerektiğinde insan temsilciye kesi
 - `docs/SRS.md` — Sistem Gereksinimleri (System Requirements). FR/NFR → doğrulanabilir `SR-*` (yöntem T/A/I/D + kabul ölçütü).
 - `docs/RTM.md` — İzlenebilirlik Matrisi (Requirements Traceability Matrix). FR/NFR ↔ SR ↔ Test Case (`TC-<ALAN>-NNN`) ↔ WBS. Tabloları `docs/gen_rtm.py` ile **türetilir** (repo kökünden çalıştır); kaynak değişince yeniden üret.
 - `docs/DB.md` — Veri Tabanı Tasarımı (Database Design). BRD §16'daki 28 varlık → PostgreSQL şeması (PK/FK, indeks, **RLS politikaları**), tenancy sınıfı, partition, residency/KMS, WORM audit, retention/legal-hold. SAD §12/§13/§14.4 esas.
+- `docs/API.md` — API & Interface Design (ICD). 5 yüzey: L0/L1/L2 panel API + Public Developer API (OpenAPI 3.1) + Adapter SPI (STT/TTS/LLM/Telephony). Ortak konvansiyonlar (RFC 9457 hata, idempotency, pagination, rate limit, `x-required-permission`→permission-key), webhook event kataloğu + imzalama/retry, SPI ortak yetenekler + hata taksonomisi + fallback, real-time turn-event/medya/tool sözleşmeleri. SAD §8.1/§8.2/§14.4 esas.
 - `docs/build-docx.sh` + `docs/assets/rmc-reference.docx` — `.md` → markalı `.docx` artifact (pandoc).
-- Sıradaki dokümanlar: **API/SPI tasarımı (0.1.4)** → Faz 1 kod.
+- Sıradaki dokümanlar: **Threat model STRIDE (0.1.5)** → **DPIA/compliance profile (0.1.6)** → Faz 1 kod.
 - **`.md` source of truth'tur; `.docx` üretilen artifact'tir.** İçeriği `.md`'de değiştir, `.docx`'i build et.
 
 ## Yazım kuralları
