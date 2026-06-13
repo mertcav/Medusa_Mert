@@ -24,9 +24,13 @@ kategorisi için **ölçüt-tabanlı, sağlayıcı-nötr ve tekrarlanabilir** de
 | `llm_eval_probe.py` | LLM değerlendirme hattı (score/compare/selftest; TTFT/tier/kalite/no-train/bölge/stall/tool-call + kapı) | 0.2.4 |
 | `vector-db-eval.md` | Vector DB eval (pgvector vs OpenSearch) — RAG retrieval recall@k (en-kötü sorgu sınıfı), retrieval gecikme, tenant namespace izolasyon, metadata/ACL filtre, residency/no-log | 0.2.5 · SAD §12.1/§10/§20, FR-KB-003..011, FR-TEN-002, NFR 10.7 |
 | `vector_db_eval_probe.py` | Vector DB değerlendirme hattı (score/compare/selftest; recall@k/retrieval-gecikme/cross-tenant+ACL leak/residency + kapı) | 0.2.5 |
+| `vendor-decision.md` | **Vendor karar raporu** — 0.2.1–0.2.5 kapı roll-up + ticari/uyumluluk/risk boyutları + ADR-002 portföy kapısı + karar kayıtları (provizyonel) | 0.2.6 · SAD §8.1/§8.4, ADR-002, BRD §19 |
+| `contract-dpa-checklist.md` | **Sözleşme/DPA/alt-işleyen taslağı** — RMC↔sağlayıcı + tenant↔RMC checklist'i + alt-işleyen kayıt (Ek-A) iskeleti + sağlayıcıya giden veri kaydı | 0.2.6 (+17.2.2) · BRD §14.1, DPIA §2/§5, NFR 10.7, FR-LLM-012/FR-KB-010 |
+| `vendor_decision_probe.py` | Vendor karar birleştirme hattı (rollup/register/selftest; 0.2.x score/stats JSON → karar matrisi + portföy kapısı + Ek-A iskeleti) | 0.2.6 |
 | `samples/*.json` | İllüstratif profiller: telefoni gecikme (`managed-*`/`raw-*`) + STT (`stt-*`) + TTS (`tts-*`) + LLM (`llm-*`) + Vector DB (`vdb-*`) test setleri; PoC'ta gerçek ölçümle değişir | 0.2.1/0.2.2/0.2.3/0.2.4/0.2.5 |
 
-> Sıradaki: `0.2.6` Vendor karar raporu (kategori başına ≥2 aday + DPA/alt-işleyen taslağı).
+> 0.2.x tamam → **0.3.x PoC** (canlı ölçüm) + **17.2.2** (DPA/alt-işleyen implementasyonu). Bağlayıcı
+> sağlayıcı seçimi `vendor-decision.md`'de **provizyonel**; 0.3.x canlı ölçüm + DPA imzasında netleşir.
 
 ## Harness hızlı başvuru
 ```bash
@@ -94,3 +98,19 @@ python3 docs/vendor-eval/vector_db_eval_probe.py score docs/vendor-eval/samples/
 python3 docs/vendor-eval/vector_db_eval_probe.py compare /tmp/vdb-*.json --out /tmp/vdb-compare.md
 ```
 Çıkış kodu: tüm kapılar geçerse `0`, biri elerse `1`. `relevant_ids` = exact-kNN ground-truth (dış girdi); managed dış DB credential'ı yalnız ortam değişkeniyle, **repoya yazılmaz**.
+
+### Vendor karar birleştirme (0.2.6)
+```bash
+# 1) Self-test (credential'sız): kategori çıkarımı, verdict normalizasyonu, portföy kapısı
+python3 docs/vendor-eval/vendor_decision_probe.py selftest
+
+# 2) 0.2.x score/stats JSON'larını birleştir → karar matrisi + ADR-002 portföy kapısı
+python3 docs/vendor-eval/vendor_decision_probe.py rollup /tmp/tel-*.json /tmp/stt-*.json \
+    /tmp/tts-*.json /tmp/llm-*.json /tmp/vdb-*.json --out /tmp/decision-matrix.md
+
+# 3) Alt-işleyen kayıt iskeleti (DPA Ek-A) üret
+python3 docs/vendor-eval/vendor_decision_probe.py register /tmp/*.json --out /tmp/subprocessors.md
+```
+Çıkış kodu (`rollup`): her hot-path kategoride ≥2 farklı geçen aday (ADR-002 portföy kapısı) varsa `0`,
+eksikse `1` (CI/0.4.4 gate). Bu hat **yeniden ölçmez**; 0.2.x probe çıktısını birleştirir. **Seçim yapmaz**
+(vendor-neutral); bağlayıcı seçim 0.3.x PoC + DPA. Detay: `vendor-decision.md` / `contract-dpa-checklist.md`.
