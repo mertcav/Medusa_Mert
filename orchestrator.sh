@@ -10,7 +10,7 @@ TODO="${TODO:-docs/todo_list.md}"      # işlenecek görev dosyası
 MAX_TASKS="${MAX_TASKS:-7}"            # bu çalışmada en fazla kaç görev işlensin
 AUTO_GIT="${AUTO_GIT:-1}"             # 1 ise tamamlanan görev sonrası commit dener
 AUTO_PUSH="${AUTO_PUSH:-1}"           # 1 ise her commit sonrası GitHub'a push eder
-GIT_BRANCH="${GIT_BRANCH:-main}"      # push edilecek dal
+GIT_BRANCH="${GIT_BRANCH:-chanteur-docs}"  # push edilecek dal (main DEĞİL: remote'ta başka proje var)
 # NOT: Kimlik doğrulama git credential store'dan gelir (~/.git-credentials).
 #      Token bu script'e YAZILMAZ; repoya commit edilmez.
 
