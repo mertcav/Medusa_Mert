@@ -1,0 +1,7 @@
+{
+  "provider": "managed-cpaas-ws-B",
+  "_note": "İLLÜSTRATİF mühendislik profili — gerçek değil. İkinci managed CPaaS Media Streaming (WebSocket) adayı, aynı-bölge. ADR-002 ≥2 sağlayıcı için ikinci aday. Gerçek değerler PoC'ta ölçülür.",
+  "sent": 50,
+  "received": 49,
+  "rtt_ms_samples": [58,62,60,64,59,70,66,61,63,68,72,65,60,67,74,62,66,69,61,71,80,64,63,70,66,61,60,67,73,65,62,69,64,61,68,78,66,62,70,67,61,64,75,66,63,71,65,62,69]
+}

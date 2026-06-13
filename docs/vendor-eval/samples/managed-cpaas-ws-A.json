@@ -1,0 +1,7 @@
+{
+  "provider": "managed-cpaas-ws-A",
+  "_note": "İLLÜSTRATİF mühendislik profili — gerçek değil. Managed CPaaS Media Streams (WebSocket) modu, aynı-bölge. Gerçek değerler 0.3.x PoC'ta canlı ölçülür. Sağlayıcı adı kasıtlı genel (vendor-neutral).",
+  "sent": 50,
+  "received": 50,
+  "rtt_ms_samples": [44,46,48,45,47,52,49,46,45,48,50,47,46,49,51,45,47,48,46,50,53,47,46,48,49,46,45,47,50,48,46,49,47,46,48,51,47,46,49,48,46,47,50,48,46,49,47,46,48,50]
+}

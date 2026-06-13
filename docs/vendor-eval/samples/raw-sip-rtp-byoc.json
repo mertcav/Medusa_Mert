@@ -1,0 +1,7 @@
+{
+  "provider": "raw-sip-rtp-byoc",
+  "_note": "İLLÜSTRATİF mühendislik profili — gerçek değil. Ham SIP trunk + RTP (BYOC), SBC üzerinden, kendi medya sonlandırma. Genelde en düşük taşıma gecikmesi ama medya hattı/operasyon yükü bizde (FR-TEL-002, ADR-009 ile ilişkili). Gerçek değerler PoC'ta ölçülür.",
+  "sent": 50,
+  "received": 50,
+  "rtt_ms_samples": [28,30,29,31,28,34,32,29,30,33,35,31,29,32,36,30,31,33,29,34,40,31,30,33,32,29,28,31,35,32,30,33,31,29,32,38,31,30,33,32,29,31,36,32,30,34,31,29,32,33]
+}
