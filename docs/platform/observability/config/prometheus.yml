@@ -1,0 +1,42 @@
+# Prometheus — gözlemlenebilirlik omurgası İSKELETİ (WBS 0.4.7, →SAD §17.1/§11, BRD §15).
+# OTel Collector'ın prometheus exporter'ını ve platform servislerini scrape eder.
+# Kubernetes service discovery (0.4.3) canlıda doldurulur. Vendor-neutral, credential-free.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s   # alarm değerlendirme; ≤2dk üretim bütçesi (NFR 10.1) için yeterli
+  external_labels:
+    platform: chanteur
+
+rule_files:
+  - alerts.yaml   # SAD §17.2 alarm kataloğu
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["${ALERTMANAGER_ENDPOINT}"]
+
+scrape_configs:
+  # OTel Collector'dan akan voice-runtime metrikleri (BRD §15 kataloğu).
+  - job_name: otel-collector
+    honor_labels: true
+    static_configs:
+      - targets: ["otel-collector:8889"]
+
+  # Data plane (Conversation Orchestrator — Go/Rust, ADR-003) doğrudan /metrics.
+  - job_name: conversation-orchestrator
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        regex: conversation-orchestrator
+        action: keep
+
+  # Control plane (FastAPI panel backend) /metrics.
+  - job_name: control-plane
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        regex: control-plane
+        action: keep

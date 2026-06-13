@@ -1,0 +1,84 @@
+{
+  "__comment": "Grafana dashboard İSKELETİ — voice-runtime (WBS 0.4.7, →SAD §17.1, FR-ANA-012). Gerçek-zamanlı operasyon ekranı, refresh ≤60sn. Panel sorguları observability-spec.json metrics.catalog adlarını kullanır. Vendor-neutral (Grafana açık). datasource'lar canlıda IaC ile bağlanır.",
+  "title": "Voice Runtime — Gözlemlenebilirlik (chanteur)",
+  "uid": "voice-runtime",
+  "tags": ["voice", "runtime", "sla", "brd-15"],
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "templating": {
+    "list": [
+      {"name": "tenant_id", "type": "query", "query": "label_values(e2e_response_latency_ms, tenant_id)"},
+      {"name": "agent_id", "type": "query", "query": "label_values(e2e_response_latency_ms, agent_id)"}
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "E2E Yanıt Gecikmesi P50/P95/P99 (SLO P95≤1200ms — NFR 10.1)",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum by (le) (rate(e2e_response_latency_ms_bucket{tenant_id=~\"$tenant_id\"}[5m])))", "legendFormat": "P50"},
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(e2e_response_latency_ms_bucket{tenant_id=~\"$tenant_id\"}[5m])))", "legendFormat": "P95"},
+        {"expr": "histogram_quantile(0.99, sum by (le) (rate(e2e_response_latency_ms_bucket{tenant_id=~\"$tenant_id\"}[5m])))", "legendFormat": "P99"}
+      ],
+      "thresholds": {"steps": [{"value": 1200, "color": "red"}]}
+    },
+    {
+      "id": 2,
+      "title": "STT / LLM / TTS Gecikme P95 (SAD §20 bileşen bütçesi)",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(stt_latency_ms_bucket[5m])))", "legendFormat": "STT"},
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(llm_latency_ms_bucket[5m])))", "legendFormat": "LLM"},
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(tts_latency_ms_bucket[5m])))", "legendFormat": "TTS"}
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Sağlayıcı Hata Oranı + Retry/Fallback (SAD §17.2)",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "max by (provider) (provider_error_ratio)", "legendFormat": "{{provider}} err"},
+        {"expr": "sum by (category) (rate(retry_fallback_total[5m]))", "legendFormat": "{{category}} fallback"}
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Barge-in + Transfer Sonucu + Sonlandırma Nedeni",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "sum(rate(barge_in_total[5m]))", "legendFormat": "barge-in/s"},
+        {"expr": "sum by (outcome) (rate(transfer_result_total[5m]))", "legendFormat": "transfer {{outcome}}"},
+        {"expr": "sum by (outcome) (rate(call_termination_total[5m]))", "legendFormat": "end {{outcome}}"}
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Medya Kalitesi: Packet Loss / Jitter",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "avg by (tenant_id) (voice_packet_loss_ratio)", "legendFormat": "loss"},
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(voice_jitter_ms_bucket[5m])))", "legendFormat": "jitter P95"}
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Per-call Kaynak: CPU / Bellek (bütçe 15MB — FR-RES-016, NFR 10.2)",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(call_memory_bytes_bucket[5m])))", "legendFormat": "mem P95"},
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(call_cpu_seconds_bucket[5m])))", "legendFormat": "cpu P95"}
+      ],
+      "thresholds": {"steps": [{"value": 15728640, "color": "red"}]}
+    },
+    {
+      "id": 7,
+      "title": "Maliyet / Dakika + Token Kullanımı (FR-ANA-007, FR-BIL-002)",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "avg by (tenant_id) (cost_per_minute)", "legendFormat": "cost/min"},
+        {"expr": "sum by (provider) (rate(llm_tokens_total[5m]))", "legendFormat": "{{provider}} tokens/s"}
+      ]
+    }
+  ]
+}

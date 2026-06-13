@@ -1,0 +1,75 @@
+# Prometheus alerting rules — gözlemlenebilirlik omurgası İSKELETİ (WBS 0.4.7, →SAD §17.2, BRD §15).
+# Her kural SAD §17.2 / BRD §15 kritik alarm kataloğunun BİR maddesine karşılık gelir.
+# `for:` değerleri ≤2dk (NFR 10.1 'alarm ≤2dk üretim'). expr'ler İSKELET — canlıda metrik adlarıyla
+# (observability-spec.json metrics.catalog) kalibre edilir. observability_probe.py spec↔rule çapraz-kontrol eder.
+
+groups:
+  - name: voice-runtime-critical
+    rules:
+      - alert: E2EP95LatencyHigh
+        expr: histogram_quantile(0.95, sum by (le) (rate(e2e_response_latency_ms_bucket[5m]))) > 1500
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: "E2E P95 yanıt gecikmesi > 1.5sn (SAD §17.2)"}
+
+      - alert: STTErrorRateHigh
+        expr: sum(increase(retry_fallback_total{category="stt"}[5m])) > 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: "STT hata/fallback oranı artışı (SAD §17.2)"}
+
+      - alert: LLMProviderErrorRateHigh
+        expr: max(provider_error_ratio{category="llm"}) > 0.05
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: "LLM sağlayıcı hata oranı artışı (SAD §17.2)"}
+
+      - alert: HandoffFailure
+        expr: sum(increase(transfer_result_total{outcome="failed"}[5m])) > 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: "İnsan aktarımı (handoff) başarısızlığı (SAD §17.2)"}
+
+      - alert: ToolErrorRateHigh
+        expr: sum(increase(retry_fallback_total{category="tool"}[5m])) > 0
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: "Tool hata oranı artışı (SAD §17.2)"}
+
+      - alert: SilentCallDetected
+        expr: sum(increase(call_termination_total{outcome="silent"}[5m])) > 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: "Silent call tespit edildi (SAD §17.2)"}
+
+      - alert: ConsentSkipDetected
+        expr: sum(increase(consent_skip_total[5m])) > 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: "Consent kontrolü atlandı (SAD §17.2)"}
+
+      - alert: InfoLeakDetected
+        expr: sum(increase(info_leak_total[5m])) > 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: "Bilgi sızıntısı tespiti (SAD §17.2)"}
+
+  - name: capacity-and-cost
+    rules:
+      - alert: TenantCapacity80
+        expr: (tenant_concurrency / tenant_concurrency_limit) > 0.8
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: "Tenant kapasitesi %80'e ulaştı (SAD §17.2)"}
+
+      - alert: SpendLimitExceeded
+        expr: (tenant_spend / tenant_spend_limit) > 1.0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: "Harcama limiti aşıldı (SAD §17.2)"}
+
+      - alert: ResourceBudgetExceeded
+        expr: histogram_quantile(0.95, sum by (le) (rate(call_memory_bytes_bucket[5m]))) > 15728640
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: "Per-call kaynak bütçesi (15MB) aşıldı (SAD §17.2, FR-RES-016)"}

@@ -1,0 +1,140 @@
+{
+  "$comment": "Gözlemlenebilirlik omurgası spec'i (WBS 0.4.7, →SAD §17, BRD §15). MAKİNE-OKUNUR KAYNAK DOĞRULUK. observability_probe.py bu dosyayı BRD §15 / SAD §17 gereksinimlerine karşı doğrular ve skeleton config'lerle çapraz tutarlılığı denetler. Vendor-neutral: OTel/Prometheus/Grafana/Loki açık standartlardır (ADR-002 ruhu, SAD §11). Değerler MÜHENDİSLİK İSKELETİ; canlı runtime (Faz 1) gerçek telemetri ile doldurur.",
+  "version": "0.4.7",
+  "iz": {
+    "sad": ["§17.1", "§17.2", "§17.3", "§13.3", "§11 stack tablosu"],
+    "brd": ["§15"],
+    "nfr": ["10.1 (alarm ≤2dk)", "10.2 (per-call CPU/mem)", "10.7 (residency)"],
+    "fr": ["FR-RES-012 (yapılandırılmış/örneklemeli/asenkron log)", "FR-ANA-012 (≤60sn op ekranı)", "FR-ANA-007/013 (maliyet/kaynak)", "FR-BIL-002", "FR-TOOL-010 (correlation_id audit/trace)"]
+  },
+
+  "pipelines": {
+    "$comment": "Üç telemetri sinyali; hepsi OTel Collector üzerinden akar (tek giriş, çok çıkış). 'measure everything, cheaply' (SAD §1 prensip 7): runtime'da örneklemeli + asenkron; collector'da işlenir.",
+    "traces": {
+      "signal": "traces",
+      "source": "OpenTelemetry SDK (data plane Go/Rust + control plane FastAPI)",
+      "collector_pipeline": "traces",
+      "backend": "OTLP trace backend (Tempo/Jaeger-uyumlu, vendor-neutral)",
+      "sampling": "tail-based",
+      "required": true
+    },
+    "metrics": {
+      "signal": "metrics",
+      "source": "OpenTelemetry SDK + Prometheus client",
+      "collector_pipeline": "metrics",
+      "backend": "Prometheus",
+      "sampling": "none (aggregate; exemplar ile trace'e bağlı)",
+      "required": true
+    },
+    "logs": {
+      "signal": "logs",
+      "source": "Yapılandırılmış asenkron logger (FR-RES-012)",
+      "collector_pipeline": "logs",
+      "backend": "Loki",
+      "sampling": "head-based (örneklemeli; error/warn her zaman)",
+      "required": true
+    }
+  },
+
+  "label_policy": {
+    "$comment": "SAD §13.3: tenant_id (+org_unit, agent_id, correlation_id) HER istek/event/log/span'de taşınır. KARDİNALİTE DİSİPLİNİ: Prometheus metrik label'ları SINIRLI (bounded) olmalı — yüksek-kardinalite kimlikler (correlation_id, call_id, customer_id) metrik label'ı OLAMAZ; yalnız trace/log alanı + metrik exemplar olarak bağlanır. Aksi takdirde TSDB cardinality patlar.",
+    "context_keys": ["tenant_id", "org_unit", "agent_id", "correlation_id", "region"],
+    "metric_labels_allowed": ["tenant_id", "org_unit", "agent_id", "region", "provider", "category", "sip_code", "codec", "outcome"],
+    "metric_labels_forbidden": ["correlation_id", "call_id", "customer_id", "phone_number", "token", "session_id"],
+    "high_cardinality_keys": ["correlation_id", "call_id", "customer_id", "session_id"],
+    "exemplar_keys": ["correlation_id", "trace_id"],
+    "trace_log_required_keys": ["tenant_id", "correlation_id"],
+    "pii_in_labels": "yasak (BRD §17.7 / FR-REC-004 — label/metric/trace attribute'ta PII yok; redaction L7'de)"
+  },
+
+  "sampling": {
+    "$comment": "SAD §1 prensip 7 + FR-RES-012: ölçüm runtime'ı yavaşlatmaz. Tail-based: hata + yavaş (P95 üzeri) + barge-in/transfer/tool-error çağrıları HER ZAMAN tutulur; normal trafik örneklenir.",
+    "traces_strategy": "tail-based",
+    "always_sample": ["error=true", "e2e_latency>p95_slo", "barge_in", "human_transfer", "tool_error", "fallback_triggered", "consent_skip"],
+    "base_rate": 0.1,
+    "logs_base_rate": 0.2,
+    "logs_always": ["level>=WARN", "security_event", "audit"],
+    "note": "Audit log'lar (WORM, FR-IAM-006) ASLA örneklenmez — bu spec runtime telemetri içindir, audit ayrı hat (DB.md WORM)."
+  },
+
+  "spans": {
+    "$comment": "BRD §15 / SAD §17.1: her çağrı bir correlation_id + OTel trace taşır; aşağıdaki zaman damgalarının HEPSİ span/event olarak kaydedilir.",
+    "root_span": "call",
+    "timestamps": [
+      "call_connected",
+      "first_audio_received",
+      "speech_started",
+      "speech_ended",
+      "stt_partial",
+      "stt_final",
+      "llm_request_started",
+      "llm_first_token",
+      "tool_request",
+      "tool_response",
+      "tts_request",
+      "tts_first_audio",
+      "audio_played",
+      "call_transferred",
+      "call_ended"
+    ]
+  },
+
+  "metrics": {
+    "$comment": "BRD §15 saklanması gereken teknik metrikler. type: gauge/counter/histogram. Her metrik label_policy.metric_labels_allowed alt kümesini kullanır.",
+    "catalog": [
+      {"name": "voice_packet_loss_ratio", "brd15": "packet loss", "type": "gauge", "unit": "ratio", "labels": ["tenant_id", "region", "codec"]},
+      {"name": "voice_jitter_ms", "brd15": "jitter", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "region", "codec"]},
+      {"name": "voice_codec_info", "brd15": "codec", "type": "gauge", "unit": "info", "labels": ["tenant_id", "codec"]},
+      {"name": "telephony_sip_response_total", "brd15": "SIP response code", "type": "counter", "unit": "1", "labels": ["tenant_id", "sip_code"]},
+      {"name": "stt_latency_ms", "brd15": "STT latency", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "provider"]},
+      {"name": "stt_word_confidence", "brd15": "word confidence", "type": "histogram", "unit": "ratio", "labels": ["tenant_id", "provider"]},
+      {"name": "llm_latency_ms", "brd15": "LLM latency", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "provider", "category"]},
+      {"name": "llm_tokens_total", "brd15": "token kullanımı", "type": "counter", "unit": "1", "labels": ["tenant_id", "provider", "category"]},
+      {"name": "tool_latency_ms", "brd15": "tool latency", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "agent_id"]},
+      {"name": "tts_latency_ms", "brd15": "TTS latency", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "provider"]},
+      {"name": "e2e_response_latency_ms", "brd15": "end-to-end response latency", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "agent_id"]},
+      {"name": "barge_in_total", "brd15": "barge-in sayısı", "type": "counter", "unit": "1", "labels": ["tenant_id", "agent_id"]},
+      {"name": "silence_duration_ms", "brd15": "silence süresi", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "agent_id"]},
+      {"name": "retry_fallback_total", "brd15": "retry/fallback", "type": "counter", "unit": "1", "labels": ["tenant_id", "provider", "category"]},
+      {"name": "transfer_result_total", "brd15": "transfer sonucu", "type": "counter", "unit": "1", "labels": ["tenant_id", "outcome"]},
+      {"name": "call_termination_total", "brd15": "çağrı sonlandırma nedeni", "type": "counter", "unit": "1", "labels": ["tenant_id", "outcome"]},
+      {"name": "provider_error_ratio", "brd15": "provider hata oranı", "type": "gauge", "unit": "ratio", "labels": ["tenant_id", "provider", "category"]},
+      {"name": "cost_per_minute", "brd15": "dakika başı maliyet", "type": "gauge", "unit": "currency", "labels": ["tenant_id", "provider", "category"]},
+      {"name": "call_cpu_seconds", "brd15": "çağrı başına CPU", "type": "histogram", "unit": "s", "labels": ["tenant_id"]},
+      {"name": "call_memory_bytes", "brd15": "çağrı başına bellek", "type": "histogram", "unit": "bytes", "labels": ["tenant_id"]}
+    ]
+  },
+
+  "alerts": {
+    "$comment": "SAD §17.2 / BRD §15 kritik alarmlar. detection_budget_s: alarm üretim bütçesi ≤120sn (NFR 10.1 'alarm ≤2dk'). Her alert config/alerts.yaml'da bir rule olarak görünmelidir (probe çapraz-kontrol eder).",
+    "max_detection_budget_s": 120,
+    "catalog": [
+      {"name": "E2EP95LatencyHigh", "sad172": "P95 > 1.5sn", "expr_hint": "histogram_quantile(0.95, e2e_response_latency_ms) > 1500", "severity": "critical", "detection_budget_s": 120},
+      {"name": "STTErrorRateHigh", "sad172": "STT hata artışı", "expr_hint": "increase(retry_fallback_total{category=\"stt\"})", "severity": "critical", "detection_budget_s": 120},
+      {"name": "LLMProviderErrorRateHigh", "sad172": "LLM sağlayıcı hata artışı", "expr_hint": "provider_error_ratio{category=\"llm\"} > 0.05", "severity": "critical", "detection_budget_s": 120},
+      {"name": "HandoffFailure", "sad172": "handoff başarısızlığı", "expr_hint": "increase(transfer_result_total{outcome=\"failed\"})", "severity": "critical", "detection_budget_s": 120},
+      {"name": "ToolErrorRateHigh", "sad172": "tool hata artışı", "expr_hint": "increase(retry_fallback_total{category=\"tool\"})", "severity": "warning", "detection_budget_s": 120},
+      {"name": "SilentCallDetected", "sad172": "silent call", "expr_hint": "increase(call_termination_total{outcome=\"silent\"})", "severity": "critical", "detection_budget_s": 120},
+      {"name": "ConsentSkipDetected", "sad172": "consent kontrolü atlama", "expr_hint": "increase(consent_skip_total) > 0", "severity": "critical", "detection_budget_s": 120},
+      {"name": "InfoLeakDetected", "sad172": "bilgi sızıntısı tespiti", "expr_hint": "increase(info_leak_total) > 0", "severity": "critical", "detection_budget_s": 120},
+      {"name": "TenantCapacity80", "sad172": "tenant kapasitesi %80", "expr_hint": "tenant_concurrency / tenant_concurrency_limit > 0.8", "severity": "warning", "detection_budget_s": 120},
+      {"name": "SpendLimitExceeded", "sad172": "harcama limiti aşımı", "expr_hint": "tenant_spend / tenant_spend_limit > 1.0", "severity": "warning", "detection_budget_s": 120},
+      {"name": "ResourceBudgetExceeded", "sad172": "kaynak bütçesi aşımı", "expr_hint": "histogram_quantile(0.95, call_memory_bytes) > 15728640", "severity": "warning", "detection_budget_s": 120}
+    ]
+  },
+
+  "dashboards": {
+    "$comment": "Grafana; FR-ANA-012 gerçek-zamanlı op ekranı ≤60sn. İskelet: en az voice-runtime panosu.",
+    "required": ["voice-runtime"],
+    "freshness_budget_s": 60
+  },
+
+  "config_files": {
+    "$comment": "Skeleton config'ler; probe varlık + spec-tutarlılığını denetler.",
+    "otel_collector": "config/otel-collector.yaml",
+    "prometheus": "config/prometheus.yml",
+    "alerts": "config/alerts.yaml",
+    "loki": "config/loki.yaml",
+    "grafana_dashboard_voice_runtime": "config/grafana-dashboard-voice-runtime.json"
+  }
+}

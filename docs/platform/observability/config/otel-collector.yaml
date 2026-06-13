@@ -1,0 +1,95 @@
+# OpenTelemetry Collector — gözlemlenebilirlik omurgası İSKELETİ (WBS 0.4.7, →SAD §17.1, §11).
+# Tek giriş (OTLP), üç sinyal (traces/metrics/logs), çok çıkış. Vendor-neutral: tüm bileşenler
+# açık OTel/Prometheus/Loki standartları. SIR/CREDENTIAL YOK — endpoint'ler ${ENV} ile enjekte edilir.
+# Bu dosya skeleton; canlı (Faz 1) ortamda Helm/IaC (0.4.2/0.4.3) tarafından parametrelenir.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # SAD §13.3: tenant_id/org_unit/agent_id/correlation_id her sinyalde taşınır.
+  # Eksikse reddetme yerine işaretle (canlıda SDK zorunlu kılar).
+  resource/tenant_context:
+    attributes:
+      - key: tenant_id
+        action: upsert
+        from_attribute: tenant_id
+      - key: region
+        action: upsert
+        from_attribute: region
+
+  # KARDİNALİTE DİSİPLİNİ (label_policy): yüksek-kardinalite kimlikleri METRİK'ten düş;
+  # bunlar yalnız trace/log alanı + metrik exemplar olarak kalır.
+  attributes/metric_cardinality_guard:
+    actions:
+      - key: correlation_id
+        action: delete
+      - key: call_id
+        action: delete
+      - key: customer_id
+        action: delete
+      - key: session_id
+        action: delete
+
+  # PII guard — BRD §17.7 / FR-REC-004: label/attribute'ta PII yok.
+  attributes/pii_guard:
+    actions:
+      - key: phone_number
+        action: delete
+      - key: token
+        action: delete
+
+  # 'measure everything, cheaply' (SAD §1/§17): tail-based sampling.
+  # Hata + yavaş + barge-in/transfer/tool-error HER ZAMAN tutulur; gerisi örneklenir.
+  tail_sampling:
+    decision_wait: 5s
+    policies:
+      - name: errors
+        type: status_code
+        status_code: {status_codes: [ERROR]}
+      - name: slow_calls
+        type: latency
+        latency: {threshold_ms: 1200}   # NFR 10.1 e2e P95 SLO
+      - name: critical_events
+        type: string_attribute
+        string_attribute:
+          key: event_class
+          values: [barge_in, human_transfer, tool_error, fallback_triggered, consent_skip]
+      - name: base_rate
+        type: probabilistic
+        probabilistic: {sampling_percentage: 10}
+
+  batch:
+    timeout: 2s   # asenkron/batched — runtime'ı bloklamaz (FR-RES-012)
+
+exporters:
+  # Metrics → Prometheus (exemplar'larla trace'e bağlı).
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    enable_open_metrics: true   # exemplar desteği
+  # Traces → OTLP backend (Tempo/Jaeger-uyumlu, vendor-neutral).
+  otlp/traces:
+    endpoint: ${env:TRACE_BACKEND_OTLP_ENDPOINT}
+  # Logs → Loki (OTLP/loki exporter).
+  loki:
+    endpoint: ${env:LOKI_ENDPOINT}
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [resource/tenant_context, tail_sampling, batch]
+      exporters: [otlp/traces]
+    metrics:
+      receivers: [otlp]
+      processors: [resource/tenant_context, attributes/metric_cardinality_guard, attributes/pii_guard, batch]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [resource/tenant_context, attributes/pii_guard, batch]
+      exporters: [loki]

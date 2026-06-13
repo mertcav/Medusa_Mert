@@ -1,0 +1,31 @@
+# Loki — gözlemlenebilirlik omurgası İSKELETİ (WBS 0.4.7, →SAD §17.1/§11, FR-RES-012).
+# Yapılandırılmış, örneklemeli, asenkron log deposu. Vendor-neutral, credential-free.
+# Residency (NFR 10.7): tenant log'ları home-region store'a yazılır; canlıda IaC (0.4.2) per-region deploy eder.
+
+auth_enabled: true   # multi-tenant: tenant_id = X-Scope-OrgID (tenant izolasyonu, FR-TEN-002)
+
+server:
+  http_listen_port: 3100
+
+common:
+  ring:
+    kvstore: {store: memberlist}
+  replication_factor: 3   # multi-AZ (NFR 10.5)
+
+schema_config:
+  configs:
+    - from: 2026-01-01
+      store: tsdb
+      object_store: s3   # tenant-bazlı bucket/prefix + KMS (SAD §12.1)
+      schema: v13
+      index: {prefix: index_, period: 24h}
+
+limits_config:
+  # Etiket kardinalitesi sınırı — yüksek-kardinalite kimlikler (correlation_id) STREAM LABEL değil,
+  # log SATIR ALANI olarak taşınır (label_policy ile tutarlı).
+  max_label_names_per_series: 15
+  retention_period: 720h   # iskelet; gerçek retention compliance profile (cp.retention.*, DPIA.md) ile.
+  reject_old_samples: true
+
+# Stream label'ları DÜŞÜK kardinalite: tenant_id/region/service/level.
+# correlation_id, call_id → log gövdesinde (yapılandırılmış JSON alanı), label DEĞİL.
