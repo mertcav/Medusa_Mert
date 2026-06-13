@@ -8,8 +8,10 @@
 -- Oturum sözleşmesi (uygulama transaction başında set eder — DB.md §6.1):
 --   SET LOCAL app.tenant_id = '<uuid>';   -- tenant realm (L1/L2)
 --   SET LOCAL app.platform  = 'on';       -- platform realm (L0)
--- current_setting(..., true) → GUC yoksa NULL → karşılaştırma false →
--- HİÇBİR satır görünmez (FAIL-CLOSED). Scope'u unutmak veriyi açmaz, kapatır.
+-- NULLIF(current_setting(..., true), '')::uuid → GUC yoksa (NULL) VEYA bağlantı
+-- havuzunda SET LOCAL sonrası placeholder boş-string'e ('') döndüğünde karşılaştırma
+-- NULL → HİÇBİR satır görünmez (FAIL-CLOSED). Çıplak ''::uuid hata fırlatırdı; NULLIF
+-- boş string'i sessizce kapatır (DB.md §6.2). Scope'u unutmak veriyi açmaz, kapatır.
 --
 -- Uygulama RLS'i bypass etmeyen app_rw rolüyle bağlanır (0001). FORCE RLS ile
 -- tablo sahibi de politikaya tabidir.
@@ -24,7 +26,7 @@ ALTER TABLE tenant FORCE  ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_self ON tenant
     USING (
-        id = current_setting('app.tenant_id', true)::uuid
+        id = NULLIF(current_setting('app.tenant_id', true), '')::uuid
         OR current_setting('app.platform', true) = 'on'
     )
     WITH CHECK (
@@ -38,8 +40,8 @@ ALTER TABLE organisation_unit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organisation_unit FORCE  ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_isolation ON organisation_unit
-    USING      (tenant_id = current_setting('app.tenant_id', true)::uuid)
-    WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+    USING      (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
+    WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
 
 -- -----------------------------------------------------------------------------
 -- 3) app_user — tenant kullanıcıları standart izolasyon; platform (tenant_id
@@ -52,11 +54,11 @@ ALTER TABLE app_user FORCE  ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_isolation ON app_user
     USING (
-        tenant_id = current_setting('app.tenant_id', true)::uuid
+        tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid
         OR (tenant_id IS NULL AND current_setting('app.platform', true) = 'on')
     )
     WITH CHECK (
-        tenant_id = current_setting('app.tenant_id', true)::uuid
+        tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid
         OR (tenant_id IS NULL AND current_setting('app.platform', true) = 'on')
     );
 
@@ -69,11 +71,11 @@ ALTER TABLE user_role_assignment FORCE  ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_isolation ON user_role_assignment
     USING (
-        tenant_id = current_setting('app.tenant_id', true)::uuid
+        tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid
         OR (tenant_id IS NULL AND current_setting('app.platform', true) = 'on')
     )
     WITH CHECK (
-        tenant_id = current_setting('app.tenant_id', true)::uuid
+        tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid
         OR (tenant_id IS NULL AND current_setting('app.platform', true) = 'on')
     );
 

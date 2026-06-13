@@ -76,8 +76,9 @@ SET ROLE app_rw;
 DO $$
 DECLARE n int; av uuid;
 BEGIN
-    -- (1) FAIL-CLOSED: scope yokken hiçbir agent görünmez. GUC'lar NULL'a
-    --     resetlenir ('' DEĞİL — ''::uuid hata fırlatır; NULL::uuid → false → 0 satır).
+    -- (1) FAIL-CLOSED: scope yokken hiçbir agent görünmez. set_config(...,NULL,...)
+    --     placeholder GUC'u boş-string'e ('') düşürür; politikadaki NULLIF(...,'')::uuid
+    --     bunu NULL'a çevirir → 0 satır, hata değil (DB.md §6.2).
     PERFORM set_config('app.tenant_id', NULL, true);
     PERFORM set_config('app.platform', NULL, true);
     SELECT count(*) INTO n FROM agent;

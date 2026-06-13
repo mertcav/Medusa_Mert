@@ -733,23 +733,28 @@ ALTER TABLE <tablo> ENABLE ROW LEVEL SECURITY;
 ALTER TABLE <tablo> FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_isolation ON <tablo>
-    USING       (tenant_id = current_setting('app.tenant_id', true)::uuid)
-    WITH CHECK  (tenant_id = current_setting('app.tenant_id', true)::uuid);
+    USING       (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
+    WITH CHECK  (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
 ```
 
 - `USING` → okuma/güncelleme/silmede satır görünürlüğü; `WITH CHECK` → insert/update'te yanlış
   `tenant_id` yazılmasını engeller (cross-tenant write koruması).
-- `current_setting(..., true)` ikinci argümanı `true`: GUC set edilmemişse hata yerine NULL → karşılaştırma
-  false → **hiçbir satır görünmez** (fail-closed). Scope set etmeyi unutmak veri açmaz, kapatır.
+- `current_setting(..., true)` ikinci argümanı `true`: GUC set edilmemişse hata yerine NULL döndürür.
+- **`NULLIF(..., '')` neden gerekli:** bağlantı havuzunda `SET LOCAL app.tenant_id` transaction
+  sonunda geri alınır, ancak placeholder GUC oturumda tanımlı kaldığından `current_setting(...,true)`
+  bir sonraki (scope set etmeyen) transaction'da **boş string `''` döndürür, NULL değil**. Çıplak
+  `''::uuid` *hata* fırlatırdı (fail-closed değil, fail-error). `NULLIF(...,'')` boş string'i NULL'a
+  çevirir → karşılaştırma NULL → **hiçbir satır görünmez** (gerçek fail-closed). Hem set-edilmemiş
+  (NULL) hem havuzda-resetlenmiş (`''`) durum tek desende kapanır. Scope unutmak veri açmaz, kapatır.
 
 ### 6.3 Tablo sınıfına göre politika matrisi
 
 | Sınıf | Tablolar | RLS politikası |
 |-------|----------|----------------|
 | **Tenant-scoped** | organisation_unit, app_user(tenant), agent, agent_version, prompt, conversation_flow, voice/model/stt_profile, knowledge_base, kb_document, kb_chunk, tool, phone_number, sip_trunk, campaign, contact, consent, call, call_leg, transcript, transcript_segment, recording, call_event, tool_execution, call_evaluation, usage_record, retention_policy, legal_hold, user_role_assignment | §6.2 standart `tenant_isolation` |
-| **Root** | tenant | Tenant kullanıcısı yalnız kendi satırını görür: `USING (id = current_setting('app.tenant_id', true)::uuid)`. Platform realm (`app.platform = on`) tümünü görür. |
+| **Root** | tenant | Tenant kullanıcısı yalnız kendi satırını görür: `USING (id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)`. Platform realm (`app.platform = on`) tümünü görür. |
 | **Global / reference** | role, permission_key, role_permission | RLS yok (salt-okunur referans; yazım yalnız platform migration). |
-| **Platform + tenant karışık** | audit_log, incident | `USING (tenant_id = current_setting('app.tenant_id', true)::uuid OR (tenant_id IS NULL AND current_setting('app.platform', true) = 'on'))`. Audit **append-only**: ayrıca §6.5. |
+| **Platform + tenant karışık** | audit_log, incident | `USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid OR (tenant_id IS NULL AND current_setting('app.platform', true) = 'on'))`. Audit **append-only**: ayrıca §6.5. |
 | **Platform-only** | break_glass_grant | Yalnız platform realm; tenant'a görünmez (ama Tier B bildirimi tenant'a gider, app katmanında). |
 
 ### 6.4 Break-glass ile koşullu erişim (Tier B)
@@ -763,7 +768,7 @@ CREATE POLICY break_glass_read ON transcript
     FOR SELECT
     USING (
         current_setting('app.platform', true) = 'on'
-        AND tenant_id = current_setting('app.bg_tenant_id', true)::uuid
+        AND tenant_id = NULLIF(current_setting('app.bg_tenant_id', true), '')::uuid
         AND current_setting('app.bg_active', true) = 'on'   -- grant doğrulandı + süre dolmadı
     );
 ```

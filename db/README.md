@@ -6,6 +6,9 @@ Dilimler:
   (`F1` · Must · →BRD §16 (1–4), SAD §13.1, FR-TEN-002, FR-IAM-011, ADR-006).
 - **WBS 1.1.2 — Agent, Agent Version, Prompt, Conversation Flow, Voice/Model/STT Profile (+ RLS)**
   (`F1` · Must · →BRD §16 (5–11), SAD §13.1, DB.md §5.2; agent_version **WORM** §6.5/FR-AGT-006).
+- **WBS 1.1.3 — Call, Call Leg, Transcript (+ Segment), Recording, Event, Tool Execution (+ RLS)**
+  (`F1` · Must · →BRD §16 (19–24), SAD §13.1, DB.md §5.5/§7.2; tümü **partition'lı** (RANGE
+  created_at), tool_execution **WORM + idempotent** §6.5/§5.5/FR-TOOL-009).
 
 > **Source of truth `docs/DB.md`'dir.** Çelişki olursa DB.md (ve onun üstünde BRD/SAD) esastır.
 > Vendor-neutral: PostgreSQL "ilişkisel + RLS" yeteneği için referans (SAD §12.1, ADR-006).
@@ -23,11 +26,15 @@ db/
     0004_agent_config.{up,down}.sql         # agent, agent_version (WORM), prompt, conversation_flow,
                                             #   voice/model/stt_profile; dairesel FK (ALTER)
     0005_rls_agent_config.{up,down}.sql     # 7 tablo tenant_isolation RLS + grant; agent_version WORM grant
+    0006_call_interaction.{up,down}.sql     # call, call_leg, transcript(+segment), recording, call_event,
+                                            #   tool_execution (WORM); RANGE partition + DEFAULT + create_month_partition()
+    0007_rls_call_interaction.{up,down}.sql # 7 partition'lı tablo tenant_isolation RLS + grant; tool_execution WORM grant
   seeds/
     roles.sql                               # sabit global rol kümesi (FR-IAM-011, ADR-012)
   tests/
     rls_isolation.sql                       # canlı RLS davranış testi — Tenant/Org/User (CI)
     agent_config_isolation.sql              # canlı RLS + WORM davranış testi — Agent/Config (CI)
+    call_interaction_isolation.sql          # canlı RLS + WORM + partition davranış testi — Çağrı/Etkileşim (CI)
   run_live_test.sh                          # sunucu varsa migration+seed+test koşar; yoksa SKIP
   schema_probe.py                           # stdlib-only statik kapı (validate/selftest/schema)
 ```
@@ -45,15 +52,18 @@ SET LOCAL app.tenant_id = '<uuid>';   -- tenant realm (L1/L2)
 SET LOCAL app.platform  = 'on';       -- platform realm (L0)
 ```
 
-`current_setting('app.tenant_id', true)` iki-argümanlı kullanılır: GUC yoksa `NULL` →
-karşılaştırma `false` → **hiçbir satır görünmez** (fail-closed). Scope'u unutmak veriyi açmaz, kapatır.
+Politikalar `NULLIF(current_setting('app.tenant_id', true), '')::uuid` kullanır: GUC yoksa `NULL`,
+**veya** bağlantı havuzunda `SET LOCAL` sonrası placeholder boş-string'e (`''`) döndüğünde `NULLIF`
+onu `NULL`'a çevirir → karşılaştırma `NULL` → **hiçbir satır görünmez** (fail-closed). Çıplak
+`''::uuid` *hata* fırlatırdı (fail-error); `NULLIF(...,'')` her iki durumu da sessizce kapatır
+(DB.md §6.2). Scope'u unutmak veriyi açmaz, kapatır.
 
 ## Kapılar
 
 ```bash
 # Statik kapı (sunucu gerekmez) — tasarım invariant doğrulaması
-python3 db/schema_probe.py validate     # 140/140 kontrol (1.1.1 + 1.1.2), çıkış 0
-python3 db/schema_probe.py selftest     # 20/20 predikat testi, çıkış 0
+python3 db/schema_probe.py validate     # 240/240 kontrol (1.1.1 + 1.1.2 + 1.1.3), çıkış 0
+python3 db/schema_probe.py selftest     # 30/30 predikat testi, çıkış 0
 python3 db/schema_probe.py schema       # beklenen nesneler/sözleşme (JSON)
 
 # Canlı kapı (CI / çalışan PostgreSQL) — gerçek RLS davranışı
@@ -68,17 +78,30 @@ FK indeksleri; down migration'ların nesneleri düşürmesi; seed'in 12 sabit ro
 WORM (immutable trigger + `app_rw`'ye yalnız INSERT+SELECT, UPDATE/DELETE grant yok); dairesel
 FK'nin (agent.active_version_id → agent_version) inline değil ALTER ile eklenmesi; conversation_flow
 GIN indeksi.
+**1.1.3 ek:** 7 çağrı/etkileşim tablosunun **RANGE (created_at) partition'lı** olması + `(id, created_at)`
+kompozit PK + tenant_id NOT NULL gerçek FK; call_id/transcript_id'nin **mantıksal FK** (partition'lı
+parent'a REFERENCES yok — DB.md §7.2); call'da agent/agent_version gerçek FK'leri; her tablo RLS/WITH
+CHECK; `tool_execution` WORM (immutable trigger + INSERT+SELECT grant) + idempotency UNIQUE; DEFAULT
+partition + `create_month_partition()` aylık yardımcı; call_event GIN + recording retention partial
+index. **Çapraz (tüm seriler):** politikaların `NULLIF(current_setting(...),'')::uuid` ile
+boş-string-güvenli (havuz fail-closed) olması.
 
 `run_live_test.sh` (CI'da gerçek sunucuyla) doğrular: fail-closed (scope yokken 0 satır), tenant
 izolasyonu, tenant Root self-policy, cross-tenant insert reddi, platform realm tam görünürlük,
 global rol tablosuna `app_rw` yazım reddi, UUIDv7 bit kontrolü. **1.1.2 ek
 (`agent_config_isolation.sql`):** agent/config tenant izolasyonu, cross-tenant write reddi, dairesel
 FK çözümü, `agent_version` UPDATE/DELETE reddi (WORM), platform realm'in iş config'ini görmemesi
-(altın kural). Not: fail-closed için GUC'lar **NULL'a** resetlenir (`''::uuid` hata fırlatacağından
-boş-string kullanılmaz).
+(altın kural). **1.1.3 ek (`call_interaction_isolation.sql`):** çağrı/etkileşim tenant izolasyonu,
+partition routing (Haziran 2026 çağrısı `call_p202606`'ya düşer — `tableoid` ile doğrulanır),
+cross-tenant write reddi, `tool_execution` idempotency (duplicate insert reddi) + UPDATE/DELETE reddi
+(WORM), mutable `call` UPDATE'in geçmesi, platform realm'in transcript görmemesi (altın kural).
+Not: `set_config(...,NULL,...)` placeholder'ı boş-string'e (`''`) düşürür; politikadaki
+`NULLIF(...,'')::uuid` bunu fail-closed'a çevirir (havuz davranışı testte birebir doğrulanır).
 
 ## Sonraki adımlar
 
-- WBS 1.1.3/1.1.4 — kalan BRD §16 varlıkları (Call…, Campaign…) aynı desende.
+- WBS 1.1.4 — kalan BRD §16 varlıkları (Campaign, Contact, Consent, Usage Record, Call Evaluation,
+  Audit Log, Incident) aynı desende. `call.campaign_id` FK'si campaign tablosu gelince ALTER ile eklenir;
+  `tool_execution.tool_id` FK'si tool tablosu gelince. `call_evaluation` 1.1.4 kapsamındadır.
 - WBS 12.1.2 — permission-key kataloğu + role→permission bundle eşlemesi (seed genişler).
 - WBS 0.4.4 / 12.2.3 — `run_live_test.sh` CI hattına bağlanır (tenant izolasyon test kapısı).

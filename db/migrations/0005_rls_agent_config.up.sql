@@ -8,7 +8,8 @@
 --
 -- Oturum sözleşmesi (0003 ile aynı): transaction başında
 --   SET LOCAL app.tenant_id = '<uuid>';
--- current_setting(..., true) → GUC yoksa NULL → 0 satır (FAIL-CLOSED).
+-- NULLIF(current_setting(..., true), '')::uuid → GUC yoksa (NULL) VEYA havuzda
+-- SET LOCAL sonrası placeholder '' döndüğünde → 0 satır (FAIL-CLOSED). DB.md §6.2.
 --
 -- agent_version ek olarak WORM/append-only (DB.md §6.5): app_rw yalnız
 -- INSERT+SELECT alır; UPDATE/DELETE grant düzeyinde de reddedilir (0004'teki
@@ -21,44 +22,44 @@
 ALTER TABLE agent             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agent             FORCE  ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON agent
-    USING      (tenant_id = current_setting('app.tenant_id', true)::uuid)
-    WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+    USING      (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
+    WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
 
 ALTER TABLE agent_version     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agent_version     FORCE  ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON agent_version
-    USING      (tenant_id = current_setting('app.tenant_id', true)::uuid)
-    WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+    USING      (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
+    WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
 
 ALTER TABLE prompt            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE prompt            FORCE  ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON prompt
-    USING      (tenant_id = current_setting('app.tenant_id', true)::uuid)
-    WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+    USING      (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
+    WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
 
 ALTER TABLE conversation_flow ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversation_flow FORCE  ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON conversation_flow
-    USING      (tenant_id = current_setting('app.tenant_id', true)::uuid)
-    WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+    USING      (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
+    WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
 
 ALTER TABLE voice_profile     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE voice_profile     FORCE  ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON voice_profile
-    USING      (tenant_id = current_setting('app.tenant_id', true)::uuid)
-    WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+    USING      (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
+    WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
 
 ALTER TABLE model_profile     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE model_profile     FORCE  ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON model_profile
-    USING      (tenant_id = current_setting('app.tenant_id', true)::uuid)
-    WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+    USING      (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
+    WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
 
 ALTER TABLE stt_profile       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stt_profile       FORCE  ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON stt_profile
-    USING      (tenant_id = current_setting('app.tenant_id', true)::uuid)
-    WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+    USING      (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
+    WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
 
 -- =============================================================================
 -- Grant'ler (DB.md §6.1, §6.5)

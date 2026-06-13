@@ -45,9 +45,12 @@ SET ROLE app_rw;
 DO $$
 DECLARE n int;
 BEGIN
-    -- (1) FAIL-CLOSED: hiçbir GUC yok → hiçbir satır görünmez.
-    PERFORM set_config('app.tenant_id', '', true);
-    PERFORM set_config('app.platform', '', true);
+    -- (1) FAIL-CLOSED: scope yokken hiçbir satır görünmez. set_config(...,NULL,...)
+    --     placeholder GUC'u boş-string'e ('') düşürür (bağlantı havuzu davranışıyla
+    --     aynı); politikadaki NULLIF(...,'')::uuid bunu NULL'a çevirir → 0 satır,
+    --     hata değil (DB.md §6.2).
+    PERFORM set_config('app.tenant_id', NULL, true);
+    PERFORM set_config('app.platform', NULL, true);
     SELECT count(*) INTO n FROM organisation_unit;
     IF n <> 0 THEN RAISE EXCEPTION 'FAIL-CLOSED ihlali: scope yokken % satır görüldü', n; END IF;
 
@@ -72,7 +75,7 @@ BEGIN
     END;
 
     -- (5) Platform realm tümünü görür.
-    PERFORM set_config('app.tenant_id', '', true);
+    PERFORM set_config('app.tenant_id', NULL, true);
     PERFORM set_config('app.platform', 'on', true);
     SELECT count(*) INTO n FROM tenant;
     IF n <> 2 THEN RAISE EXCEPTION 'platform görünürlük ihlali: % tenant (2 beklenir)', n; END IF;

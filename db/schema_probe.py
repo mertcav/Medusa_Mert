@@ -37,6 +37,14 @@ AGENT_WORM = ["agent_version"]  # WORM/append-only (DB.md §6.5, FR-AGT-006)
 # İzlenebilirlik: agent-config tasarım kararları → DB.md kaynak token (non-circular)
 AGENT_TRACE_TOKENS = ["FR-AGT-001", "FR-AGT-003", "FR-AGT-006", "FR-LLM-012"]
 
+# Çağrı ve Etkileşim (DB.md §4 varlık 19–24) — WBS 1.1.3. Tümü partition'lı,
+# saf tenant-scoped. (call_evaluation = varlık 25 → 1.1.4; burada DEĞİL.)
+CALL_TABLES = ["call", "call_leg", "transcript", "transcript_segment",
+               "recording", "call_event", "tool_execution"]
+CALL_WORM = ["tool_execution"]  # WORM/append-only + idempotent (DB.md §6.5/P4, FR-TOOL-009)
+# call_id MANTIKSAL FK'dir (partition'lı parent → REFERENCES yok, DB.md §7.2).
+CALL_TRACE_TOKENS = ["FR-TEL-012", "FR-TEL-007", "FR-REC-004", "FR-REC-005", "FR-TOOL-009"]
+
 # Sabit rol kümesi (CLAUDE.md RBAC; FR-IAM-011, ADR-012)
 EXPECTED_ROLES = {
     "platform_owner": "L0", "platform_sre": "L0", "platform_billing": "L0",
@@ -72,6 +80,27 @@ def table_body(sql, name):
     return norm(m.group(1)) if m else None
 
 
+def pg_table_body(sql, name):
+    """RANGE partition'lı tablonun gövdesini döndür:
+    CREATE TABLE <name> ( ... ) PARTITION BY RANGE (created_at);"""
+    m = re.search(
+        r"CREATE TABLE %s\s*\((.*?)\n\s*\)\s*PARTITION BY RANGE \(created_at\)\s*;"
+        % re.escape(name), sql, flags=re.DOTALL)
+    return norm(m.group(1)) if m else None
+
+
+def is_partitioned(sql, name):
+    """Tablo RANGE (created_at) ile partition'lı mı?"""
+    return pg_table_body(sql, name) is not None
+
+
+def default_partition_ok(sql, name):
+    """Her partition'lı tablo için bir DEFAULT partition (insert güvenlik ağı) var mı?"""
+    n = norm(sql)
+    return bool(re.search(
+        r"CREATE TABLE IF NOT EXISTS %s_default PARTITION OF %s DEFAULT" % (name, name), n))
+
+
 def policy_blocks(sql, table):
     """Bir tabloya ait tüm CREATE POLICY ... ; bloklarını döndür."""
     return re.findall(
@@ -86,6 +115,19 @@ def fail_closed_ok(sql):
     if not uses:
         return False  # En az bir kullanım olmalı (politikalar GUC'a dayanır)
     return all(m.group(1) is not None for m in uses)
+
+
+def null_safe_uuid_ok(sql):
+    """Tüm current_setting('app.*')::uuid cast'leri NULLIF(...,'') ile sarmalanmış mı?
+    Bağlantı havuzunda SET LOCAL sonrası placeholder '' döner; çıplak ''::uuid hata
+    fırlatır (fail-error). NULLIF(...,'')::uuid boş string'i NULL'a çevirir → 0 satır
+    (gerçek fail-closed). DB.md §6.2. Çıplak (sarmalanmamış) cast OLMAMALI."""
+    bare = re.findall(
+        r"current_setting\(\s*'app\.[a-z_]+'\s*,\s*true\s*\)\s*::\s*uuid", sql)
+    wrapped = re.findall(
+        r"NULLIF\(\s*current_setting\(\s*'app\.[a-z_]+'\s*,\s*true\s*\)\s*,\s*''\s*\)\s*::\s*uuid",
+        sql)
+    return len(bare) == 0 and len(wrapped) >= 1
 
 
 def table_rls_ok(sql, table):
@@ -163,6 +205,10 @@ def run_validate():
         "0004d": "0004_agent_config.down.sql",
         "0005u": "0005_rls_agent_config.up.sql",
         "0005d": "0005_rls_agent_config.down.sql",
+        "0006u": "0006_call_interaction.up.sql",
+        "0006d": "0006_call_interaction.down.sql",
+        "0007u": "0007_rls_call_interaction.up.sql",
+        "0007d": "0007_rls_call_interaction.down.sql",
     }
     raw = {}
     for k, fn in files.items():
@@ -227,8 +273,10 @@ def run_validate():
             ("ALTER TABLE %s ENABLE ROW LEVEL SECURITY" % t) not in norm(rls),
             "referans tablo RLS dışı (salt-okunur)")
 
-    # H. Fail-closed (iki-argümanlı current_setting)
+    # H. Fail-closed (iki-argümanlı current_setting + NULLIF boş-string koruması)
     add("H fail-closed", fail_closed_ok(up), "current_setting('app.*', true) — GUC yoksa 0 satır")
+    add("H null-safe-uuid", null_safe_uuid_ok(rls),
+        "NULLIF(current_setting(...),'')::uuid — havuzda '' fail-error değil 0 satır (DB.md §6.2)")
 
     # I. WITH CHECK (cross-tenant write koruması) tenant-scoped politikalarda
     for t in TENANT_SCOPED:
@@ -297,8 +345,10 @@ def run_validate():
         add("R rls:%s" % t, table_rls_ok(rls2, t), "ENABLE+FORCE+POLICY")
         add("R with-check:%s" % t, has_with_check(rls2, t), "WITH CHECK (cross-tenant write koruması)")
 
-    # S. Fail-closed (iki-argümanlı current_setting) — 0005 politikaları
+    # S. Fail-closed (iki-argümanlı current_setting + NULLIF) — 0005 politikaları
     add("S fail-closed", fail_closed_ok(rls2), "current_setting('app.*', true) → GUC yoksa 0 satır")
+    add("S null-safe-uuid", null_safe_uuid_ok(rls2),
+        "NULLIF(current_setting(...),'')::uuid (DB.md §6.2)")
 
     # T. Dairesel FK: agent.active_version_id inline DEĞİL, ALTER ile eklenmiş
     add("T circular-fk", deferred_circular_fk_ok(ddl2),
@@ -338,11 +388,111 @@ def run_validate():
     for tok in AGENT_TRACE_TOKENS:
         add("Y trace:%s" % tok, tok in dbmd, "DB.md'de kaynak referans")
 
+    # =========================================================================
+    # WBS 1.1.3 — Çağrı ve Etkileşim (DB.md §5.5/§7.2). 0006 (şema) + 0007 (RLS).
+    # =========================================================================
+    ddl3 = raw["0006u"]
+    rls3 = raw["0007u"]
+
+    # Z. Tablolar mevcut + RANGE partition'lı + (id, created_at) PK + UUIDv7 default
+    for t in CALL_TABLES:
+        body = pg_table_body(ddl3, t)
+        add("Z table:%s" % t, body is not None, "CREATE TABLE ... PARTITION BY RANGE (created_at)")
+        add("Z partitioned:%s" % t, is_partitioned(ddl3, t), "PARTITION BY RANGE (created_at)")
+        add("Z pk-composite:%s" % t,
+            "PRIMARY KEY (id, created_at)" in (body or ""),
+            "PK partition anahtarını içerir: (id, created_at)")
+        add("Z uuidv7:%s" % t,
+            "id UUID NOT NULL DEFAULT gen_uuid_v7()" in (body or ""),
+            "id UUID NOT NULL DEFAULT gen_uuid_v7()")
+
+    # AA. Tenant-scoped: tenant_id NOT NULL + GERÇEK FK tenant(id)
+    for t in CALL_TABLES:
+        body = pg_table_body(ddl3, t) or ""
+        add("AA tenant_id-notnull:%s" % t,
+            "tenant_id UUID NOT NULL REFERENCES tenant(id)" in body,
+            "tenant_id UUID NOT NULL REFERENCES tenant(id)")
+
+    # AB. Mantıksal FK: partition'lı parent'a (call/transcript) REFERENCES YOK (DB.md §7.2)
+    add("AB logical-fk:call_id", "REFERENCES call(" not in ddl3,
+        "call_id mantıksal FK (REFERENCES call yok — partition'lı)")
+    add("AB logical-fk:transcript_id", "REFERENCES transcript(" not in ddl3,
+        "transcript_id mantıksal FK (REFERENCES transcript yok)")
+    # campaign/tool tabloları henüz yok → mantıksal kolon (FK yok)
+    add("AB logical-fk:campaign", "REFERENCES campaign(" not in ddl3,
+        "campaign_id mantıksal (campaign 1.1.4'te)")
+    add("AB logical-fk:tool", "REFERENCES tool(" not in ddl3,
+        "tool_id mantıksal (tool tablosu henüz yok)")
+
+    # AC. Gerçek FK'ler call'da: agent / agent_version (normal tablolar)
+    call_body = pg_table_body(ddl3, "call") or ""
+    add("AC fk:call->agent", "agent_id UUID REFERENCES agent(id)" in call_body, "agent_id gerçek FK")
+    add("AC fk:call->agentver",
+        "agent_version_id UUID REFERENCES agent_version(id)" in call_body, "agent_version_id gerçek FK")
+
+    # AD. RLS: enable+force+policy + WITH CHECK (her 7 tablo standart izolasyon)
+    for t in CALL_TABLES:
+        add("AD rls:%s" % t, table_rls_ok(rls3, t), "ENABLE+FORCE+POLICY")
+        add("AD with-check:%s" % t, has_with_check(rls3, t), "WITH CHECK (cross-tenant write koruması)")
+
+    # AE. Fail-closed (iki-argümanlı current_setting + NULLIF) — 0007 politikaları
+    add("AE fail-closed", fail_closed_ok(rls3), "current_setting('app.*', true) → GUC yoksa 0 satır")
+    add("AE null-safe-uuid", null_safe_uuid_ok(rls3),
+        "NULLIF(current_setting(...),'')::uuid — havuzda '' fail-error değil 0 satır (DB.md §6.2)")
+
+    # AF. WORM (tool_execution): immutable trigger (0006) + grant INSERT+SELECT (0007)
+    for t in CALL_WORM:
+        add("AF worm-trigger:%s" % t, has_immutable_trigger(ddl3, t),
+            "BEFORE UPDATE OR DELETE → raise_immutable_violation (DB.md §6.5)")
+        add("AF worm-grant:%s" % t, worm_grant_ok(rls3, t),
+            "app_rw yalnız INSERT+SELECT (UPDATE/DELETE yok)")
+    add("AF worm-no-write",
+        not re.search(r"GRANT[^;]*\b(UPDATE|DELETE)\b[^;]*ON tool_execution\b", norm(rls3)),
+        "tool_execution'a UPDATE/DELETE grant yok")
+
+    # AG. İdempotency: tool_execution UNIQUE (partition anahtarı created_at dahil)
+    add("AG idempotency-unique",
+        "UNIQUE (tenant_id, idempotency_key, created_at)" in (pg_table_body(ddl3, "tool_execution") or ""),
+        "UNIQUE (tenant_id, idempotency_key, created_at) — FR-TOOL-009")
+
+    # AH. DEFAULT partition (insert güvenlik ağı) + aylık partition yardımcısı
+    for t in CALL_TABLES:
+        add("AH default-part:%s" % t, default_partition_ok(ddl3, t),
+            "CREATE TABLE IF NOT EXISTS %s_default PARTITION OF %s DEFAULT" % (t, t))
+    add("AH month-helper",
+        bool(re.search(r"FUNCTION\s+create_month_partition\s*\(", ddl3)),
+        "create_month_partition() aylık partition önceden açma (DB.md §7.2)")
+
+    # AI. İndeksler: tenant-zaman + FK/sorgu + GIN + retention partial
+    for idx in ["ix_call_tenant_time", "ix_call_correlation", "ix_call_agent",
+                "ix_leg_call", "ix_transcript_call", "ix_tsegment_transcript",
+                "ix_recording_call", "ix_event_call", "ix_toolexec_call"]:
+        add("AI index:%s" % idx, ("CREATE INDEX %s" % idx) in norm(ddl3), "FK/sorgu indeksi")
+    add("AI gin:event-payload",
+        bool(re.search(r"CREATE INDEX ix_event_payload ON call_event USING gin", norm(ddl3))),
+        "call_event.payload GIN (DB.md §7.1)")
+    add("AI partial:recording-retention",
+        bool(re.search(r"CREATE INDEX ix_recording_retention ON recording \(retain_until\) WHERE legal_hold = false",
+                       norm(ddl3))),
+        "retention partial index (DB.md §9)")
+
+    # AJ. Down migration'lar: tablolar + yardımcı + RLS politikaları düşer
+    for t in CALL_TABLES:
+        add("AJ down-drop:%s" % t,
+            ("DROP TABLE IF EXISTS %s" % t) in norm(raw["0006d"]), "down DROP TABLE")
+    add("AJ down-helper", "DROP FUNCTION IF EXISTS create_month_partition" in norm(raw["0006d"]),
+        "down DROP FUNCTION create_month_partition")
+    add("AJ down-policy", raw["0007d"].count("DROP POLICY") >= len(CALL_TABLES), "down DROP POLICY")
+
+    # AK. İzlenebilirlik: çağrı/etkileşim kaynak token'ları DB.md'de
+    for tok in CALL_TRACE_TOKENS:
+        add("AK trace:%s" % tok, tok in dbmd, "DB.md'de kaynak referans")
+
     # Rapor
     passed = sum(1 for _, ok, _ in checks if ok)
     total = len(checks)
     failed = [(c, d) for c, ok, d in checks if not ok]
-    print("== schema_probe validate — Tenant/Org/User/Role (1.1.1) + Agent/Config (1.1.2) + RLS ==")
+    print("== schema_probe validate — 1.1.1 (Tenant/Org/User/Role) + 1.1.2 (Agent/Config) + 1.1.3 (Çağrı/Etkileşim) + RLS ==")
     for cid, ok, detail in checks:
         print("  %s %s — %s" % ("PASS" if ok else "FAIL", cid, detail))
     print("-" * 60)
@@ -428,6 +578,31 @@ def run_selftest():
     check("circular-fk:good", deferred_circular_fk_ok(fk_good) is True)
     check("circular-fk:bad-inline", deferred_circular_fk_ok(fk_bad) is False)
 
+    # pg_table_body / is_partitioned (1.1.3 partition'lı tablolar)
+    part_good = ("CREATE TABLE call (\n  id UUID NOT NULL DEFAULT gen_uuid_v7(),\n"
+                 "  tenant_id UUID NOT NULL REFERENCES tenant(id),\n"
+                 "  PRIMARY KEY (id, created_at)\n) PARTITION BY RANGE (created_at);")
+    part_plain = ("CREATE TABLE foo (\n  id UUID PRIMARY KEY DEFAULT gen_uuid_v7()\n);")
+    pbody = pg_table_body(part_good, "call")
+    check("pg_table_body:found", pbody is not None)
+    check("pg_table_body:has-pk", "PRIMARY KEY (id, created_at)" in (pbody or ""))
+    check("is_partitioned:good", is_partitioned(part_good, "call") is True)
+    check("is_partitioned:plain", is_partitioned(part_plain, "foo") is False)
+    # düz table_body partition'lı tabloyu yakalamamalı (regex `);` ile biter)
+    check("table_body:not-partitioned", table_body(part_good, "call") is None)
+
+    # null_safe_uuid_ok (NULLIF boş-string koruması)
+    ns_good = "USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)"
+    ns_bare = "USING (tenant_id = current_setting('app.tenant_id', true)::uuid)"
+    check("null-safe:good", null_safe_uuid_ok(ns_good) is True)
+    check("null-safe:bare", null_safe_uuid_ok(ns_bare) is False)
+    check("null-safe:none", null_safe_uuid_ok("USING (true)") is False)
+
+    # default_partition_ok
+    dp_good = "CREATE TABLE IF NOT EXISTS call_default PARTITION OF call DEFAULT;"
+    check("default-part:good", default_partition_ok(dp_good, "call") is True)
+    check("default-part:bad", default_partition_ok("CREATE TABLE x();", "call") is False)
+
     passed = sum(1 for _, ok in results if ok)
     total = len(results)
     print("== schema_probe selftest ==")
@@ -440,8 +615,8 @@ def run_selftest():
 
 def run_schema():
     print(json.dumps({
-        "task": "WBS 1.1.1 (Tenant/Org/User/Role) + 1.1.2 (Agent/Config) PostgreSQL şeması + RLS",
-        "source": ["BRD §16 (1–11)", "SAD §13.1", "DB.md §5.1/§5.2/§6"],
+        "task": "WBS 1.1.1 (Tenant/Org/User/Role) + 1.1.2 (Agent/Config) + 1.1.3 (Çağrı/Etkileşim) PostgreSQL şeması + RLS",
+        "source": ["BRD §16 (1–24)", "SAD §13.1", "DB.md §5.1/§5.2/§5.5/§6/§7.2"],
         "tables": ALL_TABLES,
         "tenant_scoped": TENANT_SCOPED,
         "global_tables": GLOBAL_TABLES,
@@ -452,6 +627,10 @@ def run_schema():
         "agent_tables": AGENT_TABLES,
         "agent_worm": AGENT_WORM,
         "agent_trace_tokens": AGENT_TRACE_TOKENS,
+        "call_tables": CALL_TABLES,
+        "call_worm": CALL_WORM,
+        "call_partitioned": CALL_TABLES,
+        "call_trace_tokens": CALL_TRACE_TOKENS,
         "session_contract": {
             "tenant_realm": "SET LOCAL app.tenant_id = '<uuid>'",
             "platform_realm": "SET LOCAL app.platform = 'on'",
