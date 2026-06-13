@@ -1,0 +1,16 @@
+{
+  "name": "media-central",
+  "placement": "central",
+  "samples": 20000,
+  "seed": 42,
+  "media_colocated": true,
+  "rest_of_chain_ms": { "p50": 560.0, "p95": 980.0 },
+  "media_network_ms": { "p50": 95.0, "p95": 130.0 },
+  "barge_in_ms": { "p50": 195.0, "p95": 265.0 },
+  "mix": { "rag_active_share": 0.30, "long_session_share": 0.20 },
+  "worker": { "vcpu": 8, "mem_gb": 16, "os_reserve_mb": 1024, "mem_headroom_pct": 0.15, "cpu_target_util": 0.70 },
+  "components_mb": { "media_colocated": { "p50": 7.0, "p95": 10.0 } },
+  "components_mcore": { "cpu_media": { "p50": 5.0, "p95": 11.0 } },
+  "decision_scores": { "ops": 0.95, "cost": 0.95, "residency": 0.70 },
+  "_note": "Tüm medya merkezi bölgede işlenir + orkestratör worker'ına eş-konumlu. En basit/ucuz operasyon; ama çağrı RTP'si merkeze WAN ile taşınır → medya/ağ gecikmesi büyür ve barge-in kesme sinyali ≤200ms kapısını ELER (ADR-005). Eş-konumlu medya CPU'su density'yi de düşürür (stretch 500'ü ıskalar). İllüstratif (FR-TST-008)."
+}

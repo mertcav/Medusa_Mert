@@ -1,0 +1,14 @@
+{
+  "name": "media-hybrid",
+  "placement": "hybrid",
+  "samples": 20000,
+  "seed": 42,
+  "media_colocated": false,
+  "rest_of_chain_ms": { "p50": 560.0, "p95": 980.0 },
+  "media_network_ms": { "p50": 50.0, "p95": 80.0 },
+  "barge_in_ms": { "p50": 120.0, "p95": 170.0 },
+  "mix": { "rag_active_share": 0.30, "long_session_share": 0.20 },
+  "worker": { "vcpu": 8, "mem_gb": 16, "os_reserve_mb": 1024, "mem_headroom_pct": 0.15, "cpu_target_util": 0.70 },
+  "decision_scores": { "ops": 0.75, "cost": 0.78, "residency": 0.85 },
+  "_note": "Gecikmeye-duyarlı hafif iş (VAD/endpointing + barge-in algılama) edge'de (ADR-005 ile zaten kararlı); ağır/durumlu medya (transcode, kayıt tap, ağır gürültü/echo) ayrı bölgesel medya-gateway katmanında — orkestratör worker'ına eş-konumlu DEĞİL → density korunur. Barge-in edge'de hızlı, medya/ağ orta, ops karmaşıklığı edge'den düşük (yalnız hafif VAD edge'de, ağır medya konsolide). ADR-009 önerisi. İllüstratif (FR-TST-008)."
+}

@@ -269,7 +269,7 @@ PSTN ──SIP/SDP──► SBC ──SIP──► SIP App Server ──► Medi
 - **Edge VAD/endpointing:** Media Gateway'de yapılır (FR-RTC-013, FR-RES-009). Ölü hava ve agent'ın kendi sesi (echo) STT'ye gönderilmez (FR-RTC-006).
 - **Barge-in:** Media Gateway, kullanıcı sesi algıladığında orchestrator'a `barge_in` olayı gönderir; orchestrator TTS akışını iptal eder, gateway buffer'daki agent sesini ≤200ms içinde keser.
 - **DTMF:** RFC 2833 / SIP INFO ile algılama ve üretim (FR-TEL-006).
-- **Medya işleme konumu (AÇIK KARAR — ADR-009):** Edge'de mi merkezde mi? §23'te ele alındı.
+- **Medya işleme konumu (ADR-009 — Kabul, hibrit):** VAD/endpointing + barge-in algılama edge'de (ADR-005); ağır medya işleme ayrı bölgesel medya-gateway katmanında (orkestratöre eş-konumlu değil). 0.3.4 deneyiyle karar verildi (`docs/poc/media-placement.md`); §23'te ele alındı.
 
 ### 7.3 Human Handoff Akışı
 
@@ -844,7 +844,7 @@ _Bu tablo `docs/adr/gen_adr_index.py` ile türetilir — elle düzenlemeyin. Her
 | [ADR-006](adr/0006-tenant-izolasyonu-rls-dedicated.md) | Tenant izolasyonu — shared (RLS) + dedicated opsiyon | 🟢 Kabul | FR-TEN-002, FR-TEN-005; SAD §13.1; DB.md (RLS) |
 | [ADR-007](adr/0007-async-event-pipeline-kafka.md) | Async event pipeline (Kafka) ile post-processing | 🟢 Kabul | FR-RES-011; SAD §12.1; WBS 1.1.8 |
 | [ADR-008](adr/0008-model-tiering-semantic-cache.md) | Model tiering + semantic cache zorunlu | 🟢 Kabul | NFR 10.2; FR-RES-005, FR-LLM-014, FR-RES-004 |
-| [ADR-009](adr/0009-medya-isleme-konumu.md) | Medya işleme konumu (edge vs merkez) | 🟠 Açık | SAD §23; NFR 10.1, NFR 10.2; ADR-003, ADR-005 |
+| [ADR-009](adr/0009-medya-isleme-konumu.md) | Medya işleme konumu (edge vs merkez) | 🟢 Kabul | SAD §6.4/§20/§23; NFR 10.1, NFR 10.2; ADR-003, ADR-005; WBS 0.3.4 |
 | [ADR-010](adr/0010-self-hosted-llm-gpu.md) | Self-hosted LLM + GPU kapsamı | 🟠 Açık | FR-RES-015; SAD §23; NFR 10.2 |
 | [ADR-011](adr/0011-iki-duzlemli-panel-dagitimi.md) | İki düzlemli panel dağıtımı (L0 ayrı internal-only; L1+L2 birlikte public) | 🟢 Kabul | SAD §14.4.1; BRD §17.7; FR-IAM-008 |
 | [ADR-012](adr/0012-sabit-rol-bundle-scoped-assignment.md) | Sabit rol bundle + scoped assignment; custom roller Faz 3 | 🟢 Kabul | FR-IAM-011; SAD §14.4.3 |
@@ -882,7 +882,7 @@ BRD §22'deki açık kararlar için mimari öneri/etki (nihai karar paydaşlarda
 | LLM veri gönderimi | "No-train" varsayılan; bölgesel endpoint | FR-LLM-012 |
 | Model logları | Hassas tenant'ta kapalı | FR-KB-010 |
 | Max işlem risk seviyesi | Düşük-orta; yüksek risk insan onaylı | BRD §13 |
-| **Medya işleme konumu** | **ADR-009 — pilotta ölç** | Density/gecikme |
+| **Medya işleme konumu** | **ADR-009 — Kabul: hibrit** (edge VAD/barge-in + ayrı medya katmanı; 0.3.4 deneyi) | Density/gecikme |
 | **Self-hosted/GPU** | **ADR-010 — Faz 3** | Maliyet/uyum |
 
 ---

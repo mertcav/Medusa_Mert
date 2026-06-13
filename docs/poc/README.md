@@ -23,6 +23,9 @@ tekrarlanabilir.** PoC'lar BRD/SAD'ın mimari hipotezlerini çalışan spike'lar
 | `density-measurement.md` | Density ölçümü tasarımı: oturum-başı bellek (medya hariç) + worker bellek∩CPU kapasitesi, lognormal bileşen modeli, NFR 10.2 HARD kapı (15MB + ≥250/500), medya-konumu duyarlılığı | 0.3.3 · NFR 10.2/ADR-003, SAD §15 |
 | `density_probe.py` | Monte-Carlo density hattı (`measure`/`compare`/`selftest`/`schema`); oturum-başı bellek P50/P95/P99 + CPU + bellek∩CPU density kapasitesi + bileşen atfı; medya draw'ları ayrı RNG stream (bütçe medya-hariç) | 0.3.3 |
 | `samples/density-*.json` | İllüstratif density profilleri: `green-baseline` (geçer, ≥500), `media-colocated` (HARD geçer ama stretch ıskalar — 0.3.4 duyarlılığı), `red-degraded` (bütçe+density eler — ADR-003 ihlali) | 0.3.3 |
+| `media-placement.md` | Medya işleme konumu deneyi tasarımı (edge vs merkez → ADR-009): 0.3.2 gecikme + 0.3.3 density HARD kapılarını birleştirir; topolojiye-bağlı medya/ağ + barge-in + eş-konum; birleşik NFR 10.1+10.2 kapısı + ağırlıklı karar matrisi | 0.3.4 · ADR-009/ADR-005, NFR 10.1/10.2, SAD §6.4/§20/§23 |
+| `media_placement_probe.py` | Medya konumu karar hattı (`evaluate`/`compare`/`selftest`/`schema`); e2e+barge-in+density birleşik kapı + HARD-geçen adaylar arası ADR-009 önerisi; `LogNormalComponent`+`percentile` 0.3.1/0.3.2/0.3.3 ile birebir | 0.3.4 |
+| `samples/media-*.json` | İllüstratif topoloji profilleri: `edge` (🟢 geçer, ops cezası), `central` (🔴 barge-in eler — ADR-005), `hybrid` (🟢 önerilen → ADR-009) | 0.3.4 |
 
 ## Hızlı başvuru
 ```bash
@@ -41,10 +44,15 @@ python3 docs/poc/latency_budget_probe.py compare docs/poc/samples/latency-green-
 python3 docs/poc/density_probe.py selftest
 python3 docs/poc/density_probe.py measure --profile docs/poc/samples/density-green-baseline.json
 python3 docs/poc/density_probe.py compare docs/poc/samples/density-green-baseline.json docs/poc/samples/density-media-colocated.json docs/poc/samples/density-red-degraded.json
+
+# Medya konumu deneyi (0.3.4): edge/merkez/hibrit → birleşik NFR 10.1+10.2 kapısı + ADR-009 önerisi
+python3 docs/poc/media_placement_probe.py selftest
+python3 docs/poc/media_placement_probe.py evaluate --profile docs/poc/samples/media-hybrid.json
+python3 docs/poc/media_placement_probe.py compare docs/poc/samples/media-edge.json docs/poc/samples/media-central.json docs/poc/samples/media-hybrid.json
 ```
 
 ## Sıradaki PoC görevleri (0.3.x)
-- **0.3.4** Medya işleme konumu deneyi (edge vs merkez) → **ADR-009 kararı**.
+- **0.3.4** Medya işleme konumu deneyi (edge vs merkez) → **ADR-009 kararı** — ✅ tamam: **hibrit** (ADR-009 `Kabul`).
 - **0.3.5** Hot-path dil doğrulaması (Go/Rust async runtime, ADR-003).
 
 > 0.3.x canlı PoC, **0.2.6 provizyonel** sağlayıcı seçimini gerçek adapter + DPA/alt-işleyen (17.2.2)

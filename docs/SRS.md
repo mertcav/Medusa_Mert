@@ -574,8 +574,11 @@ geçtiğinde verilir (Faz 1 inbound altkümesi için WBS Ek A esastır).
 ## 9. Varsayımlar, Bağımlılıklar ve Açık Kararlar
 
 - **Density/gecikme eşikleri ön hedeftir:** SR-DEN-001/002 ve SR-SCAL-001 değerleri BRD §10.2/§10.3
-  uyarınca ön tasarım hedefidir; **PoC** (WBS 0.3) ve **ADR-009** (medya işleme konumu) ile kesinleşir.
-  ADR-009 kararına kadar SR-DEN-002'nin "250 vs 500" alt sınırı açık kabul edilir.
+  uyarınca ön tasarım hedefidir; **PoC** (WBS 0.3) ile kesinleşir. **ADR-009 (medya işleme konumu)
+  `Kabul` — hibrit** (WBS 0.3.4, `docs/poc/media-placement.md`): edge VAD/barge-in (ADR-005) + ayrı/
+  eş-konumsuz medya katmanı → SR-DEN-002'nin "250 vs 500" aralığında, ayrı medya katmanı density'yi
+  üst uca (≥500) korur; eş-konumlu medya alt uca (≥250) düşürür. Mutlak değerler canlı PoC (0.3.5)
+  telemetrisiyle doğrulanır.
 - **Faz bağımlılığı:** Bazı SR'ler Faz 2/3 kapsamındadır (ör. SR-SEC-003 BYOK, SR-AUTH-006 ses
   biyometrisi, SR-OUT-* outbound). Kabul kapısı ilgili fazda uygulanır (WBS faz kapıları).
 - **BRD §22 açık kararları:** İlk ülke/sektör, pilot use-case, telekom sağlayıcı, ilk diller, retention

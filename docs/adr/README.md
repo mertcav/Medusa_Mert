@@ -83,7 +83,7 @@ _Bu tablo `docs/adr/gen_adr_index.py` ile türetilir — elle düzenlemeyin. Her
 | [ADR-006](0006-tenant-izolasyonu-rls-dedicated.md) | Tenant izolasyonu — shared (RLS) + dedicated opsiyon | 🟢 Kabul | FR-TEN-002, FR-TEN-005; SAD §13.1; DB.md (RLS) |
 | [ADR-007](0007-async-event-pipeline-kafka.md) | Async event pipeline (Kafka) ile post-processing | 🟢 Kabul | FR-RES-011; SAD §12.1; WBS 1.1.8 |
 | [ADR-008](0008-model-tiering-semantic-cache.md) | Model tiering + semantic cache zorunlu | 🟢 Kabul | NFR 10.2; FR-RES-005, FR-LLM-014, FR-RES-004 |
-| [ADR-009](0009-medya-isleme-konumu.md) | Medya işleme konumu (edge vs merkez) | 🟠 Açık | SAD §23; NFR 10.1, NFR 10.2; ADR-003, ADR-005 |
+| [ADR-009](0009-medya-isleme-konumu.md) | Medya işleme konumu (edge vs merkez) | 🟢 Kabul | SAD §6.4/§20/§23; NFR 10.1, NFR 10.2; ADR-003, ADR-005; WBS 0.3.4 |
 | [ADR-010](0010-self-hosted-llm-gpu.md) | Self-hosted LLM + GPU kapsamı | 🟠 Açık | FR-RES-015; SAD §23; NFR 10.2 |
 | [ADR-011](0011-iki-duzlemli-panel-dagitimi.md) | İki düzlemli panel dağıtımı (L0 ayrı internal-only; L1+L2 birlikte public) | 🟢 Kabul | SAD §14.4.1; BRD §17.7; FR-IAM-008 |
 | [ADR-012](0012-sabit-rol-bundle-scoped-assignment.md) | Sabit rol bundle + scoped assignment; custom roller Faz 3 | 🟢 Kabul | FR-IAM-011; SAD §14.4.3 |
