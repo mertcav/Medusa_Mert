@@ -1,0 +1,7 @@
+{
+  "_comment": "WBS 1.1.6 — O4: tüm public erişim kapalı. Her bucket'a uygulanır (content + cache + export).",
+  "BlockPublicAcls": true,
+  "IgnorePublicAcls": true,
+  "BlockPublicPolicy": true,
+  "RestrictPublicBuckets": true
+}

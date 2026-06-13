@@ -1,0 +1,53 @@
+{
+  "_comment": "WBS 1.1.6 — O7: data_class başına lifecycle kuralı. Gün değerleri MÜHENDİSLİK VARSAYILANI; compliance profile cp.retention.* + retention_policy ile yalnız sıkılaştırılır (most-restrictive-wins). content sınıflarında expiration retention_policy ile hizalanır; legal-hold/object-lock expiration'ı geçersiz kılar (FR-REC-006/007/010). Eşdeğer sağlayıcıda denk lifecycle'a eşlenir (ADR-002).",
+  "Rules": [
+    {
+      "ID": "recording-lifecycle",
+      "_data_class": "recording",
+      "Filter": { "Prefix": "recording/" },
+      "Status": "Enabled",
+      "Transitions": [{ "Days": 30, "StorageClass": "STANDARD_IA" }],
+      "Expiration": { "Days": 365 },
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 30 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 7 }
+    },
+    {
+      "ID": "transcript-lifecycle",
+      "_data_class": "transcript",
+      "Filter": { "Prefix": "transcript/" },
+      "Status": "Enabled",
+      "Transitions": [{ "Days": 30, "StorageClass": "STANDARD_IA" }],
+      "Expiration": { "Days": 365 },
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 30 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 7 }
+    },
+    {
+      "ID": "kb-document-lifecycle",
+      "_data_class": "kb_document",
+      "_note": "Auto-expire YOK (KB içeriği tenant kararı); yalnız soğuk katman + eski versiyon temizliği.",
+      "Filter": { "Prefix": "kb/" },
+      "Status": "Enabled",
+      "Transitions": [{ "Days": 90, "StorageClass": "STANDARD_IA" }],
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 90 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 7 }
+    },
+    {
+      "ID": "tts-cache-lifecycle",
+      "_data_class": "tts_cache",
+      "_note": "30g — WBS 1.1.5 tts_cache_index TTL (2592000s) ile hizalı.",
+      "Filter": { "Prefix": "tts-cache/" },
+      "Status": "Enabled",
+      "Expiration": { "Days": 30 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
+    },
+    {
+      "ID": "export-lifecycle",
+      "_data_class": "export",
+      "_note": "Geçici teslim artefaktı; 7g sonra silinir.",
+      "Filter": { "Prefix": "export/" },
+      "Status": "Enabled",
+      "Expiration": { "Days": 7 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
+    }
+  ]
+}

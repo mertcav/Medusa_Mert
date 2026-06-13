@@ -1,0 +1,147 @@
+{
+  "_meta": {
+    "wbs": "1.1.6",
+    "title": "Nesne depolama (S3-uyumlu) — tenant-bazlı bucket/prefix + KMS + lifecycle",
+    "source_of_truth": ["SAD §12.1", "SAD §12.3", "SAD §14.2", "DB.md §8", "DB.md §9", "BRD §16"],
+    "vendor_neutral": "S3 API, SAD §12.1'deki 'Nesne depolama (S3 uyumlu)' yeteneği için referans yüzeydir. Sağlayıcı-nötr (ADR-002): aynı sözleşme bölgesel S3-uyumlu eşdeğerle (AWS S3, MinIO, GCS-S3, Azure Blob-S3, Ceph RGW, Wasabi) karşılanabilir. Politika şablonları AWS IAM/bucket-policy gramerindedir; eşdeğer sağlayıcıda denk kontrole eşlenir.",
+    "secret_policy": "Sır/credential repoya YAZILMAZ. Endpoint/erişim anahtarı/KMS key ARN yalnız ${ENV}/${PLACEHOLDER}; politika şablonları ${BUCKET}/${TENANT_KMS_KEY_ARN}/${TENANT_RUNTIME_ROLE_ARN} placeholder'ları taşır. Gerçek değerler deployment + Secrets/KMS (WBS 0.4.5) tarafından enjekte edilir."
+  },
+
+  "bucket_strategy": {
+    "model": "per-tenant-per-region",
+    "rationale": "Her tenant + home-region için AYRI bucket. Prefix-yalnız (shared bucket + tenant prefix) yerine bucket granülaritesi seçildi çünkü: (1) tenant başına AYRI KMS CMK at-rest şifreleme (NFR 10.6, DB.md §8); (2) tenant-bazlı crypto-shredding = CMK sürüm imhasıyla tenant verisinin tümünü geri döndürülemez silme (DB.md §9, FR-REC-010) — shared key bunu engellerdi; (3) tenant başına bağımsız lifecycle/object-lock/residency; (4) bucket-policy + IAM ile sıkı izolasyon (FR-TEN-002, altın kural FR-IAM-008). Bucket içinde data-class/tarih prefix'i sıcak/soğuk ayrımı ve retention'ı kolaylaştırır.",
+    "bucket_naming": "objstore-<region>-<tenant_slug>",
+    "bucket_naming_note": "Mantıksal ad; tenant→bucket eşlemesi bir registry'de tutulur (tenant.home_region + tenant.kms_key_ref ile birlikte). Gerçek bucket adı global-benzersizlik için suffix alabilir; placeholder ${BUCKET}.",
+    "region_binding": "Bucket tenant.home_region'da oluşturulur; cross-region replikasyon yalnız aynı residency sınıfında (DR, NFR 10.5/10.7, DB.md §8/P5).",
+    "key_layout": "<data_class>/<YYYY>/<MM>/<DD>/<object_id>[.<ext>]",
+    "key_layout_note": "object_id = UUIDv7 (DB recording.id/transcript.id ile hizalı; DB.md §3). Anahtar ham PII taşımaz (P6); DB yalnız storage_uri + metadata + redaction_state tutar (DB.md §8).",
+    "fr": ["FR-TEN-002", "FR-IAM-008", "NFR 10.6", "NFR 10.7", "FR-REC-010"]
+  },
+
+  "encryption": {
+    "at_rest": "SSE-KMS (AES-256), tenant başına customer master key (CMK) = tenant.kms_key_ref",
+    "enforced_by": ["bucket-policy DenyUnEncryptedObjectUploads", "bucket-policy DenyWrongKMSKey"],
+    "byok": "Faz 3 — müşteri-yönetilen anahtar (BYOK/CMEK); aynı per-tenant CMK yüzeyi (BRD §11.4, SAD §14.2).",
+    "in_transit": "TLS 1.2+ zorunlu (bucket-policy DenyInsecureTransport; SAD §14.2).",
+    "crypto_shredding": "Geri döndürülemez silme (FR-REC-010, DB.md §9): lifecycle expiration + tenant CMK sürümünün KMS'te imhası → şifreli objeler okunamaz hale gelir. Per-tenant CMK tenant-genelinde crypto-shred sağlar.",
+    "fr": ["NFR 10.6", "NFR 10.7", "FR-REC-010"]
+  },
+
+  "data_classes": [
+    {
+      "id": "recording",
+      "purpose": "Çağrı ses kaydı (ham audio). DB.md §5.5 recording.storage_uri buraya işaret eder.",
+      "prefix": "recording/",
+      "pii": true,
+      "content_class": true,
+      "versioning": true,
+      "object_lock": "governance",
+      "legal_hold_capable": true,
+      "transition_days": 30,
+      "expire_days": 365,
+      "lifecycle_note": "30g sonra soğuk/IA katmana geçiş (maliyet); retain_until/retention_policy(recording) sonunda expire + crypto-shred. legal_hold=true objeler expire'dan MUAF (FR-REC-007).",
+      "retention_source": "retention_policy(data_class='recording') · tenant.retention_profile · compliance profile cp.retention.* (most-restrictive-wins, yalnız sıkılaştırır)",
+      "default_disclaimer": "expire_days mühendislik varsayılanı; gerçek süre BRD §22 açık kararı + compliance/counsel ile belirlenir.",
+      "fr": ["FR-REC-001", "FR-REC-006", "FR-REC-007", "FR-REC-010"],
+      "trace": ["SAD §12.1", "DB.md §5.5", "DB.md §8", "DB.md §9"]
+    },
+    {
+      "id": "transcript",
+      "purpose": "Tam transkript metni (PII redaction sonrası saklanır). DB.md §5.5 transcript.storage_uri buraya işaret eder; DB yalnız metadata + segment timeline tutar.",
+      "prefix": "transcript/",
+      "pii": true,
+      "content_class": true,
+      "versioning": true,
+      "object_lock": "governance",
+      "legal_hold_capable": true,
+      "transition_days": 30,
+      "expire_days": 365,
+      "lifecycle_note": "recording ile aynı yaşam döngüsü; retention_policy(transcript) sonunda expire + crypto-shred. PII redaction pipeline (FR-REC-004/005) sonrası metin; kart/parola/OTP zaten çıkarılmış.",
+      "retention_source": "retention_policy(data_class='transcript') · compliance profile cp.retention.*",
+      "default_disclaimer": "expire_days mühendislik varsayılanı; counsel/compliance-driven.",
+      "fr": ["FR-REC-004", "FR-REC-005", "FR-REC-006", "FR-REC-010"],
+      "trace": ["SAD §12.1", "DB.md §5.5", "DB.md §8 P6"]
+    },
+    {
+      "id": "kb_document",
+      "purpose": "Bilgi tabanı kaynak dokümanları (knowledge_base/kb_document). Parse→chunk→embed öncesi ham dosya (PDF/Word/HTML/metin).",
+      "prefix": "kb/",
+      "pii": false,
+      "content_class": true,
+      "versioning": true,
+      "object_lock": "none",
+      "legal_hold_capable": false,
+      "transition_days": 90,
+      "expire_days": null,
+      "lifecycle_note": "Auto-expire YOK (KB içeriği yaşam döngüsü tenant'a aittir); noncurrent-version expiration 90g + abort-incomplete-multipart 7g (maliyet). Doküman versiyonlama FR-KB-003. Hassas KB içeriği sağlayıcı loglarına gitmez (FR-KB-010 — retrieval tarafı; burada residency+izolasyon).",
+      "retention_source": "tenant/KB politikası; content TTL/bayatlama FR-KB-008 (WBS 6.1.5)",
+      "default_disclaimer": "kb içeriği için silme tenant kararı; legal-hold KB için uygulanmaz (content sınıfı, audit değil).",
+      "fr": ["FR-KB-003", "FR-KB-010"],
+      "trace": ["SAD §12.1", "DB.md §5 (KB)", "BRD §16 (12)"]
+    },
+    {
+      "id": "tts_cache",
+      "purpose": "Önceden sentezlenmiş statik/standart anons ses blobları (karşılama/onay/IVR). WBS 1.1.5 tts_cache_index Redis anahtarı buradaki objeye URI ile işaret eder.",
+      "prefix": "tts-cache/",
+      "pii": false,
+      "content_class": false,
+      "versioning": false,
+      "object_lock": "none",
+      "legal_hold_capable": false,
+      "transition_days": null,
+      "expire_days": 30,
+      "lifecycle_note": "30g expire — WBS 1.1.5 tts_cache_index TTL (2592000s) ile HİZALI; index TTL ile obje lifecycle birlikte bayat referansları temizler. Türetilmiş veri, yeniden sentezlenebilir; düşük residency riski (PII yok).",
+      "retention_source": "sabit 30g (cache yenilenir); voice_profile değişince namespace ayrışır",
+      "default_disclaimer": "30g cache mühendislik varsayılanı.",
+      "fr": ["FR-RES-003", "FR-TTS-010"],
+      "trace": ["SAD §12.1", "BRD §15", "cache/keyspace-spec.json (tts_cache_index)"]
+    },
+    {
+      "id": "export",
+      "purpose": "Geçici veri ihracı: DSR (data subject request) export, analitik dump, fatura/usage CSV. Kısa ömürlü, indirme sonrası gereksiz.",
+      "prefix": "export/",
+      "pii": true,
+      "content_class": true,
+      "versioning": false,
+      "object_lock": "none",
+      "legal_hold_capable": false,
+      "transition_days": null,
+      "expire_days": 7,
+      "lifecycle_note": "7g expire (geçici teslim artefaktı); pre-signed URL ile indirilir, sonra silinir. PII içerebilir → content sınıfı, platform realm break-glass'sız erişemez.",
+      "retention_source": "sabit 7g (geçici artefakt)",
+      "default_disclaimer": "7g mühendislik varsayılanı.",
+      "fr": ["FR-TEN-002", "FR-REC-010"],
+      "trace": ["SAD §12.1", "DPIA (DSR)"]
+    }
+  ],
+
+  "access_model": {
+    "tenant_runtime": "Tenant runtime rolü (${TENANT_RUNTIME_ROLE_ARN}) yalnız KENDİ bucket'ına erişir (IAM prefix policy); cross-tenant erişim bucket-policy + IAM ile reddedilir (FR-TEN-002).",
+    "platform_realm_default": "L0 platform realm content sınıfı objeleri (recording/transcript/kb_document/export) VARSAYILAN olarak GÖREMEZ (altın kural FR-IAM-008). Yalnız metrik/kaynak verisi.",
+    "break_glass": "Tier B (transkript/kayıt/PII) erişimi yalnız maker-checker + time-boxed + gerekçe kodu + tenant bildirimi ile (FR-IAM-009/010). Break-glass okuma SALT-OKUNUR (Get/List); Put/Delete yok. Her erişim audit_log'a (DB.md §6.5 WORM).",
+    "audit": "Tüm content erişimleri (özellikle break-glass) audit edilir (FR-REC-009, FR-IAM-006). S3 access logging + CloudTrail/eşdeğer → audit pipeline.",
+    "fr": ["FR-TEN-002", "FR-IAM-008", "FR-IAM-009", "FR-IAM-010", "FR-REC-008", "FR-REC-009"]
+  },
+
+  "policy_templates": {
+    "bucket_policy": "policy/bucket-policy.template.json",
+    "public_access_block": "policy/public-access-block.json",
+    "lifecycle": "policy/lifecycle.template.json",
+    "iam_tenant_prefix_policy": "policy/iam-tenant-prefix-policy.template.json",
+    "object_lock_config": "policy/object-lock-config.template.json"
+  },
+
+  "invariants": [
+    "O1: Her bucket tam olarak BİR tenant'a + BİR home-region'a bağlıdır (per-tenant-per-region). Residency home-region; cross-region replikasyon yalnız aynı residency sınıfında (NFR 10.7, DB.md §8/P5).",
+    "O2: At-rest SSE-KMS zorunlu + tenant başına CMK (tenant.kms_key_ref). Bucket-policy şifresiz PutObject'i ve yanlış KMS key'i reddeder (NFR 10.6).",
+    "O3: TLS-only — bucket-policy aws:SecureTransport=false isteklerini reddeder (SAD §14.2).",
+    "O4: Public access tamamen kapalı (BlockPublicAcls + IgnorePublicAcls + BlockPublicPolicy + RestrictPublicBuckets = true).",
+    "O5: Tenant runtime IAM policy yalnız kendi bucket'ını kaynak alır; cross-tenant erişim yok (FR-TEN-002). Platform realm content sınıfını break-glass'sız okuyamaz (altın kural FR-IAM-008).",
+    "O6: Obje anahtarı tanınan bir data_class prefix'i ile başlar; anahtar ham PII/serbest-metin taşımaz (object_id/hash; P6).",
+    "O7: Her data_class'ın bir lifecycle kuralı vardır (transition ve/veya expiration); content sınıflarında expiration retention_policy ile hizalı. legal_hold_capable sınıflarda legal-hold/object-lock expiration'ı geçersiz kılar (FR-REC-006/007/010).",
+    "O8: PII/content data_class'ları (recording/transcript/kb_document/export) platform realm'e deny-by-default; DB pointer redaction_state tutar (P6).",
+    "O9: Geri döndürülemez silme = lifecycle expiration + tenant CMK crypto-shredding (DB.md §9, FR-REC-010).",
+    "O10: legal_hold_capable=true sınıflar (recording/transcript) için versioning açık + object-lock (governance) — retention süresi boyunca WORM; legal-hold ayrı bayrak (FR-REC-007).",
+    "O11: Repoda literal sır/credential YOK — endpoint/anahtar/KMS ARN yalnız ${ENV}/${PLACEHOLDER}; politika şablonları placeholder taşır."
+  ]
+}

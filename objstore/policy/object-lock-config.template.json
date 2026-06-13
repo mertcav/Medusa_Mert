@@ -1,0 +1,11 @@
+{
+  "_comment": "WBS 1.1.6 — O10: content bucket'ında Object Lock (governance) varsayılan retention. Bucket oluşturulurken versioning + object-lock etkin olmalı. Retention content sınıflarında (recording/transcript) PutObject ile per-obje ayarlanır; tts-cache/export objelerine retention konmaz. legal-hold (FR-REC-007) ayrı bayraktır. governance modu compliance-officer rolüne bypass izni verir (bucket-policy ile sınırlı).",
+  "ObjectLockEnabled": "Enabled",
+  "Rule": {
+    "DefaultRetention": {
+      "Mode": "GOVERNANCE",
+      "Days": 365,
+      "_note": "Days mühendislik varsayılanı; retention_policy/compliance profile ile hizalanır (BRD §22 açık karar)."
+    }
+  }
+}

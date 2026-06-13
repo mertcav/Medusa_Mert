@@ -1,0 +1,69 @@
+{
+  "_comment": "WBS 1.1.6 — Per-tenant S3 bucket policy şablonu. Placeholder'lar deployment'ta doldurulur (sır repoya yazılmaz). Eşdeğer S3-uyumlu sağlayıcıda denk kontrole eşlenir (ADR-002).",
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyInsecureTransport",
+      "_invariant": "O3 — TLS-only (SAD §14.2)",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": ["arn:aws:s3:::${BUCKET}", "arn:aws:s3:::${BUCKET}/*"],
+      "Condition": { "Bool": { "aws:SecureTransport": "false" } }
+    },
+    {
+      "Sid": "DenyUnEncryptedObjectUploads",
+      "_invariant": "O2 — SSE-KMS zorunlu (NFR 10.6)",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::${BUCKET}/*",
+      "Condition": { "StringNotEquals": { "s3:x-amz-server-side-encryption": "aws:kms" } }
+    },
+    {
+      "Sid": "DenyWrongKMSKey",
+      "_invariant": "O2 — tenant başına CMK (tenant.kms_key_ref)",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::${BUCKET}/*",
+      "Condition": {
+        "StringNotEquals": {
+          "s3:x-amz-server-side-encryption-aws-kms-key-id": "${TENANT_KMS_KEY_ARN}"
+        }
+      }
+    },
+    {
+      "Sid": "DenyNonTenantPrincipal",
+      "_invariant": "O5 — yalnız tenant runtime + (break-glass) platform; cross-tenant reddi (FR-TEN-002)",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": ["arn:aws:s3:::${BUCKET}", "arn:aws:s3:::${BUCKET}/*"],
+      "Condition": {
+        "StringNotLike": {
+          "aws:PrincipalArn": [
+            "${TENANT_RUNTIME_ROLE_ARN}",
+            "${BREAK_GLASS_ROLE_ARN}"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "DenyObjectLockBypass",
+      "_invariant": "O10 — object-lock/legal-hold WORM penceresinde silme/versiyon kaldırma reddi (FR-REC-007)",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": [
+        "s3:DeleteObjectVersion",
+        "s3:PutObjectLegalHold",
+        "s3:PutObjectRetention",
+        "s3:BypassGovernanceRetention"
+      ],
+      "Resource": "arn:aws:s3:::${BUCKET}/*",
+      "Condition": {
+        "StringNotLike": { "aws:PrincipalArn": "${COMPLIANCE_OFFICER_ROLE_ARN}" }
+      }
+    }
+  ]
+}
