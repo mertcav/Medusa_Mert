@@ -825,21 +825,36 @@ Barge-in TTS kesme ≤200ms; tool overhead ≤100ms; config yükleme ≤500ms (N
 
 ## 22. Mimari Karar Kayıtları (ADR)
 
-| ADR | Karar | Durum | Gerekçe / Sonuç |
-|-----|-------|-------|------------------|
-| ADR-001 | Bağımsız Conversation Orchestrator (STT/LLM/TTS doğrudan bağlanmaz) | **Kabul** | Ürünün IP'si; vendor-neutral, kontrol, gözlemlenebilirlik (BRD §11/§24) |
-| ADR-002 | Provider Adapter SPI + kategori başına ≥2 sağlayıcı | **Kabul** | OBJ-10, BRD §19 kabul kriterleri |
-| ADR-003 | Hot path'te async, düşük-bellekli dil (Go/Rust) | **Öneri** | Lean runtime/density hedefleri (NFR 10.2) |
-| ADR-004 | Data/Control/Analytics plane ayrımı | **Kabul** | Hot path'i hafif tutmak (FR-RES-011) |
-| ADR-005 | Edge VAD/endpointing | **Kabul** | Gecikme + kaynak (FR-RTC-013, FR-RES-009) |
-| ADR-006 | Tenant izolasyonu: shared (RLS) + dedicated opsiyon | **Kabul** | FR-TEN-002/005 |
-| ADR-007 | Async event pipeline (Kafka) ile post-processing | **Kabul** | FR-RES-011 |
-| ADR-008 | Model tiering + semantic cache zorunlu | **Kabul** | NFR 10.2 maliyet hedefi |
-| ADR-009 | Medya işleme konumu (edge vs merkez) | **AÇIK** | §23; pilot ile karar (kaynak/gecikme dengesi) |
-| ADR-010 | Self-hosted LLM + GPU kapsamı | **AÇIK** | Faz 3; yalnız gerekçeli durumda (FR-RES-015) |
-| ADR-011 | İki düzlemli panel dağıtımı: L0 ayrı internal-only Control Plane; L1+L2 birlikte public | **Kabul** | Blast-radius azaltımı; tek-deploy+guard riskli, üç-deploy israf (§14.4.1, BRD §17.7) |
-| ADR-012 | Sabit rol bundle + scoped assignment; custom roller Faz 3 | **Kabul** | Combinatorial/güvenlik riskini önler (FR-IAM-011) |
-| ADR-013 | Üç katmanlı break-glass + regüle tenant onay toggle'ı | **Kabul** | KVKK/GDPR controller-processor; DPA bağlı (FR-IAM-009/010) |
+> **Kaynak doğruluk `docs/adr/` klasörüdür.** Her ADR ayrı, değişmez bir kayıttır
+> (`docs/adr/NNNN-*.md`); süreç ve durum yaşam döngüsü için bkz. [`docs/adr/README.md`](adr/README.md).
+> Aşağıdaki tablo bu kayıtlardan `docs/adr/gen_adr_index.py` ile **türetilir** — elle düzenlenmez.
+> Yeni ADR'ler `docs/adr/`'de açılır, ardından bu indeks yeniden üretilir.
+
+<!-- ADR-INDEX:BEGIN (gen_adr_index.py tarafından üretilir — elle düzenleme) -->
+
+_Bu tablo `docs/adr/gen_adr_index.py` ile türetilir — elle düzenlemeyin. Her kaydın tam metni ilgili `docs/adr/*.md` dosyasındadır._
+
+| ADR | Karar | Durum | İz |
+|-----|-------|-------|-----|
+| [ADR-001](adr/0001-bagimsiz-conversation-orchestrator.md) | Bağımsız Conversation Orchestrator (STT/LLM/TTS doğrudan bağlanmaz) | 🟢 Kabul | BRD §11, §24; SAD §6; FR-RTC-*, FR-LLM-* |
+| [ADR-002](adr/0002-provider-adapter-spi.md) | Provider Adapter SPI + kategori başına ≥2 sağlayıcı | 🟢 Kabul | BRD §19; SAD §8.1, §8.2; FR-STT-008, FR-TTS-008, FR-LLM-010, FR-TEL-002 |
+| [ADR-003](adr/0003-hot-path-async-dusuk-bellekli-dil.md) | Hot path'te async, düşük-bellekli dil (Go/Rust) | 🟡 Önerilen | NFR 10.1, NFR 10.2; SAD §21; FR-RES-001, FR-RES-016 |
+| [ADR-004](adr/0004-plane-ayrimi.md) | Data / Control / Analytics plane ayrımı | 🟢 Kabul | SAD §4.2; FR-RES-011 |
+| [ADR-005](adr/0005-edge-vad-endpointing.md) | Edge VAD / endpointing | 🟢 Kabul | FR-RTC-013, FR-RTC-004, FR-RES-009; NFR 10.1 |
+| [ADR-006](adr/0006-tenant-izolasyonu-rls-dedicated.md) | Tenant izolasyonu — shared (RLS) + dedicated opsiyon | 🟢 Kabul | FR-TEN-002, FR-TEN-005; SAD §13.1; DB.md (RLS) |
+| [ADR-007](adr/0007-async-event-pipeline-kafka.md) | Async event pipeline (Kafka) ile post-processing | 🟢 Kabul | FR-RES-011; SAD §12.1; WBS 1.1.8 |
+| [ADR-008](adr/0008-model-tiering-semantic-cache.md) | Model tiering + semantic cache zorunlu | 🟢 Kabul | NFR 10.2; FR-RES-005, FR-LLM-014, FR-RES-004 |
+| [ADR-009](adr/0009-medya-isleme-konumu.md) | Medya işleme konumu (edge vs merkez) | 🟠 Açık | SAD §23; NFR 10.1, NFR 10.2; ADR-003, ADR-005 |
+| [ADR-010](adr/0010-self-hosted-llm-gpu.md) | Self-hosted LLM + GPU kapsamı | 🟠 Açık | FR-RES-015; SAD §23; NFR 10.2 |
+| [ADR-011](adr/0011-iki-duzlemli-panel-dagitimi.md) | İki düzlemli panel dağıtımı (L0 ayrı internal-only; L1+L2 birlikte public) | 🟢 Kabul | SAD §14.4.1; BRD §17.7; FR-IAM-008 |
+| [ADR-012](adr/0012-sabit-rol-bundle-scoped-assignment.md) | Sabit rol bundle + scoped assignment; custom roller Faz 3 | 🟢 Kabul | FR-IAM-011; SAD §14.4.3 |
+| [ADR-013](adr/0013-uc-katmanli-break-glass.md) | Üç katmanlı break-glass + regüle tenant onay toggle'ı | 🟢 Kabul | FR-IAM-009, FR-IAM-010; SAD §14.4.2; DPIA.md |
+| [ADR-014](adr/0014-zorunlu-egress-kontrol.md) | Zorunlu egress kontrol katmanı (egress proxy + allowlist) | 🟡 Önerilen | THREAT_MODEL.md §10 (TM-E-06, TM-I-04); NFR 10.6 |
+| [ADR-015](adr/0015-prompt-injection-savunma-mimarisi.md) | Prompt-injection savunma mimarisi (katmanlı) | 🟡 Önerilen | THREAT_MODEL.md §10 (TM-T-02b, TM-I-05); FR-LLM-007, FR-LLM-009 |
+| [ADR-016](adr/0016-audit-log-tamper-evidence.md) | Audit log tamper-evidence yöntemi (hash zinciri + dış mühürleme) | 🟡 Önerilen | THREAT_MODEL.md §10 (TM-T-03); FR-IAM-006 |
+| [ADR-017](adr/0017-phishing-resistant-mfa.md) | Phishing-resistant MFA zorunluluğu (WebAuthn/FIDO2) | 🟡 Önerilen | THREAT_MODEL.md §10 (TM-S-03, TM-E-05); FR-IAM-003 |
+
+<!-- ADR-INDEX:END -->
 
 ---
 

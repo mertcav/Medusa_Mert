@@ -378,7 +378,7 @@ Tehdit modeli, BRD §19 kabul kriterleri ve SRS/RTM test case'leriyle doğrulan�
 ## 13. Açık Kararlar ve Sonraki Adımlar
 
 **Açık kararlar (önlem detayını etkiler):**
-- **ADR-014..017** (§10) — egress kontrol, prompt-injection mimarisi, audit tamper-evidence, MFA türü — 0.1.8 ADR sürecinde formelleştir.
+- **ADR-014..017** (§10) — egress kontrol, prompt-injection mimarisi, audit tamper-evidence, MFA türü — 0.1.8 ADR sürecinde `docs/adr/`'de **Önerilen** durumla formelleştirildi (`0014`..`0017`); kabul süreci `docs/adr/README.md`.
 - Prompt-injection için ek-LLM guard'ın gecikme/maliyet etkisi (ADR-015) → F0 PoC (0.3.x) girdisi; NFR 10.1 bütçesine sığmalı.
 - BRD §22 açık kararları (PCI kapsamı, ilk sektör/ülke) → uygulanacak compliance profile ve sektörel kontroller (HIPAA/FCA/PCI) bu tehdit modelinin profil-özgü uzantısını belirler.
 - BYOK/HSM kapsamı (F3) → SEC-15/SEC-20'nin nihai kripto-izolasyon modeli.
