@@ -1,0 +1,15 @@
+{
+  "_note": "Schema registry uyumluluk politikası (sağlayıcı-nötr: Confluent SR / Apicurio / Redpanda SR). Subject başına şema evrimi geriye-uyumlu (invariant I14). Kırıcı değişim → topic adında yeni .vN (I1). SIR YOK.",
+  "registry_url": "${SCHEMA_REGISTRY_URL}",
+  "global_compatibility": "BACKWARD",
+  "rationale": "BACKWARD: yeni şema ile eski mesajlar okunabilir → tüketici önce, üretici sonra deploy edilebilir; opsiyonel-alan ekleme/varsayılanlı alan kaldırma güvenli. Kırıcı değişim (alan tipi/anlam) BACKWARD'ı geçemez → yeni .vN topic + dual-write/migrate.",
+  "subjects": [
+    {"subject": "event-envelope", "compatibility": "FULL", "schema_file": "../schemas/event-envelope.schema.json", "note": "Ortak zarf FULL (ileri+geri) — tüm topic'ler paylaşır, en katı."},
+    {"subject": "voice.call.lifecycle.v1-value", "compatibility": "BACKWARD"},
+    {"subject": "voice.turn.telemetry.v1-value", "compatibility": "BACKWARD"},
+    {"subject": "voice.transcript.raw.v1-value", "compatibility": "BACKWARD"},
+    {"subject": "voice.transcript.redacted.v1-value", "compatibility": "BACKWARD"},
+    {"subject": "billing.usage.v1-value", "compatibility": "FULL", "note": "Faturalama no-loss → FULL (mutabakat güvenliği)."},
+    {"subject": "governance.audit.v1-value", "compatibility": "FULL", "note": "Audit no-loss/uzun-retention → FULL."}
+  ]
+}

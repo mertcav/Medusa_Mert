@@ -1,0 +1,31 @@
+{
+  "_note": "Sağlayıcı-nötr declarative topic provisioning manifesti. topic-spec.json'ın türevi (spec↔config tutarlılık, invariant I15). Bir provisioner (kafka-topics.sh / rpk topic create / Terraform kafka provider / Strimzi KafkaTopic CR) bunu uygular. Sır YOK — bootstrap/credential ${ENV}.",
+  "bootstrap_servers": "${KAFKA_BOOTSTRAP_SERVERS}",
+  "security": {
+    "protocol": "${KAFKA_SECURITY_PROTOCOL:-SASL_SSL}",
+    "sasl_mechanism": "${KAFKA_SASL_MECHANISM:-SCRAM-SHA-512}",
+    "note": "TLS keystore/truststore ve SASL parolası deployment secret'tan; bu dosyada literal sır yok."
+  },
+  "defaults": {
+    "replication.factor": 3,
+    "min.insync.replicas": 2,
+    "unclean.leader.election.enable": false,
+    "compression.type": "zstd",
+    "max.message.bytes": 1048576
+  },
+  "topics": [
+    {"name": "voice.call.lifecycle.v1", "partitions": 24, "configs": {"cleanup.policy": "delete", "retention.ms": 604800000, "min.insync.replicas": 2}},
+    {"name": "voice.turn.telemetry.v1", "partitions": 48, "configs": {"cleanup.policy": "delete", "retention.ms": 259200000, "min.insync.replicas": 2}},
+    {"name": "voice.transcript.raw.v1", "partitions": 24, "configs": {"cleanup.policy": "delete", "retention.ms": 86400000, "min.insync.replicas": 2}},
+    {"name": "voice.transcript.redacted.v1", "partitions": 24, "configs": {"cleanup.policy": "delete", "retention.ms": 2592000000, "min.insync.replicas": 2}},
+    {"name": "voice.recording.events.v1", "partitions": 12, "configs": {"cleanup.policy": "delete", "retention.ms": 604800000, "min.insync.replicas": 2}},
+    {"name": "ops.tool.execution.v1", "partitions": 24, "configs": {"cleanup.policy": "delete", "retention.ms": 1209600000, "min.insync.replicas": 2}},
+    {"name": "billing.usage.v1", "partitions": 24, "configs": {"cleanup.policy": "delete", "retention.ms": 3024000000, "min.insync.replicas": 2}},
+    {"name": "qa.evaluation.v1", "partitions": 12, "configs": {"cleanup.policy": "delete", "retention.ms": 2592000000, "min.insync.replicas": 2}},
+    {"name": "governance.audit.v1", "partitions": 12, "configs": {"cleanup.policy": "delete", "retention.ms": 31536000000, "min.insync.replicas": 2}},
+    {"name": "campaign.events.v1", "partitions": 6, "configs": {"cleanup.policy": "delete", "retention.ms": 2592000000, "min.insync.replicas": 2}},
+    {"name": "ops.quota.alerts.v1", "partitions": 6, "configs": {"cleanup.policy": "delete", "retention.ms": 604800000, "min.insync.replicas": 2}},
+    {"name": "config.snapshot.v1", "partitions": 6, "configs": {"cleanup.policy": "compact,delete", "retention.ms": 7776000000, "min.insync.replicas": 2, "min.cleanable.dirty.ratio": 0.1, "segment.ms": 86400000}},
+    {"name": "platform.dlq.v1", "partitions": 12, "configs": {"cleanup.policy": "delete", "retention.ms": 1209600000, "min.insync.replicas": 2}}
+  ]
+}

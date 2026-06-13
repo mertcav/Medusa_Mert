@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rmc.example/eventstream/event-envelope.schema.json",
+  "title": "Event Stream Envelope (WBS 1.1.8)",
+  "description": "Kafka event stream ortak zarfı. API §10.1 webhook envelope'unun üst kümesi; webhook-dispatcher bu zarftan webhook zarfına indirger. PII payload yalnız 'data' içindedir ve topic pii_class'ı ile yönetilir.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "type", "api_version", "schema_version", "created_at", "event_time",
+    "tenant_id", "correlation_id", "idempotency_key", "partition_key", "pii_class", "producer", "data"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Olay tekil kimliği (ULID/UUIDv7). Tüketici dedup anahtarı (at-least-once → idempotent).",
+      "minLength": 16
+    },
+    "type": {
+      "type": "string",
+      "description": "Olay tipi (ör. call.completed, transcript.ready). API §10.2 + stream-içi tipler.",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)+$"
+    },
+    "api_version": {
+      "type": "string",
+      "description": "Tenant-facing API sürümü (webhook indirgemesi için).",
+      "pattern": "^v[0-9]+$"
+    },
+    "schema_version": {
+      "type": "integer",
+      "description": "Envelope/data şema sürümü; geriye-uyumlu evrim (schema registry BACKWARD).",
+      "minimum": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Olayın üretildiği an (RFC 3339 UTC)."
+    },
+    "event_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Olayın temsil ettiği iş-zamanı (created_at'ten farklı olabilir; geç-gelen/replay için)."
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "Zorunlu; cross-tenant etiketleme + downstream RLS girdisi (SAD §13.3).",
+      "minLength": 1
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "Çağrı boyu izleme kimliği; trace/log/event'i bağlar (BRD §15, SAD §17.1).",
+      "minLength": 1
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Üretici-tarafı tekillik anahtarı (call_id+seq, execution_id). Çift yan-etki önler.",
+      "minLength": 1
+    },
+    "partition_key": {
+      "type": "string",
+      "description": "Kafka mesaj anahtarı (tenant_id veya call_id). Partition-içi sıra garantisi.",
+      "minLength": 1
+    },
+    "pii_class": {
+      "type": "string",
+      "enum": ["none", "low", "reference", "redacted", "raw", "sensitive"],
+      "description": "Bu olayın PII sınıfı; topic pii_class'ı ile tutarlı olmalı (I5)."
+    },
+    "producer": {
+      "type": "string",
+      "description": "Üreten servis/bileşen kimliği (ör. orchestrator, redaction).",
+      "minLength": 1
+    },
+    "data": {
+      "type": "object",
+      "description": "Olay-özel yük (type'a göre değişir; data şeması schema-registry'de subject olarak versiyonlanır)."
+    },
+    "trace_context": {
+      "type": "object",
+      "description": "Opsiyonel W3C traceparent/tracestate (OTel propagation, SAD §17.1).",
+      "additionalProperties": true
+    },
+    "replay_of": {
+      "type": ["string", "null"],
+      "description": "Replay ile yeniden yayımlandıysa orijinal envelope.id (gözlemlenebilirlik). Canlı üretimde null."
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "_note": "Least-privilege ACL şablonu (sağlayıcı-nötr). Principal'lar ${ENV} placeholder; gerçek principal deployment'tan. Tenant'lar Kafka'ya DOĞRUDAN bağlanmaz — yalnız RMC platform servis principal'ları. Cross-tenant izolasyon residency (per-region cluster) + downstream RLS ile; Kafka ACL'i servis-bazlı en-az-yetki sağlar.",
+  "principals": {
+    "producer.orchestrator": "${ACL_PRINCIPAL_ORCHESTRATOR}",
+    "producer.redaction": "${ACL_PRINCIPAL_REDACTION}",
+    "consumer.analytics": "${ACL_PRINCIPAL_ANALYTICS}",
+    "consumer.redaction": "${ACL_PRINCIPAL_REDACTION}",
+    "consumer.billing": "${ACL_PRINCIPAL_BILLING}",
+    "consumer.qa": "${ACL_PRINCIPAL_QA}",
+    "consumer.webhook": "${ACL_PRINCIPAL_WEBHOOK}",
+    "consumer.audit": "${ACL_PRINCIPAL_AUDIT}",
+    "admin.provisioner": "${ACL_PRINCIPAL_PROVISIONER}"
+  },
+  "rules": [
+    {"principal": "producer.orchestrator", "operation": "WRITE", "topics": ["voice.call.lifecycle.v1", "voice.turn.telemetry.v1", "voice.transcript.raw.v1", "voice.recording.events.v1", "ops.tool.execution.v1", "billing.usage.v1", "ops.quota.alerts.v1"]},
+    {"principal": "producer.redaction", "operation": "WRITE", "topics": ["voice.transcript.redacted.v1"]},
+    {"principal": "consumer.redaction", "operation": "READ", "topics": ["voice.transcript.raw.v1"], "group": "pii-redaction", "note": "Ham PII'ye erişen TEK consumer; kısıtlı ACL (I5)."},
+    {"principal": "consumer.analytics", "operation": "READ", "topics": ["voice.call.lifecycle.v1", "voice.turn.telemetry.v1", "voice.transcript.redacted.v1", "ops.tool.execution.v1", "qa.evaluation.v1", "campaign.events.v1"], "group": "analytics-ingest"},
+    {"principal": "consumer.billing", "operation": "READ", "topics": ["billing.usage.v1", "ops.quota.alerts.v1"], "group": "billing-aggregator"},
+    {"principal": "consumer.qa", "operation": "READ", "topics": ["voice.transcript.redacted.v1"], "group": "qa-eval"},
+    {"principal": "consumer.webhook", "operation": "READ", "topics": ["voice.call.lifecycle.v1", "voice.transcript.redacted.v1", "voice.recording.events.v1", "ops.tool.execution.v1", "campaign.events.v1", "ops.quota.alerts.v1", "config.snapshot.v1"], "group": "webhook-dispatcher", "note": "Ham PII topic'lerine (raw/sensitive) ERİŞMEZ (I6)."},
+    {"principal": "consumer.audit", "operation": "READ", "topics": ["governance.audit.v1", "voice.call.lifecycle.v1", "ops.tool.execution.v1"], "group": "audit-sink"},
+    {"principal": "admin.provisioner", "operation": "ALL", "topics": ["*"], "note": "Yalnız topic create/alter; runtime veri okumaz. Ayrı kısıtlı principal."}
+  ]
+}
