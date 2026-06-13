@@ -1,0 +1,25 @@
+{
+  "_note": "İllüstratif DEGRADE gecikme profili (0.3.2): merkezi (edge-dışı) medya + büyük-tier ağırlıklı + zayıf TTS cache + yüksek ağ. Çok sayıda NFR 10.1 kapısı eler (P50/P95/P99 + barge-in + tool overhead). Kapının fiilen ELEDİĞİNİ gösterir. Gerçek ölçüm DEĞİL (FR-TST-008).",
+  "name": "red-degraded",
+  "samples": 20000,
+  "seed": 42,
+  "mix": {
+    "small_tier_share": 0.20,
+    "rag_prob": 0.60,
+    "tool_prob": 0.50,
+    "tts_cache_hit_prob": 0.10
+  },
+  "components": {
+    "endpointing":     {"p50": 240, "p95": 360},
+    "stt_final":       {"p50": 190, "p95": 330},
+    "orchestrator":    {"p50": 40,  "p95": 95},
+    "rag":             {"p50": 190, "p95": 360},
+    "llm_first_small": {"p50": 280, "p95": 520},
+    "llm_first_large": {"p50": 430, "p95": 680},
+    "tts_first_byte":  {"p50": 200, "p95": 360},
+    "tts_cached":      {"p50": 5,   "p95": 12},
+    "network":         {"p50": 95,  "p95": 190},
+    "tool":            {"p50": 140, "p95": 185},
+    "barge_in_cut":    {"p50": 240, "p95": 360}
+  }
+}

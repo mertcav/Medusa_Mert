@@ -1,0 +1,25 @@
+{
+  "_note": "İllüstratif gecikme profili (0.3.2). Gerçek ölçüm DEĞİL; SAD §20 bantlarından türetilmiş iyimser-ama-savunulabilir mühendislik dağılımı. Bölgesel edge + TTS cache + ağırlıklı küçük-tier varsayımı. Canlı PoC'ta gerçek provider telemetri ile doldurulur (FR-TST-008).",
+  "name": "green-baseline",
+  "samples": 20000,
+  "seed": 42,
+  "mix": {
+    "small_tier_share": 0.70,
+    "rag_prob": 0.25,
+    "tool_prob": 0.20,
+    "tts_cache_hit_prob": 0.50
+  },
+  "components": {
+    "endpointing":     {"p50": 140, "p95": 200},
+    "stt_final":       {"p50": 100, "p95": 165},
+    "orchestrator":    {"p50": 8,   "p95": 22},
+    "rag":             {"p50": 130, "p95": 190},
+    "llm_first_small": {"p50": 190, "p95": 330},
+    "llm_first_large": {"p50": 290, "p95": 385},
+    "tts_first_byte":  {"p50": 100, "p95": 170},
+    "tts_cached":      {"p50": 5,   "p95": 12},
+    "network":         {"p50": 45,  "p95": 85},
+    "tool":            {"p50": 75,  "p95": 96},
+    "barge_in_cut":    {"p50": 70,  "p95": 150}
+  }
+}

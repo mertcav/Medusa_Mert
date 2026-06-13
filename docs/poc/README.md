@@ -17,6 +17,9 @@ tekrarlanabilir.** PoC'lar BRD/SAD'ın mimari hipotezlerini çalışan spike'lar
 | `e2e-inbound-poc.md` | Uçtan uca tek inbound akış PoC tasarımı (telefon→STT→LLM→TTS→telefon) + mimari eşleme + kapı | 0.3.1 · SAD §25/§6.1/§7.1/§20, ADR-001/002/005 |
 | `e2e_inbound_poc.py` | E2E orkestrasyon hattı (`run`/`selftest`/`schema`); turn state machine + barge-in + STT fallback + context propagation + SAD §20 gecikme kırılımı + 0.3.1 invariant kapısı | 0.3.1 |
 | `samples/inbound-*.json` | İllüstratif inbound senaryolar: `happy-path` (intent→tool→RAG→kapanış), `barge-in` (SPEAK→CAPTURE, TR), `stt-fallback` (FR-STT-008) | 0.3.1 |
+| `latency-budget.md` | Gecikme bütçesi ölçümü tasarımı: end-of-utterance→ilk ses metriği, lognormal bileşen modeli, NFR 10.1 HARD kapı, bileşen atfı/headroom | 0.3.2 · NFR 10.1/SAD §20 |
+| `latency_budget_probe.py` | Monte-Carlo gecikme bütçesi hattı (`measure`/`compare`/`selftest`/`schema`); P50/P95/P99 + barge-in kesme + tool overhead kapısı + bileşen atfı; deterministik tohumlu örnekleme | 0.3.2 |
+| `samples/latency-*.json` | İllüstratif gecikme profilleri: `green-baseline` (geçer), `tail-heavy` (P95 eler — kuyruk riski), `red-degraded` (çoklu kapı eler) | 0.3.2 |
 
 ## Hızlı başvuru
 ```bash
@@ -25,10 +28,14 @@ python3 docs/poc/e2e_inbound_poc.py selftest
 
 # Bir inbound çağrıyı uçtan uca koştur (olay izi + tur özeti + 0.3.1 kapı verdict'i)
 python3 docs/poc/e2e_inbound_poc.py run --scenario docs/poc/samples/inbound-happy-path.json --verbose
+
+# Gecikme bütçesi ölç (0.3.2): P50/P95/P99 + barge-in + NFR 10.1 HARD kapı
+python3 docs/poc/latency_budget_probe.py selftest
+python3 docs/poc/latency_budget_probe.py measure --profile docs/poc/samples/latency-green-baseline.json
+python3 docs/poc/latency_budget_probe.py compare docs/poc/samples/latency-green-baseline.json docs/poc/samples/latency-tail-heavy.json docs/poc/samples/latency-red-degraded.json
 ```
 
 ## Sıradaki PoC görevleri (0.3.x)
-- **0.3.2** Gecikme bütçesi ölçümü (P50/P95/P99, barge-in kesme) — bu PoC'taki **yumuşak** gecikmeyi hard kapıya çevirir.
 - **0.3.3** Density ölçümü (oturum/worker, ~15MB/oturum, NFR 10.2/ADR-003).
 - **0.3.4** Medya işleme konumu deneyi (edge vs merkez) → **ADR-009 kararı**.
 - **0.3.5** Hot-path dil doğrulaması (Go/Rust async runtime, ADR-003).

@@ -1,0 +1,25 @@
+{
+  "_note": "İllüstratif gecikme profili (0.3.2). Median'lar bütçe içinde (P50≤700) ama bileşen KUYRUKLARI ağır (yüksek p95 → büyük varyans, ör. değişken LLM first-token + edge-dışı ağ). Sonuç: P50 GEÇER ama P95 ≤1200ms kapısını ELER. Ders: median/ortalama 'iyi' görünse de gecikmeyi P95/P99 belirler — tek-noktalı (0.3.1) bakış yetersizdir. Gerçek ölçüm DEĞİL (FR-TST-008).",
+  "name": "tail-heavy",
+  "samples": 20000,
+  "seed": 42,
+  "mix": {
+    "small_tier_share": 0.68,
+    "rag_prob": 0.30,
+    "tool_prob": 0.20,
+    "tts_cache_hit_prob": 0.50
+  },
+  "components": {
+    "endpointing":     {"p50": 130, "p95": 240},
+    "stt_final":       {"p50": 95,  "p95": 260},
+    "orchestrator":    {"p50": 8,   "p95": 45},
+    "rag":             {"p50": 130, "p95": 340},
+    "llm_first_small": {"p50": 190, "p95": 600},
+    "llm_first_large": {"p50": 290, "p95": 700},
+    "tts_first_byte":  {"p50": 100, "p95": 340},
+    "tts_cached":      {"p50": 5,   "p95": 14},
+    "network":         {"p50": 45,  "p95": 200},
+    "tool":            {"p50": 78,  "p95": 99},
+    "barge_in_cut":    {"p50": 88,  "p95": 195}
+  }
+}
