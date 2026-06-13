@@ -1,0 +1,26 @@
+{
+  "_note": "Barge-in senaryosu (FR-RTC-002, NFR 10.1): agent uzun anons çalarken kullanıcı keser → TTS iptal, SPEAK→CAPTURE. Ayrıca TR dil turu.",
+  "call": {
+    "tenant_id": "t_acme_retail",
+    "correlation_id": "poc-inb-bargein-002",
+    "from": "+905320001122",
+    "to": "+902125550000",
+    "language": "tr",
+    "ai_disclosure": true
+  },
+  "adapters": {
+    "stt": {"final_ms": 140},
+    "llm": {"first_token_small_ms": 230, "first_token_large_ms": 340},
+    "tts": {"first_byte_ms": 130, "cancel_ms": 85, "frame_ms": 20},
+    "network_ms": 70
+  },
+  "turns": [
+    {"id": "u1-uzun-soru", "user_text": "iade kosullarinizi detayli anlatir misiniz",
+     "language": "tr", "endpoint_ms": 200, "tier": "small", "rag": true},
+    {"id": "u2-barge-in", "user_text": "tamam yeter siparisimi iptal et",
+     "language": "tr", "endpoint_ms": 175, "tier": "large", "barge_in_after_ms": 60},
+    {"id": "u3-onay", "user_text": "evet eminim iptal et",
+     "language": "tr", "endpoint_ms": 165, "tier": "large",
+     "tool": {"name": "cancel_order", "latency_ms": 95}}
+  ]
+}

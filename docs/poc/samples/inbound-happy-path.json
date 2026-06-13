@@ -1,0 +1,28 @@
+{
+  "_note": "İllüstratif inbound senaryo (0.3.1 PoC). Gerçek müşteri verisi YOK (FR-TST-008). Gecikmeler SAD §20 orta-nokta varsayılanı.",
+  "call": {
+    "tenant_id": "t_acme_retail",
+    "correlation_id": "poc-inb-happy-001",
+    "from": "+447700900111",
+    "to": "+442035550000",
+    "language": "en",
+    "ai_disclosure": true
+  },
+  "adapters": {
+    "stt": {"final_ms": 130},
+    "llm": {"first_token_small_ms": 220, "first_token_large_ms": 320, "inter_token_ms": 18},
+    "tts": {"first_byte_ms": 120, "cancel_ms": 70, "frame_ms": 20},
+    "network_ms": 60
+  },
+  "turns": [
+    {"id": "u1-greeting-intent", "user_text": "hi i'd like to check the status of my order",
+     "language": "en", "endpoint_ms": 180, "tier": "small", "tool": null, "rag": false},
+    {"id": "u2-provide-id", "user_text": "order number one two three four",
+     "endpoint_ms": 170, "tier": "small",
+     "tool": {"name": "lookup_order", "latency_ms": 80}, "rag": false},
+    {"id": "u3-policy-question", "user_text": "what's your return policy for that",
+     "endpoint_ms": 190, "tier": "small", "tool": null, "rag": true},
+    {"id": "u4-thanks-close", "user_text": "great thank you that's all",
+     "endpoint_ms": 160, "tier": "small", "tool": null, "rag": false}
+  ]
+}

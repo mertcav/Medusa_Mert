@@ -1,0 +1,24 @@
+{
+  "_note": "STT birincil sağlayıcı hatası → ikincil STT'ye kontrollü fallback (FR-STT-008, SAD §8.3, BRD §19 madde 4). Akış kesintisiz tamamlanmalı.",
+  "call": {
+    "tenant_id": "t_globex_fin",
+    "correlation_id": "poc-inb-fallback-003",
+    "from": "+447700900222",
+    "to": "+442035550001",
+    "language": "en",
+    "ai_disclosure": true
+  },
+  "adapters": {
+    "stt": {"final_ms": 130, "fail_first": true, "fallback_final_ms": 155},
+    "llm": {"first_token_small_ms": 220, "first_token_large_ms": 320},
+    "tts": {"first_byte_ms": 120, "cancel_ms": 70},
+    "network_ms": 60
+  },
+  "turns": [
+    {"id": "u1-intent", "user_text": "i need to verify my account balance",
+     "endpoint_ms": 185, "tier": "small", "rag": false},
+    {"id": "u2-auth", "user_text": "my customer number is nine eight seven six",
+     "endpoint_ms": 175, "tier": "large",
+     "tool": {"name": "verify_customer", "latency_ms": 90}}
+  ]
+}
