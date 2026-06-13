@@ -1,0 +1,29 @@
+{
+  "provider": "stt-cloud-C-degraded",
+  "_note": "İLLÜSTRATİF DÜŞÜK-PERFORMANS profili — kapının (gate) elemesini göstermek içindir. Yüksek WER (telefoni 8kHz'e zayıf adapte), yüksek final-flush gecikmesi (P95 > 200ms SAD §20 kapısı), yapısal alanlarda hata ve bir partial/final ihlali. Gerçek sağlayıcı DEĞİL.",
+  "config": {"sample_rate_hz": 16000, "model": "wideband-only", "dialects": ["en-US"], "data_retention": "PROVIDER_DEFAULT", "phrase_boost": false},
+  "utterances": [
+    {"id": "en-001", "language": "en", "field_type": "general",
+     "reference": "i would like to check my account balance please",
+     "hypothesis": "i would like to check my count balance please",
+     "confidence": 0.7, "speech_end_ms": 1000,
+     "events": [{"t_ms": 400, "text": "i would", "is_final": false},
+                {"t_ms": 1360, "text": "i would like to check my count balance please", "is_final": true, "confidence": 0.7}]},
+    {"id": "tr-001", "language": "tr", "field_type": "general",
+     "reference": "merhaba ben ahmet yılmaz hesabımı kontrol etmek istiyorum",
+     "hypothesis": "merhaba ben ahmet yardımcı hesap kontrol etmek istiyorum",
+     "confidence": 0.6, "speech_end_ms": 1000,
+     "events": [{"t_ms": 450, "text": "merhaba", "is_final": false},
+                {"t_ms": 1420, "text": "merhaba ben ahmet yardımcı hesap kontrol etmek istiyorum", "is_final": true, "confidence": 0.6}]},
+    {"id": "tr-002-pf-violation", "language": "tr", "field_type": "general",
+     "reference": "faturamı ödemek için yardım alabilir miyim",
+     "hypothesis": "faturamı ödemek için yardım alabilir miyim",
+     "confidence": 0.65, "speech_end_ms": 1000,
+     "events": [{"t_ms": 1380, "text": "faturamı ödemek için yardım alabilir miyim", "is_final": true, "confidence": 0.65}]},
+    {"id": "tr-phone-001", "language": "tr", "field_type": "phone",
+     "reference": "0532 111 22 33", "hypothesis": "0533 121 22 33",
+     "confidence": 0.5, "speech_end_ms": 1000,
+     "events": [{"t_ms": 460, "text": "0533", "is_final": false},
+                {"t_ms": 1450, "text": "0533 121 22 33", "is_final": true, "confidence": 0.5}]}
+  ]
+}
