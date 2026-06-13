@@ -1,0 +1,433 @@
+{
+  "_meta": {
+    "wbs": "1.1.9",
+    "title": "OLAP (ClickHouse/BigQuery) analitik şeması",
+    "source_of_truth": ["SAD §12.1", "SAD §4.2", "BRD §15", "BRD §16", "FR-ANA-*", "FR-BIL-*"],
+    "vendor_neutral": "ClickHouse, SAD §12.1'deki 'Analytics — kolon-bazlı OLAP' yeteneği için referans implementasyondur (sütun-depolu, partition'lı, agregasyon-optimize). Sağlayıcı-nötr (ADR-002): aynı mantıksal şema BigQuery (PARTITION BY + CLUSTER BY) veya bölgesel eşdeğer (Snowflake/Redshift/StarRocks) ile sağlanabilir. Tablo grain'i, partition/sıralama anahtarı, retention/TTL, PII sınıfı, tenant izolasyon modeli ve rollup tanımları motor-bağımsızdır; her tablo hem ClickHouse hem BigQuery DDL'ine eşlenir (ddl/).",
+    "secret_policy": "Sır/credential repoya YAZILMAZ. Endpoint, kullanıcı/parola, dataset/cluster adı yalnız ${ENV} veya deployment secret'tan gelir. Bu repoda yalnız şema/DDL/row-policy şablonları (placeholder'lı).",
+    "position": "OLAP, Analytics/Ops Plane'in sorgulanabilir agregat katmanıdır (SAD §4.2). Data plane (voice runtime) OLAP'a DOĞRUDAN yazmaz; event stream (WBS 1.1.8) tüketicileri (analytics-ingest, olap-sink) olayları asenkron akıtır (FR-RES-011). OLAP, ham PII / transkript metni / ses TUTMAZ — yalnız redacted/türetilmiş/agregat metrik. Ham transkript+kayıt PostgreSQL (DB.md §5.5) + nesne depolama (1.1.6); OLAP dashboard & raporlama içindir (FR-ANA-*, FR-BIL-*).",
+    "isolation_model": "OLAP motorları PostgreSQL-tarzı FORCE RLS taşımaz; tenant izolasyonu DÖRT katmanla zorlanır: (1) tenant_id her fact/dimension tablosunda NOT NULL ve ORDER BY/CLUSTER anahtarının BAŞIDIR → tenant predicate'siz tam-tarama engellenir + partition pruning; (2) sorgu katmanı (Analytics API, FastAPI control plane) her sorguya zorunlu `WHERE tenant_id = :ctx` enjekte eder — istemciye GÜVENİLMEZ, DB.md §6 GUC/RLS deseninin OLAP karşılığı; (3) defense-in-depth: ClickHouse ROW POLICY / BigQuery row-access-policy + authorized view rol-başına tenant filtresi (ddl/row-policy.template.sql); (4) residency — her home-region için AYRI cluster/dataset (NFR 10.7), cross-region yalnız agregat/anonim whitelisted. Platform (L0) realm analitik metriği görür ama tenant iş içeriğini (transkript/PII) GÖRMEZ — altın kural; OLAP zaten ham PII tutmadığından yapısal olarak desteklenir."
+  },
+
+  "engine_neutral": {
+    "reference_engine": "ClickHouse",
+    "alt_engine": "BigQuery",
+    "type_mapping": {
+      "uuid": {"clickhouse": "UUID", "bigquery": "STRING"},
+      "string_lc": {"clickhouse": "LowCardinality(String)", "bigquery": "STRING"},
+      "string": {"clickhouse": "String", "bigquery": "STRING"},
+      "u8_bool": {"clickhouse": "UInt8", "bigquery": "BOOL"},
+      "u16": {"clickhouse": "UInt16", "bigquery": "INT64"},
+      "u32": {"clickhouse": "UInt32", "bigquery": "INT64"},
+      "u64": {"clickhouse": "UInt64", "bigquery": "INT64"},
+      "f32": {"clickhouse": "Float32", "bigquery": "FLOAT64"},
+      "datetime": {"clickhouse": "DateTime64(3)", "bigquery": "TIMESTAMP"},
+      "date": {"clickhouse": "Date", "bigquery": "DATE"},
+      "decimal_micro": {"clickhouse": "Decimal(18,6)", "bigquery": "NUMERIC"}
+    },
+    "partition_mapping": "ClickHouse PARTITION BY toYYYYMM(event_date) ↔ BigQuery PARTITION BY DATE_TRUNC(event_date, MONTH) (veya günlük + partition_expiration_days).",
+    "order_mapping": "ClickHouse ORDER BY (tenant_id, …) ↔ BigQuery CLUSTER BY tenant_id, … (kümeleme = pruning + sıralı I/O).",
+    "ttl_mapping": "ClickHouse TTL event_date + INTERVAL <n> DAY ↔ BigQuery partition_expiration_days = <n> (retention motoru 1.2.3 ile hizalı).",
+    "dedup_mapping": "ClickHouse ReplacingMergeTree(ingested_at) + dedup_key ORDER BY ↔ BigQuery streaming insert + periyodik MERGE upsert (dedup_key). At-least-once event stream (1.1.8 P3) + idempotent sink → çift-sayım yok."
+  },
+
+  "ingestion": {
+    "lineage": "Her fact tablosu bir 1.1.8 event stream topic'inden, analytics-ingest veya olap-sink tüketicisiyle beslenir (A12). Tüketici idempotent: envelope.id / idempotency_key dedup (1.1.8 P3, FR-TOOL-009 deseni) → replay çift-sayım üretmez.",
+    "idempotency": "Her fact tablosu dedup_key taşır; ReplacingMergeTree/MERGE ile son-yazan-kazanır (ingested_at version).",
+    "freshness_target_s": 60,
+    "freshness_note": "Gerçek-zamanlı operasyon ekranı (FR-ANA-012) ve panolar ≤60s tazelik; observability panosu refresh ≤60s (0.4.7) ile hizalı. Mikro-batch/stream insert; OLAP hot-path DEĞİL (SAD §20 bütçesi dışında).",
+    "trace": ["FR-RES-011", "ADR-007", "FR-ANA-012", "WBS 1.1.8"]
+  },
+
+  "pii_policy": {
+    "allowed_column_pii_classes": ["none", "low", "redacted"],
+    "forbidden_column_pii_classes": ["raw", "sensitive"],
+    "rules": [
+      "OLAP'a giren her sütun pii_class ∈ {none, low, redacted} (A4). Ham PII / serbest-metin transkript / kart-OTP-parola OLAP'a YAZILMAZ (FR-REC-004/005).",
+      "Türetilmiş kategorik alanlar (intent, disposition, end_reason, outbound_outcome) düşük-kardinalite enum'dur (serbest metin değil) → pii_class low.",
+      "İnsan QA yorumu METNİ OLAP'a girmez; yalnız varlık bayrağı (human_comment_present) + skor tutulur — yorum metni PostgreSQL call_evaluation'da (DB.md §5.6).",
+      "tenant_id/call_id/agent_id gibi opak kimlikler pii_class none (kişisel veri değil; izolasyon anahtarı).",
+      "Bu kural event stream I6 (webhook'a ham PII yok) ile aynı doğrultuda — OLAP da tenant-facing rapor yüzeyi."
+    ],
+    "trace": ["FR-REC-004", "FR-REC-005", "BRD §17.7", "THREAT_MODEL TM-I", "WBS 1.1.8 I6"]
+  },
+
+  "retention_policy": {
+    "note": "Gün değerleri MÜHENDİSLİK VARSAYILANI (BRD §22 açık karar). cp.retention.* yalnız SIKILAŞTIRIR (DPIA most-restrictive-wins). Süre sonunda geri-döndürülemez silme retention motoru (WBS 1.2.3) + crypto-shred (1.1.6) ile; OLAP TTL/partition expiration bunun motor-tarafı zorlamasıdır (FR-REC-006/010).",
+    "tiers": {
+      "raw_high_volume": {"days": 90, "applies": ["fct_turn"], "rationale": "Yüksek hacim tur metriği kısa tutulur; uzun analiz mv_turn_latency_daily agregatından (730g)."},
+      "operational": {"days": 730, "applies": ["fct_call", "fct_qa_evaluation", "fct_campaign_daily"], "rationale": "Çağrı/QA/kampanya analizi 2 yıl."},
+      "billing_financial": {"days": 2555, "applies": ["fct_usage"], "rationale": "Fatura/mutabakat 7 yıl (no-loss; finansal saklama)."},
+      "rollup": {"days": 1825, "applies": ["mv_call_daily", "mv_turn_latency_daily", "mv_usage_daily", "mv_agent_version_perf"], "rationale": "Pre-agregat panolar 5 yıl; düşük hacim."}
+    },
+    "trace": ["FR-REC-006", "FR-REC-010", "NFR 10.7", "WBS 1.2.3", "WBS 1.1.6"]
+  },
+
+  "fact_tables": [
+    {
+      "name": "fct_call",
+      "grain": "Tamamlanan tek çağrı (1 satır = 1 call).",
+      "source_topic": "voice.call.lifecycle.v1",
+      "source_consumer": "analytics-ingest",
+      "delivery_class": "standard",
+      "partition_by": "event_date",
+      "order_by": ["tenant_id", "agent_id", "started_at", "call_id"],
+      "ttl_days": 730,
+      "dedup_key": "call_id",
+      "engine": {"clickhouse": "ReplacingMergeTree", "bigquery": "partition+cluster+merge"},
+      "max_pii_class": "redacted",
+      "columns": [
+        {"name": "tenant_id", "type": "uuid", "pii_class": "none", "note": "İzolasyon anahtarı; ORDER BY başı."},
+        {"name": "call_id", "type": "uuid", "pii_class": "none", "note": "dedup_key."},
+        {"name": "correlation_id", "type": "string", "pii_class": "none", "note": "Trace/log/event bağı (BRD §15)."},
+        {"name": "agent_id", "type": "uuid", "pii_class": "none"},
+        {"name": "agent_version_id", "type": "uuid", "pii_class": "none", "note": "Sürüm karşılaştırma (FR-ANA-010)."},
+        {"name": "campaign_id", "type": "uuid", "pii_class": "none", "note": "Outbound; nullable."},
+        {"name": "direction", "type": "string_lc", "pii_class": "none", "note": "inbound|outbound."},
+        {"name": "started_at", "type": "datetime", "pii_class": "none"},
+        {"name": "ended_at", "type": "datetime", "pii_class": "none"},
+        {"name": "event_date", "type": "date", "pii_class": "none", "note": "Partition anahtarı (toDate(started_at))."},
+        {"name": "home_region", "type": "string_lc", "pii_class": "none", "note": "Residency (NFR 10.7)."},
+        {"name": "language", "type": "string_lc", "pii_class": "none"},
+        {"name": "duration_sec", "type": "u32", "pii_class": "none", "note": "FR-ANA-005."},
+        {"name": "talk_sec_user", "type": "u32", "pii_class": "none", "note": "FR-ANA-005."},
+        {"name": "talk_sec_agent", "type": "u32", "pii_class": "none", "note": "FR-ANA-005."},
+        {"name": "silence_sec", "type": "u32", "pii_class": "none", "note": "BRD §15 silence süresi."},
+        {"name": "turns", "type": "u16", "pii_class": "none"},
+        {"name": "barge_in_count", "type": "u16", "pii_class": "none", "note": "BRD §15."},
+        {"name": "intent", "type": "string_lc", "pii_class": "low", "note": "Türetilmiş kategorik (FR-ANA-002)."},
+        {"name": "disposition", "type": "string_lc", "pii_class": "low", "note": "FR-ANA-002."},
+        {"name": "completion_status", "type": "string_lc", "pii_class": "low", "note": "FR-ANA-002."},
+        {"name": "contained", "type": "u8_bool", "pii_class": "low", "note": "Containment (FR-ANA-003)."},
+        {"name": "transferred", "type": "u8_bool", "pii_class": "low", "note": "Transfer (FR-ANA-003)."},
+        {"name": "transfer_result", "type": "string_lc", "pii_class": "low", "note": "Aktarım sonucu (FR-HND-004)."},
+        {"name": "end_reason", "type": "string_lc", "pii_class": "low", "note": "Sonlandırma neden kodu (FR-TEL-012)."},
+        {"name": "outbound_outcome", "type": "string_lc", "pii_class": "low", "note": "voicemail|busy|no_answer|invalid (FR-OUT-008)."},
+        {"name": "flag_misinformation", "type": "u8_bool", "pii_class": "low", "note": "FR-ANA-004."},
+        {"name": "flag_tool_error", "type": "u8_bool", "pii_class": "low", "note": "FR-ANA-004."},
+        {"name": "flag_security", "type": "u8_bool", "pii_class": "low", "note": "FR-ANA-004."},
+        {"name": "flag_critical", "type": "u8_bool", "pii_class": "low", "note": "FR-ANA-008."},
+        {"name": "e2e_latency_p50_ms", "type": "u32", "pii_class": "none", "note": "Çağrı-içi özet (FR-ANA-006)."},
+        {"name": "e2e_latency_p95_ms", "type": "u32", "pii_class": "none", "note": "FR-ANA-006."},
+        {"name": "cost_total_micro", "type": "decimal_micro", "pii_class": "none", "note": "Çağrı maliyeti özeti (FR-ANA-007)."},
+        {"name": "ingested_at", "type": "datetime", "pii_class": "none", "note": "Dedup version."},
+        {"name": "schema_version", "type": "u16", "pii_class": "none"}
+      ],
+      "fr": ["FR-ANA-002", "FR-ANA-003", "FR-ANA-004", "FR-ANA-005", "FR-ANA-006", "FR-ANA-008", "FR-ANA-010", "FR-TEL-012", "FR-HND-004", "FR-OUT-008"],
+      "trace": ["SAD §12.1", "BRD §15", "WBS 1.1.8 voice.call.lifecycle.v1", "DB.md §5.5"]
+    },
+    {
+      "name": "fct_turn",
+      "grain": "Tek konuşma turu (1 satır = 1 turn). YÜKSEK HACİM — yalnız teknik metrik, transkript metni YOK.",
+      "source_topic": "voice.turn.telemetry.v1",
+      "source_consumer": "analytics-ingest",
+      "delivery_class": "standard",
+      "partition_by": "event_date",
+      "order_by": ["tenant_id", "call_id", "turn_seq"],
+      "ttl_days": 90,
+      "dedup_key": "call_id+turn_seq",
+      "engine": {"clickhouse": "ReplacingMergeTree", "bigquery": "partition+cluster+merge"},
+      "max_pii_class": "low",
+      "columns": [
+        {"name": "tenant_id", "type": "uuid", "pii_class": "none"},
+        {"name": "call_id", "type": "uuid", "pii_class": "none"},
+        {"name": "turn_seq", "type": "u16", "pii_class": "none"},
+        {"name": "agent_id", "type": "uuid", "pii_class": "none"},
+        {"name": "agent_version_id", "type": "uuid", "pii_class": "none", "note": "FR-ANA-010."},
+        {"name": "event_date", "type": "date", "pii_class": "none", "note": "Partition."},
+        {"name": "turn_ts", "type": "datetime", "pii_class": "none"},
+        {"name": "stt_latency_ms", "type": "u32", "pii_class": "none", "note": "FR-ANA-006."},
+        {"name": "llm_first_token_ms", "type": "u32", "pii_class": "none", "note": "FR-ANA-006."},
+        {"name": "llm_total_ms", "type": "u32", "pii_class": "none"},
+        {"name": "tts_first_byte_ms", "type": "u32", "pii_class": "none", "note": "FR-ANA-006."},
+        {"name": "e2e_latency_ms", "type": "u32", "pii_class": "none", "note": "Uçtan uca yanıt (FR-ANA-006, NFR 10.1)."},
+        {"name": "llm_tokens_in", "type": "u32", "pii_class": "none", "note": "BRD §15 token."},
+        {"name": "llm_tokens_out", "type": "u32", "pii_class": "none"},
+        {"name": "stt_confidence", "type": "f32", "pii_class": "none", "note": "BRD §15 word confidence."},
+        {"name": "jitter_ms", "type": "u32", "pii_class": "none", "note": "BRD §15."},
+        {"name": "packet_loss_pct", "type": "f32", "pii_class": "none", "note": "BRD §15."},
+        {"name": "codec", "type": "string_lc", "pii_class": "none"},
+        {"name": "sip_response_code", "type": "u16", "pii_class": "none", "note": "BRD §15."},
+        {"name": "barge_in", "type": "u8_bool", "pii_class": "none", "note": "BRD §15 barge-in sayısı."},
+        {"name": "silence_ms", "type": "u32", "pii_class": "none"},
+        {"name": "retry_count", "type": "u16", "pii_class": "none", "note": "BRD §15 retry/fallback."},
+        {"name": "fallback_used", "type": "u8_bool", "pii_class": "none"},
+        {"name": "provider_stt", "type": "string_lc", "pii_class": "none"},
+        {"name": "provider_llm", "type": "string_lc", "pii_class": "none"},
+        {"name": "provider_tts", "type": "string_lc", "pii_class": "none"},
+        {"name": "provider_error", "type": "u8_bool", "pii_class": "none", "note": "BRD §15 provider hata oranı."},
+        {"name": "ingested_at", "type": "datetime", "pii_class": "none"},
+        {"name": "schema_version", "type": "u16", "pii_class": "none"}
+      ],
+      "fr": ["FR-ANA-005", "FR-ANA-006", "FR-ANA-013"],
+      "trace": ["SAD §12.1", "SAD §17.1", "BRD §15", "WBS 1.1.8 voice.turn.telemetry.v1"]
+    },
+    {
+      "name": "fct_usage",
+      "grain": "Kullanım/maliyet kalemi (1 satır = 1 çağrı kullanımı). KAYIPSIZ (no-loss) — fatura doğruluğu.",
+      "source_topic": "billing.usage.v1",
+      "source_consumer": "olap-sink",
+      "delivery_class": "no-loss",
+      "partition_by": "event_date",
+      "order_by": ["tenant_id", "agent_id", "event_date", "call_id"],
+      "ttl_days": 2555,
+      "dedup_key": "idempotency_key",
+      "engine": {"clickhouse": "ReplacingMergeTree", "bigquery": "partition+cluster+merge"},
+      "max_pii_class": "low",
+      "columns": [
+        {"name": "tenant_id", "type": "uuid", "pii_class": "none"},
+        {"name": "call_id", "type": "uuid", "pii_class": "none"},
+        {"name": "agent_id", "type": "uuid", "pii_class": "none"},
+        {"name": "campaign_id", "type": "uuid", "pii_class": "none"},
+        {"name": "event_date", "type": "date", "pii_class": "none", "note": "Partition."},
+        {"name": "idempotency_key", "type": "string", "pii_class": "none", "note": "dedup_key — çift-sayım yok (FR-BIL)."},
+        {"name": "plan_id", "type": "uuid", "pii_class": "none"},
+        {"name": "billed_seconds", "type": "u32", "pii_class": "none", "note": "FR-BIL-001."},
+        {"name": "billed_minutes", "type": "f32", "pii_class": "none", "note": "FR-BIL-001."},
+        {"name": "cost_telecom_micro", "type": "decimal_micro", "pii_class": "none", "note": "FR-BIL-002."},
+        {"name": "cost_stt_micro", "type": "decimal_micro", "pii_class": "none", "note": "FR-BIL-002."},
+        {"name": "cost_tts_micro", "type": "decimal_micro", "pii_class": "none", "note": "FR-BIL-002."},
+        {"name": "cost_llm_micro", "type": "decimal_micro", "pii_class": "none", "note": "FR-BIL-002."},
+        {"name": "cost_platform_micro", "type": "decimal_micro", "pii_class": "none", "note": "FR-BIL-002."},
+        {"name": "cost_total_micro", "type": "decimal_micro", "pii_class": "none", "note": "FR-ANA-007."},
+        {"name": "provider_telecom", "type": "string_lc", "pii_class": "none", "note": "Sağlayıcı bazlı maliyet (FR-ANA-007)."},
+        {"name": "provider_stt", "type": "string_lc", "pii_class": "none"},
+        {"name": "provider_tts", "type": "string_lc", "pii_class": "none"},
+        {"name": "provider_llm", "type": "string_lc", "pii_class": "none"},
+        {"name": "cpu_ms", "type": "u64", "pii_class": "none", "note": "Çağrı başı kaynak (FR-ANA-013, FR-RES-016)."},
+        {"name": "mem_peak_mb", "type": "u32", "pii_class": "none", "note": "FR-ANA-013, FR-RES-016."},
+        {"name": "concurrency_peak", "type": "u16", "pii_class": "none", "note": "FR-ANA-013."},
+        {"name": "ingested_at", "type": "datetime", "pii_class": "none"},
+        {"name": "schema_version", "type": "u16", "pii_class": "none"}
+      ],
+      "fr": ["FR-BIL-001", "FR-BIL-002", "FR-ANA-007", "FR-ANA-013", "FR-RES-016"],
+      "trace": ["SAD §12.1", "BRD §15", "WBS 1.1.8 billing.usage.v1", "DB.md §5.4"]
+    },
+    {
+      "name": "fct_qa_evaluation",
+      "grain": "Çağrı kalite değerlendirmesi (1 satır = 1 evaluation).",
+      "source_topic": "qa.evaluation.v1",
+      "source_consumer": "analytics-ingest",
+      "delivery_class": "standard",
+      "partition_by": "event_date",
+      "order_by": ["tenant_id", "agent_id", "event_date", "call_id"],
+      "ttl_days": 730,
+      "dedup_key": "evaluation_id",
+      "engine": {"clickhouse": "ReplacingMergeTree", "bigquery": "partition+cluster+merge"},
+      "max_pii_class": "redacted",
+      "columns": [
+        {"name": "tenant_id", "type": "uuid", "pii_class": "none"},
+        {"name": "evaluation_id", "type": "uuid", "pii_class": "none", "note": "dedup_key."},
+        {"name": "call_id", "type": "uuid", "pii_class": "none"},
+        {"name": "agent_id", "type": "uuid", "pii_class": "none"},
+        {"name": "agent_version_id", "type": "uuid", "pii_class": "none", "note": "FR-ANA-010."},
+        {"name": "event_date", "type": "date", "pii_class": "none", "note": "Partition."},
+        {"name": "evaluated_at", "type": "datetime", "pii_class": "none"},
+        {"name": "auto_score", "type": "f32", "pii_class": "low", "note": "Otomatik kalite skoru (FR-ANA-001)."},
+        {"name": "score_accuracy", "type": "f32", "pii_class": "low"},
+        {"name": "score_compliance", "type": "f32", "pii_class": "low"},
+        {"name": "score_helpfulness", "type": "f32", "pii_class": "low"},
+        {"name": "critical_flag", "type": "u8_bool", "pii_class": "low", "note": "FR-ANA-008."},
+        {"name": "flag_misinformation", "type": "u8_bool", "pii_class": "low", "note": "FR-ANA-004."},
+        {"name": "flag_tool_error", "type": "u8_bool", "pii_class": "low", "note": "FR-ANA-004."},
+        {"name": "flag_security", "type": "u8_bool", "pii_class": "low", "note": "FR-ANA-004."},
+        {"name": "human_score", "type": "f32", "pii_class": "low", "note": "QA insan skoru, nullable (FR-ANA-009)."},
+        {"name": "human_comment_present", "type": "u8_bool", "pii_class": "low", "note": "Yorum METNİ değil yalnız varlık; metin DB.md §5.6'da (FR-REC-004)."},
+        {"name": "evaluator_role", "type": "string_lc", "pii_class": "low"},
+        {"name": "ingested_at", "type": "datetime", "pii_class": "none"},
+        {"name": "schema_version", "type": "u16", "pii_class": "none"}
+      ],
+      "fr": ["FR-ANA-001", "FR-ANA-004", "FR-ANA-008", "FR-ANA-009", "FR-ANA-010"],
+      "trace": ["SAD §12.1", "BRD §15", "WBS 1.1.8 qa.evaluation.v1", "DB.md §5.6"]
+    },
+    {
+      "name": "fct_campaign_daily",
+      "grain": "Kampanya × gün istatistiği (1 satır = 1 campaign+day).",
+      "source_topic": "campaign.events.v1",
+      "source_consumer": "analytics-ingest",
+      "delivery_class": "standard",
+      "partition_by": "event_date",
+      "order_by": ["tenant_id", "campaign_id", "event_date"],
+      "ttl_days": 730,
+      "dedup_key": "campaign_id+event_date",
+      "engine": {"clickhouse": "ReplacingMergeTree", "bigquery": "partition+cluster+merge"},
+      "max_pii_class": "low",
+      "columns": [
+        {"name": "tenant_id", "type": "uuid", "pii_class": "none"},
+        {"name": "campaign_id", "type": "uuid", "pii_class": "none"},
+        {"name": "agent_id", "type": "uuid", "pii_class": "none"},
+        {"name": "event_date", "type": "date", "pii_class": "none", "note": "Partition."},
+        {"name": "dials", "type": "u32", "pii_class": "low"},
+        {"name": "connects", "type": "u32", "pii_class": "low"},
+        {"name": "voicemails", "type": "u32", "pii_class": "low", "note": "FR-OUT-008."},
+        {"name": "busy", "type": "u32", "pii_class": "low", "note": "FR-OUT-008."},
+        {"name": "no_answer", "type": "u32", "pii_class": "low", "note": "FR-OUT-008."},
+        {"name": "invalid", "type": "u32", "pii_class": "low", "note": "FR-OUT-008."},
+        {"name": "completed", "type": "u32", "pii_class": "low"},
+        {"name": "transfers", "type": "u32", "pii_class": "low"},
+        {"name": "avg_duration_sec", "type": "u32", "pii_class": "low"},
+        {"name": "cost_total_micro", "type": "decimal_micro", "pii_class": "none", "note": "FR-ANA-007."},
+        {"name": "ingested_at", "type": "datetime", "pii_class": "none"},
+        {"name": "schema_version", "type": "u16", "pii_class": "none"}
+      ],
+      "fr": ["FR-OUT-008", "FR-ANA-002", "FR-ANA-007"],
+      "trace": ["SAD §12.1", "WBS 1.1.8 campaign.events.v1", "DB.md §5.4"]
+    }
+  ],
+
+  "dimension_tables": [
+    {
+      "name": "dim_tenant",
+      "grain": "Tenant (SCD-2, valid_from/to).",
+      "source": "PostgreSQL tenant (DB.md §5.1) — config plane aynası.",
+      "order_by": ["tenant_id", "valid_from"],
+      "max_pii_class": "low",
+      "columns": [
+        {"name": "tenant_id", "type": "uuid", "pii_class": "none"},
+        {"name": "name", "type": "string_lc", "pii_class": "low", "note": "Kurum adı (kişisel değil)."},
+        {"name": "plan_id", "type": "uuid", "pii_class": "none"},
+        {"name": "home_region", "type": "string_lc", "pii_class": "none", "note": "NFR 10.7."},
+        {"name": "sector", "type": "string_lc", "pii_class": "low"},
+        {"name": "status", "type": "string_lc", "pii_class": "none"},
+        {"name": "valid_from", "type": "datetime", "pii_class": "none"},
+        {"name": "valid_to", "type": "datetime", "pii_class": "none"}
+      ],
+      "fr": ["FR-TEN-002"],
+      "trace": ["DB.md §5.1", "SAD §13.1"]
+    },
+    {
+      "name": "dim_agent",
+      "grain": "Agent sürümü (SCD-2) — sürüm karşılaştırma boyutu.",
+      "source": "PostgreSQL agent/agent_version (DB.md §5.2).",
+      "order_by": ["tenant_id", "agent_id", "agent_version_id"],
+      "max_pii_class": "low",
+      "columns": [
+        {"name": "tenant_id", "type": "uuid", "pii_class": "none"},
+        {"name": "agent_id", "type": "uuid", "pii_class": "none"},
+        {"name": "agent_version_id", "type": "uuid", "pii_class": "none", "note": "FR-ANA-010."},
+        {"name": "name", "type": "string_lc", "pii_class": "low"},
+        {"name": "agent_type", "type": "string_lc", "pii_class": "none"},
+        {"name": "version_label", "type": "string_lc", "pii_class": "none"},
+        {"name": "published_at", "type": "datetime", "pii_class": "none"},
+        {"name": "valid_from", "type": "datetime", "pii_class": "none"},
+        {"name": "valid_to", "type": "datetime", "pii_class": "none"}
+      ],
+      "fr": ["FR-ANA-010", "FR-AGT-006"],
+      "trace": ["DB.md §5.2", "SAD §13.1"]
+    },
+    {
+      "name": "dim_campaign",
+      "grain": "Kampanya.",
+      "source": "PostgreSQL campaign (DB.md §5.4).",
+      "order_by": ["tenant_id", "campaign_id"],
+      "max_pii_class": "low",
+      "columns": [
+        {"name": "tenant_id", "type": "uuid", "pii_class": "none"},
+        {"name": "campaign_id", "type": "uuid", "pii_class": "none"},
+        {"name": "name", "type": "string_lc", "pii_class": "low"},
+        {"name": "campaign_type", "type": "string_lc", "pii_class": "none"},
+        {"name": "status", "type": "string_lc", "pii_class": "none"}
+      ],
+      "fr": ["FR-OUT-008"],
+      "trace": ["DB.md §5.4"]
+    },
+    {
+      "name": "dim_provider",
+      "grain": "Sağlayıcı (STT/TTS/LLM/telekom) — sağlayıcı bazlı maliyet/kalite boyutu.",
+      "source": "Platform config (adapter registry, ADR-002).",
+      "order_by": ["category", "provider"],
+      "max_pii_class": "none",
+      "columns": [
+        {"name": "provider", "type": "string_lc", "pii_class": "none"},
+        {"name": "category", "type": "string_lc", "pii_class": "none", "note": "stt|tts|llm|telecom."},
+        {"name": "display_name", "type": "string_lc", "pii_class": "none"},
+        {"name": "region", "type": "string_lc", "pii_class": "none"}
+      ],
+      "fr": ["FR-ANA-007", "FR-BIL-002"],
+      "trace": ["ADR-002", "SAD §8.4"]
+    },
+    {
+      "name": "dim_date",
+      "grain": "Takvim günü (rapor boyutu).",
+      "source": "Üretilen takvim.",
+      "order_by": ["date"],
+      "max_pii_class": "none",
+      "columns": [
+        {"name": "date", "type": "date", "pii_class": "none"},
+        {"name": "year", "type": "u16", "pii_class": "none"},
+        {"name": "month", "type": "u16", "pii_class": "none"},
+        {"name": "week", "type": "u16", "pii_class": "none"},
+        {"name": "day_of_week", "type": "u16", "pii_class": "none"}
+      ],
+      "fr": ["FR-ANA-011"],
+      "trace": ["SAD §12.1"]
+    }
+  ],
+
+  "rollups": [
+    {
+      "name": "mv_call_daily",
+      "type": "materialized_view",
+      "source": "fct_call",
+      "grain": "tenant_id + agent_id + agent_version_id + event_date",
+      "engine": {"clickhouse": "AggregatingMergeTree", "bigquery": "scheduled materialized view"},
+      "metrics": ["calls", "contained_calls", "transferred_calls", "containment_rate", "transfer_rate", "critical_calls", "e2e_p95_state", "cost_total_micro"],
+      "dashboard_fr": ["FR-ANA-003", "FR-ANA-010", "FR-ANA-012"],
+      "trace": ["BRD §15", "SAD §12.1"]
+    },
+    {
+      "name": "mv_turn_latency_daily",
+      "type": "materialized_view",
+      "source": "fct_turn",
+      "grain": "tenant_id + agent_id + event_date",
+      "engine": {"clickhouse": "AggregatingMergeTree", "bigquery": "scheduled materialized view"},
+      "metrics": ["turns", "stt_latency_state", "llm_first_token_state", "tts_first_byte_state", "e2e_latency_state", "tokens_in_sum", "tokens_out_sum", "provider_error_rate"],
+      "dashboard_fr": ["FR-ANA-006", "FR-ANA-012"],
+      "note": "fct_turn kısa TTL (90g) → bu agregat 5y; latency percentile quantileState ile korunur.",
+      "trace": ["BRD §15", "SAD §17.1"]
+    },
+    {
+      "name": "mv_usage_daily",
+      "type": "materialized_view",
+      "source": "fct_usage",
+      "grain": "tenant_id + agent_id + provider + event_date",
+      "engine": {"clickhouse": "AggregatingMergeTree", "bigquery": "scheduled materialized view"},
+      "metrics": ["billed_seconds_sum", "cost_telecom_sum", "cost_stt_sum", "cost_tts_sum", "cost_llm_sum", "cost_platform_sum", "cost_total_sum", "cpu_ms_sum", "mem_peak_max"],
+      "dashboard_fr": ["FR-ANA-007", "FR-ANA-011", "FR-ANA-013", "FR-BIL-002", "FR-BIL-007"],
+      "trace": ["BRD §15", "SAD §12.1"]
+    },
+    {
+      "name": "mv_agent_version_perf",
+      "type": "materialized_view",
+      "source": "fct_call",
+      "grain": "tenant_id + agent_id + agent_version_id",
+      "engine": {"clickhouse": "AggregatingMergeTree", "bigquery": "scheduled materialized view"},
+      "metrics": ["calls", "containment_rate", "transfer_rate", "critical_rate", "e2e_p95_state"],
+      "dashboard_fr": ["FR-ANA-010"],
+      "note": "Agent sürümleri arası performans karşılaştırması (A/B).",
+      "trace": ["BRD §15", "FR-ANA-010"]
+    }
+  ],
+
+  "known_source_topics": [
+    "voice.call.lifecycle.v1", "voice.turn.telemetry.v1", "billing.usage.v1",
+    "qa.evaluation.v1", "campaign.events.v1"
+  ],
+
+  "invariants": [
+    "A1: Her fact ve dimension tablosu tenant_id taşır (dim_provider/dim_date hariç — tenant-bağımsız referans boyut) ve fact tablolarında tenant_id ORDER BY/CLUSTER anahtarının İLK elemanıdır (izolasyon + pruning, FR-TEN-002).",
+    "A2: Her fact tablosu bir date sütununa (event_date) göre partition'lıdır (partition_by tanımlı) — partition'sız tam-tarama yok.",
+    "A3: Her fact tablosu SONLU retention (ttl_days>0) taşır; yüksek-hacim ham tablo (fct_turn) en kısa, fatura tablosu (fct_usage) en uzun (FR-REC-006/010).",
+    "A4: OLAP'taki her sütun pii_class ∈ {none, low, redacted}; raw/sensitive YASAK — ham PII/transkript metni/kart-OTP OLAP'a yazılmaz (FR-REC-004/005); ayrıca tablo max_pii_class ∈ {none,low,redacted}.",
+    "A5: Her fact/dimension tablosu residency=home-region varsayar (per-region cluster/dataset, NFR 10.7) — retention_policy + isolation_model'de zorlanır.",
+    "A6: Her fact tablosu dedup_key taşır (idempotent ingest; ReplacingMergeTree/MERGE) → event stream at-least-once replay çift-sayım üretmez (1.1.8 P3).",
+    "A7: Tenant izolasyonu sorgu katmanında zorunlu tenant predicate ile zorlanır (istemciye güvenilmez) + ROW POLICY/row-access-policy defense-in-depth (ddl/row-policy.template.sql mevcut).",
+    "A8: delivery_class='no-loss' fact (fct_usage) retention_days >= 365 (finansal mutabakat) ve idempotency_key dedup taşır.",
+    "A9: Her rollup bir kaynak fact tablosuna (source ∈ fact_tables) VE en az bir dashboard FR-ANA-*'a (dashboard_fr) izlenir.",
+    "A10: DDL/şablon dosyaları literal sır içermez (endpoint/credential/dataset yalnız ${ENV}/placeholder).",
+    "A11: spec↔DDL tutarlılığı — her fact/dimension/rollup tablosu HEM ddl/clickhouse.sql HEM ddl/bigquery.sql içinde tanımlı (CREATE) ve tenant'lı tablolarda tenant_id sütunu DDL'de mevcut.",
+    "A12: Her fact tablosu source_topic ∈ known_source_topics (1.1.8 event stream lineage) ve source_consumer ∈ {analytics-ingest, olap-sink}.",
+    "A13: fct_call/fct_turn/fct_qa_evaluation agent_version_id taşır → agent sürüm karşılaştırması (FR-ANA-010).",
+    "A14: fct_turn ve fct_call ayrık STT/LLM/TTS/e2e gecikme alanları taşır (FR-ANA-006) — birleşik tek-gecikme yasak."
+  ]
+}
