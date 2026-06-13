@@ -344,39 +344,54 @@ CREATE TABLE stt_profile (
     UNIQUE (tenant_id, name)
 );
 
--- 12) Knowledge Base + doküman + chunk (pgvector). FR-KB-*.
+-- 12) Knowledge Base + doküman + chunk (pgvector). FR-KB-*. WBS 1.1.7.
+-- namespace = tenant+agent retrieval kapsamı (FR-KB-004); agent_id NULL => tenant-shared.
+-- kb_document/kb_chunk → knowledge_base bağı KOMPOZİT tenant-kapsamlı FK ile kurulur
+-- (tenant_id, kb_id) → (tenant_id, id): FK doğrulaması RLS'i bypass ettiğinden, bu desen
+-- bir chunk'ın BAŞKA tenant'ın KB'sine bağlanmasını yapısal olarak imkânsız kılar
+-- (FR-KB-004/FR-TEN-002, defense-in-depth). Bu yüzden her parent UNIQUE (tenant_id, id) taşır.
 CREATE TABLE knowledge_base (
     id          UUID PRIMARY KEY DEFAULT gen_uuid_v7(),
-    tenant_id   UUID NOT NULL REFERENCES tenant(id),
-    agent_id    UUID REFERENCES agent(id),
+    tenant_id   UUID NOT NULL REFERENCES tenant(id) ON DELETE RESTRICT,
+    agent_id    UUID REFERENCES agent(id) ON DELETE RESTRICT,    -- NULL => tenant-shared KB (FR-KB-004)
     name        TEXT NOT NULL,
-    namespace   TEXT NOT NULL,         -- tenant+agent izolasyon namespace (WBS 1.1.7)
+    namespace   TEXT NOT NULL CHECK (length(namespace) > 0),     -- tenant+agent izolasyon namespace (FR-KB-004)
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (tenant_id, namespace)
+    UNIQUE (tenant_id, namespace),
+    UNIQUE (tenant_id, id)             -- kompozit tenant-kapsamlı FK hedefi
 );
 CREATE TABLE kb_document (
     id            UUID PRIMARY KEY DEFAULT gen_uuid_v7(),
-    tenant_id     UUID NOT NULL REFERENCES tenant(id),
-    kb_id         UUID NOT NULL REFERENCES knowledge_base(id),
-    source_uri    TEXT,                -- nesne depo pointer
+    tenant_id     UUID NOT NULL REFERENCES tenant(id) ON DELETE RESTRICT,
+    kb_id         UUID NOT NULL,
+    source_uri    TEXT,                -- nesne depo pointer (objstore, WBS 1.1.6)
     access_scope  JSONB,               -- doküman bazında erişim yetkisi (FR-KB-005)
-    version_no    INTEGER NOT NULL DEFAULT 1,
+    version_no    INTEGER NOT NULL DEFAULT 1,       -- yeniden ingest sürüm üretir (FR-KB-003)
     content_ttl_at TIMESTAMPTZ,        -- bayatlama (FR-KB-008)
     is_sensitive  BOOLEAN NOT NULL DEFAULT false,  -- sağlayıcı loguna gitmez (FR-KB-010)
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, id),
+    FOREIGN KEY (tenant_id, kb_id) REFERENCES knowledge_base (tenant_id, id) ON DELETE RESTRICT
 );
 CREATE TABLE kb_chunk (
     id           UUID PRIMARY KEY DEFAULT gen_uuid_v7(),
-    tenant_id    UUID NOT NULL REFERENCES tenant(id),
-    kb_id        UUID NOT NULL REFERENCES knowledge_base(id),
-    document_id  UUID NOT NULL REFERENCES kb_document(id),
+    tenant_id    UUID NOT NULL REFERENCES tenant(id) ON DELETE RESTRICT,
+    kb_id        UUID NOT NULL,        -- denormalize (hızlı namespace filtresi)
+    document_id  UUID NOT NULL,
     chunk_no     INTEGER NOT NULL,
     content      TEXT NOT NULL,
-    embedding    VECTOR(1536),         -- pgvector (boyut model bağımlı; ADR ile sabitlenir)
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+    -- embedding VECTOR(1536): pgvector kuruluysa koşullu ALTER ile eklenir; yoksa
+    -- kb_chunk metadata-only (embedding harici vektör deposu / OpenSearch yolu, §12).
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, document_id, chunk_no),
+    FOREIGN KEY (tenant_id, kb_id)       REFERENCES knowledge_base (tenant_id, id) ON DELETE RESTRICT,
+    FOREIGN KEY (tenant_id, document_id) REFERENCES kb_document    (tenant_id, id) ON DELETE RESTRICT
 );
-CREATE INDEX ix_kbchunk_ann ON kb_chunk USING hnsw (embedding vector_cosine_ops);  -- top-k retrieval (SAD §10.2)
-CREATE INDEX ix_kbchunk_kb ON kb_chunk (tenant_id, kb_id);
+-- pgvector koşullu (vendor-neutral, §12): IF EXISTS pg_extension('vector') THEN
+--   ALTER TABLE kb_chunk ADD COLUMN embedding VECTOR(1536);
+--   CREATE INDEX ix_kbchunk_ann ON kb_chunk USING hnsw (embedding vector_cosine_ops); -- top-k (SAD §10.2)
+CREATE INDEX ix_kbchunk_kb  ON kb_chunk (tenant_id, kb_id);        -- namespace filtreli retrieval (FR-KB-004)
+CREATE INDEX ix_kbchunk_doc ON kb_chunk (tenant_id, document_id); -- doküman silme/yeniden indeksleme
 
 -- 13) Tool — kurumsal sistem fonksiyonu (FR-TOOL-*).
 CREATE TABLE tool (
@@ -909,14 +924,17 @@ Yüksek hacimli tablolar **RANGE partition (`created_at`, aylık)**:
 - **Embedding boyutu** (`kb_chunk.embedding VECTOR(n)`): seçilen embedding modeline bağlı (WBS 0.2.5 vendor
   eval + ADR). Şu an 1536 referans değer.
 - **Vector store:** pgvector vs OpenSearch (SAD §12.1, WBS 0.2.5); pgvector ise bu şema, OpenSearch ise
-  `kb_chunk` yalnız metadata tutar.
+  `kb_chunk` yalnız metadata tutar. **WBS 1.1.7** (migration 0010/0011) bu ikiliği tek şemada uygular:
+  pgvector kuruluysa `kb_chunk.embedding VECTOR(1536)` + HNSW ANN koşullu eklenir; değilse `kb_chunk`
+  metadata-only kalır (embedding harici depo / OpenSearch yolu). Namespace izolasyonu (FR-KB-004) her iki
+  modda da tenant RLS + namespace/kb_id + kompozit tenant FK ile aynıdır.
 - **Retention süreleri** (BRD §22 açık karar): `retention_policy.retain_days` varsayılanları compliance
   profile başına netleşecek.
 - **Partition periyodu** (aylık vs haftalık): hacim ölçümüne göre (WBS 0.3.3 density PoC sonrası).
 
 **Sonraki adımlar:**
 - **0.1.4** API tasarım dokümanı (OpenAPI + adapter SPI) — bu şemayı sözleşmelere bağlar.
-- **WBS 1.1.1–1.1.4** — bu tasarımın migration'larla fiziksel implementasyonu.
+- **WBS 1.1.1–1.1.4 + 1.1.7** — bu tasarımın migration'larla fiziksel implementasyonu (KB/vector store: 0010/0011).
 - **WBS 1.2.1** RLS politikalarının her tabloya uygulanması + **12.2.3** tenant izolasyon testi.
 - **WBS 1.1.9** OLAP analitik şema bu OLTP şemadan türetilir.
 

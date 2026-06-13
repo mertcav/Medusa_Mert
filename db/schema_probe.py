@@ -57,6 +57,12 @@ GOV_TENANT_FK = ["campaign", "contact", "consent", "call_evaluation"]  # tenant_
 # audit_log: tenant_id/actor_user_id FK YOK (WORM bağımsızlık, DB.md §5.6).
 GOV_TRACE_TOKENS = ["FR-OUT-003", "FR-BIL-001", "FR-IAM-006", "FR-REC-009", "FR-ANA-001"]
 
+# Bilgi Tabanı / Vector Store namespace (DB.md §4 varlık 12–14) — WBS 1.1.7.
+# 0010 (şema) + 0011 (RLS). Üçü de saf tenant-scoped → standart izolasyon.
+# Çekirdek: tenant+agent namespace (FR-KB-004) + kompozit tenant-kapsamlı FK.
+KB_TABLES = ["knowledge_base", "kb_document", "kb_chunk"]
+KB_TRACE_TOKENS = ["FR-KB-004", "FR-KB-005", "FR-KB-008", "FR-KB-010"]
+
 # Sabit rol kümesi (CLAUDE.md RBAC; FR-IAM-011, ADR-012)
 EXPECTED_ROLES = {
     "platform_owner": "L0", "platform_sre": "L0", "platform_billing": "L0",
@@ -192,6 +198,30 @@ def mixed_policy_ok(sql, table):
          and norm(tok) in norm(b)) for b in blocks)
 
 
+def composite_tenant_fk_ok(sql, table, col, parent):
+    """kb_document/kb_chunk → parent kompozit tenant-kapsamlı FK:
+    FOREIGN KEY (tenant_id, <col>) REFERENCES <parent> (tenant_id, id).
+    FK doğrulaması RLS'i bypass ettiğinden, bu desen cross-tenant kb_id bağını
+    yapısal olarak imkânsız kılar (FR-KB-004/FR-TEN-002, defense-in-depth)."""
+    body = table_body(sql, table) or ""
+    pat = (r"FOREIGN KEY \(tenant_id, %s\)\s*REFERENCES %s\s*\(tenant_id, id\)"
+           % (re.escape(col), re.escape(parent)))
+    return bool(re.search(pat, norm(body)))
+
+
+def pgvector_conditional_ok(sql):
+    """pgvector koşullu embedding + HNSW (DB.md §12, vendor-neutral):
+    extension denenir (CREATE EXTENSION IF NOT EXISTS vector); pg_extension
+    kontrolüyle koşullu olarak embedding vector(1536) kolonu + HNSW ANN indeksi
+    (vector_cosine_ops) eklenir. pgvector yoksa kb_chunk metadata-only kalır."""
+    n = norm(sql)
+    ext = "CREATE EXTENSION IF NOT EXISTS vector" in n
+    cond = "pg_extension WHERE extname = 'vector'" in n
+    emb = "embedding vector(1536)" in n
+    hnsw = "USING hnsw (embedding vector_cosine_ops)" in n
+    return ext and cond and emb and hnsw
+
+
 def deferred_circular_fk_ok(ddl):
     """agent.active_version_id dairesel FK'si CREATE TABLE içinde DEĞİL (deferred),
     ALTER TABLE ile eklenmiş mi? (DB.md §10 dairesel FK)."""
@@ -238,6 +268,10 @@ def run_validate():
         "0008d": "0008_outbound_ops_governance.down.sql",
         "0009u": "0009_rls_outbound_ops_governance.up.sql",
         "0009d": "0009_rls_outbound_ops_governance.down.sql",
+        "0010u": "0010_knowledge_base.up.sql",
+        "0010d": "0010_knowledge_base.down.sql",
+        "0011u": "0011_rls_knowledge_base.up.sql",
+        "0011d": "0011_rls_knowledge_base.down.sql",
     }
     raw = {}
     for k, fn in files.items():
@@ -630,11 +664,112 @@ def run_validate():
     for tok in GOV_TRACE_TOKENS:
         add("AX trace:%s" % tok, tok in dbmd, "DB.md'de kaynak referans")
 
+    # =========================================================================
+    # WBS 1.1.7 — Bilgi Tabanı / Vector Store namespace (DB.md §5.3/§7.1/§12).
+    # 0010 (şema) + 0011 (RLS). Üçü de saf tenant-scoped + kompozit tenant FK.
+    # =========================================================================
+    ddl5 = raw["0010u"]
+    rls5 = raw["0011u"]
+
+    # BA. Tablolar mevcut + UUIDv7 tekil PK
+    for t in KB_TABLES:
+        body = table_body(ddl5, t)
+        add("BA table:%s" % t, body is not None, "CREATE TABLE")
+        add("BA pk-uuidv7:%s" % t,
+            "id UUID PRIMARY KEY DEFAULT gen_uuid_v7()" in (body or ""),
+            "id UUID PK DEFAULT gen_uuid_v7()")
+
+    # BB. Tenant-scoped: tenant_id NOT NULL + GERÇEK FK tenant(id)
+    for t in KB_TABLES:
+        body = table_body(ddl5, t) or ""
+        add("BB tenant_id-notnull:%s" % t,
+            "tenant_id UUID NOT NULL REFERENCES tenant(id)" in body,
+            "tenant_id UUID NOT NULL REFERENCES tenant(id)")
+
+    # BC. knowledge_base: namespace (FR-KB-004) + agent_id nullable FK + kısıtlar
+    kb_body = table_body(ddl5, "knowledge_base") or ""
+    add("BC namespace-notnull",
+        "namespace TEXT NOT NULL" in kb_body, "namespace TEXT NOT NULL (FR-KB-004)")
+    add("BC namespace-check",
+        "CHECK (length(namespace) > 0)" in kb_body, "namespace boş olamaz")
+    add("BC agent-fk-nullable",
+        ("agent_id UUID REFERENCES agent(id)" in kb_body
+         and "agent_id UUID NOT NULL" not in kb_body),
+        "agent_id nullable FK (NULL => tenant-shared, FR-KB-004)")
+    add("BC unique-namespace",
+        "UNIQUE (tenant_id, namespace)" in kb_body, "UNIQUE (tenant_id, namespace)")
+    add("BC unique-tenant-id",
+        "UNIQUE (tenant_id, id)" in kb_body, "UNIQUE (tenant_id, id) — kompozit FK hedefi")
+
+    # BD. Kompozit tenant-kapsamlı FK (defense-in-depth, FR-KB-004/FR-TEN-002)
+    add("BD comp-fk:kbdoc->kb",
+        composite_tenant_fk_ok(ddl5, "kb_document", "kb_id", "knowledge_base"),
+        "kb_document (tenant_id, kb_id) → knowledge_base (tenant_id, id)")
+    add("BD comp-fk:chunk->kb",
+        composite_tenant_fk_ok(ddl5, "kb_chunk", "kb_id", "knowledge_base"),
+        "kb_chunk (tenant_id, kb_id) → knowledge_base (tenant_id, id)")
+    add("BD comp-fk:chunk->doc",
+        composite_tenant_fk_ok(ddl5, "kb_chunk", "document_id", "kb_document"),
+        "kb_chunk (tenant_id, document_id) → kb_document (tenant_id, id)")
+    add("BD kbdoc-unique-tenant-id",
+        "UNIQUE (tenant_id, id)" in (table_body(ddl5, "kb_document") or ""),
+        "kb_document UNIQUE (tenant_id, id) — chunk kompozit FK hedefi")
+
+    # BE. pgvector koşullu embedding + HNSW; metadata-only fallback (DB.md §12)
+    add("BE pgvector-conditional", pgvector_conditional_ok(ddl5),
+        "CREATE EXTENSION vector + pg_extension koşulu + embedding vector(1536) + HNSW (vendor-neutral)")
+    add("BE embedding-not-in-base",
+        "embedding" not in (table_body(ddl5, "kb_chunk") or ""),
+        "embedding CREATE TABLE gövdesinde DEĞİL (koşullu ALTER — metadata-only fallback)")
+
+    # BF. RLS: enable+force+policy + WITH CHECK (3 tablo standart izolasyon)
+    for t in KB_TABLES:
+        add("BF rls:%s" % t, table_rls_ok(rls5, t), "ENABLE+FORCE+POLICY")
+        add("BF with-check:%s" % t, has_with_check(rls5, t), "WITH CHECK (cross-tenant write koruması)")
+
+    # BG. Fail-closed + NULLIF boş-string koruması — 0011 politikaları
+    add("BG fail-closed", fail_closed_ok(rls5), "current_setting('app.*', true) → GUC yoksa 0 satır")
+    add("BG null-safe-uuid", null_safe_uuid_ok(rls5),
+        "NULLIF(current_setting(...),'')::uuid (DB.md §6.2)")
+
+    # BH. KB mutable (WORM DEĞİL): app_rw tam CRUD (re-ingest/staleness silme)
+    for t in KB_TABLES:
+        add("BH crud:%s" % t,
+            bool(re.search(
+                r"GRANT[^;]*\bSELECT\b[^;]*\bINSERT\b[^;]*\bUPDATE\b[^;]*\bDELETE\b[^;]*ON %s\b[^;]*app_rw" % t,
+                norm(rls5))),
+            "app_rw SELECT+INSERT+UPDATE+DELETE (mutable, WORM değil)")
+        add("BH no-worm-trigger:%s" % t,
+            not has_immutable_trigger(ddl5, t), "immutable trigger YOK (mutable KB)")
+
+    # BI. İndeksler: tenant/agent + FK/sorgu + TTL/sensitive partial
+    for idx in ["ix_kb_tenant", "ix_kb_agent", "ix_kbdoc_kb",
+                "ix_kbchunk_kb", "ix_kbchunk_doc"]:
+        add("BI index:%s" % idx, ("CREATE INDEX %s" % idx) in norm(ddl5), "FK/sorgu indeksi")
+    add("BI partial:kbdoc-ttl",
+        bool(re.search(r"CREATE INDEX ix_kbdoc_ttl ON kb_document \(content_ttl_at\) WHERE content_ttl_at IS NOT NULL",
+                       norm(ddl5))),
+        "bayatlama partial index (FR-KB-008)")
+    add("BI partial:kbdoc-sensitive",
+        bool(re.search(r"CREATE INDEX ix_kbdoc_sensitive ON kb_document \(tenant_id\) WHERE is_sensitive = true",
+                       norm(ddl5))),
+        "no-log filtre partial index (FR-KB-010)")
+
+    # BJ. Down migration'lar: tablolar + RLS politikaları düşer
+    for t in KB_TABLES:
+        add("BJ down-drop:%s" % t,
+            ("DROP TABLE IF EXISTS %s" % t) in norm(raw["0010d"]), "down DROP TABLE")
+    add("BJ down-policy", raw["0011d"].count("DROP POLICY") >= len(KB_TABLES), "down DROP POLICY")
+
+    # BK. İzlenebilirlik: KB kaynak token'ları DB.md'de
+    for tok in KB_TRACE_TOKENS:
+        add("BK trace:%s" % tok, tok in dbmd, "DB.md'de kaynak referans")
+
     # Rapor
     passed = sum(1 for _, ok, _ in checks if ok)
     total = len(checks)
     failed = [(c, d) for c, ok, d in checks if not ok]
-    print("== schema_probe validate — 1.1.1 (Tenant/Org/User/Role) + 1.1.2 (Agent/Config) + 1.1.3 (Çağrı/Etkileşim) + 1.1.4 (Outbound/Operasyon/Yönetişim) + RLS ==")
+    print("== schema_probe validate — 1.1.1 (Tenant/Org/User/Role) + 1.1.2 (Agent/Config) + 1.1.3 (Çağrı/Etkileşim) + 1.1.4 (Outbound/Operasyon/Yönetişim) + 1.1.7 (Bilgi Tabanı/Vector Store) + RLS ==")
     for cid, ok, detail in checks:
         print("  %s %s — %s" % ("PASS" if ok else "FAIL", cid, detail))
     print("-" * 60)
@@ -760,6 +895,26 @@ def run_selftest():
 
     passed = sum(1 for _, ok in results if ok)
     total = len(results)
+    # composite_tenant_fk_ok (1.1.7 kompozit tenant-kapsamlı FK)
+    cfk_good = ("CREATE TABLE kb_chunk (\n  id UUID PRIMARY KEY DEFAULT gen_uuid_v7(),\n"
+                "  tenant_id UUID NOT NULL REFERENCES tenant(id),\n  kb_id UUID NOT NULL,\n"
+                "  FOREIGN KEY (tenant_id, kb_id) REFERENCES knowledge_base (tenant_id, id) ON DELETE RESTRICT\n);")
+    cfk_bad = ("CREATE TABLE kb_chunk (\n  id UUID PRIMARY KEY DEFAULT gen_uuid_v7(),\n"
+               "  tenant_id UUID NOT NULL REFERENCES tenant(id),\n"
+               "  kb_id UUID NOT NULL REFERENCES knowledge_base(id)\n);")
+    check("comp-fk:good", composite_tenant_fk_ok(cfk_good, "kb_chunk", "kb_id", "knowledge_base") is True)
+    check("comp-fk:bad-simple", composite_tenant_fk_ok(cfk_bad, "kb_chunk", "kb_id", "knowledge_base") is False)
+
+    # pgvector_conditional_ok (1.1.7 koşullu embedding + HNSW)
+    pgv_good = ("DO $$ BEGIN CREATE EXTENSION IF NOT EXISTS vector; END $$;\n"
+                "DO $$ BEGIN IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN\n"
+                "  EXECUTE 'ALTER TABLE kb_chunk ADD COLUMN IF NOT EXISTS embedding vector(1536)';\n"
+                "  EXECUTE 'CREATE INDEX ix_kbchunk_ann ON kb_chunk USING hnsw (embedding vector_cosine_ops)';\n"
+                "END IF; END $$;")
+    pgv_bad = "CREATE TABLE kb_chunk (id UUID PRIMARY KEY, content TEXT NOT NULL);"
+    check("pgvector-cond:good", pgvector_conditional_ok(pgv_good) is True)
+    check("pgvector-cond:bad", pgvector_conditional_ok(pgv_bad) is False)
+
     print("== schema_probe selftest ==")
     for name, ok in results:
         print("  %s %s" % ("PASS" if ok else "FAIL", name))
@@ -792,6 +947,10 @@ def run_schema():
         "gov_mixed": GOV_MIXED,
         "gov_worm": GOV_WORM,
         "gov_trace_tokens": GOV_TRACE_TOKENS,
+        "kb_tables": KB_TABLES,
+        "kb_namespace": "tenant+agent (FR-KB-004); RLS (cross-tenant) + namespace/kb_id + kompozit tenant FK (cross-agent)",
+        "kb_vector_store": "pgvector koşullu embedding vector(1536) + HNSW; yoksa metadata-only (OpenSearch yolu, DB.md §12)",
+        "kb_trace_tokens": KB_TRACE_TOKENS,
         "session_contract": {
             "tenant_realm": "SET LOCAL app.tenant_id = '<uuid>'",
             "platform_realm": "SET LOCAL app.platform = 'on'",
