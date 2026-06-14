@@ -1,0 +1,21 @@
+{
+  "name": "turn-no-spurious-interim",
+  "$comment": "Gereksiz ara yanıt yok (FR-RTC-003): kullanıcı henüz konuşurken (CAPTURE, endpoint öncesi) erken bir response_ready tetiği gelir (ör. partial transcript üzerine) → BASTIRILIR, agent SPEAK'e geçmez. Yalnız endpoint sonrası gelen response_ready seslendirilir. interim_suppressed=1, floor_violation=0. Geçer.",
+  "profile": "managed-ws-default",
+  "expect": "pass",
+  "expected": {
+    "interim_suppressed": 1,
+    "floor_violation": 0,
+    "turn_total": 1,
+    "illegal_transitions": 0,
+    "final_state": "LISTEN"
+  },
+  "events": [
+    { "t": 0, "type": "speech_start" },
+    { "t": 350, "type": "response_ready" },
+    { "t": 1000, "type": "endpoint" },
+    { "t": 1120, "type": "response_ready" },
+    { "t": 1150, "type": "tts_first_chunk" },
+    { "t": 2100, "type": "tts_complete" }
+  ]
+}

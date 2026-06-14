@@ -1,0 +1,19 @@
+{
+  "name": "turn-barge-in-think",
+  "$comment": "Barge-in agent THINK'te: kullanıcı, agent yanıtı henüz formüle ederken (TTS başlamadan) tekrar konuşmaya başlar; onaylı barge_in → in-flight LLM/üretim iptal + THINK→CAPTURE. Henüz seslendirme yok ama zemin DERHAL kullanıcıya bırakılır. byoc profil dispatch 18ms (sarı band, ≤50ms bütçe). Geçer.",
+  "profile": "byoc-rtp-default",
+  "expect": "pass",
+  "expected": {
+    "cancels": 1,
+    "unhandled_barge_in": 0,
+    "final_state": "CAPTURE",
+    "final_floor": "user",
+    "turn_total": 1
+  },
+  "events": [
+    { "t": 0, "type": "speech_start" },
+    { "t": 700, "type": "endpoint" },
+    { "t": 760, "type": "stt_final" },
+    { "t": 820, "type": "barge_in" }
+  ]
+}

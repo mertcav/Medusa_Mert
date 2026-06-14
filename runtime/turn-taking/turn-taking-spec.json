@@ -1,0 +1,152 @@
+{
+  "$comment": "WBS 3.1.3 — Turn-taking + barge-in koordinasyonu. Conversation Orchestrator (Çekirdek IP, SAD §6) içindeki TURN MANAGER (SAD §6.2) sözleşmesi: turn state machine'i (SAD §6.1, LISTEN→CAPTURE→THINK→ACT→SPEAK) sürer ve konuşma sırasının (turn-taking) iki tarafça düzgün yönetilmesini + barge-in koordinasyonunu sağlar. (a) Tek-zemin (floor) kuralı: her an konuşma sırası YALNIZ bir tarafta; agent kullanıcının üstüne konuşmaz (FR-RTC-003). (b) Barge-in koordinasyonu (FR-RTC-002): edge'den (2.2.3) gelen ONAYLI barge_in olayında orchestrator TTS akışını iptal eder (cancel) ve SPEAK→CAPTURE geçer; orchestrator karar+dispatch payı küçük bir alt-bütçedir (toplam ≤200ms NFR 10.1/SAD §6.1 zincirinin orkestratör dilimi). (c) Gereksiz ara yanıt YOK (FR-RTC-003): kullanıcı zemini elinde tutarken (CAPTURE, henüz endpoint yok) orchestrator yanıt başlatmaz; erken/partial tetik bastırılır. (d) Backchannel ayrımı (FR-RTC-007 sınırı): 'evet/hı hı' gibi kısa geri-bildirimler barge-in SAYILMAZ — agent'ı kesmez, zemini almaz. KAPSAM AYRIMI: edge VAD/endpointing + barge-in ALGILAMA → 2.2.3 (upstream olay üreteci); TTS kesme/egress flush ≤200ms → 2.2.7 + 2.2.1 J11; turn state machine tanımı → 3.1.2. Burada YALNIZ orchestrator-tarafı KOORDİNASYON. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): Turn Manager çekirdeği minimal+deterministik (olay-tetikli, sanal saat, random YOK); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3). Sır/credential, ham ses payload'ı, transkript ve PII YOK — olaylar yalnız tip + sanal zaman damgası taşır.",
+  "version": "1.0",
+  "wbs": "3.1.3",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-RTC-002", "FR-RTC-003", "FR-RTC-007", "FR-TTS-005", "FR-RES-001", "FR-TEN-002"],
+    "nfr": ["NFR 10.1", "NFR 10.2", "NFR 10.7"],
+    "sad": ["§6", "§6.1", "§6.2", "§6.3", "§7.2", "§17", "§20", "§23"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003", "ADR-005", "ADR-009"],
+    "api": ["§11.6 ErrorTaxonomy", "§12.2 TurnEvent (speech_start/endpoint/barge_in/backchannel)", "§12.3 medya/turn sözleşmesi"],
+    "srs": ["SR-RTC-002", "SR-RTC-003", "SR-RTC-007", "SR-TTS-005", "SR-PERF-004"],
+    "rtm": ["TC-RTC-002", "TC-RTC-003", "TC-RTC-007"],
+    "brd": ["§15 (barge-in sayısı — saklanan teknik metrik)"],
+    "observability": ["barge_in_total (BRD §15 → 0.4.7)"]
+  },
+
+  "placement": {
+    "$comment": "Turn Manager Conversation Orchestrator içindedir (SAD §6.2), medya katmanında değil. Olay-tetiklidir: bloklayan çağrı yok; her oturum hafif bir asenkron aktör (SAD §6.3, ADR-003). Orchestrator HAM SES işlemez — VAD/endpointing/barge-in ALGILAMA edge'dedir (2.2.3, ADR-005/ADR-009 hibrit); buraya yalnız ONAYLI turn-event'ler (speech_start/endpoint/barge_in/backchannel) gelir. Böylece koordinasyon kararı olay düzeyinde, sabit/küçük gecikmeyle verilir.",
+    "in_orchestrator": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "consumes_edge_events": true,
+    "raw_audio_in_orchestrator": false,
+    "trace": "SAD §6.2, SAD §6.3, ADR-003, ADR-005, ADR-009"
+  },
+
+  "turn_state_machine": {
+    "$comment": "SAD §6.1 turn state machine. Turn Manager bu durumlar arasındaki geçişleri olay-tetikli yapar. floor (konuşma sırası) durumdan türetilir: LISTEN/TRANSFER/END→none, CAPTURE→user, THINK/ACT/SPEAK→agent. legal_transitions listesi dışındaki her geçiş illegal sayılır (C6).",
+    "states": ["LISTEN", "CAPTURE", "THINK", "ACT", "SPEAK", "TRANSFER", "END"],
+    "initial": "LISTEN",
+    "legal_transitions": [
+      ["LISTEN", "CAPTURE"],
+      ["CAPTURE", "THINK"],
+      ["CAPTURE", "LISTEN"],
+      ["THINK", "ACT"],
+      ["THINK", "SPEAK"],
+      ["THINK", "CAPTURE"],
+      ["ACT", "THINK"],
+      ["ACT", "SPEAK"],
+      ["ACT", "CAPTURE"],
+      ["SPEAK", "CAPTURE"],
+      ["SPEAK", "LISTEN"]
+    ],
+    "floor_by_state": {
+      "LISTEN": "none", "CAPTURE": "user", "THINK": "agent",
+      "ACT": "agent", "SPEAK": "agent", "TRANSFER": "none", "END": "none"
+    },
+    "trace": "SAD §6.1, SAD §6.2"
+  },
+
+  "floor_control": {
+    "$comment": "Tek-zemin (single-floor) turn-taking kuralı. Her an konuşma sırası yalnız bir tarafta. Agent SPEAK'e YALNIZ zemin agent'ta iken (THINK/ACT'tan) girer — kullanıcı zemini elinde tutarken (CAPTURE) DEĞİL (FR-RTC-003). Barge-in'de agent zemini DERHAL bırakır (agent_yields_on_barge_in): SPEAK→CAPTURE (TTS iptal) veya THINK/ACT→CAPTURE (üretim iptal).",
+    "single_floor": true,
+    "agent_yields_on_barge_in": true,
+    "agent_speaks_only_with_floor": true,
+    "trace": "FR-RTC-002, FR-RTC-003, SAD §6.1, SAD §6.2"
+  },
+
+  "barge_in": {
+    "$comment": "Barge-in koordinasyonu (FR-RTC-002). Edge (2.2.3) ONAYLI barge_in olayı gönderdiğinde orchestrator TTS akışını iptal eder (SPEAK) veya in-flight üretimi iptal eder (THINK/ACT) ve CAPTURE'a geçer. Orchestrator KARAR+DISPATCH gecikmesi (barge_in olayı → cancel emit) küçük bir alt-bütçedir: orch_coordination_budget_ms. Bu, NFR 10.1/SAD §6.1 barge-in ≤200ms TOPLAM zincirinin orkestratör dilimidir; edge ALGILAMA (≈edge_detect_nominal_ms, 2.2.3) + orchestrator + egress flush (≈egress_flush_nominal_ms, 2.2.7/2.2.1 J11) birlikte ≤200ms. İptal IDEMPOTENT: CAPTURE'da tekrar barge_in yeni cancel üretmez.",
+    "orch_coordination_budget_ms": 50,
+    "green_coordination_ms": 20,
+    "cancel_idempotent": true,
+    "composition": {
+      "$comment": "İllüstratif kompozisyon (bilgilendirici): toplam barge-in zinciri = edge algılama (2.2.3) + orchestrator koordinasyon (bu doküman) + egress flush (2.2.7). composed_e2e = edge_detect_nominal + coordination_p95 + egress_flush_nominal ≤ total_budget_ms. edge/egress dilimleri burada ÖLÇÜLMEZ (sahipleri 2.2.3/2.2.7); yalnız orkestratör dilimi HARD kapı (C2).",
+      "edge_detect_nominal_ms": 90,
+      "egress_flush_nominal_ms": 40,
+      "total_budget_ms": 200
+    },
+    "trace": "FR-RTC-002, FR-TTS-005, NFR 10.1, SAD §6.1, SAD §20, ADR-005"
+  },
+
+  "backchannel": {
+    "$comment": "Backchannel ayrımı (FR-RTC-007 sınırı). 'Evet / hı hı / bir dakika' gibi kısa geri-bildirim ifadeleri agent konuşurken (SPEAK) gelirse VARSAYILAN olarak barge-in SAYILMAZ: TTS iptal edilmez, zemin değişmez (default_yields_floor=false). Bu, FR-RTC-003 (gereksiz kesinti yok) + FR-RTC-007 (kısa ifadeler doğru yorumlanır) dengesini kurar. Backchannel'in barge-in'den ayrımı (kısa süre/enerji/anlam) edge'de + STT semantiğinde yapılır; burada koordinasyon politikası uygulanır.",
+    "default_yields_floor": false,
+    "trace": "FR-RTC-007, FR-RTC-003, SR-RTC-007, SAD §6.2"
+  },
+
+  "no_spurious_interim": {
+    "$comment": "Gereksiz ara yanıt yasağı (FR-RTC-003). Kullanıcı zemini elinde tutarken (CAPTURE; henüz endpoint yok) gelen erken bir yanıt-hazır (response_ready) tetiği BASTIRILIR — orchestrator SPEAK'e geçmez. Yalnız endpoint (söz sonu, edge'den) CAPTURE→THINK geçişini açar; yanıt ancak ondan sonra üretilip SPEAK'te seslendirilir. Bu, partial transcript / yarı-cümle üzerine erken konuşmayı (false-trigger) engeller (SR-RTC-003).",
+    "suppress_response_while_user_floor": true,
+    "respond_only_after_endpoint": true,
+    "trace": "FR-RTC-003, SR-RTC-003, SAD §6.1"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (orchestrator-tarafı koordinasyon). (C1) max_unhandled_barge_in=0: SPEAK/THINK/ACT'ta onaylı her barge_in zemini bırakmalı (cancel + CAPTURE) — FR-RTC-002. (C2) coordination_p95_budget_ms=50: barge_in olayı → cancel dispatch gecikmesi P95 ≤ 50ms (green ≤20ms); NFR 10.1/SAD §6.1 toplam ≤200ms'in orkestratör dilimi. (C3) max_floor_violation=0: agent kullanıcı zemini elindeyken (CAPTURE) SPEAK'e GİRMEZ — FR-RTC-003 + turn-taking. (C4) max_backchannel_action=0: backchannel cancel/zemin değişimi tetiklemez (default politika) — FR-RTC-007. (C5) cancel_complete: missed_cancels=0 ∧ spurious_cancels=0 — her barge-in TAM BİR cancel; iptal idempotent. (C6) max_illegal_transition=0: tüm geçişler SAD §6.1 legal_transitions kümesinde.",
+    "coordination_p95_budget_ms": 50,
+    "green_coordination_ms": 20,
+    "max_unhandled_barge_in": 0,
+    "max_floor_violation": 0,
+    "max_backchannel_action": 0,
+    "max_missed_cancel": 0,
+    "max_spurious_cancel": 0,
+    "max_illegal_transition": 0,
+    "cancel_idempotent": true,
+    "trace": "NFR 10.1, SAD §6.1, FR-RTC-002, FR-RTC-003, FR-RTC-007, ADR-005"
+  },
+
+  "metrics": {
+    "$comment": "Turn Manager her oturum için BRD §15 + turn-taking metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. barge_in_count → mevcut observability metriği barge_in_total'a eşlenir; koordinasyon gecikmesi/zemin-ihlali/backchannel-yoksay 0.4.7 kataloğuna ÖNERİLEN eklemelerdir (turn-taking görünürlüğü). Yüksek-kardinalite kimlik (call_id) metrik LABEL'ı OLMAZ (yalnız trace/exemplar; 0.4.7 label_policy). Ham payload/transkript metriklerde yok.",
+    "emitted": [
+      "barge_in_count", "coordination_p95_ms", "floor_violation_total",
+      "spurious_interim_suppressed_total", "backchannel_ignored_total",
+      "turn_total", "illegal_transition_total"
+    ],
+    "maps_to_observability": {
+      "barge_in_count": "barge_in_total"
+    },
+    "proposed_observability_additions": [
+      "barge_in_coordination_ms", "floor_violation_total", "turn_total"
+    ],
+    "trace": "BRD §15, SAD §17, observability 0.4.7"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Turn koordinasyon hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Bilinmeyen/bozuk turn-event (tip yok / zaman damgası sayısal değil) → INVALID_REQUEST; edge olay akışı koparsa → UNAVAILABLE; bölge uyumsuzluğu → REGION_VIOLATION. Yüksek floor-violation/backchannel-action bir HATA değil, degrade SİNYALİdir (kapılar).",
+    "mapping": {
+      "invalid_event": "INVALID_REQUEST",
+      "event_stream_lost": "UNAVAILABLE",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "Turn koordinasyonu oturum bağlamı tenant home-region'da (orchestrator) yapılır; bölge uyumsuzluğu REGION_VIOLATION (NFR 10.7).",
+    "region_pin_required": true,
+    "trace": "NFR 10.7, ADR-009"
+  },
+
+  "pii": {
+    "$comment": "Olay akışı yalnız turn-event TİPİ + sanal zaman damgası taşır; HAM SES payload'ı, transkript, müşteri/PII spec/config/örneklerde TUTULMAZ. Turn Manager içerik yorumlamaz (turn-taking koordinasyonu olay-tipi düzeyinde); transkript/içerik downstream THINK/Session Memory'de işlenir.",
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "trace": "BRD §14, BRD §15"
+  },
+
+  "invariants": [
+    { "id": "C1", "desc": "SPEAK/THINK/ACT'ta gelen ONAYLI her barge_in agent zeminini bırakır: cancel (TTS veya üretim) emit edilir ve CAPTURE'a geçilir; unhandled_barge_in = 0 (FR-RTC-002).", "trace": "FR-RTC-002, SAD §6.1, SAD §6.2, ADR-005" },
+    { "id": "C2", "desc": "Barge_in olayı → cancel dispatch koordinasyon gecikmesi P95 ≤ orch_coordination_budget_ms (green ≤ green_coordination_ms); NFR 10.1/SAD §6.1 toplam barge-in ≤200ms zincirinin orkestratör dilimi.", "trace": "FR-RTC-002, NFR 10.1, SAD §6.1, SAD §20" },
+    { "id": "C3", "desc": "Agent kullanıcı zemini elindeyken (CAPTURE) SPEAK'e GİRMEZ; tek-zemin korunur, gereksiz ara yanıt verilmez; floor_violation = 0 (FR-RTC-003).", "trace": "FR-RTC-003, SR-RTC-003, SAD §6.1" },
+    { "id": "C4", "desc": "Backchannel ('evet/hı hı') varsayılan politikada barge-in sayılmaz: cancel veya zemin değişimi tetiklemez; backchannel_action = 0 (FR-RTC-007 sınırı).", "trace": "FR-RTC-007, FR-RTC-003, SR-RTC-007, SAD §6.2" },
+    { "id": "C5", "desc": "Her barge-in TAM BİR cancel üretir (missed_cancels = 0); cancel idempotent (CAPTURE'da tekrar barge_in yeni cancel üretmez → spurious_cancels = 0).", "trace": "FR-RTC-002, FR-TTS-005" },
+    { "id": "C6", "desc": "Tüm durum geçişleri SAD §6.1 legal_transitions kümesindedir; illegal_transition = 0.", "trace": "SAD §6.1, SAD §6.2" },
+    { "id": "C7", "desc": "Yalnız endpoint (söz sonu, edge'den) CAPTURE→THINK açar → yanıt ancak endpoint sonrası üretilir/seslendirilir (respond_only_after_endpoint); partial üzerine erken konuşma yok.", "trace": "FR-RTC-003, SR-RTC-003, SAD §6.1" },
+    { "id": "C8", "desc": "Turn Manager Conversation Orchestrator içinde, OLAY-TETİKLİ ve bloklamayan çalışır; ham ses işlemez (VAD/barge-in algılama edge'de — 2.2.3, ADR-005/ADR-009 hibrit); yalnız onaylı turn-event tüketir.", "trace": "SAD §6.2, SAD §6.3, ADR-003, ADR-005, ADR-009" },
+    { "id": "C9", "desc": "Metrikler (barge-in sayısı, koordinasyon gecikmesi, zemin ihlali, turn sayısı) BRD §15 → observability 0.4.7'ye yayılır (barge_in_count → barge_in_total); yüksek-kardinalite kimlik metrik label'ı olmaz.", "trace": "BRD §15, SAD §17, observability 0.4.7" },
+    { "id": "C10", "desc": "Koordinasyon hataları ortak ErrorTaxonomy'ye (API §11.6) eşlenir; oturum bağlamı home-region'da; spec/config/örneklerde literal sır, ham ses payload'ı veya transkript yok (yalnız olay tipi + sanal zaman).", "trace": "API §11.6, NFR 10.7, BRD §14" }
+  ]
+}

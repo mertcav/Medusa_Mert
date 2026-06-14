@@ -1,0 +1,23 @@
+{
+  "name": "turn-degraded",
+  "$comment": "Bilinçli degrade (regresyon kanıtı): policy floor_guard=false (kullanıcı zemini iken konuşur → C3 + CAPTURE→SPEAK illegal C6) + coordinate_barge_in=false (SPEAK'te barge_in zemini bırakmaz → C1 + missed cancel C5) + yüksek dispatch profili. Çoklu HARD kapı eler — kapıların gerçek regresyonu yakaladığını gösterir. expect=fail (kapı ELENMELİ).",
+  "profile_obj": {
+    "name": "_degraded",
+    "orch_dispatch_ms": 80,
+    "backchannel_yields_floor": false,
+    "region": "${RUNTIME_REGION}"
+  },
+  "policy": {
+    "coordinate_barge_in": false,
+    "floor_guard": false
+  },
+  "expect": "fail",
+  "events": [
+    { "t": 0, "type": "speech_start" },
+    { "t": 300, "type": "response_ready" },
+    { "t": 1000, "type": "endpoint" },
+    { "t": 1120, "type": "response_ready" },
+    { "t": 1150, "type": "tts_first_chunk" },
+    { "t": 1900, "type": "barge_in" }
+  ]
+}

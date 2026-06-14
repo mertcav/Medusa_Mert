@@ -1,0 +1,20 @@
+{
+  "name": "turn-barge-in-speak",
+  "$comment": "Barge-in agent SPEAK'te: kullanıcı agent konuşurken (1900ms) araya girer; edge onaylı barge_in → orchestrator TTS iptal (cancel) + SPEAK→CAPTURE. managed profil dispatch 12ms → koordinasyon yeşil bandında; composed e2e (90+12+40) ≤200ms. Zemin kullanıcıya geçer. Geçer (FR-RTC-002).",
+  "profile": "managed-ws-default",
+  "expect": "pass",
+  "expected": {
+    "cancels": 1,
+    "unhandled_barge_in": 0,
+    "missed_cancels": 0,
+    "final_state": "CAPTURE",
+    "final_floor": "user"
+  },
+  "events": [
+    { "t": 0, "type": "speech_start" },
+    { "t": 800, "type": "endpoint" },
+    { "t": 900, "type": "response_ready" },
+    { "t": 930, "type": "tts_first_chunk" },
+    { "t": 1900, "type": "barge_in" }
+  ]
+}

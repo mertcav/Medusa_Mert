@@ -1,0 +1,31 @@
+{
+  "$comment": "WBS 3.1.3 turn-taking + barge-in koordinasyon profilleri (illüstratif; sır YOK). Her profil, orchestrator Turn Manager'ın barge_in olayı → cancel dispatch koordinasyon gecikmesini (orch_dispatch_ms) ve backchannel politikasını tipik bir dağıtım/yük senaryosu için taşır. Vendor-neutral (ADR-002): managed (CPaaS WS — düşük olay gecikmesi) ve byoc (ham RTP — biraz daha yüksek). Tüm dispatch değerleri orch_coordination_budget_ms (50ms) altında. Bölge pini NFR 10.7. Gerçek değerler canlı runtime'da (Go/Rust, ADR-003) gerçek olay-döngüsü telemetrisiyle (BRD §15) ayarlanır.",
+  "version": "1.0",
+  "default_profile": "managed-ws-default",
+  "profiles": [
+    {
+      "name": "managed-ws-default",
+      "integration_mode": "M1-managed-ws",
+      "$comment": "Managed CPaaS (Twilio/Telnyx Media Streams) WS: edge olayları düşük gecikmeyle orchestrator'a ulaşır → koordinasyon dispatch 12ms (green ≤20ms içinde). Backchannel barge-in sayılmaz (default).",
+      "orch_dispatch_ms": 12,
+      "backchannel_yields_floor": false,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "byoc-rtp-default",
+      "integration_mode": "M2-raw-sip-rtp",
+      "$comment": "Ham SIP trunk + RTP (BYOC): edge→orchestrator olay yolu biraz daha yüklü → koordinasyon dispatch 18ms (yine ≤50ms bütçe, yeşil eşiğin biraz üstünde ama sarı band kabul). Backchannel default politika.",
+      "orch_dispatch_ms": 18,
+      "backchannel_yields_floor": false,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "low-latency",
+      "integration_mode": "M1-managed-ws",
+      "$comment": "Düşük-gecikme/yüksek-öncelik oturum (sıcak worker, hafif yük): koordinasyon dispatch 8ms → green. Hızlı tur değişimi isteyen kısa diyaloglar.",
+      "orch_dispatch_ms": 8,
+      "backchannel_yields_floor": false,
+      "region": "${RUNTIME_REGION}"
+    }
+  ]
+}

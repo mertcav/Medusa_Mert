@@ -1,0 +1,20 @@
+{
+  "name": "turn-backchannel-ignored",
+  "$comment": "Backchannel ayrımı: agent konuşurken (SPEAK) kullanıcı 'evet/hı hı' der; varsayılan politikada bu barge-in SAYILMAZ → TTS iptal edilmez, zemin değişmez, agent konuşmayı bitirir (tts_complete → LISTEN). FR-RTC-007 (kısa ifadeler doğru yorumlanır) + FR-RTC-003 (gereksiz kesinti yok). Geçer.",
+  "profile": "managed-ws-default",
+  "expect": "pass",
+  "expected": {
+    "backchannel_ignored": 1,
+    "backchannel_action": 0,
+    "cancels": 0,
+    "final_state": "LISTEN"
+  },
+  "events": [
+    { "t": 0, "type": "speech_start" },
+    { "t": 700, "type": "endpoint" },
+    { "t": 820, "type": "response_ready" },
+    { "t": 850, "type": "tts_first_chunk" },
+    { "t": 1300, "type": "backchannel" },
+    { "t": 2400, "type": "tts_complete" }
+  ]
+}

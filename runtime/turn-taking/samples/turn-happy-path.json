@@ -1,0 +1,24 @@
+{
+  "name": "turn-happy-path",
+  "$comment": "Tam tur döngüsü (tool dahil): LISTEN→(speech_start)CAPTURE→(endpoint)THINK→(tool_needed)ACT→(tool_done)THINK→(response_ready)SPEAK→(tts_complete)LISTEN. Barge-in/backchannel yok; tek-zemin korunur, agent yalnız endpoint sonrası konuşur. Geçer.",
+  "profile": "managed-ws-default",
+  "expect": "pass",
+  "expected": {
+    "turn_total": 1,
+    "illegal_transitions": 0,
+    "floor_violation": 0,
+    "cancels": 0,
+    "final_state": "LISTEN",
+    "final_floor": "none"
+  },
+  "events": [
+    { "t": 0, "type": "speech_start" },
+    { "t": 1100, "type": "endpoint" },
+    { "t": 1160, "type": "stt_final" },
+    { "t": 1200, "type": "tool_needed" },
+    { "t": 1500, "type": "tool_done" },
+    { "t": 1650, "type": "response_ready" },
+    { "t": 1680, "type": "tts_first_chunk" },
+    { "t": 3200, "type": "tts_complete" }
+  ]
+}

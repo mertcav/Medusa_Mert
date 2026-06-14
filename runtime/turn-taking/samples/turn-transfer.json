@@ -1,0 +1,20 @@
+{
+  "name": "turn-transfer",
+  "$comment": "Human handoff: tur tamamlanır, agent yanıt verirken transfer kararı (policy) → TRANSFER (her durumdan legal). Zemin bırakılır (none). Barge-in/backchannel yok; tek-zemin + legal geçiş korunur (SAD §6.1 'Her durumdan TRANSFER/END'). Geçer.",
+  "profile": "low-latency",
+  "expect": "pass",
+  "expected": {
+    "turn_total": 1,
+    "illegal_transitions": 0,
+    "floor_violation": 0,
+    "final_state": "TRANSFER",
+    "final_floor": "none"
+  },
+  "events": [
+    { "t": 0, "type": "speech_start" },
+    { "t": 900, "type": "endpoint" },
+    { "t": 1000, "type": "response_ready" },
+    { "t": 1030, "type": "tts_first_chunk" },
+    { "t": 1600, "type": "transfer" }
+  ]
+}
