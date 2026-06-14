@@ -1,0 +1,143 @@
+{
+  "$comment": "WBS 4.3.1 — STT fallback (hata/timeout → ikincil). Sağlayıcı Soyutlama Katmanı'nın FALLBACK ve degradation dilimi (SAD §8.2 adapter ortak yetenekleri + §8.3 fallback/routing stratejisi; BRD §19 (4) kabul kriteri). Bu görev SttAdapter SPI (SAD §8.1 / API §11.2) ARKASINDA, ortak fallback ANAHTARLAMA mantığını uygular: birincil STT akışı hata/timeout (circuit-open) verirse ikincil STT'ye geçilir; MÜMKÜNSE in-flight söz (utterance) için son N saniye audio ikincile yeniden gönderilir (kısmi audio replay — FR-STT-008, API §11.2 Fallback notu). Her iki STT de düşerse DETERMİNİSTİK akışa (insan temsilciye kontrollü aktarım / güvenli degrade) geçilir — ÇAĞRI DÜŞÜRÜLMEZ (SAD §8 ilke 6 'Fail soft, never drop the call'; SAD §8.3 deterministic flow). Orchestrator yalnız SttAdapter SPI'ye + bu switcher'ın KARARINA bağımlıdır (ADR-001); somut STT sağlayıcısı arkada değişir (ADR-002). Bu motor SttAdapter'ın KENDİSİNİ (streaming/partial/final/confidence/phrase-boost) UYGULAMAZ → 4.2.1/4.2.2; ortak yetenekleri (timeout/retry/backoff/circuit-breaker/health) → 4.1.2, connection pool → 4.1.6, metering MOTORU → 4.1.3, residency/retention → 4.1.4, hata normalizasyonu eşlemesi → 4.1.5 (TÜKETİR — switcher yalnız normalize edilmiş ErrorTaxonomy'ye göre karar verir), deterministic-flow/insan aktarımı MOTORU → 8.x handoff + 3.3.x (KARARINI üretir, aktarım akışını değil), STT sağlayıcı SEÇİMİ → 0.2.2/0.2.6/0.3.x. On invariant: (S1) FAILOVER — geçici birincil hata/timeout → ikincile geçiş, çağrı sürer (utterance_lost=0); (S2) AUDIO REPLAY — in-flight söz için son ≤replay_window_ms audio ikincile yeniden gönderilir (replay_window aşılmaz, tampon varsa missing_replay=0); (S3) SWITCH OVERHEAD — anahtarlama gecikmesi P95 ≤ kapı (sınırlı ölü hava, hot-path); (S4) NO DUPLICATION / SINGLE STREAM — aynı söz iki kez final üretmez (duplicate_final=0) + her an tek aktif sağlayıcı (concurrent_active≤1); (S5) ≥2 SPI-uyumlu STT sağlayıcı (ADR-002 / BRD §19 (1)); (S6) DETERMINISTIC FLOW / NEVER DROP — her iki sağlayıcı düşerse deterministik akış (aktarım/güvenli degrade), dropped_call=0 (BRD §19 (4)); (S7) ERROR NORMALIZED + SELECTIVE TRIGGER — sağlayıcı hataları ortak ErrorTaxonomy'ye çevrilir + YALNIZ geçici sınıflar (TIMEOUT/UNAVAILABLE/RATE_LIMITED) failover tetikler (improper_failover=0: AUTH/INVALID_REQUEST/REGION_VIOLATION boşuna anahtarlamaz); (S8) NO FLAP + METERING + RESIDENCY — histerezis salınımı engeller (flap_count ≤ kapı), her sağlayıcı segmenti metrelenir, residency/no-log; (S9) komşu SEAM'leri TÜKETİR/SINIRDA durur; (S10) ErrorTaxonomy + sır/ham-audio/PII yok. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): çekirdek minimal+deterministik (olay-tetikli, sanal saat, random YOK; gerçek STT/ses tanıma YOK — sağlayıcı gecikme profili + akış/hata MODELİ); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3) + gerçek SttAdapter + 4.1.2 circuit breaker. Spec/config/örneklerde sır/credential, ham AUDIO, transkript METNİ veya PII DEĞERİ YOK — yalnız sağlayıcı kimliği + gecikme/akış SAYILARI + söz/segment kimlikleri + sanal zaman + normalize edilmiş hata sınıfı.",
+  "version": "1.0",
+  "wbs": "4.3.1",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-STT-008", "FR-STT-002", "FR-RES-002", "FR-BIL-002", "FR-TOOL-008", "FR-KB-010", "FR-TEN-002", "FR-HND-001"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "sad": ["§6", "§6.1", "§8.1", "§8.2", "§8.3", "§20"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003"],
+    "api": ["§11.1 Capabilities/UsageRecord/AdapterConfig", "§11.2 SttAdapter + Fallback notu", "§11.6 ErrorTaxonomy"],
+    "brd": ["§12 (adapter zorunlu yetenekler)", "§19 (1) ≥2 STT", "§19 (4) kontrollü fallback"],
+    "srs": ["SR-STT-008", "SR-STT-002"],
+    "rtm": ["TC-STT-008", "TC-STT-002"],
+    "poc": ["0.3.1 e2e_inbound_poc.py _stt_with_fallback (SPI seam — bu motorun referans davranışı)"],
+    "vendor_eval": ["0.2.2 stt-eval.md (SttAdapter ölçülen yüzey + final-gecikme/WER kapıları)"],
+    "consumes": ["4.1.2 ortak yetenekler (timeout/retry/backoff/circuit-breaker/health)", "4.1.5 hata normalizasyonu (ErrorTaxonomy eşlemesi)", "4.1.6 connection pool", "4.1.3 usage metering/cost motoru", "4.1.4 residency/retention", "4.2.1/4.2.2 SttAdapter implementasyonu", "8.x handoff + 3.3.x deterministic flow motoru"],
+    "observability": ["stt_fallback_total{from,to,reason} / stt_switch_overhead_ms / stt_audio_replayed_ms / stt_deterministic_flow_total / stt_final_total (BRD §15 → 0.4.7; retry/fallback metriği SAD §17.1)"]
+  },
+
+  "placement": {
+    "$comment": "STT fallback switcher Conversation Orchestrator'ın CAPTURE durumunda (SAD §6.1 turn state machine), SttAdapter SPI ÜZERİNDE çalışır: telefon medyası (8 kHz audio chunk) → switcher → AKTİF SttAdapter.stream() → partial/final transkript → diyalog yönetimi (THINK). Switcher aktif sağlayıcının stream() akışını izler; hata/timeout (circuit-open, 4.1.2) görürse ikincile geçer + in-flight söz audio'sunu replay eder. Orchestrator YALNIZ SttAdapter SPI'ye + switcher kararına bağımlıdır (ADR-001); somut sağlayıcı arkada değişir (ADR-002). Akış-önce (stream-first, FR-RES-002): partial/final akar, tam audio tamponlanmaz; replay tamponu yalnız son N saniyelik in-flight söz içindir (sınırlı). Medya konumu edge/merkez SPI'yi değiştirmez (ADR-009 hibrit). Olay-tetikli + bloklamayan; deterministik (sanal saat, random YOK).",
+    "behind_spi": true,
+    "orchestrator_depends_on_spi_only": true,
+    "turn_state": "CAPTURE",
+    "stream_first": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "circuit_breaker_owned_by": "4.1.2 (SAD §8.2); switcher circuit-open sinyalini TÜKETİR",
+    "deterministic_flow_owned_by": "8.x handoff + 3.3.x; switcher KARARI üretir, aktarım akışını değil",
+    "trace": "SAD §6.1, SAD §8.1, SAD §8.2, SAD §8.3, ADR-001, API §11.2"
+  },
+
+  "spi": {
+    "$comment": "Ölçülen SPI yüzeyi (SAD §8.1 / API §11.2 SttAdapter). stream(audioIn: AsyncStream<AudioChunk>, opts: SttOptions): AsyncStream<Transcript>; Transcript{text, isFinal, confidence, words, language}. Switcher iki (≥2) SttAdapter'ı SARMALAR; orchestrator'a TEK mantıksal stream sunar. SttOptions: language, sampleRate(8000), interimResults(partial — FR-STT-001), phraseBoost(FR-STT-004/005), endpointing(FR-RTC-013). Ortak Adapter: capabilities()/health()/meter()/configure() (API §11.1). capabilities(): features ⊇ {streaming}, sample_rates ⊇ {8000}, regions (residency). Bir sağlayıcının portföye girmesi için bu sözleşmeyi karşılaması gerekir (S5). Fallback switcher SttAdapter SPI'sini DEĞİŞTİRMEZ — sarmalar.",
+    "wraps_methods": ["stream", "capabilities", "health", "meter", "configure"],
+    "stt_options_fields": ["language", "sampleRate", "interimResults", "phraseBoost", "endpointing"],
+    "transcript_fields": ["text", "isFinal", "confidence", "words", "language"],
+    "required_features": ["streaming"],
+    "presents_single_logical_stream": true,
+    "trace": "SAD §8.1, API §11.1/§11.2, FR-STT-001/002/008, FR-RES-008"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar. (S1) max_utterance_lost=0: geçici hata/timeout failover'ında in-flight söz kaybolmaz. (S2) max_missing_replay=0: tampon varsa in-flight söz audio'su ikincile replay edilir + max_replay_window_exceeded=0 (replay ≤ replay_window_ms). (S3) switch_overhead_p95_ms ≤ 200 (yeşil 100): anahtarlama gecikmesi sınırlı ölü hava (hot-path; SAD §20 endpointing+STT bandı ile tutarlı). (S4) max_duplicate_final=0 (aynı söz iki final üretmez) + max_concurrent_active=1 (her an tek aktif sağlayıcı). (S6) max_dropped_call=0 + require_deterministic_flow (her iki sağlayıcı düşerse aktarım/güvenli degrade — BRD §19 (4)). (S7) max_improper_failover=0 (yalnız geçici sınıf failover tetikler) + require_error_normalized (FR-TOOL-008). (S8) max_flap=0 (histerezis salınımı yok; switched provider seansta kalır) + require_metering (her segment FR-BIL-002). min_providers=2 (S5, ADR-002 / BRD §19 (1)). replay_window_ms=5000 (in-flight söz tamponu üst sınırı). failover_error_classes = geçici/yeniden-denenebilir set. Eşikler MÜHENDİSLİK varsayılanı (NFR 10.1 + 0.2.2 stt-eval bandı); gerçek değerler 0.3.x canlı PoC'ta doğrulanır.",
+    "sample_rate_hz": 8000,
+    "switch_overhead_p95_ms": 200,
+    "switch_overhead_green_ms": 100,
+    "replay_window_ms": 5000,
+    "max_utterance_lost": 0,
+    "max_missing_replay": 0,
+    "max_replay_window_exceeded": 0,
+    "max_duplicate_final": 0,
+    "max_concurrent_active": 1,
+    "max_dropped_call": 0,
+    "max_improper_failover": 0,
+    "max_flap": 0,
+    "max_cross_tenant": 0,
+    "min_providers": 2,
+    "require_deterministic_flow": true,
+    "require_error_normalized": true,
+    "require_metering": true,
+    "required_features": ["streaming"],
+    "failover_error_classes": ["TIMEOUT", "UNAVAILABLE", "RATE_LIMITED"],
+    "trace": "FR-STT-008, FR-RES-002, FR-BIL-002, FR-TOOL-008, NFR 10.1, NFR 10.7, SAD §8.3, SAD §20, BRD §19 (1)/(4)"
+  },
+
+  "fallback": {
+    "$comment": "STT fallback zinciri (SAD §8.3): Primary STT ──(timeout/error/circuit-open)──► Secondary STT ──► Deterministic flow. Bu görev ANAHTARLAMA mantığını UYGULAR (4.3.1; LLM/TTS/Telephony adapter'larından 'switching_owned_by 4.3.x' buraya delege edildi). Routing: normalize edilmiş ErrorTaxonomy'de TIMEOUT/UNAVAILABLE/RATE_LIMITED → secondary'ye geç + in-flight söz audio replay; secondary de düşerse → deterministic flow (insan temsilciye aktarım / güvenli degrade). AUTH/INVALID_REQUEST/REGION_VIOLATION → failover ETME (boşuna anahtarlama yok; ayrı ele alınır). Histerezis: bir kez secondary'ye geçince seans boyunca secondary aktif kalır (flap yok) — primary 'iyileşti' diye geri dönülmez. ≥2 SPI-uyumlu sağlayıcı zorunlu (S5).",
+    "chain": ["primary_stt", "secondary_stt", "deterministic_flow"],
+    "min_providers": 2,
+    "partial_audio_replay": true,
+    "replay_window_ms": 5000,
+    "hysteresis_sticky_secondary": true,
+    "deterministic_flow_on_total_failure": true,
+    "switching_owned_by": "4.3.1 (bu görev)",
+    "trace": "FR-STT-008, SAD §8.3, API §11.2, BRD §19 (4)"
+  },
+
+  "metrics": {
+    "$comment": "Switcher her failover/replay/deterministic-flow için BRD §15 (retry/fallback) + adapter metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. stt_fallback_total{from,to,reason} → failover sayısı (SAD §17.1 retry/fallback metriği; reason = ErrorTaxonomy sınıfı DÜŞÜK kardinalite); stt_switch_overhead_ms → anahtarlama gecikmesi (S3); stt_audio_replayed_ms → replay edilen in-flight audio süresi (S2); stt_deterministic_flow_total → her iki sağlayıcı düşüp deterministik akışa geçiş (S6); stt_final_total → üretilen final transkript (duplicate=0 ile S4). provider_id + reason DÜŞÜK kardinalite (label uygun); call_id/utterance_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy, 3.1.5 producer). Ham AUDIO, transkript METNİ veya PII metriklerde yok.",
+    "emitted": [
+      "stt_fallback_total", "stt_switch_overhead_ms", "stt_audio_replayed_ms",
+      "stt_deterministic_flow_total", "stt_final_total"
+    ],
+    "maps_to_observability": {
+      "stt_fallback_total": "adapter_fallback_total",
+      "stt_switch_overhead_ms": "stt_latency_ms"
+    },
+    "proposed_observability_additions": [
+      "stt_fallback_total", "stt_switch_overhead_ms", "stt_deterministic_flow_total"
+    ],
+    "trace": "BRD §15, SAD §17.1, observability 0.4.7, 3.1.5 context-propagation"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Sağlayıcı hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir (FR-TOOL-008, SAD §8.2; eşleme MOTORU 4.1.5 — switcher TÜKETİR) — routing YALNIZ bu enum'a göre karar verir; ham sağlayıcı kodu yalnız audit/log'da kalır, müşteriye sızmaz. Süre aşımı → TIMEOUT (failover); 429 → RATE_LIMITED (failover); 5xx/bağlantı/circuit-open → UNAVAILABLE (failover); kimlik → AUTH (failover ETME — yapılandırma sorunu, ikincide de olası); geçersiz girdi → INVALID_REQUEST (failover ETME); residency ihlali → REGION_VIOLATION (failover ETME — bölge sorunu). failover_error_classes yalnız geçici/yeniden-denenebilir sınıfları içerir (S7).",
+    "mapping": {
+      "provider_timeout": "TIMEOUT",
+      "provider_429": "RATE_LIMITED",
+      "provider_5xx": "UNAVAILABLE",
+      "circuit_open": "UNAVAILABLE",
+      "connection_reset": "UNAVAILABLE",
+      "auth_failure": "AUTH",
+      "invalid_request": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "failover_classes": ["TIMEOUT", "RATE_LIMITED", "UNAVAILABLE"],
+    "non_failover_classes": ["AUTH", "INVALID_REQUEST", "REGION_VIOLATION"],
+    "trace": "API §11.6, FR-TOOL-008, SAD §8.2, SAD §8.3, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "Her STT sağlayıcı tenant home-region endpoint'inde (bölgesel pin) çalışır + UsageRecord home-region'da kaydedilir (FR-BIL-002, NFR 10.7). Hassas audio/transkript sağlayıcı loglarına yazılmaz: data_retention NONE/EPHEMERAL (FR-KB-010). Replay tamponu yalnız in-flight söz audio'sunu (son N saniye) tutar; durable kalıcı değil — seans/bellek içi, oturum sonu temizlenir. Bölge uyumsuzluğu REGION_VIOLATION (failover ETMEZ). Audio/transkript tenant sınırını terk etmez.",
+    "region_pin_required": true,
+    "no_log_required": true,
+    "allowed_retention": ["NONE", "EPHEMERAL"],
+    "replay_buffer_ephemeral": true,
+    "trace": "NFR 10.7, FR-KB-010, FR-BIL-002, API §11.1 AdapterConfig.dataRetention"
+  },
+
+  "pii": {
+    "$comment": "Bu SPEC/config/örnekler ham AUDIO, transkript METNİ veya PII DEĞERİ TUTMAZ — yalnız sağlayıcı kimliği + gecikme/akış SAYILARI (final_ms/switch_ms/replay_ms/audio SÜRELERİ) + söz/segment kimlikleri + normalize edilmiş hata sınıfı + sanal zaman. Replay tamponu çalışma-zamanı belleğinde ham 8 kHz audio tutar (in-flight söz) ama EPHEMERAL + no-log + home-region; durable kayıt orchestrator katmanında redaction_state='pending' (FR-REC-004). Final transkript çağrı transkriptine orchestrator katmanında yazılır, switcher'da değil.",
+    "raw_audio_in_spec_forbidden": true,
+    "transcript_text_in_spec_forbidden": true,
+    "pii_value_in_spec_forbidden": true,
+    "durable_redaction_state": "pending",
+    "trace": "FR-REC-004, FR-KB-010, BRD §14, BRD §17.7"
+  },
+
+  "invariants": [
+    { "id": "S1", "desc": "FAILOVER: aktif (birincil) STT geçici hata/timeout (circuit-open) verdiğinde switcher ikincil STT'ye geçer ve çağrı kesintisiz sürer; in-flight söz kaybolmaz (utterance_lost=0). Birincilin kesilmesi çağrıyı düşürmez (FR-STT-008, SAD §8.3).", "trace": "FR-STT-008, SAD §8.3, BRD §19 (4)" },
+    { "id": "S2", "desc": "AUDIO REPLAY: failover anında in-flight söz için son ≤replay_window_ms (5000) audio ikincile yeniden gönderilir (kısmi audio replay — API §11.2 'mümkünse son N saniye audio yeniden gönderilir'); tampon mevcutsa missing_replay=0 ve replay süresi pencereyi aşmaz (replay_window_exceeded=0). Söz, ikincide tamamlanır.", "trace": "FR-STT-008, API §11.2, FR-STT-002" },
+    { "id": "S3", "desc": "SWITCH OVERHEAD: anahtarlama gecikmesi (eski stream teardown + ikincil setup + replay) P95 ≤ 200 ms (yeşil 100) — sınırlı ölü hava; hot-path. Aksi halde kullanıcı uzun sessizlik duyar (FR-RES-009 ilişkili).", "trace": "NFR 10.1, SAD §20, FR-RES-009" },
+    { "id": "S4", "desc": "NO DUPLICATION / SINGLE STREAM: aynı söz iki kez final üretmez (duplicate_final=0; replay edilen audio ikincide tek final → birincilin yarım çıktısı yok sayılır); her an orchestrator'a beslenen tek aktif sağlayıcı stream'i vardır (concurrent_active ≤ 1).", "trace": "FR-STT-002, SAD §8.1" },
+    { "id": "S5", "desc": "≥2 SPI-uyumlu STT sağlayıcı (ADR-002 / BRD §19 (1)): her sağlayıcı required_features {streaming} + sample_rates ⊇ {8000} + bölge yeteneklerini capabilities()'te beyan eder; karşılamayan portföye giremez. Fallback için primary≠secondary.", "trace": "BRD §19 (1), ADR-002, SAD §8.1, API §11.1" },
+    { "id": "S6", "desc": "DETERMINISTIC FLOW / NEVER DROP: her iki STT sağlayıcı da düşerse switcher deterministik akışa geçer (insan temsilciye kontrollü aktarım / güvenli degrade — SAD §8 ilke 6 'Fail soft, never drop the call'); çağrı düşürülmez (dropped_call=0). Aktarım MOTORU 8.x/3.3.x; switcher KARARI üretir.", "trace": "SAD §8.3, BRD §19 (4), FR-HND-001" },
+    { "id": "S7", "desc": "ERROR NORMALIZED + SELECTIVE TRIGGER: sağlayıcı hataları ortak ErrorTaxonomy'ye (API §11.6) çevrilir (4.1.5 eşlemesi tüketilir); YALNIZ geçici/yeniden-denenebilir sınıflar (TIMEOUT/UNAVAILABLE/RATE_LIMITED) failover tetikler. AUTH/INVALID_REQUEST/REGION_VIOLATION failover ETMEZ (improper_failover=0 — ikincide de aynı sonuç beklenir, boşuna anahtarlama+ölü hava yok).", "trace": "FR-TOOL-008, API §11.6, SAD §8.2/§8.3" },
+    { "id": "S8", "desc": "NO FLAP + METERING + RESIDENCY: histerezis ile bir kez ikincile geçilince seans boyunca ikincil kalır (flap_count=0 — primary↔secondary salınımı yok); her sağlayıcı segmenti UsageRecord (unit=SECONDS) üretir (FR-BIL-002); region pin + no-log NONE/EPHEMERAL (NFR 10.7/FR-KB-010).", "trace": "FR-BIL-002, NFR 10.7, FR-KB-010, SAD §8.2" },
+    { "id": "S9", "desc": "4.3.1 komşu SEAM'leri TÜKETİR/SINIRDA durur: ortak yetenekler (timeout/retry/backoff/circuit-breaker/health) 4.1.2, hata normalizasyonu eşlemesi 4.1.5, connection pool 4.1.6, metering motoru 4.1.3, residency/retention 4.1.4, SttAdapter implementasyonu 4.2.1/4.2.2, deterministic-flow/handoff motoru 8.x/3.3.x, STT sağlayıcı SEÇİMİ 0.2.2/0.2.6/0.3.x — bunları UYGULAMAZ; fallback ANAHTARLAMA + replay + deterministic-flow KARARINI üretir.", "trace": "4.1.2, 4.1.3, 4.1.4, 4.1.5, 4.1.6, 4.2.1, 4.2.2, 8.x, 3.3.x, 0.2.2" },
+    { "id": "S10", "desc": "Hatalar ortak ErrorTaxonomy'ye (API §11.6) eşlenir (sağlayıcı kodu yalnız audit/log, müşteriye sızmaz); spec/config/örneklerde literal sır/credential, ham AUDIO, transkript METNİ veya PII DEĞERİ yok (yalnız sağlayıcı kimliği + sayılar + söz/segment kimlikleri + hata sınıfı + sanal zaman).", "trace": "API §11.6, NFR 10.7, BRD §14" }
+  ]
+}

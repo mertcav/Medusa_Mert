@@ -1,0 +1,22 @@
+{
+  "name": "stt-both-fail-deterministic",
+  "$comment": "Her iki STT sağlayıcının da düştüğü senaryo (pilot-default). u1'de birincil timeout → ikincile failover + replay (söz ikincide tamamlanır). u2'de ikincil de UNAVAILABLE (5xx) verir → histerezis nedeniyle birincile GERİ DÖNÜLMEZ (flap yok); switcher deterministik akışa geçer (insan temsilciye kontrollü aktarım — SAD §8.3). ÇAĞRI DÜŞÜRÜLMEZ (dropped_call=0 — BRD §19 (4) 'fail soft, never drop the call'). Bitiş reason=transfer. Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "failovers": 1,
+    "deterministic_flow_count": 1,
+    "dropped_call": 0,
+    "flap_count": 0,
+    "active_at_end": "deterministic"
+  },
+  "events": [
+    { "kind": "start", "t": 0, "sample_rate_hz": 8000 },
+    { "kind": "audio", "t": 100, "utterance_id": "u1", "seq": 0, "duration_ms": 300 },
+    { "kind": "provider_error", "t": 500, "utterance_id": "u1", "raw_error": "circuit_open" },
+    { "kind": "final", "t": 900, "utterance_id": "u1", "confidence": 0.88 },
+    { "kind": "audio", "t": 2500, "utterance_id": "u2", "seq": 0, "duration_ms": 350 },
+    { "kind": "provider_error", "t": 2900, "utterance_id": "u2", "raw_error": "provider_5xx" },
+    { "kind": "end", "t": 4500, "reason": "transfer" }
+  ]
+}

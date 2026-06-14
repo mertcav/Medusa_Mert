@@ -1,0 +1,19 @@
+{
+  "name": "stt-selective-auth-no-failover",
+  "$comment": "Seçici tetik (S7): birincil STT AUTH hatası verir. AUTH geçici/yeniden-denenebilir DEĞİLDİR (yapılandırma sorunu — ikincil sağlayıcıda da aynı sonuç beklenir); switcher BOŞUNA anahtarlamaz (improper_failover=0, ölü hava yok). Doğru davranış: deterministik akışa geçilir (güvenli degrade), çağrı düşmez. Yalnız geçici sınıflar (TIMEOUT/UNAVAILABLE/RATE_LIMITED) failover tetikler. Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "failovers": 0,
+    "improper_failover": 0,
+    "deterministic_flow_count": 1,
+    "dropped_call": 0,
+    "errors_normalized": 1
+  },
+  "events": [
+    { "kind": "start", "t": 0, "sample_rate_hz": 8000 },
+    { "kind": "audio", "t": 100, "utterance_id": "u1", "seq": 0, "duration_ms": 300 },
+    { "kind": "provider_error", "t": 500, "utterance_id": "u1", "raw_error": "auth_failure" },
+    { "kind": "end", "t": 2500, "reason": "transfer" }
+  ]
+}

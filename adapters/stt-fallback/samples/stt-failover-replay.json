@@ -1,0 +1,26 @@
+{
+  "name": "stt-failover-replay",
+  "$comment": "Tipik CAPTURE akışı (pilot-default: primary stt-stream-A + secondary stt-stream-B). İlk söz (u1) birincil STT tarafından final'lenir. İkinci söz (u2) sürerken birincil STT akışı timeout verir (circuit-open, 4.1.2) → switcher ikincile geçer + in-flight u2 audio'sunu (800ms) ikincile replay eder (S2); u2 ikincide tamamlanır → söz kaybı yok (S1). Anahtarlama gecikmesi sınırlı (S3). Tek aktif stream + dup-final yok (S4). Her iki segment metrelenir, flap yok (S8). Yalnız geçici sınıf (TIMEOUT) failover tetikledi (S7). Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "failovers": 1,
+    "utterance_lost": 0,
+    "missing_replay": 0,
+    "audio_replayed_ms": 800.0,
+    "dropped_call": 0,
+    "finals_total": 2,
+    "flap_count": 0
+  },
+  "events": [
+    { "kind": "start", "t": 0, "sample_rate_hz": 8000 },
+    { "kind": "audio", "t": 100, "utterance_id": "u1", "seq": 0, "duration_ms": 300 },
+    { "kind": "audio", "t": 400, "utterance_id": "u1", "seq": 1, "duration_ms": 300 },
+    { "kind": "final", "t": 900, "utterance_id": "u1", "confidence": 0.93 },
+    { "kind": "audio", "t": 3000, "utterance_id": "u2", "seq": 0, "duration_ms": 400 },
+    { "kind": "audio", "t": 3400, "utterance_id": "u2", "seq": 1, "duration_ms": 400 },
+    { "kind": "provider_error", "t": 3800, "utterance_id": "u2", "raw_error": "provider_timeout" },
+    { "kind": "final", "t": 4200, "utterance_id": "u2", "confidence": 0.90 },
+    { "kind": "end", "t": 8000, "reason": "normal" }
+  ]
+}

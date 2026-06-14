@@ -1,0 +1,21 @@
+{
+  "name": "stt-no-failover-clean",
+  "$comment": "Hatasız çağrı (regional-tr: primary stt-stream-B + secondary stt-stream-A, TR residency). İki söz birincil STT ile final'lenir; failover yok, replay yok, deterministik akış yok. Tek segment metrelenir. Tüm kapılar (S1–S8) trivially geçer — mutlu yol referansı (failover yalnız hata/timeout'ta).",
+  "profile": "regional-tr",
+  "expect": "pass",
+  "expected": {
+    "failovers": 0,
+    "finals_total": 2,
+    "utterance_lost": 0,
+    "dropped_call": 0,
+    "provider_segments": 1
+  },
+  "events": [
+    { "kind": "start", "t": 0, "sample_rate_hz": 8000 },
+    { "kind": "audio", "t": 100, "utterance_id": "u1", "seq": 0, "duration_ms": 350 },
+    { "kind": "final", "t": 600, "utterance_id": "u1", "confidence": 0.95 },
+    { "kind": "audio", "t": 2500, "utterance_id": "u2", "seq": 0, "duration_ms": 420 },
+    { "kind": "final", "t": 3100, "utterance_id": "u2", "confidence": 0.91 },
+    { "kind": "end", "t": 5000, "reason": "normal" }
+  ]
+}

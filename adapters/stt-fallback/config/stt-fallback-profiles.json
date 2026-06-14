@@ -1,0 +1,83 @@
+{
+  "$comment": "WBS 4.3.1 STT fallback sağlayıcı + çalıştırma profilleri (İLLÜSTRATİF, sağlayıcı-nötr — ADR-002; sır YOK). 'providers' = iki SOMUT SttAdapter implementasyonu (≥2/kategori — BRD §19 (1)); GERÇEK sağlayıcı DEĞİL, isimler vendor-neutral placeholder. Her sağlayıcı: capabilities() beyanı (languages, sample_rates⊇8000, features⊇{streaming}, regions, data_retention) + DETERMİNİSTİK gecikme PROFİLİ (final_ms, setup_ms = stream kurulum/teardown, replay_rtf = replay edilen audio'nun ikincil tarafından yeniden tüketim hızı — random YOK). Gecikme değerleri MÜHENDİSLİK varsayılanı (0.2.2 stt-eval kapılarına uyumlu: final P95 ≤200ms SAD §20); GERÇEK değerler 0.3.x canlı PoC'ta telefoni (8 kHz) koşullarında ölçülür. 'profiles' = dağıtım/tenant-sınıfı çalıştırma profilleri (primary+secondary sağlayıcı + bölge). switch_overhead = eski_teardown + ikincil_setup + replay (deterministik; gates.switch_overhead_p95_ms kapısı). Bölge pini NFR 10.7; UsageRecord home-region (FR-BIL-002). Config GÖVDE/credential TAŞIMAZ (yalnız ${ENV}).",
+  "version": "1.0",
+  "default_profile": "pilot-default",
+
+  "providers": [
+    {
+      "provider_id": "stt-stream-A",
+      "$comment": "Adapter #1 — bulut streaming STT (managed, düşük gecikme). 8 kHz native, EU/TR residency, no-log (NONE). Birincil aday.",
+      "kind": "cloud-streaming",
+      "languages": ["tr", "en", "de", "ar"],
+      "sample_rates": [8000, 16000],
+      "features": ["streaming", "partial", "confidence", "phrase_boost"],
+      "regions": ["EU", "TR"],
+      "data_retention": "NONE",
+      "final_ms": 130,
+      "setup_ms": 60,
+      "teardown_ms": 20,
+      "replay_rtf": 0.20,
+      "cost_per_minute_minor": 18,
+      "currency": "EUR"
+    },
+    {
+      "provider_id": "stt-stream-B",
+      "$comment": "Adapter #2 — edge/bölgesel streaming STT (self-host yakın). Çok düşük setup (yerel), 8 kHz native, TR residency, ephemeral retention. ≥2/kategori + fallback (FR-STT-008) için bağımsız ikinci sağlayıcı.",
+      "kind": "edge-regional",
+      "languages": ["tr", "en"],
+      "sample_rates": [8000, 16000],
+      "features": ["streaming", "partial", "confidence", "phrase_boost"],
+      "regions": ["TR"],
+      "data_retention": "EPHEMERAL",
+      "final_ms": 155,
+      "setup_ms": 35,
+      "teardown_ms": 15,
+      "replay_rtf": 0.18,
+      "cost_per_minute_minor": 12,
+      "currency": "EUR"
+    },
+    {
+      "provider_id": "stt-stream-C-degraded",
+      "$comment": "İLLÜSTRATİF elenen aday — yavaş setup/replay (switch overhead kapısını eler). Yalnız negatif kapı kanıtı için; portföyde DEĞİL.",
+      "kind": "cloud-streaming",
+      "languages": ["en"],
+      "sample_rates": [16000],
+      "features": ["streaming"],
+      "regions": ["US"],
+      "data_retention": "PROVIDER_DEFAULT",
+      "final_ms": 240,
+      "setup_ms": 260,
+      "teardown_ms": 90,
+      "replay_rtf": 1.10,
+      "cost_per_minute_minor": 9,
+      "currency": "USD"
+    }
+  ],
+
+  "profiles": [
+    {
+      "name": "pilot-default",
+      "$comment": "Faz 1 pilot: bulut birincil + edge ikincil; EU bölge. ≥2 sağlayıcı + kontrollü fallback (BRD §19 (1)/(4)).",
+      "primary_provider": "stt-stream-A",
+      "secondary_provider": "stt-stream-B",
+      "region": "EU",
+      "replay_window_ms": 5000
+    },
+    {
+      "name": "regional-tr",
+      "$comment": "TR residency: edge birincil + bulut(TR) ikincil; veri TR sınırında. no-log.",
+      "primary_provider": "stt-stream-B",
+      "secondary_provider": "stt-stream-A",
+      "region": "TR",
+      "replay_window_ms": 5000
+    },
+    {
+      "name": "high-density",
+      "$comment": "Yüksek yoğunluk: düşük-setup edge birincil (hızlı failover) + bulut ikincil.",
+      "primary_provider": "stt-stream-B",
+      "secondary_provider": "stt-stream-A",
+      "region": "EU",
+      "replay_window_ms": 4000
+    }
+  ]
+}
