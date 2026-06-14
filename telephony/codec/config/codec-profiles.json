@@ -1,0 +1,34 @@
+{
+  "$comment": "WBS 2.2.2 codec pazarlık profilleri (illüstratif; sır YOK). Her profil bir entegrasyon moduna (2.1.3 managed-WS / 2.1.4 ham SIP RTP) karşılık gelen tipik codec offer/answer kümelerini taşır. Vendor-neutral (ADR-002): managed CPaaS tipik PCMU/PCMA sunar; BYOC SIP trunk G.711 + opsiyonel Opus-NB. Tüm profiller narrowband-first pazarlıkla 8kHz dar bant seçer (FR-RES-008). Bölge pini NFR 10.7. Gerçek offer'lar canlı SDP'den gelir.",
+  "version": "1.0",
+  "default_profile": "managed-ws-g711",
+  "profiles": [
+    {
+      "name": "managed-ws-g711",
+      "integration_mode": "M1-managed-ws",
+      "$comment": "Managed CPaaS (Twilio/Telnyx Media Streams) tipik olarak G.711 µ-law/A-law 8kHz sunar. Pazarlık PCMU passthrough seçer → zincir boyunca dönüşüm yok (ideal 8kHz native).",
+      "offer": ["PCMU", "PCMA"],
+      "answer": ["PCMU", "PCMA", "OPUS_NB"],
+      "prefer_narrowband": true,
+      "region": "${MEDIA_REGION}"
+    },
+    {
+      "name": "byoc-rtp-g711-opus",
+      "integration_mode": "M2-raw-sip-rtp",
+      "$comment": "Ham SIP trunk (BYOC): G.711 + opsiyonel Opus dar bant. Uzak uç önce Opus-WB (16kHz) sunsa bile narrowband-first pazarlık 8kHz dar bant codec'i tercih eder (gereksiz resample kaçınılır). Burada offer'da PCMU/PCMA mevcut → PCMU seçilir.",
+      "offer": ["OPUS_WB", "PCMU", "PCMA"],
+      "answer": ["PCMU", "PCMA", "OPUS_NB", "OPUS_WB"],
+      "prefer_narrowband": true,
+      "region": "${MEDIA_REGION}"
+    },
+    {
+      "name": "byoc-opus-nb",
+      "integration_mode": "M2-raw-sip-rtp",
+      "$comment": "Opus dar bant (8kHz) destekleyen SIP trunk — düşük bant genişliği/yüksek kalite dar bant. Pazarlık OPUS_NB passthrough seçer (8kHz native korunur).",
+      "offer": ["OPUS_NB", "PCMU"],
+      "answer": ["OPUS_NB", "PCMU", "PCMA"],
+      "prefer_narrowband": true,
+      "region": "${MEDIA_REGION}"
+    }
+  ]
+}

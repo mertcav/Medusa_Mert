@@ -1,0 +1,22 @@
+{
+  "name": "codec-redundant-transcode",
+  "$comment": "ANTIPATTERN (bilinçli FAIL): SBC G.711 µ-law→A-law transcode eder, MediaGW geri A-law→µ-law eder — STT zaten PCMU işliyor. Tüm uçlar+native PCMU içerir → minimal 0 transcode. actual 2 transcode, ikisi de GEREKSİZ (µ→A→µ encoding U-dönüşü). C3 + C6 eler. Yön: ingress. FR-RES-008 ihlali.",
+  "direction": "ingress",
+  "profile": "managed-ws-g711",
+  "offer": ["PCMU", "PCMA"],
+  "answer": ["PCMU", "PCMA"],
+  "negotiated": "PCMU",
+  "expect": "fail",
+  "expected": {
+    "transcode_hops": 2,
+    "unnecessary_transcodes": 2,
+    "encoding_uturn": true,
+    "resample_points": 0
+  },
+  "chain": [
+    {"stage": "pstn_ingress", "codec": "PCMU", "native": ["PCMU", "PCMA"]},
+    {"stage": "sbc", "codec": "PCMA", "native": ["PCMU", "PCMA"]},
+    {"stage": "media_gateway", "codec": "PCMU", "native": ["PCMU", "PCMA"]},
+    {"stage": "stt_adapter", "codec": "PCMU", "native": ["PCMU"]}
+  ]
+}

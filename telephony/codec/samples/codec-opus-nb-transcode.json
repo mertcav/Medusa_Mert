@@ -1,0 +1,21 @@
+{
+  "name": "codec-opus-nb-transcode",
+  "$comment": "Opus dar bant (8kHz) passthrough; STT yalnız L16_8K (linear PCM 8kHz) işler → TEK GEREKLİ transcode (opus→l16, aynı 8kHz rate, 0 resample). Transcode kaçınılamaz (STT opus işleyemez) → gereksiz 0. Yön: ingress. Geçer.",
+  "direction": "ingress",
+  "profile": "byoc-opus-nb",
+  "offer": ["OPUS_NB", "PCMU"],
+  "answer": ["OPUS_NB", "PCMU", "PCMA"],
+  "negotiated": "OPUS_NB",
+  "expect": "pass",
+  "expected": {
+    "resample_points": 0,
+    "transcode_hops": 1,
+    "unnecessary_resamples": 0,
+    "unnecessary_transcodes": 0
+  },
+  "chain": [
+    {"stage": "pstn_ingress", "codec": "OPUS_NB", "native": ["OPUS_NB", "PCMU"]},
+    {"stage": "media_gateway", "codec": "OPUS_NB", "native": ["OPUS_NB", "PCMU", "L16_8K"]},
+    {"stage": "stt_adapter", "codec": "L16_8K", "native": ["L16_8K"]}
+  ]
+}

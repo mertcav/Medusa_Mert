@@ -1,0 +1,21 @@
+{
+  "name": "codec-double-resample",
+  "$comment": "ANTIPATTERN (bilinçli FAIL): MediaGW 8k→16k yükseltir, orchestrator 16k→8k düşürür, STT 8k→16k tekrar yükseltir — 3 resample noktası + 8k→16k→8k→16k rate U-dönüşü. STT gerçekten 16kHz istese minimal 1 resample yeter. actual 3 resample, ≥2 GEREKSİZ. C4 + C5 (≤1) + C6 eler. Yön: ingress. FR-RES-008 ihlali (en kötü hat).",
+  "direction": "ingress",
+  "profile": "managed-ws-g711",
+  "offer": ["PCMU", "PCMA"],
+  "answer": ["PCMU", "PCMA"],
+  "negotiated": "PCMU",
+  "expect": "fail",
+  "expected": {
+    "resample_points": 3,
+    "rate_uturn": true,
+    "unnecessary_resamples": 2
+  },
+  "chain": [
+    {"stage": "pstn_ingress", "codec": "PCMU", "native": ["PCMU"]},
+    {"stage": "media_gateway", "codec": "L16_16K", "native": ["PCMU", "L16_8K", "L16_16K"]},
+    {"stage": "orchestrator", "codec": "L16_8K", "native": ["L16_8K", "L16_16K"]},
+    {"stage": "stt_adapter_16k", "codec": "L16_16K", "native": ["L16_16K"]}
+  ]
+}

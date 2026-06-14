@@ -1,0 +1,23 @@
+{
+  "name": "codec-passthrough-g711",
+  "$comment": "İDEAL (FR-RES-008): G.711 µ-law 8kHz uçtan uca passthrough (managed-WS). PSTN→SBC→MediaGW→STT hepsi PCMU native → 0 dönüşüm, 0 resample, 0 transcode. STT 8kHz native. Yön: ingress. Geçer.",
+  "direction": "ingress",
+  "profile": "managed-ws-g711",
+  "offer": ["PCMU", "PCMA"],
+  "answer": ["PCMU", "PCMA", "OPUS_NB"],
+  "negotiated": "PCMU",
+  "expect": "pass",
+  "expected": {
+    "resample_points": 0,
+    "transcode_hops": 0,
+    "conversions": 0,
+    "unnecessary_resamples": 0,
+    "unnecessary_transcodes": 0
+  },
+  "chain": [
+    {"stage": "pstn_ingress", "codec": "PCMU", "native": ["PCMU", "PCMA"]},
+    {"stage": "sbc", "codec": "PCMU", "native": ["PCMU", "PCMA"]},
+    {"stage": "media_gateway", "codec": "PCMU", "native": ["PCMU", "PCMA", "L16_8K", "OPUS_NB"]},
+    {"stage": "stt_adapter", "codec": "PCMU", "native": ["PCMU", "L16_8K"]}
+  ]
+}

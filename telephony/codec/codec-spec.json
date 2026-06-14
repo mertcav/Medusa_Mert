@@ -1,0 +1,124 @@
+{
+  "$comment": "WBS 2.2.2 — Codec yönetimi (8kHz), gereksiz resample/transcode önleme. Real-time Media Gateway (SAD §6/§7, L2) medya yolunda CODEC seçimi (SDP offer/answer benzeri pazarlık) + zincir boyunca FORMAT yönetimi: telefoni 8 kHz dar bant (G.711 µ/A-law, Opus-NB) native korunur; STT/TTS adaptörleri mümkünse 8 kHz native çalışır, değilse TEK bir kontrollü resample noktası (SAD §7.2). GEREKSİZ resampling/transcoding zincirden çıkarılır (FR-RES-008). 2.1.3 managed-cpaas (M1) / 2.1.4 byoc-sip (M2) taşıma + 2.2.1 RTP sonlandırma/jitter buffer (codec-agnostik, payload'a dokunmaz) bu dilimi besler; bu dilim zincirdeki FORMAT dönüşümlerini birinci-sınıf deterministik bir kapıya çevirir: zinciri yürür, her sınırda resample/transcode tespit eder, GEREKLİ (kaçınılamaz) ile GEREKSİZ (kaçınılabilir — DP ile hesaplanan minimuma göre fazla) dönüşümü ayırır. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): codec kataloğu + pazarlık sağlayıcıdan bağımsız; canlı sistemde gerçek codec yığını Media Gateway'de (C/C++/Rust native, SAD §21). Sır/credential ve ham ses payload/PII YOK — codec yalnız format metadata'sı (encoding/rate), ses içeriği yok.",
+  "version": "1.0",
+  "wbs": "2.2.2",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-RES-008", "FR-RTC-001", "FR-RES-016", "FR-TEN-002"],
+    "nfr": ["NFR 10.1", "NFR 10.2", "NFR 10.7"],
+    "sad": ["§6", "§7.1", "§7.2", "§17", "§20", "§21"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003", "ADR-009"],
+    "api": ["§11.5 TelephonyAdapter (medya akışı)", "§11.6 ErrorTaxonomy", "§11.2 SttAdapter / §11.3 TtsAdapter (8kHz native yetenek)"],
+    "srs": ["SR-RES-008"],
+    "rtm": ["TC-RES-008"],
+    "brd": ["§15 (codec — saklanan teknik metrik)"],
+    "observability": ["voice_codec_info (BRD §15 → 0.4.7)", "codec (metrik label)"],
+    "rfc": ["RFC 3551 (RTP A/V profil — PCMU=0, PCMA=8, payload type↔codec)", "RFC 7587 (Opus RTP payload)", "ITU-T G.711 (µ-law/A-law 8 kHz)"]
+  },
+
+  "media_profile": {
+    "$comment": "Telefoni 8 kHz native; 20ms çerçeve (50 fps). Zincirde gereksiz resample/transcode YOK (FR-RES-008, SAD §7.2; 2.1.3/2.1.4/2.2.1 ile birebir). 8kHz dar bant koruması transcode/resample hop'larını sıfıra indirir.",
+    "sample_rate_hz": 8000,
+    "frame_ms": 20,
+    "frames_per_sec": 50,
+    "samples_per_frame": 160,
+    "no_unnecessary_transcode": true,
+    "no_unnecessary_resample": true,
+    "resample_points_max": 1,
+    "trace": "FR-RES-008, SAD §7.2"
+  },
+
+  "codec_catalog": {
+    "$comment": "Vendor-neutral codec kataloğu. Her codec: encoding (decode/re-encode birimi), rate_hz (örnekleme — resample birimi), telephony (telefoni dar bant codec mi). Aynı encoding + aynı rate = passthrough (dönüşüm yok). Farklı encoding = transcode (decode+re-encode). Farklı rate = resample. Ham payload/credential YOK; yalnız format metadata'sı. payload_type RFC 3551 statik tipleri (dinamikler illüstratif).",
+    "codecs": {
+      "PCMU": {"encoding": "g711u", "rate_hz": 8000, "telephony": true, "payload_type": 0},
+      "PCMA": {"encoding": "g711a", "rate_hz": 8000, "telephony": true, "payload_type": 8},
+      "OPUS_NB": {"encoding": "opus", "rate_hz": 8000, "telephony": true, "payload_type": 96},
+      "OPUS_WB": {"encoding": "opus", "rate_hz": 16000, "telephony": false, "payload_type": 96},
+      "L16_8K": {"encoding": "l16", "rate_hz": 8000, "telephony": false, "payload_type": 11},
+      "L16_16K": {"encoding": "l16", "rate_hz": 16000, "telephony": false, "payload_type": 11}
+    },
+    "trace": "RFC 3551, RFC 7587, ITU-T G.711"
+  },
+
+  "negotiation": {
+    "$comment": "SDP offer/answer benzeri codec pazarlığı (RFC 3264 ruhu). offer = uzak uç (telefoni) codec listesi (tercih sırası); answer = bizim SBC/gateway desteklediklerimiz. Seçim: common = offer∩answer (offer tercih sırasıyla); GEREKSİZ transcode kaçınmak için ORTAK 8kHz dar bant codec varsa PASSTHROUGH tercih edilir (narrowband-first). Ortak codec yoksa → media kurulamaz (UNAVAILABLE). Pazarlık zincirde gereksiz dönüşüm üretmemelidir (C2).",
+    "prefer_narrowband": true,
+    "prefer_passthrough": true,
+    "no_common_codec_policy": "UNAVAILABLE",
+    "trace": "FR-RES-008, SAD §7.2, RFC 3264"
+  },
+
+  "chain_analysis": {
+    "$comment": "Medya zinciri ordered stage dizisi (ses akış yönü). Her stage: working codec (stage'den çıkan format) + native[] (stage'in dönüşümsüz işleyebildiği codec'ler). Uç stage'ler (telefoni ingress / terminal tüketici) işaretlenir — wire/adapter formatı SABİT (pinned). İç stage'ler native'lerinden serbest seçer. Sınır (i→i+1) codec farkı = dönüşüm: rate farkı→resample, encoding farkı→transcode (biri/ikisi). MİNİMUM dönüşüm DP ile hesaplanır (uçlar pinned, iç stage'ler native üzerinde min-değişim); GEREKSİZ = actual − minimal (≥0). U-dönüşü (rate/encoding ayrılıp geri dönerse) = açık israf (C6).",
+    "boundary_resample_if": "rate_hz differs",
+    "boundary_transcode_if": "encoding differs",
+    "minimal_via": "dynamic_programming (endpoints pinned, interior over native)",
+    "stage_codec_must_be_native": true,
+    "trace": "FR-RES-008, SAD §7.2"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (FR-RES-008 'gereksiz resampling/transcoding önlenmelidir' + SAD §7.2 'tek kontrollü resample noktası'). C1: telefoni transport codec 8kHz dar bant (wire rate=8000). C2: pazarlık conversion-minimizing ortak codec seçer (passthrough tercih). C3: GEREKSİZ transcode = 0 (actual_transcodes == minimal_transcodes). C4: GEREKSİZ resample = 0 (actual_resamples == minimal_resamples). C5: yön başına ≤1 kontrollü resample noktası (resample_points ≤ resample_points_max). C6: rate/encoding U-dönüşü YOK (8k→16k→8k israfı). SR-RES-008 yöntem A (analiz): codec zincirinde gereksiz dönüşüm yok.",
+    "wire_sample_rate_hz": 8000,
+    "resample_points_max": 1,
+    "unnecessary_transcode_max": 0,
+    "unnecessary_resample_max": 0,
+    "no_rate_uturn": true,
+    "no_encoding_uturn": true,
+    "trace": "FR-RES-008, SR-RES-008, SAD §7.2, SAD §20"
+  },
+
+  "metrics": {
+    "$comment": "Codec yönetimi her oturum için BRD §15 codec metriğini ve dahili dönüşüm sayaçlarını gözlemlenebilirliğe (0.4.7) yayar: aktif codec (voice_codec_info — codec label), resample/transcode hop sayısı, gereksiz dönüşüm sayısı (degrade/regresyon sinyali). codec DÜŞÜK-kardinalite enum (label uygun, 0.4.7 metric_labels_allowed'da). Yüksek-kardinalite kimlik (call_id) metrik LABEL'ı OLMAZ. Ham payload metriklerde yok.",
+    "emitted": [
+      "active_codec", "wire_sample_rate_hz", "resample_points", "transcode_hops",
+      "unnecessary_resamples", "unnecessary_transcodes", "conversions"
+    ],
+    "maps_to_observability": {
+      "active_codec": "voice_codec_info"
+    },
+    "trace": "BRD §15, SAD §17, observability 0.4.7"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Codec/medya hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Desteklenmeyen/tanınmayan codec → INVALID_REQUEST; offer∩answer boş (ortak codec yok, media kurulamaz) → UNAVAILABLE; stage non-native format işlemeye zorlanırsa → INVALID_REQUEST; bölge uyumsuzluğu → REGION_VIOLATION. GEREKSİZ dönüşüm bir HATA değil, kapı elemesi + degrade SİNYALİdir.",
+    "mapping": {
+      "unsupported_codec": "INVALID_REQUEST",
+      "no_common_codec": "UNAVAILABLE",
+      "non_native_stage": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "Codec dönüşümü (resample/transcode) tenant home-region'da yapılır; bölge uyumsuzluğu REGION_VIOLATION (NFR 10.7). ADR-009 hibrit: ağır medya/codec işleme ayrı bölgesel medya katmanında.",
+    "region_pin_required": true,
+    "trace": "NFR 10.7, ADR-009"
+  },
+
+  "pii": {
+    "$comment": "Ses payload'ı kişisel veridir (konuşma içeriği). Spec/config/örneklerde HAM PAYLOAD veya transkript TUTULMAZ; codec yalnız format metadata'sı (encoding/rate/payload_type). İçerik downstream STT'ye akar; codec yöneticisi içeriği yorumlamaz (yalnız format).",
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "trace": "BRD §14, BRD §15"
+  },
+
+  "invariants": [
+    { "id": "C1", "desc": "Telefoni transport codec 8 kHz dar bant (G.711 µ/A-law veya Opus-NB); wire örnekleme 8000 Hz korunur (8kHz native).", "trace": "FR-RES-008, SAD §7.2" },
+    { "id": "C2", "desc": "Codec pazarlığı (offer∩answer) conversion-minimizing ortak codec seçer; ortak 8kHz dar bant varsa PASSTHROUGH (narrowband-first) tercih edilir — pazarlık gereksiz transcode üretmez.", "trace": "FR-RES-008, RFC 3264, SAD §7.2" },
+    { "id": "C3", "desc": "GEREKSİZ transcode YOK: zincirdeki her transcode kaçınılamaz (actual_transcodes == minimal_transcodes; unnecessary_transcodes == 0).", "trace": "FR-RES-008, SR-RES-008" },
+    { "id": "C4", "desc": "GEREKSİZ resample YOK: zincirdeki her resample kaçınılamaz (actual_resamples == minimal_resamples; unnecessary_resamples == 0).", "trace": "FR-RES-008, SR-RES-008" },
+    { "id": "C5", "desc": "Yön başına EN ÇOK BİR kontrollü resample noktası (STT/TTS adaptör seam'i); resample_points ≤ resample_points_max (1).", "trace": "SAD §7.2" },
+    { "id": "C6", "desc": "Rate/encoding U-dönüşü YOK: bir örnekleme/encoding ayrılıp tekrar girilmez (8k→16k→8k veya µ→A→µ israfı) — açık gereksiz dönüşüm.", "trace": "FR-RES-008" },
+    { "id": "C7", "desc": "STT/TTS adaptörleri mümkünse 8 kHz native çalışır; resample yalnız gerçekten farklı rate gerektiren TEK adaptör seam'inde yapılır.", "trace": "FR-RES-008, SAD §7.2, API §11.2/§11.3" },
+    { "id": "C8", "desc": "Zincir codec-açık ve stage-native-tutarlı: her stage'in working codec'i kendi native kümesinde (stage işleyemediği formatı 'işlemez').", "trace": "FR-RES-008" },
+    { "id": "C9", "desc": "8kHz/20ms çerçeve profili korunur; 160 örnek/çerçeve (2.1.x/2.2.1 ile hizalı).", "trace": "FR-RES-008, SAD §7.2" },
+    { "id": "C10", "desc": "Codec metriği (voice_codec_info, codec label) + dönüşüm sayaçları gözlemlenebilirliğe (0.4.7) yayılır; codec düşük-kardinalite enum (label uygun), yüksek-kardinalite kimlik metrik label'ı olmaz.", "trace": "BRD §15, SAD §17, observability 0.4.7" },
+    { "id": "C11", "desc": "Codec/medya hataları ortak ErrorTaxonomy'ye (API §11.6) eşlenir — desteklenmeyen codec→INVALID_REQUEST, ortak-codec-yok→UNAVAILABLE, non-native stage→INVALID_REQUEST, bölge→REGION_VIOLATION.", "trace": "API §11.6, NFR 10.7" },
+    { "id": "C12", "desc": "Codec dönüşümü home-region'da yapılır; bölge uyumsuzluğu REGION_VIOLATION; ağır medya/codec ayrı bölgesel katmanda (ADR-009 hibrit).", "trace": "SAD §13.3, NFR 10.7, ADR-009" },
+    { "id": "C13", "desc": "Spec/config/örneklerde literal sır, ham ses payload'ı veya transkript yok; codec yalnız format metadata'sı (encoding/rate/payload_type).", "trace": "CLAUDE.md kısıtlar, BRD §14, BRD §15" },
+    { "id": "C14", "desc": "Vendor-neutral: codec kataloğu + pazarlık + tek-resample-seam mimari, sağlayıcıdan bağımsız; STT/TTS adaptör yetenekleri SPI arkasında (ADR-001/002), canlı sistemde native medya yığını (SAD §21).", "trace": "ADR-001, ADR-002, ADR-003, SAD §21" }
+  ]
+}

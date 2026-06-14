@@ -1,0 +1,22 @@
+{
+  "name": "codec-single-resample-stt16k",
+  "$comment": "STT yalnız 16kHz (L16_16K) destekler → SAD §7.2 'tek kontrollü resample noktası': MediaGW seam'inde 8kHz→16kHz BİR resample (+transcode g711u→l16). Wire 8kHz dar bant korunur; resample yalnız adaptör seam'inde. minimal 1 resample + 1 transcode = actual → gereksiz 0. Yön: ingress. Geçer (C5 ≤1).",
+  "direction": "ingress",
+  "profile": "managed-ws-g711",
+  "offer": ["PCMU", "PCMA"],
+  "answer": ["PCMU", "PCMA", "OPUS_NB"],
+  "negotiated": "PCMU",
+  "expect": "pass",
+  "expected": {
+    "resample_points": 1,
+    "transcode_hops": 1,
+    "unnecessary_resamples": 0,
+    "unnecessary_transcodes": 0
+  },
+  "chain": [
+    {"stage": "pstn_ingress", "codec": "PCMU", "native": ["PCMU", "PCMA"]},
+    {"stage": "sbc", "codec": "PCMU", "native": ["PCMU", "PCMA"]},
+    {"stage": "media_gateway", "codec": "PCMU", "native": ["PCMU", "L16_8K", "L16_16K"]},
+    {"stage": "stt_adapter_16k", "codec": "L16_16K", "native": ["L16_16K"]}
+  ]
+}
