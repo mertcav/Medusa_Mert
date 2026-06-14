@@ -1,0 +1,31 @@
+{
+  "name": "ctx-happy-path",
+  "$comment": "Tam çağrı: ingress'te oturum bağlamı kurulur; olay+log+span+metrik+adapter çağrıları üretilir. Her bağlam-zorunlu kayıt tenant_id+correlation_id taşır; metrik yüksek-kardinalite kimliği label değil exemplar olarak bağlar; adapter çağrıları home-region pinli + tam bağlamlı; tek tenant + tek correlation_id. Tüm kapılar geçer.",
+  "profile": "eu-shared-default",
+  "expect": "pass",
+  "session": {
+    "tenant_id": "t_acme", "org_unit": "ou_support", "agent_id": "ag_inbound",
+    "correlation_id": "corr-acme-001", "call_id": "call-001", "session_id": "sess-001", "trace_id": "tr-001"
+  },
+  "expected": {
+    "missing_context": 0,
+    "cross_tenant_violations": 0,
+    "distinct_correlation_ids": 1,
+    "correlation_discontinuity": 0,
+    "adapter_context_missing": 0,
+    "region_violations": 0,
+    "cardinality_violations": 0,
+    "pii_violations": 0
+  },
+  "emissions": [
+    { "t": 0, "kind": "event", "$note": "call.started" },
+    { "t": 20, "kind": "span", "$note": "stt span" },
+    { "t": 40, "kind": "adapter_call", "provider": "stt" },
+    { "t": 60, "kind": "log" },
+    { "t": 80, "kind": "metric", "labels": ["tenant_id", "agent_id", "region", "provider", "correlation_id"] },
+    { "t": 100, "kind": "adapter_call", "provider": "llm" },
+    { "t": 140, "kind": "tool_call", "provider": "crm_lookup" },
+    { "t": 200, "kind": "adapter_call", "provider": "tts" },
+    { "t": 260, "kind": "event", "$note": "call.completed" }
+  ]
+}

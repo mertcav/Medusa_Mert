@@ -1,0 +1,21 @@
+{
+  "name": "ctx-cardinality-exemplar",
+  "$comment": "Kardinalite disiplini odaklı: emitter metriklere yüksek-kardinalite kimlik (correlation_id/call_id/session_id) koymaya ÇALIŞIR; Propagator bunları label'dan çıkarır ve (correlation_id) exemplar olarak bağlar. PII anahtarı (phone_number) da label denenirse çıkarılır. cardinality_violations=0, pii_violations=0. Geçer (0.4.7 label_policy ile birebir).",
+  "profile": "eu-shared-default",
+  "expect": "pass",
+  "session": {
+    "tenant_id": "t_globex", "org_unit": "ou_billing", "agent_id": "ag_collect",
+    "correlation_id": "corr-globex-7", "call_id": "call-7", "session_id": "sess-7", "trace_id": "tr-7"
+  },
+  "expected": {
+    "cardinality_violations": 0,
+    "pii_violations": 0,
+    "exemplars_attached": 2
+  },
+  "emissions": [
+    { "t": 0, "kind": "metric", "labels": ["tenant_id", "outcome", "correlation_id"] },
+    { "t": 10, "kind": "metric", "labels": ["provider", "category", "call_id"] },
+    { "t": 20, "kind": "metric", "labels": ["tenant_id", "region", "session_id", "correlation_id"] },
+    { "t": 30, "kind": "metric", "labels": ["agent_id", "sip_code", "phone_number"] }
+  ]
+}

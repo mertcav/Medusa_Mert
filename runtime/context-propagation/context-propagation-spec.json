@@ -1,0 +1,133 @@
+{
+  "$comment": "WBS 3.1.5 — correlation_id + tenant context propagation (her olay/log/trace). Conversation Orchestrator (Çekirdek IP, SAD §6) içindeki CONTEXT PROPAGATOR sözleşmesi: SAD §13.3 (Tenant Context Propagation) + SAD §17.1 (İzleme Omurgası) runtime karşılığı. Çağrı INGRESS'inde (call_started) bir oturum bağlamı (tenant_id + org_unit + agent_id + correlation_id + region + call_id + session_id) BİR KEZ kurulur ve çağrı ömrü boyunca ÜRETİLEN HER kayda — olay (event), log, trace span, metrik exemplar ve giden adapter/tool çağrısına — DEĞİŞMEZ biçimde taşınır. (a) Bağlam tamlığı: her olay/log/span en az tenant_id+correlation_id taşır (SAD §17.1 trace_log_required_keys). (b) Kardinalite disiplini: yüksek-kardinalite kimlikler (correlation_id, call_id, session_id, customer_id) metrik LABEL'ı OLAMAZ — yalnız trace/log alanı + metrik exemplar (0.4.7 label_policy). (c) PII yasağı: telefon/müşteri/kart/OTP/token gibi PII bağlam anahtarı, metrik label'ı veya span attribute'u OLAMAZ (BRD §17.7, FR-REC-004). (d) Tenant binding: bağlam tenant_id'si DEĞİŞMEZ; çağrı ortasında değiştirilemez ve her kaydın tenant_id'si oturuma bağlı kalır → cross-tenant sızıntı=0 (FR-TEN-002). (e) correlation_id sürekliliği: çağrı başına TEK correlation_id; tüm kayıtlarda aynı (trace/log/event'i bağlar). (f) Adapter çağrısı: her giden STT/TTS/LLM/Telephony/tool çağrısı correlation_id+tenant_id+region taşır (API §11.1 UsageRecord). (g) Residency: bağlam region'ı adapter çağrısını home-region'a pinler; uyumsuzluk REGION_VIOLATION (NFR 10.7). KAPSAM AYRIMI: kardinalite/PII/alarm KATALOĞU + collector guard → 0.4.7 (gözlemlenebilirlik omurgası); event envelope şeması → 1.1.8; redaction motoru (L7) → ileri WBS; RLS veri-katmanı zorlaması → 1.1.x/1.2.1. Burada YALNIZ orchestrator-tarafı RUNTIME PROPAGASYON + ENFORCEMENT. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): Propagator çekirdeği minimal+deterministik (kayıt-tetikli, sanal saat, random YOK); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3) + OpenTelemetry W3C traceparent. Sır/credential, ham ses payload'ı, transkript ve PII spec/config/örneklerde TUTULMAZ — emisyonlar yalnız KİMLİK ANAHTARI ADLARI + sanal zaman taşır (PII DEĞER yok).",
+  "version": "1.0",
+  "wbs": "3.1.5",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-TEN-002", "FR-TOOL-010", "FR-BIL-002", "FR-RES-012", "FR-REC-004"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "sad": ["§6", "§6.2", "§6.3", "§13", "§13.1", "§13.3", "§17", "§17.1"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003"],
+    "api": ["§11.1 UsageRecord(correlationId/tenantId/callId)", "§11.6 ErrorTaxonomy", "§10.1 webhook envelope(tenant_id+correlation_id)", "§12.2 TurnEvent(correlationId+tenantId)"],
+    "srs": ["SR-TEN-002", "SR-TOOL-010", "SR-BIL-002", "SR-RES-012"],
+    "rtm": ["TC-TEN-002", "TC-TOOL-010", "TC-BIL-002", "TC-RES-012"],
+    "brd": ["§14 (PII)", "§15 (saklanan teknik metrikler)", "§17.7 (panel PII maskeleme)"],
+    "observability": ["label_policy.context_keys/metric_labels_forbidden/trace_log_required_keys/exemplar_keys (0.4.7)", "eventstream event-envelope (1.1.8)"]
+  },
+
+  "placement": {
+    "$comment": "Context Propagator Conversation Orchestrator içindedir (SAD §6.2/§6.3). Bağlam çağrı INGRESS'inde (call_started) BİR KEZ kurulur ve oturum aktörünün (her oturum hafif asenkron task, ADR-003) yaşam-döngüsü boyunca taşınır. Kayıt-tetiklidir: olay/log/span/metrik/adapter-çağrısı üretildiğinde bağlam OTOMATİK iliştirilir; bloklamaz (loglama sampling + asenkron, FR-RES-012 — hot-path'i bloklamaz). Bağlam tenant_id/correlation_id/call_id DEĞİŞMEZ (immutable binding).",
+    "in_orchestrator": true,
+    "established_at_ingress": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "immutable_binding": true,
+    "trace": "SAD §6.2, SAD §6.3, SAD §13.3, ADR-003, FR-RES-012"
+  },
+
+  "context_model": {
+    "$comment": "Oturum bağlamı (SAD §13.3). required_keys: HER üretilen kayıtta zorunlu minimum (SAD §17.1 trace_log_required_keys). full_context: ingress'te kurulan tam bağlam. immutable_keys: çağrı ömrü boyunca DEĞİŞTİRİLEMEZ (tenant binding — cross-tenant sızıntı önleme, FR-TEN-002). adapter_call_required: giden STT/TTS/LLM/Telephony/tool çağrısının taşıması zorunlu alanlar (API §11.1 UsageRecord). single_correlation_id_per_call: çağrı başına TEK correlation_id (trace/log/event birleştirme).",
+    "required_keys": ["tenant_id", "correlation_id"],
+    "full_context": ["tenant_id", "org_unit", "agent_id", "correlation_id", "region", "call_id", "session_id", "trace_id"],
+    "immutable_keys": ["tenant_id", "correlation_id", "call_id"],
+    "adapter_call_required": ["correlation_id", "tenant_id", "region"],
+    "single_correlation_id_per_call": true,
+    "trace": "SAD §13.3, SAD §17.1, API §11.1, FR-TEN-002"
+  },
+
+  "propagation_surfaces": {
+    "$comment": "Bağlamın iliştirildiği yüzeyler (SAD §13.3: 'her istekte, event'te, log'da ve trace span'inde'; + giden adapter çağrıları). Her yüzey için bağlam zorunluluğu farklı: event/log/span tüm required_keys; metric YALNIZ izinli düşük-kardinalite label + yüksek-kardinalite kimlik exemplar; adapter/tool çağrısı adapter_call_required.",
+    "surfaces": ["event", "log", "span", "metric", "adapter_call", "tool_call"],
+    "context_required_on": ["event", "log", "span", "adapter_call", "tool_call"],
+    "exemplar_only_on": ["metric"],
+    "trace": "SAD §13.3, SAD §17.1, API §11.1, §12.2"
+  },
+
+  "cardinality_policy": {
+    "$comment": "Kardinalite disiplini — 0.4.7 observability-spec.label_policy ile BİREBİR hizalı (bu doküman PRODUCER tarafı; 0.4.7 collector/katalog tarafı). Yüksek-kardinalite kimlik metrik LABEL'ı OLAMAZ (TSDB cardinality patlamasını önler); yalnız trace/log alanı + metrik exemplar olarak bağlanır. metric_labels_allowed: sınırlı (bounded) kümeler.",
+    "metric_labels_allowed": ["tenant_id", "org_unit", "agent_id", "region", "provider", "category", "sip_code", "codec", "outcome"],
+    "metric_labels_forbidden": ["correlation_id", "call_id", "customer_id", "phone_number", "token", "session_id"],
+    "high_cardinality_keys": ["correlation_id", "call_id", "customer_id", "session_id"],
+    "exemplar_keys": ["correlation_id", "trace_id"],
+    "trace": "observability 0.4.7 label_policy, SAD §17.1"
+  },
+
+  "pii_policy": {
+    "$comment": "PII bağlam anahtarı / metrik label'ı / span attribute'u OLAMAZ (BRD §17.7, FR-REC-004). forbidden_keys: bağlam/label/attribute'ta YASAK anahtar adları (DEĞER taşımak da yasak — redaction L7'de). Yalnız sınırlı, PII-olmayan kimlikler (tenant_id/agent_id/correlation_id...) taşınır.",
+    "forbidden_keys": ["phone_number", "msisdn", "customer_name", "full_name", "email", "national_id", "card_number", "pan", "cvv", "otp", "password", "token", "ssn", "iban", "address"],
+    "pii_in_labels_forbidden": true,
+    "pii_in_attributes_forbidden": true,
+    "trace": "BRD §17.7, FR-REC-004, observability 0.4.7"
+  },
+
+  "trace_propagation": {
+    "$comment": "OpenTelemetry W3C trace bağlamı (SAD §17.1). Her çağrı bir trace_id (çağrı boyu sabit) + correlation_id taşır; her span span_id alır ve parent span'a bağlanır. traceparent başlığı giden çağrılarda iletilir. correlation_id ↔ trace_id ilişkisi exemplar olarak metriklere bağlanır.",
+    "standard": "w3c-traceparent",
+    "trace_id_stable_per_call": true,
+    "span_per_operation": true,
+    "correlation_id_in_exemplar": true,
+    "trace": "SAD §17.1, observability 0.4.7"
+  },
+
+  "residency": {
+    "$comment": "Bağlam region'ı oturumun home-region'ıdır. Giden adapter çağrıları bu region'a PINLENIR (NFR 10.7); region uyumsuzluğu (adapter farklı bölgeye yönlendirilirse) REGION_VIOLATION. Tenant context propagation adapter çağrılarını doğru tenant kimliği + region ile yapar (SAD §13.3 son cümle).",
+    "region_pin_required": true,
+    "adapter_calls_pinned_to_home_region": true,
+    "trace": "NFR 10.7, SAD §13.3, ADR-009"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (orchestrator-tarafı propagasyon + enforcement). (G1) max_missing_context=0: her event/log/span/adapter/tool kaydı required_keys (tenant_id+correlation_id) taşır — SAD §13.3/§17.1. (G2) max_cardinality_violation=0: yüksek-kardinalite kimlik metrik label olarak görünmez (yalnız exemplar) — 0.4.7. (G3) max_pii_violation=0: PII anahtarı bağlam/label/attribute'ta yok — FR-REC-004. (G4) max_cross_tenant_violation=0: hiçbir kayıt oturumdan farklı tenant_id taşımaz — FR-TEN-002. (G5) max_correlation_discontinuity=0: çağrı başına tek correlation_id (distinct=1). (G6) max_adapter_context_missing=0: her giden adapter/tool çağrısı correlation_id+tenant_id+region taşır — API §11.1. (G7) max_region_violation=0: adapter çağrıları home-region'a pinli — NFR 10.7. (G8) max_illegal_context_mutation=0: immutable_keys (tenant_id/correlation_id/call_id) çağrı ortasında değiştirilmez.",
+    "max_missing_context": 0,
+    "max_cardinality_violation": 0,
+    "max_pii_violation": 0,
+    "max_cross_tenant_violation": 0,
+    "max_correlation_discontinuity": 0,
+    "max_adapter_context_missing": 0,
+    "max_region_violation": 0,
+    "max_illegal_context_mutation": 0,
+    "trace": "SAD §13.3, SAD §17.1, FR-TEN-002, FR-REC-004, NFR 10.7, API §11.1, observability 0.4.7"
+  },
+
+  "metrics": {
+    "$comment": "Context Propagator gözlemlenebilirliğe (0.4.7) propagasyon sağlık metriklerini yayar. Bu metrikler PRODUCER disiplininin (her kayıt bağlamlı, label kardinalitesi sınırlı) sürekli doğrulanmasını sağlar. Yüksek-kardinalite kimlik (correlation_id/call_id) metrik LABEL'ı OLMAZ — yalnız trace/log alanı + exemplar (kendi disiplinini kendine uygular). proposed_observability_additions 0.4.7 kataloğuna ÖNERİLEN eklemelerdir.",
+    "emitted": ["context_complete_total", "context_missing_total", "cardinality_violation_total", "pii_violation_total", "cross_tenant_violation_total", "adapter_context_missing_total", "region_violation_total"],
+    "maps_to_observability": {
+      "context_keys": "label_policy.context_keys (0.4.7)",
+      "trace_log_required_keys": "label_policy.trace_log_required_keys (0.4.7)"
+    },
+    "proposed_observability_additions": ["context_propagation_complete_ratio", "context_missing_total", "cardinality_violation_total"],
+    "trace": "BRD §15, SAD §17.1, observability 0.4.7"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Propagasyon hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Eksik/bozuk bağlam (required_key yok) → INVALID_REQUEST; oturumdan farklı tenant_id ile erişim/yazım → AUTH (yetkisiz cross-tenant); region uyumsuzluğu → REGION_VIOLATION. Yüksek cardinality/pii/cross-tenant sayıları bir HATA değil degrade SİNYALİdir (kapılar).",
+    "mapping": {
+      "missing_context": "INVALID_REQUEST",
+      "cross_tenant_access": "AUTH",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, NFR 10.7, FR-TEN-002"
+  },
+
+  "pii": {
+    "$comment": "Spec/config/örnekler yalnız KİMLİK ANAHTARI ADLARI + sanal zaman taşır; HAM SES payload'ı, transkript, müşteri/PII DEĞERLERİ TUTULMAZ. PII anahtar adları (pii_policy.forbidden_keys) yalnız YASAK LİSTESİ olarak referans edilir; örneklerde PII bir kaydın 'attempted' anahtar ADI olarak görünebilir ama DEĞER yoktur (Propagator zaten reddeder).",
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true,
+    "trace": "BRD §14, BRD §17.7, FR-REC-004"
+  },
+
+  "invariants": [
+    { "id": "G1", "desc": "Her üretilen event/log/span/adapter/tool kaydı required_keys (tenant_id+correlation_id) taşır; missing_context=0 (SAD §13.3 'her istekte, event'te, log'da ve trace span'inde'; §17.1 trace_log_required_keys).", "trace": "SAD §13.3, SAD §17.1" },
+    { "id": "G2", "desc": "Yüksek-kardinalite kimlik (correlation_id/call_id/session_id/customer_id) metrik LABEL olarak görünmez — yalnız trace/log alanı + metrik exemplar; cardinality_violation=0 (0.4.7 label_policy, TSDB cardinality koruması).", "trace": "observability 0.4.7, SAD §17.1" },
+    { "id": "G3", "desc": "PII anahtarı (phone_number/customer_name/card/otp/token...) bağlam, metrik label'ı veya span attribute'u OLAMAZ; pii_violation=0 (BRD §17.7, FR-REC-004; redaction L7'de).", "trace": "BRD §17.7, FR-REC-004" },
+    { "id": "G4", "desc": "Hiçbir kayıt oturuma bağlı tenant_id'den FARKLI tenant_id taşımaz; tenant binding immutable; cross_tenant_violation=0 (FR-TEN-002; RLS ile çift kontrol §13).", "trace": "FR-TEN-002, SR-TEN-002, SAD §13.1" },
+    { "id": "G5", "desc": "Çağrı başına TEK correlation_id ingress'te kurulur ve tüm kayıtlarda aynıdır (distinct=1); trace/log/event tek correlation_id ile bağlanır; correlation_discontinuity=0 (SAD §17.1).", "trace": "SAD §17.1, FR-TOOL-010" },
+    { "id": "G6", "desc": "Her giden STT/TTS/LLM/Telephony/tool çağrısı correlation_id+tenant_id+region taşır (UsageRecord); adapter_context_missing=0 (API §11.1, FR-BIL-002, FR-TOOL-010 — maliyet/audit izlenebilirliği).", "trace": "API §11.1, FR-BIL-002, FR-TOOL-010" },
+    { "id": "G7", "desc": "Giden adapter çağrıları bağlam region'ına (oturum home-region) PINLENIR; uyumsuzluk REGION_VIOLATION; region_violation=0 (NFR 10.7, SAD §13.3).", "trace": "NFR 10.7, SAD §13.3, ADR-009" },
+    { "id": "G8", "desc": "immutable_keys (tenant_id/correlation_id/call_id) çağrı ortasında DEĞİŞTİRİLEMEZ; bir emitter farklı değer denerse Propagator oturum değerini korur (bind), kontrolsüz geçirmez; illegal_context_mutation=0.", "trace": "FR-TEN-002, SAD §13.3" },
+    { "id": "G9", "desc": "Context Propagator Conversation Orchestrator içinde, ingress'te kurulan bağlamı KAYIT-TETİKLİ + bloklamayan (asenkron/sampling log, FR-RES-012) biçimde iliştirir; hot-path'i bloklamaz.", "trace": "SAD §6.2, SAD §6.3, ADR-003, FR-RES-012" },
+    { "id": "G10", "desc": "Propagasyon hataları ortak ErrorTaxonomy'ye (API §11.6) eşlenir (missing→INVALID_REQUEST, cross-tenant→AUTH, region→REGION_VIOLATION); spec/config/örneklerde literal sır, ham ses payload'ı, transkript veya PII DEĞERİ yok (yalnız anahtar ADLARI + sanal zaman).", "trace": "API §11.6, BRD §14, BRD §17.7, FR-REC-004" }
+  ]
+}

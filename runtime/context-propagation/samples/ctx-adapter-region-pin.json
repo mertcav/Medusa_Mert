@@ -1,0 +1,22 @@
+{
+  "name": "ctx-adapter-region-pin",
+  "$comment": "Residency/adapter odaklı: giden STT/LLM/TTS/tool çağrılarının her biri correlation_id+tenant_id+region taşır (API §11.1 UsageRecord, FR-BIL-002/FR-TOOL-010). Bir adapter farklı region (us-east-1) DENESE de Propagator home-region'a pinler → region_violations=0. adapter_context_missing=0. Geçer.",
+  "profile": "tr-shared-default",
+  "expect": "pass",
+  "session": {
+    "tenant_id": "t_initech", "org_unit": "ou_ops", "agent_id": "ag_x",
+    "correlation_id": "corr-initech-3", "call_id": "call-3", "session_id": "sess-3", "trace_id": "tr-3"
+  },
+  "expected": {
+    "adapter_calls": 4,
+    "adapter_context_missing": 0,
+    "region_violations": 0,
+    "cross_tenant_violations": 0
+  },
+  "emissions": [
+    { "t": 0, "kind": "adapter_call", "provider": "stt" },
+    { "t": 20, "kind": "adapter_call", "provider": "llm", "region": "us-east-1" },
+    { "t": 40, "kind": "tool_call", "provider": "payment", "region": "eu-west-1" },
+    { "t": 60, "kind": "adapter_call", "provider": "tts" }
+  ]
+}

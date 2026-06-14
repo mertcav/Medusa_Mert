@@ -1,0 +1,23 @@
+{
+  "name": "ctx-degraded",
+  "$comment": "Bilinçli degrade (regresyon kanıtı): policy attach_context=false (bağlam iliştirilmez → G1 eksik bağlam + G6 adapter bağlamı eksik), enforce_cardinality=false (correlation_id/call_id metrik label geçer → G2), enforce_pii=false (phone_number label + customer_name attr → G3), bind_tenant=false (farklı tenant_id_override geçer → G4 cross-tenant + G8 mutasyon; correlation_id_override → G5 süreksizlik), pin_region=false (ap-south-1 → G7). Çoklu HARD kapı eler — kapıların gerçek regresyonu yakaladığını gösterir. expect=fail (kapı ELENMELİ).",
+  "profile_obj": { "name": "_degraded", "isolation": "logical-shared", "region": "eu-west-1" },
+  "policy": {
+    "attach_context": false,
+    "enforce_cardinality": false,
+    "enforce_pii": false,
+    "bind_tenant": false,
+    "pin_region": false
+  },
+  "expect": "fail",
+  "session": {
+    "tenant_id": "t_acme", "org_unit": "ou_x", "agent_id": "ag_y",
+    "correlation_id": "corr-acme-9", "call_id": "call-9", "session_id": "sess-9", "trace_id": "tr-9"
+  },
+  "emissions": [
+    { "t": 0, "kind": "event", "tenant_id_override": "t_competitor", "correlation_id_override": "corr-rogue" },
+    { "t": 10, "kind": "metric", "labels": ["correlation_id", "phone_number"] },
+    { "t": 20, "kind": "span", "attrs": ["customer_name"] },
+    { "t": 30, "kind": "adapter_call", "provider": "llm", "region": "ap-south-1" }
+  ]
+}
