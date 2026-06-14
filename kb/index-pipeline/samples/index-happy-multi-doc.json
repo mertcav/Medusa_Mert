@@ -1,0 +1,24 @@
+{
+  "$comment": "WBS 6.1.3 — Mutlu yol: 3 farklı format (html/text/csv) NormalizedDocument'ı (6.1.1 ÜRETİR) chunk→embed→index eder; her doküman first_version (v1), kendi tenant+kb namespace'ine yazılır, citation + access metadata chunk'a taşınır. C1 kapsam, C2 citation, C3 embed-SPI, C5 namespace, C9 propagasyon kanıtı. confidential doküman (politika) acl_ref taşır → 6.1.4. Tek run. Sentetik (FR-TST-008).",
+  "scenario": "happy-multi-doc",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "runs": [
+    {
+      "sources": [
+        {"source_id": "duyuru", "format_declared": "html", "tenant_id": "t-acme", "kb_id": "kb-hr",
+         "doc_logical_key": "doc:hr/izin-duyuru", "classification": "internal",
+         "inline_text": "<html><head><title>Yillik Izin Duyurusu</title></head><body><h1>Yillik Izin</h1><p>Calisanlar takvim yilinda en az 14 gun yillik ucretli izne hak kazanir.</p><p>Izin talepleri yoneticinin onayina tabidir ve sistem uzerinden olusturulur.</p><nav>Anasayfa Iletisim</nav></body></html>",
+         "expect": {"status": "indexed", "action": "first_version", "version_no": 1}},
+        {"source_id": "politika", "format_declared": "text", "tenant_id": "t-acme", "kb_id": "kb-hr",
+         "doc_logical_key": "doc:hr/iade-politikasi", "classification": "confidential", "acl_ref": "acl:finance-read",
+         "inline_text": "Iade Politikasi. Musteriler satin alma tarihinden itibaren 14 gun icinde urunu iade edebilir. Iade icin orijinal fatura gereklidir. Kargo ucreti iade durumunda musteriden tahsil edilmez. Hasarli urunler ayri bir surece tabidir ve fotograf talep edilir.",
+         "expect": {"status": "indexed", "action": "first_version", "version_no": 1}},
+        {"source_id": "sss", "format_declared": "csv", "tenant_id": "t-acme", "kb_id": "kb-hr",
+         "doc_logical_key": "doc:hr/sss", "classification": "public",
+         "inline_text": "soru,yanit\nIade suresi nedir,14 gun\nKargo ucretli mi,Hayir ucretsiz\nFatura gerekli mi,Evet orijinal fatura\n",
+         "expect": {"status": "indexed", "action": "first_version", "version_no": 1}}
+      ]
+    }
+  ]
+}

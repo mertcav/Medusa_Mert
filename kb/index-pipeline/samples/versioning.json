@@ -1,0 +1,32 @@
+{
+  "$comment": "WBS 6.1.3 — VERSİYONLAMA çekirdeği (FR-KB-003 / SR-KB-003 'yeniden ingest sürüm üretir'). Aynı mantıksal doküman (doc:hr/calisan-el-kitabi) 3 kez ingest edilir: run0 ilk indeks v1; run1 İÇERİK DEĞİŞMEDEN yeniden → idempotent no-op (yeni sürüm YOK, chunk yeniden kullanılır); run2 İÇERİK DEĞİŞTİ → v2 + yeni chunk seti + eski sürüm supersede (tek aktif), v1 geçmişte korunur. C6 (yeni sürüm), C7 (idempotent), C8 (atomik aktivasyon + geçmiş) kanıtı. Sentetik (FR-TST-008).",
+  "scenario": "versioning",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "runs": [
+    {
+      "sources": [
+        {"source_id": "elkitabi-r0", "format_declared": "text", "tenant_id": "t-acme", "kb_id": "kb-hr",
+         "doc_logical_key": "doc:hr/calisan-el-kitabi", "classification": "internal",
+         "inline_text": "Calisan El Kitabi v1. Mesai saatleri 09:00 ile 18:00 arasindadir. Ogle molasi bir saattir. Uzaktan calisma haftada iki gun mumkundur. Yillik izin 14 gundur.",
+         "expect": {"status": "indexed", "action": "first_version", "version_no": 1}}
+      ]
+    },
+    {
+      "sources": [
+        {"source_id": "elkitabi-r1", "format_declared": "text", "tenant_id": "t-acme", "kb_id": "kb-hr",
+         "doc_logical_key": "doc:hr/calisan-el-kitabi", "classification": "internal",
+         "inline_text": "Calisan El Kitabi v1. Mesai saatleri 09:00 ile 18:00 arasindadir. Ogle molasi bir saattir. Uzaktan calisma haftada iki gun mumkundur. Yillik izin 14 gundur.",
+         "expect": {"status": "reused", "action": "noop_unchanged", "version_no": 1}}
+      ]
+    },
+    {
+      "sources": [
+        {"source_id": "elkitabi-r2", "format_declared": "text", "tenant_id": "t-acme", "kb_id": "kb-hr",
+         "doc_logical_key": "doc:hr/calisan-el-kitabi", "classification": "internal",
+         "inline_text": "Calisan El Kitabi v2. Mesai saatleri 08:30 ile 17:30 arasindadir. Ogle molasi bir saattir. Uzaktan calisma haftada UC gun mumkundur. Yillik izin 18 gune cikarilmistir. Yeni bolum: saglik sigortasi tum calisanlari kapsar.",
+         "expect": {"status": "indexed", "action": "new_version", "version_no": 2}}
+      ]
+    }
+  ]
+}

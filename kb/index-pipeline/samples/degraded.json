@@ -1,0 +1,20 @@
+{
+  "$comment": "WBS 6.1.3 — NEGATİF kapı kanıtı (expect_gate=fail): kapıların gerçekten eleyebildiğini gösterir. degraded-train-allowed profili (no_train=false, max_chunks=1) bir REGRESYONU modeller. (1) HASSAS doküman 'indexed' BEKLENİR ama no-train zorunluluğu nedeniyle NO_TRAIN_REQUIRED_VIOLATION ile fail-closed REDDEDİLİR → C10 beklenti-uyumsuzluğu eler (hassas içerik train-açık endpoint'e gidemez). (2) Cok-bloklu normal doküman 'indexed' BEKLENİR ama max_chunks=1 nedeniyle CHUNK_LIMIT_EXCEEDED → C10 eler. expect_gate=fail olduğundan en az bir kapı ELEMELİDİR. Sentetik (FR-TST-008).",
+  "scenario": "degraded-train-allowed",
+  "expect_gate": "fail",
+  "profile": "degraded-train-allowed",
+  "runs": [
+    {
+      "sources": [
+        {"source_id": "hassas-doc", "format_declared": "text", "tenant_id": "t-x", "kb_id": "kb-1",
+         "doc_logical_key": "doc:hassas/musteri-kayit", "classification": "restricted", "sensitive": true,
+         "inline_text": "Gizli musteri kaydi hassas isaretlidir.",
+         "expect": {"status": "indexed", "action": "first_version", "version_no": 1}},
+        {"source_id": "buyuk-doc", "format_declared": "text", "tenant_id": "t-x", "kb_id": "kb-1",
+         "doc_logical_key": "doc:buyuk/kilavuz", "classification": "internal",
+         "inline_text": "Birinci paragraf yeterince uzun bir metin blogudur ve tek basina bir chunk olusturur.\nIkinci paragraf da ayni sekilde uzun bir metin blogudur ve ikinci bir chunk gerektirir.\nUcuncu paragraf yine yeterince uzundur ve ucuncu bir chunk olusturur boylece sinir asilir.",
+         "expect": {"status": "indexed", "action": "first_version", "version_no": 1}}
+      ]
+    }
+  ]
+}

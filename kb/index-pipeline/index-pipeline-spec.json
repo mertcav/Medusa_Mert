@@ -1,0 +1,130 @@
+{
+  "$comment": "WBS 6.1.3 — Parse→chunk→embed→index + versiyonlama (FR-KB-003). Bilgi Tabanı & RAG offline indeksleme hattının (SAD §10.1) ÜÇÜNCÜ ve SON offline aşaması: NormalizedDocument'ı (6.1.1 ingest connector / 6.1.2 kurumsal kaynak connector ÜRETİR) ALIR → yapı-duyarlı CHUNK'lara böler → vendor-neutral EmbeddingAdapter SPI ile EMBED eder → tenant+agent kapsamlı namespace'e INDEX'ler (1.1.7 kb_chunk şeması) → ve doküman bazında VERSİYONLAR (yeniden ingest sürüm üretir; içerik değişmediyse idempotent no-op). 'Parse' aşaması 6.1.1'de yapıldı; bu motor ayıklamayı/parse'ı YENİDEN YAPMAZ — NormalizedDocument sözleşmesini TÜKETİR (referans probe 6.1.1 fixture'larından NormalizedDocument türetmek için ingest_connector_probe'u import eder, kod tekrarı yok). Çekirdek değer FR-KB-003: 'Bilgi kaynakları otomatik parçalanmalı, indekslenmeli ve versiyonlanmalıdır.' SR-KB-003: 'Chunk/index üretilir; yeniden ingest sürüm üretir.' Vendor-neutral (ADR-002): embedding sağlayıcısı bir SPI arkasındadır — referans deterministik embedder yerine canlıda gerçek embedding modeli (OpenAI/Cohere/bge/yerel) AYNI imza arkasına TAKILIR; orchestrator/RAG client yalnız chunk+vektör+citation sözleşmesine bağımlıdır (ADR-001). Offline (Control/Analytics Plane) — hot-path DEĞİL, SAD §20 gecikme bütçesine tabi değil; yine de bounded (chunk/embed batch sınırları). Determinizm: sanal saat + tohumlu deterministik embedder (Date.now/rastgele YOK). Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (fixture içerikleri sentetik — FR-TST-008). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "6.1.3",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-KB-003", "FR-KB-004", "FR-KB-005", "FR-KB-006", "FR-KB-010", "FR-LLM-012", "FR-TST-008"],
+    "nfr": ["NFR 10.7"],
+    "srs": ["SR-KB-003"],
+    "rtm": ["TC-KB-003"],
+    "sad": ["§10.1 (offline indeksleme: Chunk → Embed → Vector Store + metadata kaynak/versiyon/erişim)", "§10.2 (retrieval embedding ÜRETEN değil TÜKETEN taraf — citation atfı FR-KB-006)", "§12.1 (pgvector/OpenSearch)", "§14 (residency/no-log)"],
+    "brd": ["§9.9 (Bilgi Tabanı ve RAG)", "§14 (residency/PII)", "§16 (KB Document varlık 13 / KB Chunk varlık 14)"],
+    "adr": ["ADR-001 (orchestrator SPI bağımsızlığı — embedding SPI arkası)", "ADR-002 (vendor-neutral — embedding modeli değiştirilebilir)", "ADR-008 (semantic cache embedding'i AYNI SPI'yi tüketir)"],
+    "api": ["§ L1/L2 Knowledge base POST /knowledge-bases/{id}/documents (async indexleme tetikler)", "§11.6 ErrorTaxonomy ruhu"],
+    "db": ["DB.md §5.3 kb_document (version_no FR-KB-003) + kb_chunk (chunk_no/content/embedding) — 1.1.7 / migration 0010", "DB.md §7.1 HNSW", "DB.md §12 pgvector boyut 1536 referans"],
+    "consumes": ["6.1.1 NormalizedDocument (PDF/Word/HTML/metin/CSV/web)", "6.1.2 NormalizedDocument (SharePoint/Confluence/generic kurumsal kaynak)"],
+    "consumed_by": ["6.2.1 vector search top-k (chunk+embedding+namespace TÜKETİR)", "6.1.4 doküman bazı erişim ENFORCEMENT (chunk access_scope metadata TÜKETİR)", "6.1.5 içerik TTL/bayatlama (version/last_indexed TÜKETİR)", "1.1.7 fiziksel kb_chunk store (şema hedefi)"],
+    "observability": ["kb_index_total{stage,status} / kb_chunks_emitted / kb_embed_batch_total / kb_index_versions_total{action} / kb_index_rejected_total{error_class} / kb_index_reuse_total (idempotent no-op) → BRD §15 → 0.4.7 (tenant_id/doc_id/kb_id YÜKSEK kardinalite → yalnız trace/exemplar)"]
+  },
+
+  "placement": {
+    "$comment": "Index pipeline OFFLINE indeksleme hattında (Control/Analytics Plane, SAD §10.1) çalışır — hot-path DEĞİL (medya/turn döngüsü değil). L1/L2 panel 'POST /knowledge-bases/{id}/documents' (async) çağrısı veya kurumsal kaynak senkronu (6.1.2) NormalizedDocument üretince tetiklenir. NormalizedDocument → [chunk] → [embed (SPI)] → [index (namespace)] → [version]. Vendor-neutral (ADR-002): embedding adapter bir SPI arkasındadır; RAG client yalnız chunk+vektör sözleşmesine bağımlıdır (ADR-001). Offline olduğundan SAD §20 hot-path gecikme bütçesine tabi DEĞİL; bounded (chunk/embed sınırları). Embedding sağlayıcısına yalnız no-train/no-log endpoint'e (FR-LLM-012/FR-KB-010) ve home-region'a (NFR 10.7) veri gider; hassas doküman için no-train zorunlu (fail-closed).",
+    "plane": "control-analytics (offline indeksleme)",
+    "hot_path": false,
+    "behind_spi": true,
+    "orchestrator_depends_on_chunk_vector_contract_only": true,
+    "trigger": ["6.1.1/6.1.2 NormalizedDocument hazır", "L1/L2 POST /knowledge-bases/{id}/documents (async) → re-index"],
+    "trace": "SAD §10.1, SAD §14.4, ADR-001, ADR-002, API L1/L2 Knowledge base"
+  },
+
+  "spi": {
+    "$comment": "İki SPI yüzeyi. (1) EmbeddingAdapter: embed_batch(texts, ctx) → list[vector] (her vektör sabit boyut = config embedding_dim); vendor-neutral — referans deterministik embedder (sha256-tohumlu, L2-normalize) yerine canlıda gerçek embedding modeli AYNI imza arkasına takılır (ADR-001/002). ctx residency_region + no_train + no_log + sensitive taşır; hassas doküman + no_train=false → NO_TRAIN_REQUIRED_VIOLATION (fail-closed reddet). (2) VectorIndexWriter: upsert(namespace, records) / supersede(namespace, doc_id, version) — tenant+kb namespace'e yazar (1.1.7 kb_chunk), cross-namespace yazım imkânsız (fail-closed). IndexedChunk sözleşmesi: {chunk_id, namespace, tenant_id, kb_id, document_id, doc_logical_key, version_no, chunk_no, content, char_count, token_estimate, content_hash, block_span, source_uri, title, classification, acl_ref, sensitive, redaction_state, no_log, residency_region, embedding_dim, embedding_model, embedding_fingerprint, active, indexed_at}. IndexError: {error_class, detail} (taksonomi).",
+    "embedding_adapter_method": "embed_batch(texts, ctx) -> list[vector(embedding_dim)]",
+    "vector_index_writer_methods": ["upsert(namespace, records)", "supersede(namespace, doc_logical_key, prev_version)"],
+    "indexed_chunk_fields": ["chunk_id", "namespace", "tenant_id", "kb_id", "document_id", "doc_logical_key", "version_no", "chunk_no", "content", "char_count", "token_estimate", "content_hash", "block_span", "source_uri", "title", "classification", "acl_ref", "sensitive", "redaction_state", "no_log", "residency_region", "embedding_dim", "embedding_model", "embedding_fingerprint", "active", "indexed_at"],
+    "trace": "ADR-001, ADR-002, ADR-008, SAD §10.1, DB.md §5.3, API §11.6"
+  },
+
+  "chunking": {
+    "$comment": "Yapı-duyarlı (structure-aware) deterministik chunking. NormalizedDocument.blocks (heading/paragraph/table_row/...) birim alınır; ardışık bloklar target_chars'a kadar paketlenir (blok sınırı korunur — bir blok bölünmez, tek başına target'ı aşarsa overlap'lı pencerelere bölünür). Ardışık chunk'lar arası overlap_chars karakter örtüşme (bağlam sürekliliği, retrieval recall). KAPSAM invariant'ı: chunk 'core' metinlerinin sırayla birleşimi == paketlenen kaynak metin (hiçbir metin düşmez/çoğalmaz — overlap ayrı tutulur). Her chunk citation metadata taşır (doc_id+version+chunk_no+source_uri+block_span → FR-KB-006 kaynak atfı). max_chunks aşılırsa CHUNK_LIMIT_EXCEEDED (DoS/maliyet guard). token_estimate ≈ char/4 (model-agnostik kaba; gerçek tokenizer canlıda).",
+    "strategy": "structure-aware-greedy-pack + overlap",
+    "respects_block_boundaries": true,
+    "coverage_invariant": "join(chunk.core_text) == packed_source_text",
+    "target_chars": 1200,
+    "overlap_chars": 150,
+    "max_chunks": 5000,
+    "token_estimate_divisor": 4,
+    "trace": "FR-KB-003, FR-KB-006, SAD §10.1"
+  },
+
+  "embedding": {
+    "$comment": "Vendor-neutral embedding (ADR-002) bir SPI arkasında. Referans embedder deterministiktir (sha256(model+text) tohumlu LCG → embedding_dim float, L2-normalize) — gerçek değer değil, sözleşme/akış kanıtı; canlıda gerçek model takılır. embedding_dim model-bağımlı referans 1536 (DB.md §12 / 0.2.5). BATCH embedding (gecikme/maliyet). Residency: embedding çağrısı home-region (NFR 10.7); hassas doküman → no_train + no_log zorunlu endpoint (FR-LLM-012/FR-KB-010) — değilse NO_TRAIN_REQUIRED_VIOLATION fail-closed. Embedding payload sağlayıcı loguna yazılmaz (no_log taşınır). dim uyumsuzluğu → EMBED_DIM_MISMATCH; sağlayıcı hatası → EMBED_PROVIDER_ERROR (yapısal, çökme yok).",
+    "reference_embedder": "deterministic sha256-seeded LCG, L2-normalized",
+    "embedding_dim": 1536,
+    "batch": true,
+    "no_train_required_for_sensitive": true,
+    "no_log_required": true,
+    "region_pin_required": true,
+    "trace": "FR-KB-010, FR-LLM-012, NFR 10.7, ADR-002, ADR-008, DB.md §12"
+  },
+
+  "versioning": {
+    "$comment": "FR-KB-003 çekirdeği. Mantıksal doküman kimliği = (tenant_id, kb_id, doc_logical_key) — doc_logical_key kaynak tarafından verilir (source_uri/external_id); aynı kaynağın yeniden yüklenmesi AYNI mantıksal dokümanın yeni SÜRÜMÜdür. content_hash (6.1.1'den) değişimi belirler: (a) ilk indeks → version_no=1; (b) içerik DEĞİŞTİ (hash farklı) → version_no+1 + YENİ chunk seti + embed + index, eski sürüm SUPERSEDE (active=false), atomik aktivasyon (her mantıksal doküman için TAM BİR aktif sürüm); (c) içerik DEĞİŞMEDİ (hash aynı) → IDEMPOTENT no-op (yeni sürüm YOK, mevcut chunk/embedding yeniden kullanılır — maliyet tasarrufu, FR-RES ruhu). Sürüm geçmişi KORUNUR (rollback/audit); yalnız aktif sürüm retrieval'e görünür (6.2.x). duplicate_of (6.1.1 içerik-seviyesi dedup) idempotent yolu besler.",
+    "logical_doc_key": "(tenant_id, kb_id, doc_logical_key)",
+    "new_version_on_content_change": true,
+    "idempotent_noop_on_unchanged": true,
+    "atomic_activation": true,
+    "single_active_version_per_doc": true,
+    "history_retained": true,
+    "trace": "FR-KB-003, SR-KB-003, SAD §10.1, DB.md §5.3 (version_no)"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (C1–C10). max_coverage_loss=0: chunk core metinleri kaynağı tam kaplar (metin düşmez/çoğalmaz). max_cross_namespace=0: chunk yalnız kendi tenant+kb namespace'ine yazılır. require_citation_metadata: her chunk doc_id+version_no+chunk_no+source_uri+block_span+content_hash taşır (FR-KB-006). require_embedding_dim: her aktif chunk sabit embedding_dim vektör taşır. require_no_train_for_sensitive: hassas doküman yalnız no-train endpoint (aksi NO_TRAIN_REQUIRED_VIOLATION). require_region_pin + require_no_log: embedding home-region + no_log. require_new_version_on_change + require_idempotent_noop: versiyonlama davranışı. require_single_active + require_history: atomik aktivasyon + geçmiş korunur. require_access_propagation: classification/acl_ref/redaction_state/sensitive chunk'a taşınır (→6.1.4). require_tenant_context: tenant/kb yoksa fail-closed. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler tenant compliance profile (DPIA cp.*) + üretim ölçümüyle ayarlanır.",
+    "max_coverage_loss": 0,
+    "max_cross_namespace": 0,
+    "max_target_chars": 1200,
+    "max_overlap_chars": 150,
+    "max_chunks": 5000,
+    "require_citation_metadata": true,
+    "require_embedding_dim": true,
+    "require_no_train_for_sensitive": true,
+    "require_region_pin": true,
+    "require_no_log": true,
+    "require_new_version_on_change": true,
+    "require_idempotent_noop": true,
+    "require_single_active": true,
+    "require_history": true,
+    "require_access_propagation": true,
+    "require_tenant_context": true,
+    "trace": "FR-KB-003, SR-KB-003, FR-KB-004, FR-KB-005, FR-KB-006, FR-KB-010, FR-LLM-012, NFR 10.7, SAD §10.1"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Index pipeline hata sınıfları (API §11.6 ruhu — pipeline'a özgü). DETERMİNİSTİK + müşteriye sızmaz (ham sağlayıcı/embedding kodu yalnız audit/log). EMPTY_DOCUMENT boş/yapısız NormalizedDocument. CHUNK_LIMIT_EXCEEDED max_chunks guard. EMBED_PROVIDER_ERROR/EMBED_DIM_MISMATCH embedding SPI. NO_TRAIN_REQUIRED_VIOLATION hassas doküman train-açık endpoint'e (fail-closed). REGION_VIOLATION residency. MISSING_TENANT_CONTEXT fail-closed. INDEX_WRITE_ERROR namespace yazım. INVALID_INPUT_DOC NormalizedDocument sözleşmesi ihlali. Bir kötü doc batch'i durdurmaz (C10).",
+    "classes": ["EMPTY_DOCUMENT", "CHUNK_LIMIT_EXCEEDED", "EMBED_PROVIDER_ERROR", "EMBED_DIM_MISMATCH", "NO_TRAIN_REQUIRED_VIOLATION", "REGION_VIOLATION", "MISSING_TENANT_CONTEXT", "INDEX_WRITE_ERROR", "INVALID_INPUT_DOC"],
+    "trace": "API §11.6, FR-KB-003, SAD §10.1"
+  },
+
+  "residency": {
+    "$comment": "Chunk/embed/index tenant home-region'da yapılır (NFR 10.7). Embedding çağrısı yalnız home-region + no-train/no-log endpoint'e gider (FR-LLM-012/FR-KB-010); hassas doküman için no-train zorunlu (fail-closed NO_TRAIN_REQUIRED_VIOLATION). Embedding payload sağlayıcı loguna yazılmaz (no_log). Bölge uyumsuz NormalizedDocument REGION_VIOLATION. Chunk/vektör durable store'a (1.1.7) home-region'da yazılır; redaction_state NormalizedDocument'tan taşınır (uygulama 6.1.4).",
+    "region_pin_required": true,
+    "no_log_required": true,
+    "no_train_required_for_sensitive": true,
+    "embedding_payload_logged": false,
+    "trace": "NFR 10.7, FR-KB-010, FR-LLM-012, SAD §14"
+  },
+
+  "pii": {
+    "$comment": "Bu SPEC/config/sample DESCRIPTOR'ları sır/credential ve gerçek PII DEĞERİ TUTMAZ (fixture içerikleri sentetik — FR-TST-008). NOT: chunk içeriği (NormalizedDocument'tan) runtime'da PII içerebilir (meşru) → pipeline bunu no_log=true + redaction_state (NormalizedDocument'tan) ile taşır; redaction/maskeleme UYGULAMASI 6.1.4 + retrieval no-log 6.2.4. Embedding çağrısı no-train/no-log endpoint'e gider (hassas doküman). Spec/config'te uzun rakam dizisi (kart/TCKN) yasak.",
+    "raw_pii_in_spec_forbidden": true,
+    "chunk_content_may_contain_pii": true,
+    "embedding_endpoint_no_train_no_log": true,
+    "trace": "FR-KB-010, FR-LLM-012, BRD §14, BRD §17.7, FR-REC-004"
+  },
+
+  "invariants": [
+    { "id": "C1", "desc": "CHUNK COVERAGE: yapı-duyarlı deterministik chunking NormalizedDocument metnini tam kaplar — chunk 'core' metinlerinin sırayla birleşimi == paketlenen kaynak metin (coverage_loss=0, metin düşmez/çoğalmaz; overlap ayrı); blok sınırı korunur; chunk boyutu target_chars'a bağlı (bir blok aşarsa overlap'lı pencere); max_chunks aşımı CHUNK_LIMIT_EXCEEDED.", "trace": "FR-KB-003, SAD §10.1" },
+    { "id": "C2", "desc": "CITATION METADATA: her chunk doc_id + doc_logical_key + version_no + chunk_no + source_uri + block_span + content_hash taşır → FR-KB-006 'yanıtın hangi kaynağa dayandığı izlenebilir'; retrieval (6.2.x) bu citation'ı tüketir. char_count/token_estimate bütçe (FR-RES-010/6.2.2) girdisi.", "trace": "FR-KB-006, FR-RES-010, SAD §10.2" },
+    { "id": "C3", "desc": "EMBED VENDOR-NEUTRAL SPI: her aktif chunk EmbeddingAdapter SPI ile sabit embedding_dim vektör alır (ADR-001/002); referans deterministik embedder yerine canlıda gerçek model AYNI imza arkası; embedding BATCH; embedding_model + embedding_dim kayıtlı; dim uyumsuzluğu EMBED_DIM_MISMATCH, sağlayıcı hatası EMBED_PROVIDER_ERROR (çökme yok).", "trace": "FR-KB-003, ADR-001, ADR-002, ADR-008, DB.md §12" },
+    { "id": "C4", "desc": "NO-TRAIN / NO-LOG / RESIDENCY: embedding çağrısı home-region (NFR 10.7) + no_log (FR-KB-010); hassas doküman YALNIZ no-train endpoint'e (FR-LLM-012) — aksi NO_TRAIN_REQUIRED_VIOLATION fail-closed; bölge uyumsuz REGION_VIOLATION; embedding payload sağlayıcı loguna yazılmaz.", "trace": "FR-KB-010, FR-LLM-012, NFR 10.7, SAD §14" },
+    { "id": "C5", "desc": "NAMESPACE ISOLATION: chunk YALNIZ kendi tenant+kb namespace'ine yazılır (FR-KB-004 sınır); cross-namespace yazım=0; tenant/kb context yoksa fail-closed MISSING_TENANT_CONTEXT; aynı içerik farklı tenant'ta ayrı namespace (sızıntı yok). 1.1.7 kb_chunk kompozit FK ile fiziksel olarak da zorlanır.", "trace": "FR-KB-004, FR-TEN-002, DB.md §5.3" },
+    { "id": "C6", "desc": "VERSIONING — NEW VERSION ON CHANGE: aynı mantıksal dokümanın içeriği değişerek yeniden ingest edilirse (content_hash farklı) version_no+1 + YENİ chunk seti + embed + index üretilir (SR-KB-003 'yeniden ingest sürüm üretir').", "trace": "FR-KB-003, SR-KB-003, SAD §10.1" },
+    { "id": "C7", "desc": "VERSIONING — IDEMPOTENT NO-OP: aynı mantıksal dokümanın içeriği DEĞİŞMEDEN (content_hash aynı) yeniden ingest edilirse yeni sürüm ÜRETİLMEZ — mevcut chunk/embedding yeniden kullanılır (idempotent, maliyet tasarrufu); duplicate_of (6.1.1 dedup) bu yolu besler.", "trace": "FR-KB-003, FR-RES (maliyet), SAD §10.1" },
+    { "id": "C8", "desc": "ATOMIC ACTIVATION + HISTORY: yeni sürüm chunk'ları atomik aktifleşir; önceki sürüm SUPERSEDE (active=false) ama geçmiş KORUNUR (rollback/audit); her mantıksal doküman için TAM BİR aktif sürüm; yalnız aktif sürüm retrieval'e (6.2.x) görünür.", "trace": "FR-KB-003, SAD §10.1, DB.md §5.3" },
+    { "id": "C9", "desc": "ACCESS METADATA + REDACTION PROPAGATION: classification + acl_ref + redaction_state + sensitive NormalizedDocument'tan her chunk'a taşınır → 6.1.4 doküman-bazı erişim yetkisi ENFORCEMENT bunu tüketir; pipeline yalnız taşır, ENFORCEMENT yapmaz (sınır).", "trace": "FR-KB-005, →6.1.4" },
+    { "id": "C10", "desc": "ROBUST + SCOPE BOUNDARY: boş/aşırı/embed-hatalı girdide hiçbir exception kaçmaz → STRUCTURED IndexError taksonomisi; bir kötü doc batch'teki diğerlerini durdurmaz. KAPSAM: pipeline chunk+embed+index+version ÜRETİR; parse/ayıklama → 6.1.1 (TÜKETİR, yeniden yapmaz), kurumsal kaynak → 6.1.2, retrieval/rerank/top-k → 6.2.1, token-trim → 6.2.2, ACL ENFORCEMENT → 6.1.4, içerik TTL/bayatlama → 6.1.5, fiziksel kb_chunk store → 1.1.7, benchmark → 6.2.5. Sır/credential üretmez.", "trace": "6.1.1, 6.1.2, 6.1.4, 6.1.5, 6.2.x, 1.1.7" }
+  ]
+}

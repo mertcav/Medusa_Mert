@@ -1,0 +1,24 @@
+{
+  "$comment": "WBS 6.1.3 — Namespace izolasyonu (C5, FR-KB-004/FR-TEN-002). AYNI içerik iki farklı tenant'a (t-alpha, t-beta) + iki farklı kb namespace'ine indexlenir. Aynı content_hash farklı tenant'ta AYRI namespace (sızıntı yok) — her tenant kendi mantıksal dokümanının v1'ini alır; cross-namespace yazım=0. Ayrıca t-alpha içinde iki ayrı agent kb'si (kb-sales/kb-support) ayrı namespace. Sentetik (FR-TST-008).",
+  "scenario": "tenant-isolation",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "runs": [
+    {
+      "sources": [
+        {"source_id": "alpha-sales", "format_declared": "text", "tenant_id": "t-alpha", "kb_id": "kb-sales",
+         "doc_logical_key": "doc:ortak-sss", "classification": "internal",
+         "inline_text": "Ortak SSS. Calisma saatleri hafta ici 09 18 arasidir. Destek hatti 7 24 aciktir. Faturalar ay sonunda kesilir.",
+         "expect": {"status": "indexed", "action": "first_version", "version_no": 1}},
+        {"source_id": "alpha-support", "format_declared": "text", "tenant_id": "t-alpha", "kb_id": "kb-support",
+         "doc_logical_key": "doc:ortak-sss", "classification": "internal",
+         "inline_text": "Ortak SSS. Calisma saatleri hafta ici 09 18 arasidir. Destek hatti 7 24 aciktir. Faturalar ay sonunda kesilir.",
+         "expect": {"status": "indexed", "action": "first_version", "version_no": 1}},
+        {"source_id": "beta-sales", "format_declared": "text", "tenant_id": "t-beta", "kb_id": "kb-sales",
+         "doc_logical_key": "doc:ortak-sss", "classification": "internal",
+         "inline_text": "Ortak SSS. Calisma saatleri hafta ici 09 18 arasidir. Destek hatti 7 24 aciktir. Faturalar ay sonunda kesilir.",
+         "expect": {"status": "indexed", "action": "first_version", "version_no": 1}}
+      ]
+    }
+  ]
+}

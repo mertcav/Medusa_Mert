@@ -1,0 +1,33 @@
+{
+  "$comment": "WBS 6.1.3 — Index pipeline profilleri (chunk/embed/index/versiyonlama). Sağlayıcı-nötr (ADR-002): embedding_model bir ETİKETtir, sağlayıcı adı değil — canlıda gerçek model AYNI EmbeddingAdapter SPI arkasına takılır. Sır/credential YOK (endpoint/anahtar yalnız ${ENV}; bu config yalnız davranış parametreleri). Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler tenant compliance profile (DPIA cp.*) + üretim ölçümüyle ayarlanır. residency_region='home' = tenant home-region (NFR 10.7). no_train/no_log endpoint zorunlulukları FR-LLM-012/FR-KB-010.",
+  "profiles": {
+    "pilot-default": {
+      "$comment": "Pilot varsayılan (F1). Dengeli chunk boyutu + overlap; no-train embedding endpoint; home-region.",
+      "chunk": {"target_chars": 1200, "overlap_chars": 150, "max_chunks": 5000, "token_estimate_divisor": 4},
+      "embedding": {"model": "ref-embed-v1", "dim": 1536, "endpoint_ref": "${KB_EMBED_ENDPOINT}", "no_train": true, "no_log": true, "batch_size": 64},
+      "residency_region": "home",
+      "allowed_regions": ["home"]
+    },
+    "regulated-tr": {
+      "$comment": "Regüle TR (finans/sağlık). Daha küçük chunk (hassas içerik granülaritesi) + no-train ZORUNLU + yalnız tr-home bölge.",
+      "chunk": {"target_chars": 900, "overlap_chars": 120, "max_chunks": 5000, "token_estimate_divisor": 4},
+      "embedding": {"model": "ref-embed-v1", "dim": 1536, "endpoint_ref": "${KB_EMBED_ENDPOINT_TR}", "no_train": true, "no_log": true, "batch_size": 32},
+      "residency_region": "home",
+      "allowed_regions": ["home"]
+    },
+    "enterprise-eu": {
+      "$comment": "Enterprise EU. Büyük chunk (uzun politika dokümanları) + no-train + eu-home.",
+      "chunk": {"target_chars": 1500, "overlap_chars": 200, "max_chunks": 8000, "token_estimate_divisor": 4},
+      "embedding": {"model": "ref-embed-v1", "dim": 1536, "endpoint_ref": "${KB_EMBED_ENDPOINT_EU}", "no_train": true, "no_log": true, "batch_size": 128},
+      "residency_region": "home",
+      "allowed_regions": ["home"]
+    },
+    "degraded-train-allowed": {
+      "$comment": "NEGATİF profil (yalnız negatif kapı kanıtı için): no_train=false (train-açık endpoint) + minik max_chunks + küçük target_chars. Hassas doküman bu profille NO_TRAIN_REQUIRED_VIOLATION ile fail-closed reddedilir; çok-paragraflı normal doküman küçük target_chars ile >1 chunk üretir ve max_chunks=1 nedeniyle CHUNK_LIMIT_EXCEEDED eder. Üretimde KULLANILMAZ.",
+      "chunk": {"target_chars": 90, "overlap_chars": 15, "max_chunks": 1, "token_estimate_divisor": 4},
+      "embedding": {"model": "ref-embed-v1", "dim": 1536, "endpoint_ref": "${KB_EMBED_ENDPOINT}", "no_train": false, "no_log": true, "batch_size": 64},
+      "residency_region": "home",
+      "allowed_regions": ["home"]
+    }
+  }
+}
