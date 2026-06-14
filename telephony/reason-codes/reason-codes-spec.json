@@ -1,0 +1,145 @@
+{
+  "$schema": "internal://chanteur/telephony/reason-codes/spec",
+  "$comment": "WBS 2.1.7 — Çağrı başlangıç/bitiş neden kodları (standart taksonomi). FR-TEL-012. Kaynak doğruluk: makine-okunur kanonik neden taksonomisi + sağlayıcı/protokol sinyali → kanonik kod eşlemesi. Medya/numaralandırma düzlemi DEĞİL — çağrı yaşam-döngüsü olay/analitik düzlemi. db/ + cache/ + objstore/ + eventstream/ + telephony/{managed-cpaas,byoc-sip,numbering,dtmf} disipliniyle aynı: vendor-neutral (ADR-002), credential-free, stdlib-only. DB.md §5.5 call.end_reason + API §10.2 call.completed/call.failed + OLAP 1.1.9 fct_call esas.",
+  "taxonomy_version": "1.0",
+
+  "purpose": {
+    "$comment": "FR-TEL-012 hem BAŞLANGIÇ hem BİTİŞ nedenini standart kodla kaydeder. Kodlar sağlayıcıdan bağımsız kanonik kümedir; her telefoni adaptörü (M1 managed-cpaas / M2 byoc-sip / M3 CC) kendi yerel sinyalini (SIP yanıt kodu, Q.850 cause, CPaaS durum dizesi, iç orkestratör olayı) bu kümeye normalize eder.",
+    "writes_to": ["call.start_reason", "call.end_reason", "call.outcome", "call.status"],
+    "trace": "FR-TEL-012, DB.md §5.5 (call), API §6 Call.end_reason, OLAP 1.1.9 fct_call.end_reason"
+  },
+
+  "enums": {
+    "$comment": "Kapalı kümeler — kod/durum/sonuç/kategori/taraf/event yalnız bu değerlerden olabilir (R1/R2). call.status enum API §6 ile birebir; outcome FR-ANA-002/003 ile hizalı.",
+    "category": ["normal", "no_contact", "failed", "abandoned", "compliance", "system"],
+    "terminal_status": ["completed", "transferred", "failed"],
+    "outcome": ["contained", "transferred", "voicemail", "no_contact", "abandoned", "failed", "blocked"],
+    "party": ["caller", "callee", "agent", "system", "network", "none"],
+    "event_type": ["call.completed", "call.transferred", "call.failed"],
+    "direction": ["inbound", "outbound"]
+  },
+
+  "start_reasons": {
+    "$comment": "Çağrının NEDEN başladığı (FR-TEL-012 başlangıç tarafı). direction + tetik kaynağı. Çağrı kurulumunda call.start_reason'a yazılır; call.started event'ine taşınır (API §10.2).",
+    "codes": {
+      "inbound_pstn":      { "direction": "inbound",  "desc": "Inbound PSTN çağrısı alındı (DID→tenant çözümü 2.1.5).", "trace": "FR-TEL-001, FR-TEL-004" },
+      "inbound_did_routed":{ "direction": "inbound",  "desc": "Inbound, DID havuzundan tenant+agent'a yönlendirildi.", "trace": "FR-TEL-005, 2.1.5" },
+      "outbound_campaign": { "direction": "outbound", "desc": "Outbound kampanya adımı çevirisi.", "trace": "FR-OUT-001, FR-TEL-001" },
+      "outbound_api":      { "direction": "outbound", "desc": "Outbound, Public Developer API ile başlatıldı.", "trace": "API §11.5 dial" },
+      "outbound_callback": { "direction": "outbound", "desc": "Zamanlanmış geri arama / kontrollü retry (düşmüş çağrı).", "trace": "FR-TEL-009, 2.1.8" }
+    }
+  },
+
+  "end_reasons": {
+    "$comment": "Çağrının NASIL bittiği (FR-TEL-012 bitiş tarafı). Her kod tam bir nitelik kümesi taşır: category, terminal_status (call.status), outcome (FR-ANA-002/003), party, billable, retryable (→FR-TEL-009/2.1.8), event_type (API §10.2), error_taxonomy (yalnız teknik hata; API §11.6) veya null. KODLAR APPEND-ONLY: yayımlanan kod silinmez/yeniden-anlamlandırılmaz (OLAP boyut kararlılığı, R12).",
+    "codes": {
+      "completed_caller_hangup":   { "category": "normal", "terminal_status": "completed",   "outcome": "contained",   "party": "caller", "billable": true,  "retryable": false, "event_type": "call.completed",   "error_taxonomy": null, "desc": "Konuşma sonrası arayan kapattı (Q.850 #16).", "trace": "FR-ANA-002" },
+      "completed_agent_hangup":    { "category": "normal", "terminal_status": "completed",   "outcome": "contained",   "party": "agent",  "billable": true,  "retryable": false, "event_type": "call.completed",   "error_taxonomy": null, "desc": "AI agent çağrıyı sonlandırdı (akış sonu).", "trace": "FR-ANA-002, SAD §6.1" },
+      "completed_goal_fulfilled":  { "category": "normal", "terminal_status": "completed",   "outcome": "contained",   "party": "agent",  "billable": true,  "retryable": false, "event_type": "call.completed",   "error_taxonomy": null, "desc": "Niyet karşılandı; AI çözüm sağladı (containment).", "trace": "FR-ANA-002/003" },
+      "transfer_to_human":         { "category": "normal", "terminal_status": "transferred", "outcome": "transferred", "party": "agent",  "billable": true,  "retryable": false, "event_type": "call.transferred", "error_taxonomy": null, "desc": "İnsan temsilciye aktarıldı (cold/warm/whisper).", "trace": "FR-TEL-007, FR-HND-004/008" },
+      "max_duration_reached":      { "category": "normal", "terminal_status": "completed",   "outcome": "contained",   "party": "system", "billable": true,  "retryable": false, "event_type": "call.completed",   "error_taxonomy": null, "desc": "Maks. çağrı süresi sınırına ulaşıldı; kontrollü kapanış.", "trace": "FR-RES-014" },
+
+      "no_answer":                 { "category": "no_contact", "terminal_status": "failed", "outcome": "no_contact", "party": "callee",  "billable": false, "retryable": true,  "event_type": "call.failed", "error_taxonomy": "TIMEOUT",         "desc": "Outbound çaldı, yanıt yok (Q.850 #19 / SIP 480/408).", "trace": "FR-TEL-009" },
+      "busy":                      { "category": "no_contact", "terminal_status": "failed", "outcome": "no_contact", "party": "callee",  "billable": false, "retryable": true,  "event_type": "call.failed", "error_taxonomy": "UNAVAILABLE",     "desc": "Hat meşgul (Q.850 #17 / SIP 486 / 600).", "trace": "FR-TEL-009" },
+      "rejected":                  { "category": "no_contact", "terminal_status": "failed", "outcome": "no_contact", "party": "callee",  "billable": false, "retryable": false, "event_type": "call.failed", "error_taxonomy": "UNAVAILABLE",     "desc": "Çağrı reddedildi (Q.850 #21 / SIP 603/403-decline).", "trace": "FR-TEL-009" },
+      "voicemail_machine_detected":{ "category": "no_contact", "terminal_status": "failed", "outcome": "no_contact", "party": "callee",  "billable": false, "retryable": true,  "event_type": "call.failed", "error_taxonomy": null,              "desc": "AMD telesekreter algıladı, mesaj bırakılmadı.", "trace": "FR-TEL-010" },
+      "voicemail_left":            { "category": "no_contact", "terminal_status": "completed", "outcome": "voicemail", "party": "agent",  "billable": true,  "retryable": false, "event_type": "call.completed", "error_taxonomy": null,           "desc": "Telesekretere mesaj bırakıldı.", "trace": "FR-TEL-011" },
+
+      "network_failure":           { "category": "failed", "terminal_status": "failed", "outcome": "failed", "party": "network", "billable": false, "retryable": true,  "event_type": "call.failed", "error_taxonomy": "UNAVAILABLE",     "desc": "Ağ/taşıma hatası (SRTP/RTP kopması).", "trace": "API §11.6" },
+      "provider_unavailable":      { "category": "failed", "terminal_status": "failed", "outcome": "failed", "party": "network", "billable": false, "retryable": true,  "event_type": "call.failed", "error_taxonomy": "UNAVAILABLE",     "desc": "Sağlayıcı/trunk kullanılamıyor (SIP 503/5xx).", "trace": "API §11.6, ADR-002 fallback" },
+      "timeout":                   { "category": "failed", "terminal_status": "failed", "outcome": "failed", "party": "network", "billable": false, "retryable": true,  "event_type": "call.failed", "error_taxonomy": "TIMEOUT",         "desc": "Sinyalleşme zaman aşımı (SIP 408 / Q.850 #102).", "trace": "API §11.6" },
+      "no_route":                  { "category": "failed", "terminal_status": "failed", "outcome": "failed", "party": "system",  "billable": false, "retryable": false, "event_type": "call.failed", "error_taxonomy": "INVALID_REQUEST", "desc": "Yönlendirme yok / numara ayrılmamış (Q.850 #1/#3 / SIP 404/484).", "trace": "API §11.6, FR-TEL-004" },
+      "media_failure":             { "category": "failed", "terminal_status": "failed", "outcome": "failed", "party": "system",  "billable": false, "retryable": true,  "event_type": "call.failed", "error_taxonomy": "UNAVAILABLE",     "desc": "Medya müzakeresi/kurulumu başarısız (SDP 488 / RTP yok).", "trace": "API §11.6, 2.2.1" },
+      "auth_failure":              { "category": "failed", "terminal_status": "failed", "outcome": "failed", "party": "system",  "billable": false, "retryable": false, "event_type": "call.failed", "error_taxonomy": "AUTH",            "desc": "Trunk/SBC kimlik doğrulama reddi (SIP 401/403-auth).", "trace": "API §11.6, NFR 10.6" },
+      "rate_limited":              { "category": "failed", "terminal_status": "failed", "outcome": "failed", "party": "network", "billable": false, "retryable": true,  "event_type": "call.failed", "error_taxonomy": "RATE_LIMITED",    "desc": "Sağlayıcı hız sınırı (SIP 429).", "trace": "API §11.6" },
+      "agent_error":               { "category": "failed", "terminal_status": "failed", "outcome": "failed", "party": "system",  "billable": false, "retryable": true,  "event_type": "call.failed", "error_taxonomy": "UNAVAILABLE",     "desc": "Orkestratör iç hatası çağrıyı sonlandırdı.", "trace": "SAD §6.1, API §11.6" },
+
+      "dropped_mid_call":          { "category": "abandoned", "terminal_status": "failed", "outcome": "abandoned", "party": "network", "billable": true,  "retryable": true,  "event_type": "call.failed", "error_taxonomy": "UNAVAILABLE", "desc": "Bağlı çağrı beklenmedik düştü (retry/geri-arama tetiği).", "trace": "FR-TEL-009, 2.1.8" },
+      "abandoned_no_capacity":     { "category": "abandoned", "terminal_status": "failed", "outcome": "abandoned", "party": "system",  "billable": false, "retryable": true,  "event_type": "call.failed", "error_taxonomy": null,          "desc": "Outbound bağlandı ama agent kapasitesi yok = silent/abandoned call.", "trace": "FR-TEL-015, FR-RES-014" },
+
+      "blocked_dnc":               { "category": "compliance", "terminal_status": "failed", "outcome": "blocked", "party": "system", "billable": false, "retryable": false, "event_type": "call.failed", "error_taxonomy": "INVALID_REQUEST", "desc": "Do-not-call / opt-out listesi engeli.", "trace": "FR-TEL-014" },
+      "blocked_consent_missing":   { "category": "compliance", "terminal_status": "failed", "outcome": "blocked", "party": "system", "billable": false, "retryable": false, "event_type": "call.failed", "error_taxonomy": "INVALID_REQUEST", "desc": "Outbound onay (consent) kaydı yok.", "trace": "FR-OUT-004, BRD §14" },
+      "blocked_time_window":       { "category": "compliance", "terminal_status": "failed", "outcome": "blocked", "party": "system", "billable": false, "retryable": true,  "event_type": "call.failed", "error_taxonomy": "INVALID_REQUEST", "desc": "İzinli arama saatleri dışında (yeniden zamanla).", "trace": "FR-TEL-013" },
+      "blocked_capacity":          { "category": "compliance", "terminal_status": "failed", "outcome": "blocked", "party": "system", "billable": false, "retryable": true,  "event_type": "call.failed", "error_taxonomy": "QUOTA_EXCEEDED",  "desc": "Admission/backpressure ile graceful red (tenant kota/kapasite).", "trace": "FR-RES-014, FR-BIL-006" },
+
+      "unknown":                   { "category": "system", "terminal_status": "failed", "outcome": "failed", "party": "none", "billable": false, "retryable": false, "event_type": "call.failed", "error_taxonomy": null, "is_fallback": true, "desc": "Eşlenmemiş sinyal — taksonomi boşluğu; alarm + eşleme eklenmeli (R4).", "trace": "FR-TEL-012" }
+    }
+  },
+
+  "signal_map": {
+    "$comment": "Sağlayıcı/protokol yerel sinyali → kanonik bitiş kodu. Her telefoni adaptörü bu eşlemeyi kullanır (vendor-neutral, ADR-002). 4 kaynak: sip (yanıt kodu), q850 (ITU-T cause), cpaas (CPaaS durum dizesi), internal (orkestratör olayı). Eşlenmeyen sinyal → 'unknown' (R4) ve flag.",
+    "sip": {
+      "200": "completed_caller_hangup", "BYE": "completed_caller_hangup",
+      "486": "busy", "600": "busy",
+      "480": "no_answer", "408": "timeout",
+      "603": "rejected", "403_decline": "rejected",
+      "503": "provider_unavailable", "500": "provider_unavailable", "502": "provider_unavailable",
+      "404": "no_route", "484": "no_route", "485": "no_route",
+      "488": "media_failure", "415": "media_failure",
+      "401": "auth_failure", "407": "auth_failure", "403": "auth_failure",
+      "429": "rate_limited"
+    },
+    "q850": {
+      "16": "completed_caller_hangup",
+      "17": "busy",
+      "18": "no_answer", "19": "no_answer",
+      "21": "rejected",
+      "1": "no_route", "3": "no_route", "28": "no_route",
+      "34": "provider_unavailable", "38": "network_failure", "41": "network_failure", "42": "rate_limited",
+      "102": "timeout"
+    },
+    "cpaas": {
+      "completed": "completed_caller_hangup",
+      "busy": "busy",
+      "no-answer": "no_answer", "no_answer": "no_answer",
+      "failed": "provider_unavailable",
+      "canceled": "no_answer", "cancelled": "no_answer"
+    },
+    "internal": {
+      "goal_fulfilled": "completed_goal_fulfilled",
+      "agent_hangup": "completed_agent_hangup",
+      "transfer_initiated": "transfer_to_human",
+      "max_call_duration": "max_duration_reached",
+      "amd_machine": "voicemail_machine_detected",
+      "voicemail_dropped": "voicemail_left",
+      "media_setup_failed": "media_failure",
+      "orchestrator_error": "agent_error",
+      "call_dropped": "dropped_mid_call",
+      "no_agent_capacity": "abandoned_no_capacity",
+      "dnc_hit": "blocked_dnc",
+      "consent_absent": "blocked_consent_missing",
+      "outside_hours": "blocked_time_window",
+      "admission_reject": "blocked_capacity"
+    }
+  },
+
+  "residency": {
+    "$comment": "Neden kodları kanonik etiketlerdir; bölge-bağımsız. Yine de kayıt (call) tenant home-region'a pinlenir; kod üretimi residency davranışını değiştirmez.",
+    "region_pin_required": true,
+    "trace": "NFR 10.7"
+  },
+
+  "pii": {
+    "$comment": "Neden kodları PII İÇERMEZ — telefon numarası, transkript, müşteri kimliği veya ham sinyal yükü koda gömülmez. Kod sabit kanonik sözcüktür; analitikte (OLAP A4) low/none sınıfı.",
+    "reason_code_pii_class": "none",
+    "raw_signal_in_code_forbidden": true,
+    "phone_number_in_code_forbidden": true,
+    "trace": "FR-REC-004/005, OLAP 1.1.9 A4, THREAT_MODEL TM-I"
+  },
+
+  "invariants": [
+    { "id": "R1",  "desc": "Her bitiş kodu tam olarak bir category taşır (kapalı küme); start kodu tam bir direction taşır.", "trace": "FR-TEL-012" },
+    { "id": "R2",  "desc": "Her bitiş kodu tam bir terminal_status∈{completed,transferred,failed} ve bir outcome∈enum taşır; status call.status (API §6) ile, outcome FR-ANA-002/003 ile uyumlu.", "trace": "API §6, FR-ANA-002/003" },
+    { "id": "R3",  "desc": "Her bitiş kodu billable + retryable boolean + party + event_type alanlarını taşır.", "trace": "FR-TEL-012, FR-BIL" },
+    { "id": "R4",  "desc": "signal_map'teki her giriş tanımlı bir bitiş koduna çözülür; eşlenmeyen sinyal 'unknown' fallback'a düşer ve flag'lenir (sessiz yutma yok).", "trace": "FR-TEL-012" },
+    { "id": "R5",  "desc": "compliance kategorisi kodları billable=false ve terminal_status=failed (blocked outcome).", "trace": "FR-TEL-013/014, FR-OUT-004" },
+    { "id": "R6",  "desc": "blocked_dnc ve blocked_consent_missing retryable=false (kalıcı engel); blocked_time_window yeniden-zamanlanabilir → retryable=true.", "trace": "FR-TEL-013/014" },
+    { "id": "R7",  "desc": "failed kategorisi (+busy/rejected/no_answer/dropped/blocked) kodları error_taxonomy∈API §11.6 kümesi taşır; normal/contained ve voicemail_left/voicemail_machine_detected error_taxonomy=null.", "trace": "API §11.6" },
+    { "id": "R8",  "desc": "retryable=true yalnız geçici/temassız/kapasite kodlarında; completed_* normal kapanış ve transfer_to_human asla retryable değil.", "trace": "FR-TEL-009, 2.1.8" },
+    { "id": "R9",  "desc": "voicemail_left billable=true + outcome=voicemail (FR-TEL-011); voicemail_machine_detected outcome=no_contact + retryable (FR-TEL-010).", "trace": "FR-TEL-010/011" },
+    { "id": "R10", "desc": "Silent/abandoned çağrı için ayrı ölçülebilir kod (abandoned_no_capacity) bulunur — FR-TEL-015 kapasite kontrolü gözlemlenebilir.", "trace": "FR-TEL-015" },
+    { "id": "R11", "desc": "Her bitiş kodu bir webhook event_type'a (call.completed/call.transferred/call.failed) eşlenir; event payload end_reason ∈ taksonomi (API §10.2).", "trace": "API §10.2" },
+    { "id": "R12", "desc": "Kod adları append-only/kararlı (regex ^[a-z][a-z0-9_]+$, tekil); taxonomy_version mevcut — OLAP boyut kararlılığı.", "trace": "OLAP 1.1.9 fct_call.end_reason" },
+    { "id": "R13", "desc": "Neden kodu PII içermez (numara/transkript/ham sinyal yok); residency region pin; spec/config'te literal sır yok.", "trace": "FR-REC-004/005, NFR 10.7, NFR 10.6" }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "$comment": "WBS 2.1.7 — Sağlayıcı-özel bitiş sinyali → kanonik neden kodu örtüşmeleri (illüstratif, vendor-neutral ADR-002). spec.signal_map taban eşlemedir; burada sağlayıcıların yerel disposition dizeleri kanonik koda bağlanır. ≥2 sağlayıcı + 1 ham SIP profili (telefoni adaptör simetrisi: M1 managed-cpaas + M2 byoc-sip). Tüm hedefler spec.end_reasons.codes içinde olmalı (probe doğrular). Sır/endpoint YOK — yalnız eşleme verisi.",
+  "providers": [
+    {
+      "name": "cpaas-twilio",
+      "mode": "M1",
+      "source": "cpaas",
+      "$comment": "Twilio CallStatus + (varsa) SipResponseCode pass-through. region yalnız etiket; secret yok.",
+      "region": "${TENANT_HOME_REGION}",
+      "status_map": {
+        "completed": "completed_caller_hangup",
+        "busy": "busy",
+        "no-answer": "no_answer",
+        "canceled": "no_answer",
+        "failed": "provider_unavailable"
+      }
+    },
+    {
+      "name": "cpaas-telnyx",
+      "mode": "M1",
+      "source": "cpaas",
+      "region": "${TENANT_HOME_REGION}",
+      "status_map": {
+        "completed": "completed_caller_hangup",
+        "busy": "busy",
+        "no_answer": "no_answer",
+        "cancelled": "no_answer",
+        "failed": "provider_unavailable"
+      }
+    },
+    {
+      "name": "byoc-sip-primary",
+      "mode": "M2",
+      "source": "sip",
+      "$comment": "Ham SIP trunk yanıt kodu → kanonik (byoc-sip error_taxonomy ile hizalı).",
+      "region": "${TENANT_HOME_REGION}",
+      "status_map": {
+        "BYE": "completed_caller_hangup",
+        "486": "busy",
+        "480": "no_answer",
+        "603": "rejected",
+        "503": "provider_unavailable",
+        "408": "timeout",
+        "488": "media_failure",
+        "401": "auth_failure",
+        "429": "rate_limited"
+      }
+    }
+  ]
+}

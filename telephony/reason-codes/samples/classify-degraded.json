@@ -1,0 +1,5 @@
+{
+  "$comment": "DEGRADED (bilinçli eler): eşlenmemiş SIP yanıt kodu (699). signal_map'te yok → 'unknown' fallback'a düşer; allow_unknown verilmediği için classify kapısı ELER (R4 — sessiz yutma yok, taksonomi boşluğu alarm gerektirir).",
+  "source": "sip",
+  "code": "699"
+}

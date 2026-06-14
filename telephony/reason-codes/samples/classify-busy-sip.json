@@ -1,0 +1,16 @@
+{
+  "$comment": "SIP 486 Busy Here → busy. Temassız, faturalanmaz, retryable (FR-TEL-009). Geçer.",
+  "source": "sip",
+  "code": "486",
+  "expect": {
+    "reason_code": "busy",
+    "category": "no_contact",
+    "terminal_status": "failed",
+    "outcome": "no_contact",
+    "party": "callee",
+    "billable": false,
+    "retryable": true,
+    "event_type": "call.failed",
+    "error_taxonomy": "UNAVAILABLE"
+  }
+}

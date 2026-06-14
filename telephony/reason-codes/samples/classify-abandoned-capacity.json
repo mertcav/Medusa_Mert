@@ -1,0 +1,15 @@
+{
+  "$comment": "İç olay: outbound bağlandı ama agent kapasitesi yok = silent/abandoned call (FR-TEL-015). Ölçülebilir ayrı kod (R10). Geçer.",
+  "source": "internal",
+  "code": "no_agent_capacity",
+  "expect": {
+    "reason_code": "abandoned_no_capacity",
+    "category": "abandoned",
+    "terminal_status": "failed",
+    "outcome": "abandoned",
+    "billable": false,
+    "retryable": true,
+    "event_type": "call.failed",
+    "error_taxonomy": null
+  }
+}

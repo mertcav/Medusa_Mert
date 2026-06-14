@@ -1,0 +1,15 @@
+{
+  "$comment": "Happy-path: arayan konuşma sonrası kapattı (CPaaS 'completed'). Containment (FR-ANA-002). Geçer.",
+  "source": "cpaas",
+  "code": "completed",
+  "expect": {
+    "reason_code": "completed_caller_hangup",
+    "category": "normal",
+    "terminal_status": "completed",
+    "outcome": "contained",
+    "billable": true,
+    "retryable": false,
+    "event_type": "call.completed",
+    "error_taxonomy": null
+  }
+}
