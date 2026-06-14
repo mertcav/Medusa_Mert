@@ -1,0 +1,59 @@
+{
+  "$comment": "WBS 2.1.9 — İllüstratif AMD + voicemail profilleri (vendor/senaryo-nötr, ADR-002). spec.amd_model + spec.voicemail_model alanlarını doldurur; probe doğrular (A2/A4/A5/A10/A14). min_confidence insan-güvenli (yüksek → belirsizde unknown→treat_as_human). Eşikler sıralı (human_greeting<machine_greeting, short_silence<human_wait). Bip/mesaj sınırları sonlu. Sır/endpoint YOK — yalnız politika verisi. BRD §14.2 (AI ifşası) ile hizalı.",
+  "profiles": [
+    {
+      "name": "campaign-voicemail",
+      "$comment": "Genel outbound kampanya: AMD açık + voicemail bırakma açık. Bip zorunlu (insanın üzerine konuşulmaz), ifşa zorunlu (BRD §14.2). min_confidence 0.80 — belirsizde insan-güvenli (treat_as_human).",
+      "amd": {
+        "min_confidence": 0.80,
+        "human_greeting_ms": 1500,
+        "machine_greeting_ms": 3500,
+        "short_silence_ms": 300,
+        "human_wait_ms": 1200
+      },
+      "voicemail": {
+        "enabled": true,
+        "beep_required": true,
+        "max_beep_wait_ms": 8000,
+        "max_message_seconds": 30,
+        "require_disclosure": true
+      }
+    },
+    {
+      "name": "detect-only",
+      "$comment": "Yalnız algılama: AMD açık ama voicemail BIRAKILMAZ (enabled=false). Makine algılandığında reason-codes'a voicemail_machine_detected üretilir → 2.1.8 retry. Rıza/saat hassasiyeti yüksek bağlamlar için.",
+      "amd": {
+        "min_confidence": 0.80,
+        "human_greeting_ms": 1500,
+        "machine_greeting_ms": 3500,
+        "short_silence_ms": 300,
+        "human_wait_ms": 1200
+      },
+      "voicemail": {
+        "enabled": false,
+        "beep_required": true,
+        "max_beep_wait_ms": 6000,
+        "max_message_seconds": 20,
+        "require_disclosure": true
+      }
+    },
+    {
+      "name": "high-confidence-voicemail",
+      "$comment": "Yüksek-kesinlik bırakma: min_confidence 0.90 (yalnız çok güvenli makine tespitinde bırak), uzun karşılama eşiği 4000ms. Yanlış-makine riskini en aza indirir; bip zorunlu + ifşa zorunlu.",
+      "amd": {
+        "min_confidence": 0.90,
+        "human_greeting_ms": 1800,
+        "machine_greeting_ms": 4000,
+        "short_silence_ms": 250,
+        "human_wait_ms": 1300
+      },
+      "voicemail": {
+        "enabled": true,
+        "beep_required": true,
+        "max_beep_wait_ms": 10000,
+        "max_message_seconds": 25,
+        "require_disclosure": true
+      }
+    }
+  ]
+}

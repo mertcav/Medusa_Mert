@@ -1,0 +1,14 @@
+{
+  "$comment": "WBS 2.1.9 — SR-TEL-011 (D): makine algılandı + bip duyuldu + consent granted + AI ifşası mesajda → bip sonrası kontrollü voicemail bırakılır → outcome=left / reason_code=voicemail_left (billable). FR-TST-008.",
+  "now": "2026-06-15T12:00:00Z",
+  "tenant_id": "11111111-1111-1111-1111-111111111111",
+  "policy_ref": "campaign-voicemail",
+  "signals": {
+    "cpaas_amd": null, "cpaas_amd_confidence": null,
+    "greeting_duration_ms": 4200, "beep_detected": true, "beep_at_ms": 4400,
+    "silence_after_greeting_ms": 200
+  },
+  "message": { "message_ref": "tts:vm-tpl-001", "disclosure_included": true },
+  "contact": { "contact_id": "aaaaaaaa-0000-0000-0000-000000000001", "consent_state": "granted", "do_not_call": false },
+  "expect": { "voicemail_outcome": "left", "reason_code": "voicemail_left", "billable": true, "message_started_after_beep": true }
+}

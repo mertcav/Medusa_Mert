@@ -1,0 +1,18 @@
+{
+  "$comment": "WBS 2.1.9 — SR-TEL-010 (T) doğrulama kümesi (etiketli, sentetik FR-TST-008). 12 öğe: 6 insan + 6 makine. İyi ayrılabilir; campaign-voicemail profili → doğruluk ≥0.90 + false_machine_rate (insan→makine) = 0. Bir makine öğesi kasıtlı zayıf-sinyalli (unknown→human, kaçırılır) — GÜVENLİ yönde hata: makineyi kaçırmak insana sessiz kalmaktan iyidir; insanı ASLA makine sanmaz.",
+  "policy_ref": "campaign-voicemail",
+  "items": [
+    { "label": "human", "signals": { "greeting_duration_ms": 800,  "beep_detected": false, "silence_after_greeting_ms": 1800 } },
+    { "label": "human", "signals": { "greeting_duration_ms": 1100, "beep_detected": false, "silence_after_greeting_ms": 1500 } },
+    { "label": "human", "signals": { "greeting_duration_ms": 1300, "beep_detected": false, "silence_after_greeting_ms": 2000 } },
+    { "label": "human", "signals": { "cpaas_amd": "human", "cpaas_amd_confidence": 0.93, "greeting_duration_ms": 1000, "beep_detected": false, "silence_after_greeting_ms": 1600 } },
+    { "label": "human", "signals": { "greeting_duration_ms": 700,  "beep_detected": false, "silence_after_greeting_ms": 2200 } },
+    { "label": "human", "signals": { "greeting_duration_ms": 1200, "beep_detected": false, "silence_after_greeting_ms": 1400 } },
+    { "label": "machine", "signals": { "greeting_duration_ms": 4200, "beep_detected": true, "beep_at_ms": 4400, "silence_after_greeting_ms": 200 } },
+    { "label": "machine", "signals": { "greeting_duration_ms": 3800, "beep_detected": true, "beep_at_ms": 4000, "silence_after_greeting_ms": 250 } },
+    { "label": "machine", "signals": { "cpaas_amd": "machine", "cpaas_amd_confidence": 0.96, "greeting_duration_ms": 1500, "beep_detected": false, "silence_after_greeting_ms": 1200 } },
+    { "label": "machine", "signals": { "greeting_duration_ms": 3600, "beep_detected": true, "beep_at_ms": 3800, "silence_after_greeting_ms": 200 } },
+    { "label": "machine", "signals": { "cpaas_amd": "machine", "cpaas_amd_confidence": 0.91, "greeting_duration_ms": 1000, "beep_detected": false, "silence_after_greeting_ms": 1300 } },
+    { "label": "machine", "signals": { "greeting_duration_ms": 2600, "beep_detected": false, "silence_after_greeting_ms": 800 } }
+  ]
+}

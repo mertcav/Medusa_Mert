@@ -1,0 +1,12 @@
+{
+  "$comment": "WBS 2.1.9 — Belirsiz: orta uzunlukta karşılama, bip yok, orta sessizlik → seçilen sınıf güveni min_confidence (0.80) altında → unknown → treat_as_human (A3, insan-güvenli; voicemail ASLA bırakılmaz). FR-TST-008.",
+  "now": "2026-06-15T12:00:00Z",
+  "tenant_id": "11111111-1111-1111-1111-111111111111",
+  "policy_ref": "campaign-voicemail",
+  "signals": {
+    "cpaas_amd": null, "cpaas_amd_confidence": null,
+    "greeting_duration_ms": 2500, "beep_detected": false, "beep_at_ms": null,
+    "silence_after_greeting_ms": 700
+  },
+  "expect": { "amd_class": "unknown", "amd_decision": "proceed_human", "resolved_party": "human", "unknown_fallback_applied": true }
+}

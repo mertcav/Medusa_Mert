@@ -1,0 +1,14 @@
+{
+  "$comment": "WBS 2.1.9 — DEGRADED (bilinçli eler): kötü ayrılan / yanlış-etiketli küme. İnsan etiketli öğeler güçlü makine sinyalleri taşır (bip + uzun karşılama) → sınıflandırıcı makine der → false_machine_rate yüksek (insanı makine sanma) + doğruluk düşük → accuracy_gate (SR-TEL-010 T) ELER, çıkış kodu 1 BEKLENEN. Kötü detektör ayarı/eval kümesini yakalama kanıtı. FR-TST-008.",
+  "policy_ref": "campaign-voicemail",
+  "items": [
+    { "label": "human", "signals": { "greeting_duration_ms": 4200, "beep_detected": true, "beep_at_ms": 4400, "silence_after_greeting_ms": 200 } },
+    { "label": "human", "signals": { "greeting_duration_ms": 3900, "beep_detected": true, "beep_at_ms": 4100, "silence_after_greeting_ms": 250 } },
+    { "label": "human", "signals": { "cpaas_amd": "machine", "cpaas_amd_confidence": 0.95, "greeting_duration_ms": 1000, "beep_detected": false, "silence_after_greeting_ms": 1500 } },
+    { "label": "human", "signals": { "greeting_duration_ms": 4000, "beep_detected": true, "beep_at_ms": 4200, "silence_after_greeting_ms": 200 } },
+    { "label": "machine", "signals": { "greeting_duration_ms": 4200, "beep_detected": true, "beep_at_ms": 4400, "silence_after_greeting_ms": 200 } },
+    { "label": "machine", "signals": { "greeting_duration_ms": 3800, "beep_detected": true, "beep_at_ms": 4000, "silence_after_greeting_ms": 250 } },
+    { "label": "machine", "signals": { "cpaas_amd": "machine", "cpaas_amd_confidence": 0.96, "greeting_duration_ms": 1500, "beep_detected": false, "silence_after_greeting_ms": 1200 } },
+    { "label": "machine", "signals": { "greeting_duration_ms": 3600, "beep_detected": true, "beep_at_ms": 3800, "silence_after_greeting_ms": 200 } }
+  ]
+}

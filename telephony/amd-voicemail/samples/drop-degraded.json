@@ -1,0 +1,13 @@
+{
+  "$comment": "WBS 2.1.9 — DEGRADED (bilinçli eler): insan sinyalleri verildi ama voicemail bırakma denendi. classify → human; drop yalnız amd_class==machine içindir → hata (A12 insan yolu, SAD §6.1). allow_error yok → çıkış kodu 1 BEKLENEN. FR-TST-008.",
+  "now": "2026-06-15T12:00:00Z",
+  "tenant_id": "11111111-1111-1111-1111-111111111111",
+  "policy_ref": "campaign-voicemail",
+  "signals": {
+    "cpaas_amd": null, "cpaas_amd_confidence": null,
+    "greeting_duration_ms": 850, "beep_detected": false, "beep_at_ms": null,
+    "silence_after_greeting_ms": 1800
+  },
+  "message": { "message_ref": "tts:vm-tpl-001", "disclosure_included": true },
+  "contact": { "contact_id": "aaaaaaaa-0000-0000-0000-00000000000d", "consent_state": "granted", "do_not_call": false }
+}

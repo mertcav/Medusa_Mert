@@ -1,0 +1,14 @@
+{
+  "$comment": "WBS 2.1.9 — Makine algılandı ama consent geri çekilmiş → rıza dışı voicemail bırakılmaz → outcome=not_left_compliance / reason_code=voicemail_machine_detected. A6 (FR-OUT-003). FR-TST-008.",
+  "now": "2026-06-15T12:00:00Z",
+  "tenant_id": "11111111-1111-1111-1111-111111111111",
+  "policy_ref": "campaign-voicemail",
+  "signals": {
+    "cpaas_amd": null, "cpaas_amd_confidence": null,
+    "greeting_duration_ms": 4200, "beep_detected": true, "beep_at_ms": 4400,
+    "silence_after_greeting_ms": 200
+  },
+  "message": { "message_ref": "tts:vm-tpl-001", "disclosure_included": true },
+  "contact": { "contact_id": "aaaaaaaa-0000-0000-0000-000000000004", "consent_state": "withdrawn", "do_not_call": false },
+  "expect": { "voicemail_outcome": "not_left_compliance", "reason_code": "voicemail_machine_detected", "billable": false }
+}

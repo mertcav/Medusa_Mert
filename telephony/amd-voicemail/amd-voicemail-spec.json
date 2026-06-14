@@ -1,0 +1,157 @@
+{
+  "$schema": "internal://chanteur/telephony/amd-voicemail/spec",
+  "$comment": "WBS 2.1.9 — Answering machine detection (AMD) + voicemail bırakma. FR-TEL-010 (AMD) + FR-TEL-011 (voicemail). Kaynak doğruluk: makine-okunur AMD SINIFLANDIRMA modeli (insan/makine/belirsiz) + telesekreter algılandığında kontrollü voicemail BIRAKMA karar/dizi sözleşmesi. Medya kodek/RTP düzlemi DEĞİL (→2.2.x) — çağrı karşılandıktan sonra 'kim/ne cevapladı + ne yapmalı' algılama+aksiyon düzlemi. 2.1.7 (reason-codes) voicemail_machine_detected (retryable=true → 2.1.8 retry) + voicemail_left (billable, retryable=false) kanonik kodlarını ÜRETİR; 2.1.8 retry bunları tüketir. db/ + cache/ + telephony/{managed-cpaas,byoc-sip,numbering,dtmf,reason-codes,retry-callback} disipliniyle aynı: vendor-neutral (ADR-002), credential-free, stdlib-only, deterministik (sanal saat; cüzdan-saati/random YOK). API §11.5 TelephonyAdapter on(AMD) + dial; SAD §6.1 turn state machine (insan yolu); BRD §8.1/§14.2 (AI ifşası) esas. SR-TEL-010 (T — doğruluk eşiği) + SR-TEL-011 (D — makine senaryosunda voicemail bırakılır).",
+  "policy_version": "1.0",
+
+  "purpose": {
+    "$comment": "Outbound (çoğunlukla) bir çağrı karşılandığında, karşı tarafın CANLI İNSAN mı yoksa TELESEKRETER/voicemail mi olduğunu deterministik olarak sınıflandırır (FR-TEL-010); makine ise ve politika izin veriyorsa, bip sonrası KONTROLLÜ bir voicemail mesajı bırakır (FR-TEL-011). İnsan → normal konuşma turuna devredilir (SAD §6.1). Bu dilim iki sözleşme içerir: detection (AMD sınıflandırma) + drop (voicemail bırakma dizisi).",
+    "consumes": ["managed-cpaas (2.1.3) AMD ipucu", "media heuristik sinyalleri (greeting/beep/silence)", "contact consent/DNC durumu (drop için)"],
+    "produces": ["AMD sınıfı (human/machine/unknown) + güven", "voicemail bırakma sonucu", "reason-codes (2.1.7) voicemail_machine_detected / voicemail_left kanonik kodu"],
+    "trace": "FR-TEL-010, FR-TEL-011, SR-TEL-010, SR-TEL-011, API §11.5 on(AMD), 2.1.7 reason-codes"
+  },
+
+  "enums": {
+    "$comment": "Kapalı kümeler. amd_class = sınıflandırma çıktısı; amd_decision = sınıftan türeyen eylem önerisi; voicemail_outcome = bırakma sonucu; signal_source = sınıflandırmanın dayandığı kaynak.",
+    "amd_class": ["human", "machine", "unknown"],
+    "amd_decision": ["proceed_human", "attempt_voicemail", "detect_only"],
+    "voicemail_outcome": ["left", "not_left_no_beep", "not_left_policy_off", "not_left_compliance"],
+    "signal_source": ["cpaas_amd", "media_heuristic"]
+  },
+
+  "detection_contract": {
+    "$comment": "classify isteği → AMD kararı. now sanal saattir (deterministik). signals çağrı karşılandıktan sonraki gözlemlerdir: managed CPaaS AMD ipucu (varsa, 2.1.3) ve/veya medya heuristik öznitelikleri (greeting süresi, bip, sessizlik). PII YOK — transkript/numara taşınmaz (A11).",
+    "request": {
+      "now": "ISO8601 UTC (sanal saat)",
+      "tenant_id": "uuid (residency + idempotency anahtarı)",
+      "policy_ref": "config/amd-profiles.json profili adı VEYA inline profil nesnesi",
+      "signals": {
+        "cpaas_amd": "human | machine | unknown | null (managed CPaaS AMD ipucu — 2.1.3)",
+        "cpaas_amd_confidence": "0..1 | null (ipucu güveni)",
+        "greeting_duration_ms": "int ≥0 (ilk konuşma/karşılama süresi — insan kısa 'alo?', makine uzun monolog)",
+        "beep_detected": "bool (telesekreter bip tonu duyuldu mu)",
+        "beep_at_ms": "int | null (bip zamanı, ms)",
+        "silence_after_greeting_ms": "int ≥0 (karşılama sonrası sessizlik — insan dinlemek için duraklar, makine sürdürür)"
+      }
+    },
+    "response": {
+      "amd_class": "enums.amd_class",
+      "confidence": "0..1 (seçilen sınıfın güveni)",
+      "signal_source": "enums.signal_source",
+      "amd_decision": "enums.amd_decision",
+      "resolved_party": "human | machine (unknown → human; treat_as_human, A3)",
+      "unknown_fallback_applied": "bool"
+    },
+    "trace": "FR-TEL-010, API §11.5 on(AMD)"
+  },
+
+  "drop_contract": {
+    "$comment": "drop isteği → voicemail bırakma dizisi/sonucu. amd_class==machine varsayımıyla çalışır (classify içeride yeniden koşar). signals bip gözlemini, message mesaj referansını + ifşa durumunu, contact uyum durumunu taşır. Mesaj HAM SES DEĞİL — TTS şablon/kayıt referansı (message_ref); ham audio/transkript repoya/karara gömülmez (A11).",
+    "request": {
+      "now": "ISO8601 UTC",
+      "tenant_id": "uuid",
+      "policy_ref": "profil",
+      "signals": "detection_contract.signals (bip dahil)",
+      "message": { "message_ref": "str (TTS şablon / kayıt id — ham audio değil)", "disclosure_included": "bool (AI ifşası mesaja gömülü mü — BRD §14.2)" },
+      "contact": { "contact_id": "uuid (PII referansı, numara değil)", "consent_state": "granted | withdrawn | none", "do_not_call": "bool" }
+    },
+    "response": {
+      "voicemail_outcome": "enums.voicemail_outcome",
+      "reason_code": "voicemail_left | voicemail_machine_detected (2.1.7)",
+      "message_ref": "str | null (bırakıldıysa)",
+      "await_beep_ms": "int (bip için beklenen/geçen süre — sınırlı, A10)",
+      "message_started_after_beep": "bool (A4 — mesaj yalnız bip sonrası başlar)",
+      "billable": "bool (voicemail_left=true; aksi false — 2.1.7 ile tutarlı)"
+    },
+    "trace": "FR-TEL-011, SR-TEL-011, 2.1.7 (voicemail_left/voicemail_machine_detected)"
+  },
+
+  "amd_model": {
+    "$comment": "AMD sınıflandırıcısı. İki kaynak: (1) managed CPaaS AMD ipucu (2.1.3) — güveni min_confidence'ı geçerse doğrudan kullanılır; (2) aksi halde medya heuristiği. Heuristik p_machine ∈ [0,1] üretir: bip (en güçlü makine işareti), uzun karşılama (makine monoloğu), karşılama sonrası kısa sessizlik (makine duraklamadan sürdürür). Seçilen sınıfın güveni min_confidence altındaysa → unknown (aşırı-iddia yok, A2). unknown → treat_as_human (insan-güvenli varsayılan, A3 — belirsizde ASLA voicemail bırakılmaz).",
+    "sources": ["cpaas_amd", "media_heuristic"],
+    "feature_weights": {
+      "$comment": "p_machine ağırlıkları; toplam = 1.0 → p_machine ∈ [0,1] garantili. Probe bunları okur (sihirli sabit değil; izlenebilir).",
+      "beep": 0.45,
+      "greeting": 0.35,
+      "silence": 0.20
+    },
+    "fields": {
+      "min_confidence": "0<x<1 (seçilen sınıf güven eşiği; altı → unknown, A2)",
+      "human_greeting_ms": "int >0 (kısa karşılama üst sınırı — insan 'alo?')",
+      "machine_greeting_ms": "int > human_greeting_ms (uzun monolog alt sınırı — makine)",
+      "short_silence_ms": "int >0 (makine duraklamadan sürdürür — kısa sessizlik)",
+      "human_wait_ms": "int > short_silence_ms (insan dinlemek için duraklar)",
+      "unknown_fallback": "treat_as_human"
+    },
+    "scoring": "p_machine = w.beep·[bip] + w.greeting·ramp(greeting; human_greeting_ms→machine_greeting_ms) + w.silence·ramp_inv(silence; short_silence_ms→human_wait_ms). machine ⇔ p_machine ≥ min_confidence; human ⇔ (1−p_machine) ≥ min_confidence; aksi unknown.",
+    "trace": "FR-TEL-010, SR-TEL-010"
+  },
+
+  "voicemail_model": {
+    "$comment": "Voicemail bırakma politikası. enabled=false → yalnız algıla (detect_only), bırakma. beep_required=true → mesaj ASLA karşılamanın üzerine konuşmaz; yalnız bip sonrası (A4). max_beep_wait_ms + max_message_seconds sonlu (kaçak bekleme/mesaj yok, A10). message_ref TTS şablon/kayıt id'sidir (ham audio değil, A11). require_disclosure → mesaj AI ifşası taşımalı (BRD §14.2, A5).",
+    "fields": {
+      "enabled": "bool (bırakma açık mı; detect-only profil = false)",
+      "beep_required": "bool (true → yalnız bip sonrası konuş, A4)",
+      "max_beep_wait_ms": "int >0 (bip için sınırlı bekleme, A10)",
+      "max_message_seconds": "int >0 (sınırlı mesaj süresi, A10)",
+      "require_disclosure": "bool (AI ifşası zorunlu — BRD §14.2, A5)"
+    },
+    "trace": "FR-TEL-011, BRD §14.2"
+  },
+
+  "compliance_gates": {
+    "$comment": "Voicemail bırakmadan ÖNCE değerlendirilir (compliance-by-design). DNC/consent ihlalinde voicemail ASLA bırakılmaz (rıza dışı kayıt bırakmak ihlaldir). Sıra: policy.enabled → consent → DNC → ifşa → bip. Her engel açık bir voicemail_outcome üretir (sessiz düşürme yok, A13).",
+    "gates": [
+      { "id": "G1", "check": "policy.voicemail.enabled == false", "outcome": "not_left_policy_off", "trace": "FR-TEL-011" },
+      { "id": "G2", "check": "contact.consent_state != 'granted'", "outcome": "not_left_compliance", "trace": "FR-OUT-003, BRD §14" },
+      { "id": "G3", "check": "contact.do_not_call == true", "outcome": "not_left_compliance", "trace": "FR-TEL-014, FR-OUT-006" },
+      { "id": "G4", "check": "policy.require_disclosure && !message.disclosure_included", "outcome": "not_left_compliance", "trace": "BRD §14.2" },
+      { "id": "G5", "check": "policy.beep_required && !beep_within_wait", "outcome": "not_left_no_beep", "trace": "FR-TEL-011, A4" }
+    ]
+  },
+
+  "reason_code_map": {
+    "$comment": "2.1.7 reason-codes köprüsü (kanonik kod ÜRETİMİ). machine algılandı + voicemail bırakılmadı → voicemail_machine_detected (retryable=true → 2.1.8 retry tüketir). voicemail bırakıldı → voicemail_left (billable=true, retryable=false). Bu eşleme 2.1.7 taksonomisiyle çapraz-doğrulanır (A7; uyuşmazlık → kapı eler).",
+    "machine_not_left": "voicemail_machine_detected",
+    "voicemail_left": "voicemail_left",
+    "trace": "FR-TEL-010/011, 2.1.7 reason-codes-spec"
+  },
+
+  "accuracy_gate": {
+    "$comment": "SR-TEL-010 (T) doğrulama kapısı. Etiketli (human/machine) sentetik veri kümesi (FR-TST-008) üzerinde sınıflandırıcı koşturulur; çözülmüş karar (unknown→human) ground-truth ile karşılaştırılır. min_accuracy genel doğruluk eşiği; max_false_machine_rate KRİTİK güvenlik metriği = insan'ın makine sınıflandırılma oranı (yanlış makine → gerçek kişiye sessiz kalma / voicemail bırakma riski) — sıkı sınırlanır. unknown→human çözümü insanı korur (belirsizde voicemail bırakılmaz).",
+    "min_accuracy": 0.90,
+    "max_false_machine_rate": 0.05,
+    "min_items": 8,
+    "trace": "SR-TEL-010, FR-TST-008"
+  },
+
+  "residency": {
+    "$comment": "Sınıflandırma + bırakma kararı tenant home-region'da verilir; bölge-bağımsız etiketlerdir; tenant_id residency anahtarıdır.",
+    "region_pin_required": true,
+    "trace": "NFR 10.7"
+  },
+
+  "pii": {
+    "$comment": "AMD/voicemail kararı PII İÇERMEZ — telefon numarası, transkript, müşteri adı koda/karara/loga gömülmez. contact yalnız contact_id (UUID) ile referanslanır; voicemail mesajı message_ref (TTS şablon/kayıt id) ile referanslanır, ham audio değil. Analitikte (OLAP A4) none sınıfı.",
+    "decision_pii_class": "none",
+    "phone_number_in_decision_forbidden": true,
+    "raw_audio_in_decision_forbidden": true,
+    "trace": "FR-REC-004/005, OLAP 1.1.9 A4, THREAT_MODEL TM-I"
+  },
+
+  "invariants": [
+    { "id": "A1",  "desc": "amd_class kapalı küme {human,machine,unknown}; sınıflandırıcı HER zaman birini döndürür (null/sessiz sınıf yok).", "trace": "FR-TEL-010" },
+    { "id": "A2",  "desc": "amd_class∈{human,machine} yalnız seçilen sınıfın güveni ≥ min_confidence ise; aksi unknown (aşırı-iddia yok).", "trace": "FR-TEL-010, SR-TEL-010" },
+    { "id": "A3",  "desc": "unknown → unknown_fallback=treat_as_human → proceed_human; belirsizde voicemail ASLA bırakılmaz (insan-güvenli).", "trace": "FR-TEL-010, BRD §14.2" },
+    { "id": "A4",  "desc": "voicemail yalnız amd_class==machine ∧ policy.enabled ∧ (bip duyuldu ∨ beep_required=false) iken bırakılır; beep_required ise mesaj YALNIZ bip sonrası başlar (karşılamanın/insanın üzerine konuşulmaz).", "trace": "FR-TEL-011" },
+    { "id": "A5",  "desc": "require_disclosure ise bırakılan mesaj AI ifşası taşır; ifşasız → not_left_compliance.", "trace": "BRD §14.2" },
+    { "id": "A6",  "desc": "voicemail bırakma consent==granted ∧ do_not_call==false gerektirir (bırakma anında tekrar kontrol); aksi not_left_compliance (rıza dışı/DNC'ye voicemail bırakılmaz).", "trace": "FR-OUT-003, FR-TEL-014, FR-OUT-006" },
+    { "id": "A7",  "desc": "machine algılandı + bırakılmadı → reason_code=voicemail_machine_detected (retryable=true → 2.1.8); bırakıldı → voicemail_left (billable=true, retryable=false). 2.1.7 taksonomisiyle çapraz-tutarlı (uyuşmazlık → kapı eler).", "trace": "FR-TEL-010/011, 2.1.7" },
+    { "id": "A8",  "desc": "sınıflandırma deterministiktir — aynı signals → aynı amd_class/confidence (cüzdan-saati/random yok).", "trace": "FR-TST-008" },
+    { "id": "A9",  "desc": "etiketli kümede doğruluk ≥ min_accuracy VE false_machine_rate (insan→makine) ≤ max_false_machine_rate; tehlikeli hata (insanı makine sanmak) sıkı sınırlanır.", "trace": "SR-TEL-010" },
+    { "id": "A10", "desc": "max_beep_wait_ms + max_message_seconds sonlu/sınırlı (kaçak bekleme veya sonsuz mesaj yok).", "trace": "FR-TEL-011, FR-RES-008" },
+    { "id": "A11", "desc": "AMD/bırakma kararı PII içermez (numara/transkript/ad yok); voicemail message_ref ile referanslanır (ham audio değil); residency region pin.", "trace": "FR-REC-004/005, NFR 10.7" },
+    { "id": "A12", "desc": "human yolu normal konuşma turuna devredilir (SAD §6.1); voicemail tek-yön medya egress'tir (STT döngüsü/barge-in yok); ikisi karışmaz.", "trace": "SAD §6.1, ADR-005" },
+    { "id": "A13", "desc": "voicemail_outcome kapalı küme; her `left` olmayan sonuç açık bir gerekçe taşır (sessiz bırakmama yok).", "trace": "FR-OUT-008" },
+    { "id": "A14", "desc": "config ≥2 profil (en az 1 detect-only + 1 drop-enabled); her biri min_confidence∈(0,1) + sıralı eşikler (human_greeting<machine_greeting, short_silence<human_wait) + sonlu bip/mesaj sınırları; literal sır yok.", "trace": "ADR-002, NFR 10.6" }
+  ]
+}

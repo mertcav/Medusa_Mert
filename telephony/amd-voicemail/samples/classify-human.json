@@ -1,0 +1,12 @@
+{
+  "$comment": "WBS 2.1.9 — İnsan: kısa karşılama ('alo?'), bip yok, dinlemek için duraklar → human/proceed_human (SAD §6.1 turuna devret). FR-TST-008.",
+  "now": "2026-06-15T12:00:00Z",
+  "tenant_id": "11111111-1111-1111-1111-111111111111",
+  "policy_ref": "campaign-voicemail",
+  "signals": {
+    "cpaas_amd": null, "cpaas_amd_confidence": null,
+    "greeting_duration_ms": 850, "beep_detected": false, "beep_at_ms": null,
+    "silence_after_greeting_ms": 1800
+  },
+  "expect": { "amd_class": "human", "amd_decision": "proceed_human", "signal_source": "media_heuristic", "resolved_party": "human" }
+}
