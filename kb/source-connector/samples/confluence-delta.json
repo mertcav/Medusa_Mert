@@ -1,0 +1,31 @@
+{
+  "$comment": "WBS 6.1.2 — Confluence space full sync + artımsal delta (S3): bump (sayfa düzenle) + delete (sayfa sil → tombstone). Bir Confluence space (space:HELP) bağlanır; sayfaların read-restriction'ları classification'a eşlenir (kısıtsız→internal, group-restriction→confidential). run0 full sync (2 sayfa); run1 prev-cursor + cf-faq bump → yalnız o sayfa yeniden senkron (1 synced); run2 prev-cursor + cf-internal delete → tombstone (1 deleted). cursor monoton ilerler. Sentetik içerik (FR-TST-008).",
+  "scenario": "confluence-delta",
+  "expect_gate": "pass",
+  "profile": "enterprise-eu",
+  "connector": "confluence",
+  "tenant_id": "t-globex",
+  "kb_id": "kb-support",
+  "scope": "space:HELP",
+  "endpoint": "https://globex.atlassian.net/wiki",
+  "region": "eu",
+  "source": [
+    {
+      "id": "cf-faq", "title": "Sik Sorulan Sorular", "format": "html", "version": {"number": 1},
+      "_links": {"webui": "https://globex.atlassian.net/wiki/spaces/HELP/pages/101"},
+      "restrictions": {"read": {"users": [], "groups": []}},
+      "content": {"inline_text": "<html><body><h1>SSS</h1><p>Iade talebi 14 gun icinde yapilmalidir.</p></body></html>"}
+    },
+    {
+      "id": "cf-internal", "title": "Ic Yonerge", "format": "text", "version": {"number": 2},
+      "_links": {"webui": "https://globex.atlassian.net/wiki/spaces/HELP/pages/102"},
+      "restrictions": {"read": {"users": [], "groups": ["support-leads"]}},
+      "content": {"inline_text": "Ic kullanim notu birinci satir\nikinci satir ek bilgi"}
+    }
+  ],
+  "runs": [
+    {"cursor": null, "expect": {"status": "ok", "synced": 2, "failed": 0}},
+    {"cursor": "prev", "bump": ["cf-faq"], "expect": {"status": "ok", "synced": 1, "deleted": 0}},
+    {"cursor": "prev", "delete": ["cf-internal"], "expect": {"status": "ok", "synced": 0, "deleted": 1}}
+  ]
+}

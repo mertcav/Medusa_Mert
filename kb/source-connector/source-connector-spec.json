@@ -1,0 +1,107 @@
+{
+  "$comment": "WBS 6.1.2 — SharePoint/Confluence connector (FR-KB-002). Bilgi Tabanı & RAG offline indeksleme hattının (SAD §10.1) ikinci aşaması: KURUMSAL KAYNAK CONNECTOR'ı. 6.1.1 ingest connector tek doküman ALIR (upload/web); 6.1.2 kurumsal doküman SİSTEMLERİNE (SharePoint, Confluence, genel DMS) BAĞLANIR → kapsamı (site/kütüphane/space) sayfalı ENUMERATE eder → değişiklik-belirteci (delta/change-token) ile ARTIMSAL senkronize eder → kaynak sistem İZİNLERİNİ (SharePoint role assignment / Confluence restriction) classification + acl_ref metadata'ya EŞLER (→6.1.4 UYGULAMA) → her dokümanın ham baytını 6.1.1 FormatExtractor SPI'sine DEVREDER → NormalizedDocument. Connector AYIKLAMAYI yeniden YAZMAZ (6.1.1'i tüketir — S5); chunk/embed/index 6.1.3'tedir; ACL ENFORCEMENT 6.1.4'tedir; bayatlama/TTL 6.1.5'tedir; bu motor EMBEDDING ÜRETMEZ, VEKTÖR YAZMAZ. Vendor-neutral (ADR-002): SharePoint/Confluence/genel kaynak adapter'ları TEK EnterpriseSourceConnector SPI arkasında, eklenebilir/değiştirilebilir; orchestrator/RAG yalnız NormalizedDocument sözleşmesine bağımlıdır (ADR-001). Credential-free: kaynak endpoint + OAuth/token yalnız ${ENV} (run_live_test); repoya YAZILMAZ. Endpoint allowlist + SSRF guard (özel/iç IP yasak) + residency home-region + no_log + redaction_state=pending (FR-KB-010/NFR 10.7). Determinizm: sanal saat + tamsayı sürüm belirteci (Date.now/rastgele YOK). Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (snapshot içerikleri sentetik — FR-TST-008). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "6.1.2",
+  "phase": "F2",
+  "priority": "Should",
+  "trace": {
+    "fr": ["FR-KB-002", "FR-KB-004", "FR-KB-005", "FR-KB-010", "FR-TST-008"],
+    "nfr": ["NFR 10.7"],
+    "srs": ["SR-KB-002"],
+    "rtm": ["TC-KB-002"],
+    "sad": ["§10.1 (offline indeksleme: ingest connector — SharePoint/Confluence kaynak)", "§12.1 (polyglot persistence)", "§14 (residency/no-log)"],
+    "brd": ["§9.9 (Bilgi Tabanı ve RAG — FR-KB-002)", "§14 (residency/PII)", "§16 (Knowledge Base varlığı)"],
+    "adr": ["ADR-001 (orchestrator SPI bağımsızlığı — kaynak connector + ayıklayıcı SPI arkası)", "ADR-002 (vendor-neutral — kurumsal kaynak adapter'ı değiştirilebilir)"],
+    "api": ["§ L1/L2 Knowledge base POST /knowledge-bases/{id}/sources (kurumsal kaynak bağla + senkronize)", "§11.6 ErrorTaxonomy ruhu"],
+    "consumes": ["6.1.1 ingest connector (FormatExtractor SPI — ayıklama devri)"],
+    "consumed_by": ["6.1.3 parse→chunk→embed→index+versiyonlama (NormalizedDocument girdisi)", "6.1.4 doküman-bazı erişim yetkisi (classification/acl_ref/source_principals tüketir)", "6.1.5 bayatlama/TTL (last_modified/etag tüketir)"],
+    "observability": ["kb_source_sync_total{connector,status} / kb_source_items{change_type} / kb_source_failed_total{error_class} / kb_source_throttle_total / kb_source_cursor_lag → BRD §15 → 0.4.7 (tenant_id/external_id/source_uri/endpoint YÜKSEK kardinalite → yalnız trace/exemplar)"]
+  },
+
+  "placement": {
+    "$comment": "Kaynak connector OFFLINE indeksleme hattında (Control/Analytics Plane, SAD §10.1) çalışır — hot-path DEĞİL. L1/L2 panel 'POST /knowledge-bases/{id}/sources' (kurumsal kaynak bağla) + zamanlanmış delta senkronizasyon ile tetiklenir. tenant_admin/conversation_designer bir SharePoint site / Confluence space bağlar → connector enumerate+delta+ACL-map → her doküman 6.1.1 FormatExtractor'a devredilir → NormalizedDocument → (6.1.3) chunk/embed/index. Vendor-neutral (ADR-002): her kurumsal sistemin adapter'ı tek EnterpriseSourceConnector SPI arkasındadır; orchestrator/RAG yalnız NormalizedDocument'a bağımlıdır (ADR-001). Offline olduğundan SAD §20 hot-path bütçesine tabi DEĞİL; yine de bounded (sayfa boyutu/öğe sayısı/rate-limit/backoff). Canlı senkronizasyon kaynak endpoint + OAuth/token gerektirir → yalnız ${ENV} (run_live_test), repoya YAZILMAZ.",
+    "plane": "control-analytics (offline indeksleme — kurumsal kaynak senkronizasyon)",
+    "hot_path": false,
+    "behind_spi": true,
+    "reuses_format_extractor": "6.1.1",
+    "orchestrator_depends_on_normalizeddocument_only": true,
+    "trigger": ["L1/L2 POST /knowledge-bases/{id}/sources (bağla)", "zamanlanmış delta senkronizasyon"],
+    "trace": "SAD §10.1, SAD §14.4, ADR-001, ADR-002, API L1/L2 Knowledge base"
+  },
+
+  "spi": {
+    "$comment": "İki SPI yüzeyi. (1) EnterpriseSourceConnector: bir kurumsal sisteme BAĞLANIR + kapsamı (site/space) sayfalı ENUMERATE + delta/change-token ile değişiklikleri LİSTELER + öğe baytını FETCH eder + kaynak izinlerini (native ACL) standart ACL'e EŞLER. Yöntemler: connect(ctx) [endpoint allowlist + SSRF + auth], list_changes(cursor)->(upserts, deletions, new_cursor), fetch_content(item)->bytes|fault, map_acl(native)->{classification,principals,acl_ref}. Implementasyonlar: SharePointConnector / ConfluenceConnector / GenericDmsConnector — TEK imza arkasında (vendor-neutral ADR-002; canlıda Microsoft Graph / Confluence REST istemcisi aynı SPI arkasına takılır). (2) FormatExtractor: 6.1.1'in registry'si YENİDEN KULLANILIR (extract(bytes, ctx)->NormalizedDocument|IngestError) — connector ayıklamayı kendi yazmaz (S5). Connector çıktısı SyncResult: {connector, tenant_id, kb_id, scope, cursor_in, cursor_out, items[], counts, status}. items[]: NormalizedDocument + kaynak-sistem metadata (source_system, external_id, etag, source_version, last_modified, source_uri, source_scope, source_principals) VEYA tombstone {change_type:delete} VEYA failed {error_class, retryable}.",
+    "source_connector_methods": ["connect(ctx) [endpoint-allowlist + SSRF + auth]", "list_changes(cursor) -> (upserts, deletions, new_cursor)", "fetch_content(item) -> bytes | fault", "map_acl(native) -> {classification, principals, acl_ref}"],
+    "format_extractor_reused_from": "6.1.1 (extract(bytes, ctx) -> NormalizedDocument | IngestError)",
+    "sync_result_fields": ["connector", "tenant_id", "kb_id", "scope", "cursor_in", "cursor_out", "items", "counts", "status", "error_class"],
+    "synced_item_extra_fields": ["source_system", "external_id", "etag", "source_version", "last_modified", "source_uri", "source_scope", "source_principals", "change_type"],
+    "trace": "ADR-001, ADR-002, SAD §10.1, API §11.6, 6.1.1"
+  },
+
+  "connectors": {
+    "$comment": "Kayıtlı kurumsal kaynak adapter'ları (vendor-neutral; canlıda gerçek istemci aynı SPI arkası). min_connectors=2: SR-KB-002 'en az bir kurumsal connector senkronize eder' aşılır (SharePoint + Confluence). generic genişletilebilirliği gösterir.",
+    "sharepoint": {"scope_kind": "site/drive", "change_marker": "eTag/lastModifiedDateTime (delta token)", "native_acl": "sharingScope + roleAssignments (principal+role)", "uri_field": "webUrl", "lib_note": "canlıda Microsoft Graph drive delta istemcisi aynı SPI arkası"},
+    "confluence": {"scope_kind": "space", "change_marker": "version.number (lastModified delta)", "native_acl": "content read restrictions (users/groups) + space default", "uri_field": "_links.webui", "lib_note": "canlıda Confluence Cloud REST istemcisi aynı SPI arkası"},
+    "generic": {"scope_kind": "collection", "change_marker": "version int", "native_acl": "principals + visibility", "uri_field": "uri", "lib_note": "genel kurumsal DMS (WebDAV/REST) — SPI sözleşmesini doğrular"}
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (S1–S10). min_connectors=2: SharePoint + Confluence connector'ları tek SPI arkasında çalışır (SR-KB-002). max_page_size: enumerate sayfa boyutu tavanı (bellek/DoS guard). require_delta: artımsal senkron change-token ile (full re-fetch değil); aynı cursor ile yeniden çalıştırma 0 değişiklik (idempotent). require_acl_mapping: her senkronize doküman kaynak izinlerinden türeyen classification + acl_ref + source_principals taşır (→6.1.4). require_extraction_delegation: ayıklama 6.1.1 FormatExtractor'a devredilir (connector yeniden parse etmez). max_cross_tenant=0 + require_tenant_context: doküman yalnız kendi tenant/kb namespace'ine; tenant context yoksa fail-closed. require_endpoint_allowlist + max_ssrf_leak=0: kaynak host allowlist'te olmalı, özel/iç IP SSRF reddi. require_no_log + require_redaction_pending: home-region no-log + redaction pending (FR-KB-010). require_cursor_persistence: cursor monoton + kalıcı (devam edilebilir senkron); counts mutabakatı total=synced+deleted+failed. max_credential_leak=0: çıktı/log credential içermez. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler tenant compliance profile (DPIA cp.*) + üretim ölçümüyle ayarlanır.",
+    "min_connectors": 2,
+    "max_page_size": 1000,
+    "max_items_per_sync": 100000,
+    "require_delta": true,
+    "require_acl_mapping": true,
+    "require_extraction_delegation": true,
+    "max_cross_tenant": 0,
+    "require_tenant_context": true,
+    "require_endpoint_allowlist": true,
+    "max_ssrf_leak": 0,
+    "require_no_log": true,
+    "require_redaction_pending": true,
+    "require_cursor_persistence": true,
+    "max_credential_leak": 0,
+    "trace": "FR-KB-002, SR-KB-002, FR-KB-004, FR-KB-005, FR-KB-010, NFR 10.7, SAD §10.1"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Connector hata sınıfları (API §11.6 ruhu — kaynak-bağlantıya özgü). DETERMİNİSTİK + müşteriye sızmaz (ham sağlayıcı yanıtı/credential yalnız audit/log). retryable=geçici (THROTTLED/TIMEOUT/UNAVAILABLE — backoff+yeniden dene); kalıcı (AUTH_FAILED/FORBIDDEN/NOT_FOUND/ENDPOINT_NOT_ALLOWED/SSRF_BLOCKED/REGION_VIOLATION/MISSING_TENANT_CONTEXT/INVALID_CURSOR/UNSUPPORTED_CONNECTOR — yeniden deneme boşuna). delegated: 6.1.1 ayıklama hata sınıfları (UNSUPPORTED_FORMAT/FORMAT_MISMATCH/TOO_LARGE/TOO_MANY_UNITS/CORRUPT/EMPTY/ENCODING_ERROR/ENCRYPTED/NEEDS_OCR/DECOMPRESSION_BOMB) devralınır — bir öğenin ayıklama hatası senkronu durdurmaz (S8).",
+    "connection_classes": ["AUTH_FAILED", "FORBIDDEN", "NOT_FOUND", "THROTTLED", "TIMEOUT", "UNAVAILABLE", "ENDPOINT_NOT_ALLOWED", "SSRF_BLOCKED", "REGION_VIOLATION", "MISSING_TENANT_CONTEXT", "INVALID_CURSOR", "UNSUPPORTED_CONNECTOR"],
+    "retryable_classes": ["THROTTLED", "TIMEOUT", "UNAVAILABLE"],
+    "delegated_from_6_1_1": ["UNSUPPORTED_FORMAT", "FORMAT_MISMATCH", "TOO_LARGE", "TOO_MANY_UNITS", "CORRUPT", "EMPTY", "ENCODING_ERROR", "ENCRYPTED", "NEEDS_OCR", "DECOMPRESSION_BOMB"],
+    "trace": "API §11.6, FR-KB-002, SAD §10.1"
+  },
+
+  "residency": {
+    "$comment": "Senkronizasyon tenant home-region'da yapılır (NFR 10.7); kaynak endpoint allowlist'te + SSRF-guard'lı olmalı; hassas doküman metni sağlayıcı loglarına yazılmaz (FR-KB-010) → no_log=true + redaction_state=pending. Embedding bu aşamada gönderilmez (6.1.3). Bölge uyumsuz kaynak REGION_VIOLATION. Credential (OAuth/token) çıktıya/loga yazılmaz, repoya YAZILMAZ (yalnız ${ENV}).",
+    "region_pin_required": true,
+    "endpoint_allowlist_required": true,
+    "ssrf_guard_required": true,
+    "no_log_required": true,
+    "durable_redaction_state": "pending",
+    "embedding_sent_in_this_stage": false,
+    "credential_in_repo_forbidden": true,
+    "trace": "NFR 10.7, FR-KB-010, SAD §14"
+  },
+
+  "pii": {
+    "$comment": "Bu SPEC/config/sample DESCRIPTOR'ları sır/credential ve gerçek PII DEĞERİ TUTMAZ (snapshot içerikleri sentetik — FR-TST-008). NOT: senkronize edilen DOKÜMAN İÇERİĞİ runtime'da PII içerebilir (meşru) → connector bunu no_log=true + redaction_state=pending ile taşır; redaction/maskeleme UYGULAMASI 6.1.4 + retrieval no-log 6.2.4. Kaynak ACL principal'ları (kullanıcı/grup adı) erişim-kontrol metadata'sıdır (PII değeri değil); spec/config'te uzun rakam dizisi (kart/TCKN) yasak.",
+    "raw_pii_in_spec_forbidden": true,
+    "durable_redaction_state": "pending",
+    "document_content_may_contain_pii": true,
+    "trace": "FR-KB-010, BRD §14, BRD §17.7, FR-REC-004"
+  },
+
+  "invariants": [
+    { "id": "S1", "desc": "CONNECTOR COVERAGE: FR-KB-002'nin kurumsal sistemlerine (SharePoint, Confluence + genel DMS) bağlanan en az 2 connector TEK EnterpriseSourceConnector SPI arkasında çalışır (vendor-neutral ADR-002); her connector kapsamını enumerate eder + en az bir dokümanı senkronize ederek boş-olmayan NormalizedDocument üretir (SR-KB-002 'en az bir kurumsal connector senkronize eder').", "trace": "FR-KB-002, SR-KB-002, ADR-002, SAD §10.1" },
+    { "id": "S2", "desc": "ENUMERATION + PAGINATION: connector kapsamı (site/library/space) sayfalı listeler; sayfa boyutu max_page_size tavanına bağlıdır (bellek/DoS guard); öğe sayısı max_items_per_sync sınırını aşmaz.", "trace": "FR-KB-002, güvenlik (DoS guard)" },
+    { "id": "S3", "desc": "INCREMENTAL DELTA SYNC: senkron change-token/cursor ile artımsaldır (full re-fetch değil); aynı cursor ile yeniden çalıştırma 0 upsert/0 deletion (idempotent); değişen öğe cursor ilerleyince yeniden senkronize edilir; silmeler tombstone (change_type=delete) olarak yayılır; cursor monoton ilerler.", "trace": "FR-KB-002, FR-KB-003 (versiyonlama girdisi)" },
+    { "id": "S4", "desc": "SOURCE ACL MAPPING: kaynak sistem izinleri (SharePoint sharingScope+roleAssignment / Confluence read restriction / generic visibility) standart classification + acl_ref + source_principals'a EŞLENİR (→6.1.4 doküman-bazı erişim yetkisi UYGULAMASI tüketir); kısıtlı/özel kaynak 'public' sınıflanamaz; connector yalnız EŞLER, ENFORCEMENT yapmaz (sınır).", "trace": "FR-KB-005, →6.1.4" },
+    { "id": "S5", "desc": "EXTRACTION DELEGATION: connector ham baytı 6.1.1 FormatExtractor SPI'sine DEVREDER → kanonik NormalizedDocument (NFC + hafif yapı + content_hash + dedup); ayıklamayı/normalizasyonu YENİDEN YAZMAZ (6.1.1 tüketilir); çıktı kaynak-sistem metadata (source_system/external_id/etag/source_version/last_modified/source_uri/source_scope) ile zenginleştirilir.", "trace": "FR-KB-002, 6.1.1, SAD §10.1 (parse & normalize)" },
+    { "id": "S6", "desc": "TENANT/KB NAMESPACE + ISOLATION: her senkronize doküman tenant_id + kb_id namespace etiketi taşır (FR-KB-004 sınır); tenant context yoksa fail-closed reddet; cross-tenant sızıntı=0 — bir tenant'ın bağladığı kaynak başka tenant namespace'ine yazamaz; aynı içerik farklı tenant'ta ayrı doc (izole dedup uzayı).", "trace": "FR-KB-004, FR-TEN-002, güvenlik (tenant izolasyon)" },
+    { "id": "S7", "desc": "RESIDENCY + ENDPOINT ALLOWLIST + SSRF + NO-LOG: kaynak endpoint host allowlist'te olmalı; özel/iç/loopback IP SSRF reddi (ssrf_leak=0); her doc home-region (residency_region izinli) + no_log=true + redaction_state=pending; bölge uyumsuz kaynak REGION_VIOLATION; credential (OAuth/token) çıktıya/loga sızmaz (credential_leak=0).", "trace": "FR-KB-010, NFR 10.7, SAD §14, güvenlik (SSRF)" },
+    { "id": "S8", "desc": "ROBUST / NEVER-CRASH + TAXONOMY + THROTTLE: bağlantı/öğe hataları (auth/forbidden/not-found/throttle/timeout/unavailable + devralınan ayıklama hataları) STRUCTURED taksonomiye eşlenir + retryable bayrağı doğru (geçici↔kalıcı); rate-limit/throttle backoff'a saygı; bir kötü öğe senkronun diğer öğelerini durdurmaz (batch dayanıklılığı); hiçbir exception kaçmaz.", "trace": "FR-KB-002, güvenlik (girdi/bağlantı güvenliği)" },
+    { "id": "S9", "desc": "SYNC STATE / CURSOR PERSISTENCE: SyncResult cursor_in/cursor_out (monoton, kalıcı, devam edilebilir) + öğe-bazı durum (synced/duplicate/deleted/failed) taşır; counts mutabakatı total=synced+deleted+failed (duplicate synced içinde işaretli); kesinti sonrası cursor_out'tan devam edilebilir.", "trace": "FR-KB-002, FR-KB-003" },
+    { "id": "S10", "desc": "SCOPE BOUNDARY: connector NormalizedDocument + SyncResult ÜRETİR; chunk/embed/index/versiyonlama → 6.1.3, ACL ENFORCEMENT → 6.1.4 (connector yalnız metadata eşler), içerik TTL/bayatlama → 6.1.5, vector store namespace fiziksel → 1.1.7, retrieval/trim → 6.2.x. Bu motor embedding/vektör üretmez (embedding/vector/chunk_ids/index_id alanı doc'ta yok); erişim KARARI (granted/denied) üretmez; credential üretmez.", "trace": "6.1.3, 6.1.4, 6.1.5, 1.1.7, 6.2.x" }
+  ]
+}

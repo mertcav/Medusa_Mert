@@ -1,0 +1,39 @@
+{
+  "$comment": "WBS 6.1.2 — SharePoint site full sync + delta (S1/S3/S4/S5). Bir SharePoint site (site:hr) bağlanır; 3 doküman (html duyuru / docx politika / csv SSS) enumerate edilir; sharingScope+roleAssignment ACL'leri classification'a eşlenir (organization→internal, specific→confidential); her doküman 6.1.1 FormatExtractor'a devredilir → NormalizedDocument + kaynak metadata (webUrl/etag/version). run0 full sync; run1 prev-cursor mutasyonsuz → idempotent delta noop (0 değişiklik). Sentetik içerik (FR-TST-008). docx içeriği 6.1.1 fixture'ından (policy.docx) çekilir.",
+  "scenario": "sharepoint-sync",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "connector": "sharepoint",
+  "tenant_id": "t-acme",
+  "kb_id": "kb-hr",
+  "scope": "site:hr",
+  "endpoint": "https://acme.sharepoint.com/sites/hr",
+  "region": "home",
+  "source": [
+    {
+      "id": "sp-duyuru", "name": "izin-duyuru.html", "format": "html", "version": 1,
+      "webUrl": "https://acme.sharepoint.com/sites/hr/duyuru",
+      "file": {"mimeType": "text/html"},
+      "permissions": {"sharingScope": "organization", "roleAssignments": [{"principal": "group:AllStaff", "role": "read"}]},
+      "content": {"inline_text": "<html><head><title>Izin Duyurusu</title></head><body><h1>Yillik Izin</h1><p>Calisanlar yilda 14 gun yillik izne hak kazanir.</p><nav>Anasayfa</nav></body></html>"}
+    },
+    {
+      "id": "sp-politika", "name": "iade-politika.docx", "format": "docx", "version": 2,
+      "webUrl": "https://acme.sharepoint.com/sites/hr/politika",
+      "file": {"mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+      "permissions": {"sharingScope": "specific", "roleAssignments": [{"principal": "group:Finance", "role": "read"}]},
+      "content": {"fixture": "policy.docx"}
+    },
+    {
+      "id": "sp-sss", "name": "sss.csv", "format": "csv", "version": 3,
+      "webUrl": "https://acme.sharepoint.com/sites/hr/sss",
+      "file": {"mimeType": "text/csv"},
+      "permissions": {"sharingScope": "specific", "roleAssignments": [{"principal": "user:hr.lead", "role": "owner"}]},
+      "content": {"inline_text": "soru,yanit\niade suresi,14 gun\nkargo,ucretsiz\n"}
+    }
+  ],
+  "runs": [
+    {"cursor": null, "expect": {"status": "ok", "synced": 3, "failed": 0}},
+    {"cursor": "prev", "expect": {"status": "ok", "delta_noop": true}}
+  ]
+}

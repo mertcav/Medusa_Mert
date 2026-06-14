@@ -1,0 +1,53 @@
+{
+  "$comment": "WBS 6.1.2 kurumsal kaynak connector çalıştırma profilleri (illüstratif; vendor-neutral, credential-free). allowed_connectors ⊆ {sharepoint,confluence,generic}; allowed_source_hosts kaynak endpoint host allowlist'i (suffix eşleşme; SSRF guard'la birlikte) — kaynak host bu listede DEĞİLSE ENDPOINT_NOT_ALLOWED; page_size enumerate sayfa boyutu; max_items_per_sync öğe tavanı (DoS guard); residency_region + allowed_regions home-region pin (NFR 10.7); virtual_t0 sanal saat tohumu (determinizm). allowed_formats 6.1.1 ayıklama allowlist'ine devredilir. Gerçek değerler tenant compliance profile (DPIA cp.residency/cp.retention) + üretim ile ayarlanır. Kaynak endpoint + OAuth/token credential repoya YAZILMAZ — yalnız ${ENV} (run_live_test).",
+  "profiles": {
+    "pilot-default": {
+      "$comment": "F1/F2 pilot varsayılanı: SharePoint+Confluence+generic açık, makul sayfa/öğe tavanı, tek home-region, geniş host allowlist'i (örnek SaaS suffix'leri).",
+      "allowed_connectors": ["sharepoint", "confluence", "generic"],
+      "allowed_source_hosts": ["sharepoint.com", "atlassian.net", "confluence.local", "dms.internal-allowed.example"],
+      "allowed_formats": ["pdf", "docx", "html", "text", "csv"],
+      "page_size": 200,
+      "max_items_per_sync": 100000,
+      "max_bytes": 26214400,
+      "max_units": {"pages": 2000, "rows": 1000000, "chars": 5000000, "paragraphs": 50000, "blocks": 100000},
+      "max_decompression_ratio": 200,
+      "residency_region": "home",
+      "allowed_regions": ["home"],
+      "ssrf_guard": true,
+      "auth_token_env": "${KB_SOURCE_OAUTH_TOKEN}",
+      "virtual_t0": 1718323200
+    },
+    "regulated-tr": {
+      "$comment": "Regüle TR tenant (finans/sağlık): yalnız onaylı kurumsal kaynaklar, daha sıkı sayfa/boyut tavanı, tr home-region, dar host allowlist'i. cp.* DPIA most-restrictive-wins ile sıkılaşır.",
+      "allowed_connectors": ["sharepoint", "confluence"],
+      "allowed_source_hosts": ["tenant-tr.sharepoint.com", "tenant-tr.atlassian.net"],
+      "allowed_formats": ["pdf", "docx", "html", "text", "csv"],
+      "page_size": 100,
+      "max_items_per_sync": 20000,
+      "max_bytes": 10485760,
+      "max_units": {"pages": 1000, "rows": 200000, "chars": 2000000, "paragraphs": 20000, "blocks": 40000},
+      "max_decompression_ratio": 100,
+      "residency_region": "tr",
+      "allowed_regions": ["tr"],
+      "ssrf_guard": true,
+      "auth_token_env": "${KB_SOURCE_OAUTH_TOKEN}",
+      "virtual_t0": 1718323200
+    },
+    "enterprise-eu": {
+      "$comment": "Enterprise EU tenant: SharePoint+Confluence+generic, büyük doküman/öğe tavanı, eu home-region.",
+      "allowed_connectors": ["sharepoint", "confluence", "generic"],
+      "allowed_source_hosts": ["sharepoint.com", "atlassian.net", "dms.eu-allowed.example"],
+      "allowed_formats": ["pdf", "docx", "html", "text", "csv"],
+      "page_size": 500,
+      "max_items_per_sync": 100000,
+      "max_bytes": 52428800,
+      "max_units": {"pages": 4000, "rows": 2000000, "chars": 10000000, "paragraphs": 100000, "blocks": 200000},
+      "max_decompression_ratio": 200,
+      "residency_region": "eu",
+      "allowed_regions": ["eu"],
+      "ssrf_guard": true,
+      "auth_token_env": "${KB_SOURCE_OAUTH_TOKEN}",
+      "virtual_t0": 1718323200
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "$comment": "WBS 6.1.2 — tenant/kb namespace izolasyonu + ACL eşleme (S6/S4, FR-KB-004): bir tenant'ın bağladığı SharePoint site'ı yalnız kendi tenant_id/kb_id namespace'ine yazar; aynı engine farklı tenant senkronlarsa içerik aynı olsa bile ayrı doc (izole dedup uzayı) — bu senaryo tek tenant'ı doğrular, cross-tenant izolasyonu selftest #12 kanıtlar. Burada anonymous→public, specific→confidential eşlemesi + kısıtlı doküman asla public sınıflanmaz (S4). Sentetik içerik (FR-TST-008).",
+  "scenario": "tenant-isolation-acl",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "connector": "sharepoint",
+  "tenant_id": "t-acme",
+  "kb_id": "kb-public",
+  "scope": "site:portal",
+  "endpoint": "https://acme.sharepoint.com/sites/portal",
+  "region": "home",
+  "source": [
+    {
+      "id": "sp-public", "name": "duyuru.txt", "format": "text", "version": 1,
+      "webUrl": "https://acme.sharepoint.com/sites/portal/duyuru",
+      "permissions": {"sharingScope": "anonymous", "roleAssignments": []},
+      "content": {"inline_text": "Herkese acik genel duyuru metni"}
+    },
+    {
+      "id": "sp-secret", "name": "yonetim.txt", "format": "text", "version": 2,
+      "webUrl": "https://acme.sharepoint.com/sites/portal/yonetim",
+      "permissions": {"sharingScope": "specific", "roleAssignments": [{"principal": "user:ceo", "role": "owner"}]},
+      "content": {"inline_text": "Yonetim kuruluna ozel kisitli not"}
+    }
+  ],
+  "runs": [
+    {"cursor": null, "expect": {"status": "ok", "synced": 2}}
+  ]
+}

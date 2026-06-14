@@ -1,0 +1,29 @@
+{
+  "$comment": "WBS 6.1.2 — DEGRADED senaryo (expect_gate=fail): kasıtlı çoklu kapı ihlali. Bu connector allowlist DIŞI bir host'a bağlanır (S7 ENDPOINT_NOT_ALLOWED) ve aynı zamanda confluence connector profilde yalnız regulated-tr ile sınırlandırılmış olsa da burada amaç: host evil.example.com allowlist'te değil → SYNC_ERROR ENDPOINT_NOT_ALLOWED beklenir; senaryo 'fail' bekler. expect bilinçli olarak YANLIŞ (status=ok, synced=2) verilmiştir → S8 beklenti-uyumsuzluğu da eler. Böylece kapı sisteminin gerçekten elemesi gösterilir (degrade kanıtı). Sentetik (FR-TST-008).",
+  "scenario": "degraded-endpoint-not-allowed",
+  "expect_gate": "fail",
+  "profile": "regulated-tr",
+  "connector": "sharepoint",
+  "tenant_id": "t-tr",
+  "kb_id": "kb-1",
+  "scope": "site:x",
+  "endpoint": "https://evil.example.com/sites/x",
+  "region": "tr",
+  "source": [
+    {
+      "id": "x1", "name": "a.txt", "format": "text", "version": 1,
+      "webUrl": "https://evil.example.com/sites/x/a",
+      "permissions": {"sharingScope": "organization", "roleAssignments": []},
+      "content": {"inline_text": "icerik bir"}
+    },
+    {
+      "id": "x2", "name": "b.txt", "format": "text", "version": 2,
+      "webUrl": "https://evil.example.com/sites/x/b",
+      "permissions": {"sharingScope": "organization", "roleAssignments": []},
+      "content": {"inline_text": "icerik iki"}
+    }
+  ],
+  "runs": [
+    {"cursor": null, "expect": {"status": "ok", "synced": 2}}
+  ]
+}
