@@ -1,0 +1,27 @@
+{
+  "name": "inbound-happy-path",
+  "$comment": "Twilio Media Streams inbound: connected→start→media×N→dtmf→stop; barge-in clear 0ms detect. FR-TST-008 sentetik. Ham payload illüstratif (gerçek PII yok).",
+  "provider": "twilio-media-streams",
+  "transport": "wss",
+  "authenticated": true,
+  "home_region": "eu-central",
+  "expect": "pass",
+  "frames": [
+    { "event": "connected", "protocol": "Call", "version": "1.0.0" },
+    { "event": "start", "start": {
+        "callSid": "ILLUSTRATIVE_CALL",
+        "customParameters": { "tenant_id": "tenant-eu-1", "correlation_id": "corr-0001", "call_id": "call-0001" },
+        "mediaFormat": { "encoding": "audio/x-mulaw", "sampleRate": 8000, "channels": 1 },
+        "region": "eu-central" } },
+    { "event": "media", "media": { "track": "inbound", "chunk": "1", "timestamp": "20", "payload": "AAAAAA==" } },
+    { "event": "media", "media": { "track": "inbound", "chunk": "2", "timestamp": "40", "payload": "AAAAAA==" } },
+    { "event": "media", "media": { "track": "inbound", "chunk": "3", "timestamp": "60", "payload": "AAAAAA==" } },
+    { "event": "dtmf", "dtmf": { "track": "inbound_track", "digit": "5" } },
+    { "event": "stop", "stop": { "callSid": "ILLUSTRATIVE_CALL" } }
+  ],
+  "egress": [
+    { "action": "play_audio", "provider_chunk": 1 },
+    { "action": "mark", "name": "prompt-end" },
+    { "action": "barge_in_clear", "barge_in_detect_ms": 0 }
+  ]
+}

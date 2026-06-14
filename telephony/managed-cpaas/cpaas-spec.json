@@ -1,0 +1,205 @@
+{
+  "$comment": "WBS 2.1.3 — Managed CPaaS entegrasyonu (Media Streams/WebSocket). SAD §7.2/§12.1 medya WebSocket çerçevesinin + §11.5 TelephonyAdapter SPI'nin (managed mod) fiziksel sözleşmesi. KAYNAK DOĞRULUK; çelişkide SAD/BRD/API esastır. Vendor-neutral (ADR-002): sağlayıcıya özel mesaj biçimi adapter'da NORMALIZE edilir, orchestrator yalnız normalize edilmiş sözleşmeyi görür. Sır/credential yok — yalnız ${ENV} placeholder.",
+  "version": "1.0",
+  "wbs": "2.1.3",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-TEL-001", "FR-TEL-002", "FR-TEL-006", "FR-RTC-001", "FR-RTC-002", "FR-RES-008", "FR-TEL-012"],
+    "nfr": ["NFR 10.1", "NFR 10.6", "NFR 10.7"],
+    "sad": ["§7.1", "§7.2", "§8.1", "§8.2", "§8.3", "§11.5", "§12.1", "§12.2", "§13.3"],
+    "adr": ["ADR-001", "ADR-002", "ADR-005", "ADR-009"],
+    "api": ["§11.5 TelephonyAdapter", "§11.6 ErrorTaxonomy", "§12.1", "§12.2 TurnEvent"]
+  },
+
+  "media_profile": {
+    "$comment": "Telefoni 8 kHz native; gereksiz resample/transcode zincirden çıkarılır (FR-RES-008, SAD §7.2).",
+    "sample_rate_hz": 8000,
+    "frame_ms": 20,
+    "frames_per_sec": 50,
+    "encodings": ["mulaw", "pcm16"],
+    "primary_encoding": "mulaw",
+    "frame_bytes_mulaw": 160,
+    "no_transcode": true,
+    "resample_points_max": 1,
+    "trace": "FR-RES-008, SAD §7.2, vendor-eval/telephony-media-latency.md"
+  },
+
+  "transport": {
+    "$comment": "Managed CPaaS medya WebSocket. SRTP/TLS zorunlu; düz-metin WS reddedilir (NFR 10.6).",
+    "scheme": "wss",
+    "plaintext_allowed": false,
+    "tls_min_version": "1.2",
+    "keepalive_sec": 15,
+    "max_idle_sec": 30,
+    "max_frame_bytes": 65536,
+    "trace": "NFR 10.6, SAD §12.1"
+  },
+
+  "auth": {
+    "$comment": "Bağlantı medya kabulünden ÖNCE doğrulanır (anti-spoof, THREAT_MODEL TM-S). Sağlayıcı imzası adapter'da doğrulanır; secret yalnız ${ENV}.",
+    "verify_before_media": true,
+    "methods": ["signature_header", "shared_secret_path", "mtls"],
+    "replay_window_sec": 300,
+    "trace": "NFR 10.6, SAD §13.3"
+  },
+
+  "context_binding": {
+    "$comment": "tenant_id + correlation_id + call_id `start` olayında bağlanır ve normalize edilen HER olaya taşınır (SAD §13.3, §17.1).",
+    "bound_at": "start",
+    "required_keys": ["tenant_id", "correlation_id", "call_id"],
+    "propagate_on_every_event": true,
+    "source": "provider start.customParameters | start.client_state",
+    "trace": "SAD §13.3, SAD §17.1, FR-TEN-002"
+  },
+
+  "normalized_protocol": {
+    "$comment": "Orchestrator'ın gördüğü tek sözleşme (API §12.1). Sağlayıcı mesajları buna indirgenir.",
+    "ingress_control_events": ["start", "media", "dtmf", "stop"],
+    "egress_actions": ["play_audio", "mark", "barge_in_clear"],
+    "turn_event_link": {
+      "$comment": "Normalize edilen ingress, SAD §6.1 turn state machine'i besler; egress BARGE_IN→cancel ile tetiklenir (API §12.2).",
+      "barge_in_source": "BARGE_IN",
+      "trace": "API §12.2 TurnEvent"
+    }
+  },
+
+  "providers": [
+    {
+      "id": "twilio-media-streams",
+      "kind": "managed_cpaas",
+      "direction": "bidirectional",
+      "auth_method": "signature_header",
+      "auth_header": "X-Twilio-Signature",
+      "secret_ref": "${TWILIO_AUTH_TOKEN}",
+      "region_pin": "${TWILIO_EDGE_REGION}",
+      "media_payload_encoding": "base64",
+      "default_encoding": "mulaw",
+      "barge_in_clear_overhead_ms": 35,
+      "ingress_events": {
+        "connected": null,
+        "start": "start",
+        "media": "media",
+        "dtmf": "dtmf",
+        "stop": "stop",
+        "mark": null
+      },
+      "egress_events": {
+        "play_audio": "media",
+        "mark": "mark",
+        "barge_in_clear": "clear"
+      },
+      "trace": "vendor-eval samples managed-cpaas-ws-A"
+    },
+    {
+      "id": "telnyx-media-streaming",
+      "kind": "managed_cpaas",
+      "direction": "bidirectional",
+      "auth_method": "shared_secret_path",
+      "auth_header": "X-Telnyx-Signature-Ed25519",
+      "secret_ref": "${TELNYX_PUBLIC_KEY}",
+      "region_pin": "${TELNYX_REGION}",
+      "media_payload_encoding": "base64",
+      "default_encoding": "mulaw",
+      "barge_in_clear_overhead_ms": 45,
+      "ingress_events": {
+        "connected": null,
+        "start": "start",
+        "media": "media",
+        "dtmf": "dtmf",
+        "stop": "stop"
+      },
+      "egress_events": {
+        "play_audio": "media",
+        "mark": "mark",
+        "barge_in_clear": "clear"
+      },
+      "trace": "vendor-eval samples managed-cpaas-ws-B; ADR-002 ≥2 sağlayıcı"
+    }
+  ],
+
+  "lifecycle": {
+    "$comment": "Medya WS oturum durum makinesi. `start` öncesi media reddedilir (sıra koruması).",
+    "states": ["CONNECTING", "AUTHENTICATED", "STARTED", "STREAMING", "STOPPED", "FAILED"],
+    "initial": "CONNECTING",
+    "terminal": ["STOPPED", "FAILED"],
+    "valid_transitions": {
+      "CONNECTING": ["AUTHENTICATED", "FAILED"],
+      "AUTHENTICATED": ["STARTED", "FAILED"],
+      "STARTED": ["STREAMING", "STOPPED", "FAILED"],
+      "STREAMING": ["STREAMING", "STOPPED", "FAILED"],
+      "STOPPED": [],
+      "FAILED": []
+    },
+    "media_before_started_rejected": true,
+    "trace": "SAD §7.1, SAD §6.1"
+  },
+
+  "barge_in": {
+    "$comment": "Kullanıcı sesi algılanınca (edge VAD, ADR-005) orchestrator BARGE_IN üretir; adapter sağlayıcıya `clear` (flush) gönderir, buffer'daki agent sesi ≤200ms içinde kesilir.",
+    "source_event": "BARGE_IN",
+    "egress_action": "barge_in_clear",
+    "deadline_ms": 200,
+    "measured_as": "barge_in_detect → clear_emit (adapter overhead) ≤ deadline",
+    "trace": "FR-RTC-002, NFR 10.1, SAD §7.2, ADR-005, ADR-009"
+  },
+
+  "dtmf": {
+    "$comment": "Managed CPaaS DTMF olayı normalize edilir; ham SIP yolunda RFC 2833 / SIP INFO eşdeğeri (FR-TEL-006).",
+    "normalized_event": "dtmf",
+    "digit_set": "0123456789*#ABCD",
+    "trace": "FR-TEL-006"
+  },
+
+  "reconnect": {
+    "$comment": "Geçici WS kesintisinde yeniden bağlanma; sıra (sequence) takibi ile pencere içinde medya kaybı sınırlanır. Pencere aşılırsa çağrı kontrollü sonlandırılır (FR-TEL-012 neden kodu).",
+    "enabled": true,
+    "resume_window_sec": 5,
+    "max_attempts": 3,
+    "backoff_base_ms": 200,
+    "seq_tracking": true,
+    "trace": "SAD §8.2, FR-TEL-012"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Sağlayıcı/transport hatası API §11.6 ortak ErrorTaxonomy'ye çevrilir; routing yalnız taksonomiye göre fallback verir (≥2 sağlayıcı, ADR-002).",
+    "mapping": {
+      "ws_handshake_timeout": "TIMEOUT",
+      "ws_closed_unexpected": "UNAVAILABLE",
+      "auth_signature_invalid": "AUTH",
+      "rate_limited": "RATE_LIMITED",
+      "bad_media_format": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "fallback_on": ["TIMEOUT", "UNAVAILABLE", "RATE_LIMITED"],
+    "trace": "API §11.6, SAD §8.2, SAD §8.3, FR-TEL-002"
+  },
+
+  "residency": {
+    "$comment": "Sağlayıcı edge/bölge tenant home-region'a pinlenir; bölge uyumsuzluğu REGION_VIOLATION (NFR 10.7).",
+    "region_pin_required": true,
+    "trace": "NFR 10.7"
+  },
+
+  "pii": {
+    "$comment": "Ses içeriği PII'dir; spec/config'te ham payload veya kişisel veri TUTULMAZ. Medya yalnız oturum içinde akar, kalıcı yazımı objstore/eventstream sözleşmesine tabidir.",
+    "raw_audio_in_spec_forbidden": true,
+    "trace": "BRD §14, THREAT_MODEL TM-I"
+  },
+
+  "invariants": [
+    { "id": "I1", "desc": "Taşıma WSS/TLS zorunlu; düz-metin WS reddedilir.", "trace": "NFR 10.6" },
+    { "id": "I2", "desc": "Bağlantı medya kabulünden önce doğrulanır (verify_before_media).", "trace": "NFR 10.6, THREAT_MODEL TM-S" },
+    { "id": "I3", "desc": "tenant_id+correlation_id+call_id `start`ta bağlanır ve normalize edilen her olaya taşınır.", "trace": "SAD §13.3, SAD §17.1, FR-TEN-002" },
+    { "id": "I4", "desc": "Medya 8 kHz, 20 ms (50 fps), μ-law/PCM; gereksiz resample/transcode yok (≤1 resample noktası).", "trace": "FR-RES-008, SAD §7.2" },
+    { "id": "I5", "desc": "BARGE_IN → barge_in_clear egress; agent sesi ≤200 ms içinde kesilir.", "trace": "FR-RTC-002, NFR 10.1, ADR-009" },
+    { "id": "I6", "desc": "Sağlayıcı ingress olayı normalize ingress kümesine (start/media/dtmf/stop) eksiksiz eşlenir.", "trace": "API §12.1, SAD §8.1" },
+    { "id": "I7", "desc": "≥2 managed sağlayıcı profili aynı normalize sözleşmeye eşlenir + fallback yolu.", "trace": "ADR-002, FR-TEL-002, SAD §8.3" },
+    { "id": "I8", "desc": "Transport/sağlayıcı hatası ortak ErrorTaxonomy'ye çevrilir; fallback yalnız taksonomiyle.", "trace": "API §11.6, SAD §8.2" },
+    { "id": "I9", "desc": "`start` öncesi media reddedilir; lifecycle geçişleri yalnız valid_transitions.", "trace": "SAD §7.1" },
+    { "id": "I10", "desc": "Spec/config'te literal sır/credential yok; auth secret yalnız ${ENV}.", "trace": "CLAUDE.md kısıtlar" },
+    { "id": "I11", "desc": "Sağlayıcı bölge pin home-region; uyumsuzluk REGION_VIOLATION.", "trace": "NFR 10.7" },
+    { "id": "I12", "desc": "DTMF managed olayı normalize `dtmf`e; ham SIP yolunda RFC2833/INFO eşdeğeri.", "trace": "FR-TEL-006" },
+    { "id": "I13", "desc": "Reconnect penceresi sonlu + sıra takibi; aşımda kontrollü sonlandırma neden kodu.", "trace": "SAD §8.2, FR-TEL-012" },
+    { "id": "I14", "desc": "Ham ses payload / PII spec/config'te tutulmaz.", "trace": "BRD §14, THREAT_MODEL TM-I" }
+  ]
+}

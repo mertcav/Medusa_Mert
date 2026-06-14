@@ -1,0 +1,23 @@
+{
+  "name": "barge-in",
+  "$comment": "Telnyx Media Streaming: agent konuşurken kullanıcı araya girer; barge-in 120ms'de algılanır, clear 45ms overhead ile emit → 45ms ≤200ms geçer. ADR-002 simetri (ikinci sağlayıcı).",
+  "provider": "telnyx-media-streaming",
+  "transport": "wss",
+  "authenticated": true,
+  "home_region": "eu-west",
+  "expect": "pass",
+  "frames": [
+    { "event": "connected" },
+    { "event": "start", "start": {
+        "client_state": { "tenant_id": "tenant-eu-2", "correlation_id": "corr-0042", "call_id": "call-0042" },
+        "mediaFormat": { "encoding": "PCMU", "sampleRate": 8000, "channels": 1 },
+        "region": "eu-west" } },
+    { "event": "media", "media": { "track": "inbound", "chunk": "1", "payload": "AAAAAA==" } },
+    { "event": "media", "media": { "track": "inbound", "chunk": "2", "payload": "AAAAAA==" } },
+    { "event": "stop" }
+  ],
+  "egress": [
+    { "action": "play_audio", "provider_chunk": 1 },
+    { "action": "barge_in_clear", "barge_in_detect_ms": 120 }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "degraded",
+  "$comment": "Bilinçli ELENEN senaryo (expect=fail): media-before-start (I9) + 16kHz codec (I4) + eksik correlation_id/call_id (I3) + bölge uyumsuz (I11). Kapının elemesi gerekir. FR-TST-008 negatif.",
+  "provider": "twilio-media-streams",
+  "transport": "wss",
+  "authenticated": true,
+  "home_region": "eu-central",
+  "expect": "fail",
+  "frames": [
+    { "event": "media", "media": { "track": "inbound", "chunk": "1", "payload": "AAAAAA==" } },
+    { "event": "start", "start": {
+        "customParameters": { "tenant_id": "tenant-eu-1" },
+        "mediaFormat": { "encoding": "audio/x-l16", "sampleRate": 16000, "channels": 1 },
+        "region": "us-east" } },
+    { "event": "media", "media": { "track": "inbound", "chunk": "2", "payload": "AAAAAA==" } },
+    { "event": "stop" }
+  ],
+  "egress": []
+}

@@ -1,0 +1,28 @@
+{
+  "$comment": "Managed CPaaS sağlayıcı bağlantı profilleri (spec türevi). Vendor-neutral (ADR-002). Sır/credential YOK — endpoint/secret yalnız ${ENV}. cpaas-spec.json sağlayıcı kümesiyle birebir (probe validate çapraz kontrol eder).",
+  "version": "1.0",
+  "providers": [
+    {
+      "id": "twilio-media-streams",
+      "endpoint": "${TWILIO_MEDIA_WS_URL}",
+      "auth_method": "signature_header",
+      "auth_header": "X-Twilio-Signature",
+      "secret_ref": "${TWILIO_AUTH_TOKEN}",
+      "region_pin": "${TWILIO_EDGE_REGION}",
+      "reconnect": { "max_attempts": 3, "backoff_base_ms": 200 },
+      "role": "primary"
+    },
+    {
+      "id": "telnyx-media-streaming",
+      "endpoint": "${TELNYX_MEDIA_WS_URL}",
+      "auth_method": "shared_secret_path",
+      "auth_header": "X-Telnyx-Signature-Ed25519",
+      "secret_ref": "${TELNYX_PUBLIC_KEY}",
+      "region_pin": "${TELNYX_REGION}",
+      "reconnect": { "max_attempts": 3, "backoff_base_ms": 200 },
+      "role": "secondary"
+    }
+  ],
+  "fallback_order": ["twilio-media-streams", "telnyx-media-streaming"],
+  "trace": "ADR-002 ≥2 sağlayıcı + fallback; SAD §8.3; FR-TEL-002"
+}
