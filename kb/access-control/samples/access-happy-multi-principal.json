@@ -1,0 +1,31 @@
+{
+  "$comment": "WBS 6.1.4 — Happy path: tek tenant (t-acme/kb-1) içinde farklı sınıflandırma + ACL'li dokümanlar, farklı principal bağlamlı retrieval istekleri. Her chunk 6.1.3 IndexPipeline'dan TÜRETİLİR (classification/acl_ref/sensitive/redaction_state C9 taşınmış). G1 (deny-by-default), G3 (clearance lattice), G4 (ACL deny-wins) kanıtı. Sentetik (FR-TST-008).",
+  "scenario": "happy-multi-principal",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "acls": {
+    "acl:hr": {"default": "deny", "allow": ["group:hr", "role:tenant_owner"], "deny": ["group:contractors"]}
+  },
+  "documents": [
+    {"source_id": "faq-public", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:faq",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "Genel SSS. Calisma saatleri hafta ici 09 18 arasidir. Destek hatti 7 24 aciktir."},
+    {"source_id": "sales-internal", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:sales",
+     "classification": "internal", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "Ic satis rehberi. Kampanya indirim oranlari ceyrek bazinda guncellenir."},
+    {"source_id": "hr-confidential", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:hr",
+     "classification": "confidential", "acl_ref": "acl:hr", "redaction_state": "applied",
+     "inline_text": "Gizli IK ucret bandi politikasi. Terfi kriterleri yil sonunda gozden gecirilir."}
+  ],
+  "requests": [
+    {"name": "genel-agent", "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"],
+       "principals": ["role:human_agent", "group:sales"], "clearance": "internal", "channel_no_log": true},
+     "expect": {"allow_documents": ["faq-public", "sales-internal"], "deny_documents": ["hr-confidential"]}},
+    {"name": "ik-yetkilisi", "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"],
+       "principals": ["group:hr"], "clearance": "confidential", "channel_no_log": true},
+     "expect": {"allow_documents": ["faq-public", "sales-internal", "hr-confidential"], "deny_documents": []}},
+    {"name": "tasaron-deny-wins", "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"],
+       "principals": ["group:hr", "group:contractors"], "clearance": "confidential", "channel_no_log": true},
+     "expect": {"allow_documents": ["faq-public", "sales-internal"], "deny_documents": ["hr-confidential"]}}
+  ]
+}

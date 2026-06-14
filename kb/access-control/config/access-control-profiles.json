@@ -1,0 +1,34 @@
+{
+  "$comment": "WBS 6.1.4 — Doküman bazında erişim yetkisi profilleri (FR-KB-005). Karar davranış parametreleri; sağlayıcı-nötr (ADR-002): karar policy + doküman metadata'sına dayanır. Sır/credential YOK. Eşikler/varsayılanlar MÜHENDİSLİK varsayılanı; gerçek değerler tenant compliance profile (DPIA cp.* — most-restrictive-wins) + RBAC (ADR-012) ile bağlanır. require_acl_classifications: bu sınıflar acl_ref ZORUNLU kılar (yoksa ACL_REQUIRED fail-closed). redaction_mode: pending redaction'da 'redact' (maskele+döndür) veya 'deny' (reddet). clearance_lattice sıralaması SABİT (public<internal<confidential<restricted).",
+  "clearance_lattice": ["public", "internal", "confidential", "restricted"],
+  "profiles": {
+    "pilot-default": {
+      "$comment": "Pilot varsayılan (F1). Dengeli: confidential/restricted ACL ister; pending redaction maskelenir (içerik kaybetmeden döner); fail-closed deny-by-default.",
+      "require_acl_classifications": ["confidential", "restricted"],
+      "redaction_mode": "redact",
+      "default_acl_decision": "deny",
+      "deny_wins": true
+    },
+    "regulated-tr": {
+      "$comment": "Regüle TR (finans/sağlık). En sıkı: internal'dan itibaren ACL ister; pending redaction REDDEDİLİR (maskelenmemiş hassas içerik dönmez — counsel doğrulamasına tabi); deny-by-default.",
+      "require_acl_classifications": ["internal", "confidential", "restricted"],
+      "redaction_mode": "deny",
+      "default_acl_decision": "deny",
+      "deny_wins": true
+    },
+    "enterprise-eu": {
+      "$comment": "Enterprise EU. confidential/restricted ACL ister; pending redaction maskelenir; deny-by-default. (DPIA PROFILE-EU overlay'leri canlıda bağlanır.)",
+      "require_acl_classifications": ["confidential", "restricted"],
+      "redaction_mode": "redact",
+      "default_acl_decision": "deny",
+      "deny_wins": true
+    },
+    "degraded-open": {
+      "$comment": "NEGATİF profil (yalnız negatif kapı kanıtı için): hiçbir sınıf ACL istemez + pending redaction'da içeriği OLDUĞU GİBİ döndürmeye çalışır (redaction_mode='ignore' geçersiz değer → kod fail-closed 'deny' gibi davranmalı) + default_acl_decision='allow' (open default). Bu profil hassas/yetkisiz dokümanın sızmasını DENER; G1/G4/G6 kapıları bunu yakalamalı. Üretimde KULLANILMAZ.",
+      "require_acl_classifications": [],
+      "redaction_mode": "ignore",
+      "default_acl_decision": "allow",
+      "deny_wins": false
+    }
+  }
+}

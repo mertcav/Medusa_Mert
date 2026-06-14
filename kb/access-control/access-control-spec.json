@@ -1,0 +1,128 @@
+{
+  "$comment": "WBS 6.1.4 — Doküman bazında erişim yetkisi (metadata) (FR-KB-005). Bilgi Tabanı & RAG retrieval (SAD §10.2, online/hot-path) sınırındaki ERİŞİM ENFORCEMENT kapısıdır. 6.1.3 (parse→chunk→embed→index) her chunk'a erişim metadata'sını TAŞIR (classification + acl_ref + sensitive + redaction_state — index pipeline C9); 6.1.4 bu metadata'yı TÜKETİR ve bir RETRIEVAL isteğinin principal bağlamına (tenant/kb/agent + principal token'ları + clearance + no-log kanalı + amaç) göre hangi chunk'ların DÖNEBİLECEĞİNE karar verir. Çekirdek değer FR-KB-005: 'Doküman bazında erişim yetkisi uygulanmalıdır.' SR-KB-005: 'Doküman bazında erişim yetkisi uygulanır.' (TC-KB-005, yöntem T): 'Yetkisiz dokümandan retrieval sonucu dönmez.' — bu modülün başlık kanıtı. DENY-BY-DEFAULT / fail-closed: bağlam eksik, ACL eşleşmiyor, sınıflandırma clearance'ı aşıyor, namespace uyuşmuyor veya metadata bozuksa chunk DÖNMEZ. İki uygulama noktası (defense-in-depth, ADR ruhu): (1) STORE PRE-FİLTRE yüklemi — vector search'e (6.2.1) push edilen namespace + classification + ACL token yüklemi, yetkisiz aday hiç ÇEKİLMEZ (vector-db-eval 0.2.5 C4 metadata-ACL); (2) AUTHORITATIVE POST-FİLTRE — dönen her chunk yetki kararından yeniden GEÇİRİLİR (store yüklemine asla güvenilmez). Pre-filtre POST-filtreye göre SOUND+COMPLETE olmalı (G8). Bu modül ENFORCEMENT yapar; chunking/embedding/versiyonlama → 6.1.3, namespace yazım izolasyonu → 6.1.3 C5 / 1.1.7 RLS, retrieval/rerank/top-k → 6.2.1, token-trim → 6.2.2, panel/break-glass erişimi (Tier A/B, L0 altın kural) → FR-IAM-008/009/010 (AYRI yüzey). Vendor-neutral (ADR-001/002): karar policy + doküman metadata'sına dayanır, sağlayıcıya değil. Determinizm: sanal saat + tohumlu (Date.now/rastgele YOK); chunk'lar 6.1.3 IndexPipeline'dan TÜRETİLİR (index_pipeline_probe import — kod tekrarı YOK). Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (fixture içerikleri sentetik — FR-TST-008). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "6.1.4",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-KB-005", "FR-KB-004", "FR-KB-006", "FR-KB-010", "FR-TEN-002", "FR-IAM-006", "FR-TST-008"],
+    "nfr": ["NFR 10.7"],
+    "srs": ["SR-KB-005"],
+    "rtm": ["TC-KB-005"],
+    "sad": ["§10.1 (offline indeksleme: metadata erişim yetkisi taşınır)", "§10.2 (retrieval online/hot-path — erişim ENFORCEMENT bu sınırda)", "§12.1 (pgvector/OpenSearch metadata filtre)", "§14 (residency/no-log/PII)", "§14.4 (control plane yetki)"],
+    "brd": ["§9.9 (Bilgi Tabanı ve RAG)", "§13 (anti-hallucination — kaynak yoksa uydurmaz; yetkisiz kaynak yoktur muamelesi)", "§14 (residency/PII/no-log)", "§16 (KB Document varlık 13 / KB Chunk varlık 14 — classification/acl)", "§17 (RBAC / erişim)"],
+    "adr": ["ADR-001 (orchestrator SPI bağımsızlığı — karar policy+metadata'ya dayanır)", "ADR-002 (vendor-neutral — store filtresi adapter arkası, karar sağlayıcıdan bağımsız)", "ADR-012 (RBAC rol bundle — principal token'ları rol/grup/agent/user)"],
+    "api": ["§ L1/L2 Knowledge base retrieval", "§11.6 ErrorTaxonomy ruhu (deny reason kodları)", "§ x-required-permission (kb:read) → permission-key"],
+    "db": ["DB.md §5.3 kb_document/kb_chunk (classification/acl_ref) — 1.1.7 / migration 0010", "DB.md §6 RLS (tenant izolasyon — namespace fiziksel zorlanır; 6.1.4 doküman-içi yetki katmanı ekler)"],
+    "consumes": ["6.1.3 IndexedChunk (classification/acl_ref/sensitive/redaction_state/active/namespace metadata)"],
+    "consumed_by": ["6.2.1 vector search top-k (PRE-FİLTRE yüklemi + POST-FİLTRE doğrulama TÜKETİR)", "6.2.2 token-trim (yalnız yetkili chunk'lar girer)", "6.2.4 retrieval no-log (sensitive karar TÜKETİR)"],
+    "observability": ["kb_access_decisions_total{decision,reason} / kb_access_denied_total{reason} / kb_access_redacted_total / kb_access_sensitive_total{channel} → BRD §15 → 0.4.7 (tenant_id/doc_id/kb_id/principal YÜKSEK kardinalite → yalnız trace/exemplar/audit; PII label YASAK)"]
+  },
+
+  "placement": {
+    "$comment": "Erişim enforcement RETRIEVAL sınırında (SAD §10.2, online/hot-path) çalışır: soru→embed→vector search→[6.1.4 ACCESS GATE]→rerank/trim→LLM context. İki nokta (defense-in-depth): (1) STORE PRE-FİLTRE — namespace+classification+ACL token yüklemi vector search query'sine push edilir (6.2.1), yetkisiz aday HİÇ çekilmez (performans + sızıntı önleme; vector-db-eval 0.2.5 C4). (2) AUTHORITATIVE POST-FİLTRE — store'dan dönen HER chunk yetki kararından yeniden geçer (store filtresine asla güvenilmez — savunma derinliği). Kararın kendisi UCUZ (metadata karşılaştırması; embedding/ağ YOK) → hot-path gecikme bütçesine (SAD §20) anlamlı ek YÜKLEMEZ. Vendor-neutral (ADR-001/002): pre-filtre store-adapter arkasında ifade edilir; karar policy + doküman metadata'sına dayanır, sağlayıcıya değil. NOT: bu modül RUNTIME RAG erişimidir; panel/insan operatör content erişimi (Tier A/B break-glass, L0 altın kural) FR-IAM-008/009/010 AYRI yüzeydir.",
+    "plane": "voice-runtime (retrieval hot-path) + control (pre-filtre yüklem üretimi)",
+    "hot_path": true,
+    "decision_cost": "metadata-only (embedding/ağ YOK)",
+    "enforcement_points": ["store-pre-filter (vector search predicate)", "authoritative-post-filter (her chunk yeniden karar)"],
+    "behind_spi": true,
+    "decision_depends_on_metadata_only": true,
+    "trace": "SAD §10.2, SAD §14.4, ADR-001, ADR-002, API L1/L2 retrieval"
+  },
+
+  "principal_context": {
+    "$comment": "RETRIEVAL isteğinin yetki bağlamı (canlı çağrının agent/oturum bağlamından + RBAC'tan türetilir; ADR-012). Karar YALNIZ bu bağlam + chunk metadata'sından verilir (sağlayıcıdan bağımsız). Alanlar: tenant_id (zorunlu — FR-TEN-002 sınırı); kb_ids (bu agent'ın erişebildiği kb namespace'leri — FR-KB-004); agent_id; principals (eşleştirilebilir TOKEN listesi: 'role:<r>'/'group:<g>'/'agent:<a>'/'user:<u>' + örtük '*'); clearance (public<internal<confidential<restricted lattice); channel_no_log (kanal no-log yetenekli mi — FR-KB-010 sensitive kapısı); purpose (amaç kodu — audit). Bağlam EKSİK (tenant_id/principals/clearance yok) → fail-closed MISSING_PRINCIPAL_CONTEXT (hiçbir chunk dönmez).",
+    "required_fields": ["tenant_id", "kb_ids", "principals", "clearance"],
+    "optional_fields": ["agent_id", "channel_no_log", "purpose"],
+    "principal_token_kinds": ["role:", "group:", "agent:", "user:", "*"],
+    "clearance_lattice": ["public", "internal", "confidential", "restricted"],
+    "trace": "FR-KB-005, FR-TEN-002, FR-KB-004, ADR-012, BRD §17"
+  },
+
+  "acl_model": {
+    "$comment": "Doküman erişim metadata'sı iki katmandan oluşur. (1) CLASSIFICATION (zorunlu, her chunk'ta): public/internal/confidential/restricted — clearance LATTICE ile karşılaştırılır (rank(classification) > rank(clearance) → DENY, monoton). (2) ACL (acl_ref ile referanslanan, opsiyonel ama bazı sınıflar için ZORUNLU): {acl_ref, default('deny'/'allow'), allow:[token], deny:[token]}. ÇÖZÜMLEME: principal token'ı acl.deny'da → DENY (DENY WINS, en kısıtlayıcı); allow'da (veya '*') → izin; ne deny ne allow → acl.default (deny-by-default fail-closed). acl_ref VAR ama registry'de ÇÖZÜLEMEZ → MALFORMED_ACL (fail-closed). acl_ref YOK (None): classification require_acl sınıflarındaysa (varsayılan confidential+restricted) → ACL_REQUIRED (fail-closed); değilse yalnız classification yönetir. Bu modül RBAC rol bundle'larını (ADR-012) principal token olarak tüketir; permission-builder DEĞİLDİR.",
+    "classification_required": true,
+    "acl_grant_token_kinds": ["role:", "group:", "agent:", "user:", "*"],
+    "deny_wins": true,
+    "default_deny": true,
+    "require_acl_classifications": ["confidential", "restricted"],
+    "unresolvable_acl_fail_closed": true,
+    "trace": "FR-KB-005, FR-KB-004, ADR-012, DB.md §5.3"
+  },
+
+  "decision_algorithm": {
+    "$comment": "Sıralı, fail-closed. Her adım reddederse karar DENY + reason kodu (sonraki adımlara geçmez). 1) Bağlam tam değil → MISSING_PRINCIPAL_CONTEXT. 2) chunk.tenant_id != ctx.tenant_id → CROSS_NAMESPACE (FR-TEN-002). 3) chunk.kb_id ctx.kb_ids'te değil → CROSS_NAMESPACE (FR-KB-004). 4) chunk.active False → INACTIVE_VERSION (yalnız aktif sürüm; 6.1.3 C8 tutarlılık). 5) rank(classification) > rank(clearance) → CLASSIFICATION_EXCEEDS_CLEARANCE. 6) ACL: acl_ref var+çözülemez → MALFORMED_ACL; acl_ref yok+sınıf require_acl → ACL_REQUIRED; çözülürse principal deny'da → ACL_EXPLICIT_DENY, allow/'*' eşleşme yok+default!='allow' → ACL_NOT_GRANTED. 7) chunk.sensitive ve kanal no-log değil → SENSITIVE_REQUIRES_NO_LOG (FR-KB-010). 8) redaction_state=='pending': redaction_mode=='deny' → REDACTION_PENDING; 'redact' → içerik maskele + ALLOW_REDACTED. Aksi (applied/not_required) → ALLOWED. KARAR ucuz (metadata-only). Hiçbir adım exception KAÇIRMAZ → bozuk metadata fail-closed DENY (G10).",
+    "ordered_steps": ["context_complete", "tenant_match", "kb_match", "active_only", "classification_lattice", "acl_resolution", "sensitive_no_log", "redaction"],
+    "fail_closed": true,
+    "redaction_modes": ["redact", "deny"],
+    "trace": "FR-KB-005, FR-KB-004, FR-KB-010, FR-TEN-002, SR-KB-005"
+  },
+
+  "prefilter": {
+    "$comment": "STORE PRE-FİLTRE yüklemi (vector search'e push, 6.2.1; vector-db-eval 0.2.5 C4 metadata-ACL). predicate(ctx) = {namespaces: ctx.kb_ids → ns; classification_in: clearance rank'ından küçük-eşit sınıflar; acl_tokens: ctx.principals; active: true}. AMAÇ: yetkisiz aday HİÇ çekilmesin (performans + sızıntı önleme). YÜKLEM AMA AUTHORITATIVE DEĞİL — store filtresine asla güvenilmez; POST-FİLTRE (decision_algorithm) her zaman çalışır. G8 PARİTE: (a) SOUNDNESS — pre-filtrenin geçirdiği her chunk, kararın namespace+classification+ACL boyutlarını da geçer (store yetkisiz chunk ADMIT etmez); (b) COMPLETENESS — kararın ALLOW/ALLOW_REDACTED verdiği her chunk pre-filtre tarafından ADMIT edilir (yetkili chunk DÜŞÜRÜLMEZ). sensitive/redaction POST-FİLTREDE ele alınır (içerik-bağımlı). Pre-filtre store-adapter arkasında ifade edilir (ADR-002); SQL/DSL'e çevirisi 6.2.1.",
+    "predicate_fields": ["namespaces", "classification_in", "acl_tokens", "active"],
+    "authoritative": false,
+    "sound": true,
+    "complete": true,
+    "trace": "SAD §10.2, vendor-eval 0.2.5 C4, FR-KB-005, FR-KB-004"
+  },
+
+  "redaction": {
+    "$comment": "redaction_state (NormalizedDocument'tan, 6.1.3 C9 taşıdı) DÖNEN içeriğin maskelenmesini yönetir. 'not_required' → ham içerik döner. 'applied' → zaten maskelenmiş, döner. 'pending' → HENÜZ maskelenmemiş; redaction_mode='redact' ise dönmeden önce DETERMİNİSTİK maskeleme uygulanır (uzun rakam dizileri → '[REDACTED-NUM]', e-posta → '[REDACTED-EMAIL]') ve karar ALLOW_REDACTED + redaction_state='applied' işaretlenir; redaction_mode='deny' ise REDACTION_PENDING ile reddedilir (ham hassas PII ASLA maskelenmeden dönmez — fail-closed). Maskeleme illüstratif (gerçek PII tanıma motoru canlıda); spec/sample'lar gerçek PII DEĞERİ tutmaz. Audit'e ham içerik/PII YAZILMAZ (BRD §17.7/FR-REC-004).",
+    "states": ["not_required", "applied", "pending"],
+    "pending_modes": ["redact", "deny"],
+    "raw_pii_never_unredacted": true,
+    "trace": "FR-KB-010, BRD §14, BRD §17.7, FR-REC-004"
+  },
+
+  "audit": {
+    "$comment": "Her erişim kararı YAPISAL audit kaydı üretir (DENY ve ALLOW): {ts, tenant_id, kb_id, document_id, chunk_id, decision, reason, classification, sensitive, principal_digest}. sensitive/restricted erişimleri (ALLOW dahil) audit'e GİRER (DPA/break-glass dışı runtime erişim izi). Audit'e HAM İÇERİK / HAM PII / token ham değeri YAZILMAZ — principal_digest sha256 kısaltma (kardinalite + PII hijyeni; BRD §17.7/FR-REC-004; 0.4.7 label politikası: tenant_id/doc_id/principal yüksek kardinalite → metrik label DEĞİL, yalnız trace/audit/exemplar). Metrikler: kb_access_decisions_total{decision,reason}/kb_access_denied_total{reason}/kb_access_redacted_total/kb_access_sensitive_total{channel}.",
+    "record_fields": ["ts", "tenant_id", "kb_id", "document_id", "chunk_id", "decision", "reason", "classification", "sensitive", "principal_digest"],
+    "raw_content_in_audit_forbidden": true,
+    "raw_pii_in_audit_forbidden": true,
+    "trace": "BRD §15, BRD §17.7, FR-REC-004, NFR 10.7"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (G1–G10). max_unauthorized_returned=0: yetkisiz dokümandan retrieval sonucu DÖNMEZ (SR-KB-005/TC-KB-005 başlık). max_cross_namespace_returned=0: cross-tenant/cross-kb chunk asla dönmez (FR-TEN-002/FR-KB-004 savunma derinliği). require_fail_closed: bağlam eksik/ACL eşleşmez/metadata bozuk → DENY. require_classification_lattice: classification>clearance → DENY (monoton). require_deny_wins: explicit deny allow'u ezer. require_sensitive_no_log: sensitive yalnız no-log kanal. require_redaction_enforced: pending redaction → redact-or-deny (ham hassas PII maskelenmeden dönmez). require_active_only: yalnız aktif sürüm döner. require_prefilter_parity: pre-filtre SOUND+COMPLETE (post-filtre authoritative). require_decision_auditable: her karar yapısal reason; ham içerik/PII audit'e girmez. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler tenant compliance profile (DPIA cp.*) ile ayarlanır.",
+    "max_unauthorized_returned": 0,
+    "max_cross_namespace_returned": 0,
+    "require_fail_closed": true,
+    "require_classification_lattice": true,
+    "require_deny_wins": true,
+    "require_sensitive_no_log": true,
+    "require_redaction_enforced": true,
+    "require_active_only": true,
+    "require_prefilter_parity": true,
+    "require_decision_auditable": true,
+    "trace": "FR-KB-005, SR-KB-005, FR-KB-004, FR-TEN-002, FR-KB-010, SAD §10.2"
+  },
+
+  "decision_taxonomy": {
+    "$comment": "Erişim kararı sonuç kodları (API §11.6 ruhu — modüle özgü). DETERMİNİSTİK + müşteriye sızmaz (ham reason yalnız audit/log). ALLOW yolları: ALLOWED, ALLOWED_REDACTED. DENY reason'ları: MISSING_PRINCIPAL_CONTEXT (bağlam eksik), CROSS_NAMESPACE (tenant/kb sınırı), INACTIVE_VERSION (supersede), CLASSIFICATION_EXCEEDS_CLEARANCE, ACL_REQUIRED (sınıf ACL ister, yok), ACL_NOT_GRANTED (allow eşleşmez+default deny), ACL_EXPLICIT_DENY (deny wins), MALFORMED_ACL (çözülemez acl_ref), SENSITIVE_REQUIRES_NO_LOG, REDACTION_PENDING (deny modu). Bozuk metadata exception KAÇIRMAZ → fail-closed DENY (G10).",
+    "allow": ["ALLOWED", "ALLOWED_REDACTED"],
+    "deny": ["MISSING_PRINCIPAL_CONTEXT", "CROSS_NAMESPACE", "INACTIVE_VERSION", "CLASSIFICATION_EXCEEDS_CLEARANCE", "ACL_REQUIRED", "ACL_NOT_GRANTED", "ACL_EXPLICIT_DENY", "MALFORMED_ACL", "SENSITIVE_REQUIRES_NO_LOG", "REDACTION_PENDING"],
+    "trace": "API §11.6, FR-KB-005, SAD §10.2"
+  },
+
+  "pii": {
+    "$comment": "Bu SPEC/config/sample DESCRIPTOR'ları sır/credential ve gerçek PII DEĞERİ TUTMAZ (fixture içerikleri sentetik — FR-TST-008). Chunk içeriği (6.1.3'ten) runtime'da PII içerebilir (meşru) → 6.1.4 sensitive chunk'ı no-log kanal kapısıyla (FR-KB-010) + redaction (pending→redact-or-deny) ile korur; audit'e ham içerik/PII YAZILMAZ. Spec/config'te uzun rakam dizisi (kart/TCKN) yasak. principal_digest sha256 (token ham değeri loglanmaz).",
+    "raw_pii_in_spec_forbidden": true,
+    "chunk_content_may_contain_pii": true,
+    "audit_redacts_pii": true,
+    "trace": "FR-KB-010, BRD §14, BRD §17.7, FR-REC-004"
+  },
+
+  "invariants": [
+    { "id": "G1", "desc": "FAIL-CLOSED / DENY-BY-DEFAULT: bağlam eksik (tenant_id/principals/clearance yok), ACL eşleşmesi yok, metadata bozuk → DENY; YETKİSİZ dokümandan retrieval sonucu DÖNMEZ (SR-KB-005/TC-KB-005 başlık kanıtı). Karar her zaman backend'de (CLAUDE.md RBAC kuralı), istemci kararına güvenilmez.", "trace": "FR-KB-005, SR-KB-005, BRD §17" },
+    { "id": "G2", "desc": "NAMESPACE ISOLATION (savunma derinliği): chunk.tenant_id != ctx.tenant_id veya chunk.kb_id ctx.kb_ids'te değil → CROSS_NAMESPACE DENY; cross-namespace dönen chunk=0 (FR-TEN-002/FR-KB-004). 6.1.3 C5 (yazım izolasyonu) + 1.1.7 RLS'in ÜZERİNE okuma-zamanı doküman-içi yetki katmanı ekler.", "trace": "FR-TEN-002, FR-KB-004, DB.md §6" },
+    { "id": "G3", "desc": "CLASSIFICATION LATTICE: rank(chunk.classification) > rank(ctx.clearance) → CLASSIFICATION_EXCEEDS_CLEARANCE DENY (monoton: public<internal<confidential<restricted). Düşük clearance yüksek-sınıf dokümanı GÖREMEZ.", "trace": "FR-KB-005, BRD §17" },
+    { "id": "G4", "desc": "ACL — DENY WINS + DEFAULT DENY: acl.deny'daki principal her zaman reddedilir (allow'da olsa bile); allow eşleşmesi yoksa acl.default uygulanır (varsayılan deny — fail-closed). acl_ref var ama çözülemez → MALFORMED_ACL (fail-closed). confidential/restricted + acl_ref yok → ACL_REQUIRED.", "trace": "FR-KB-005, ADR-012" },
+    { "id": "G5", "desc": "SENSITIVE NO-LOG: chunk.sensitive ve kanal no-log değil → SENSITIVE_REQUIRES_NO_LOG DENY; hassas doküman yalnız no-log kanala (FR-KB-010) — sağlayıcı/transcript loguna sızmaz (anti-hallucination 'kaynak yok' muamelesi BRD §13).", "trace": "FR-KB-010, BRD §13, BRD §14" },
+    { "id": "G6", "desc": "REDACTION ENFORCED: redaction_state=='pending' → redaction_mode='redact' ise içerik dönmeden DETERMİNİSTİK maskelenir (ALLOW_REDACTED, state→applied), 'deny' ise REDACTION_PENDING DENY; ham hassas PII ASLA maskelenmeden dönmez (fail-closed).", "trace": "FR-KB-010, BRD §17.7, FR-REC-004" },
+    { "id": "G7", "desc": "ACTIVE-ONLY: yalnız active=true (aktif sürüm) chunk döner; supersede edilmiş (active=false, 6.1.3 C8) sürüm INACTIVE_VERSION ile reddedilir — eski/yanlış sürüm yanıta sızmaz.", "trace": "FR-KB-003, 6.1.3 C8, SAD §10.1" },
+    { "id": "G8", "desc": "PREFILTER PARITY: store pre-filtre yüklemi (6.2.1'e push) authoritative post-filtreye göre SOUND (geçirdiği her chunk namespace+classification+ACL boyutunu da geçer — yetkisiz ADMIT etmez) + COMPLETE (kararın ALLOW/ALLOW_REDACTED verdiği her chunk pre-filtrede ADMIT — yetkili düşürülmez). Store filtresine güvenilmez; post-filtre her zaman authoritative.", "trace": "SAD §10.2, vendor-eval 0.2.5 C4, FR-KB-005" },
+    { "id": "G9", "desc": "DECISION AUDITABLE: her karar (allow+deny) yapısal reason kodu + audit kaydı üretir; sensitive/restricted erişimleri audit'e girer; audit'e HAM içerik/HAM PII/token ham değeri YAZILMAZ (principal_digest sha256; BRD §17.7/FR-REC-004; 0.4.7 kardinalite/PII label politikası).", "trace": "BRD §15, BRD §17.7, FR-REC-004" },
+    { "id": "G10", "desc": "ROBUST + SCOPE BOUNDARY: bozuk/eksik metadata (eksik tenant_id, çözülemez acl_ref, bilinmeyen classification) hiçbir exception KAÇIRMAZ → fail-closed DENY + yapısal reason. KAPSAM: 6.1.4 ENFORCEMENT yapar; chunking/embedding/versiyonlama → 6.1.3 (TÜKETİR), namespace yazım izolasyonu → 6.1.3 C5/1.1.7, retrieval/rerank/top-k → 6.2.1, token-trim → 6.2.2, retrieval no-log → 6.2.4, panel/break-glass content erişimi (Tier A/B, L0 altın kural) → FR-IAM-008/009/010 (AYRI yüzey). Sır/credential üretmez.", "trace": "6.1.3, 6.2.1, 6.2.2, 6.2.4, FR-IAM-008" }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "$comment": "WBS 6.1.4 — Namespace izolasyonu (G2, FR-TEN-002/FR-KB-004 savunma derinliği). AYNI içerik iki tenant'a (t-alpha, t-beta) indexlenir; t-alpha bağlamlı istek t-beta chunk'larını ASLA görmez (CROSS_NAMESPACE), tersi de. Ayrıca t-alpha içinde iki agent kb'si (kb-sales/kb-support) — kb-sales bağlamı kb-support'u görmez. 6.1.3 C5 (yazım izolasyonu) ÜZERİNE okuma-zamanı katmanı. Sentetik (FR-TST-008).",
+  "scenario": "tenant-isolation",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "acls": {},
+  "documents": [
+    {"source_id": "alpha-sales", "tenant_id": "t-alpha", "kb_id": "kb-sales", "doc_logical_key": "doc:ortak",
+     "classification": "internal", "redaction_state": "not_required",
+     "inline_text": "Ortak SSS. Faturalar ay sonunda kesilir. Iade suresi 14 gundur."},
+    {"source_id": "alpha-support", "tenant_id": "t-alpha", "kb_id": "kb-support", "doc_logical_key": "doc:ortak",
+     "classification": "internal", "redaction_state": "not_required",
+     "inline_text": "Ortak SSS. Faturalar ay sonunda kesilir. Iade suresi 14 gundur."},
+    {"source_id": "beta-sales", "tenant_id": "t-beta", "kb_id": "kb-sales", "doc_logical_key": "doc:ortak",
+     "classification": "internal", "redaction_state": "not_required",
+     "inline_text": "Ortak SSS. Faturalar ay sonunda kesilir. Iade suresi 14 gundur."}
+  ],
+  "requests": [
+    {"name": "alpha-sales-agent", "context": {"tenant_id": "t-alpha", "kb_ids": ["kb-sales"],
+       "principals": ["role:human_agent"], "clearance": "internal", "channel_no_log": true},
+     "expect": {"allow_documents": ["alpha-sales"], "deny_documents": ["alpha-support", "beta-sales"]}},
+    {"name": "beta-sales-agent", "context": {"tenant_id": "t-beta", "kb_ids": ["kb-sales"],
+       "principals": ["role:human_agent"], "clearance": "internal", "channel_no_log": true},
+     "expect": {"allow_documents": ["beta-sales"], "deny_documents": ["alpha-sales", "alpha-support"]}},
+    {"name": "alpha-multi-kb", "context": {"tenant_id": "t-alpha", "kb_ids": ["kb-sales", "kb-support"],
+       "principals": ["role:human_agent"], "clearance": "internal", "channel_no_log": true},
+     "expect": {"allow_documents": ["alpha-sales", "alpha-support"], "deny_documents": ["beta-sales"]}}
+  ]
+}

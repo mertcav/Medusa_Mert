@@ -1,0 +1,23 @@
+{
+  "$comment": "WBS 6.1.4 — Active-only enforcement (G7, 6.1.3 C8 tutarlılık). Aynı mantıksal doküman (doc:policy) iki kez indexlenir; ikinci içerik değişikliği v2 üretir ve v1'i supersede eder (active=false). Retrieval yalnız AKTİF sürümü döndürür; eski (v1) chunk'lar INACTIVE_VERSION ile reddedilir — eski/yanlış sürüm yanıta sızmaz. Sentetik (FR-TST-008).",
+  "scenario": "active-version",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "acls": {},
+  "documents": [
+    {"source_id": "policy-doc", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:policy",
+     "classification": "internal", "redaction_state": "not_required",
+     "inline_text": "Iade politikasi birinci surum. Iade suresi 14 gundur ve kargo ucretsizdir."},
+    {"source_id": "policy-doc", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:policy",
+     "classification": "internal", "redaction_state": "not_required",
+     "inline_text": "Iade politikasi ikinci surum. Iade suresi 30 gune cikarilmistir ve kargo yine ucretsizdir."},
+    {"source_id": "shipping-doc", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:shipping",
+     "classification": "internal", "redaction_state": "not_required",
+     "inline_text": "Kargo bilgisi. Siparisler 2 is gunu icinde kargoya verilir."}
+  ],
+  "requests": [
+    {"name": "agent", "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"],
+       "principals": ["role:human_agent"], "clearance": "internal", "channel_no_log": true},
+     "expect": {"allow_documents": ["policy-doc", "shipping-doc"], "deny_documents": []}}
+  ]
+}

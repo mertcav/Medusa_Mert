@@ -1,0 +1,22 @@
+{
+  "$comment": "WBS 6.1.4 — NEGATİF senaryo (yalnız negatif kapı kanıtı için). 'degraded-open' profili (deny_wins=false + default_acl=allow + redaction_mode=ignore) yetkisiz/explicit-deny edilen dokümanın sızmasını DENER. 'gizli-doc' acl:locked'da group:everyone EXPLICIT DENY'dir ama istek principal'i hem group:exec (allow) hem group:everyone (deny) taşır → deny_wins=false ile sızar → G4 yakalamalı + 'gizli-doc' deny_documents'te → beklenti sapması. 'hassas-pending' sensitive+pending: G5 (no-log değil) ve G6 (redaction_mode geçersiz→fail-closed deny) bunu YİNE de korur (degrade profil bile sensitive/redaction'ı bozamaz). expect_gate=fail. Üretimde KULLANILMAZ.",
+  "scenario": "degraded-open-leak",
+  "expect_gate": "fail",
+  "profile": "degraded-open",
+  "acls": {
+    "acl:locked": {"default": "deny", "allow": ["group:exec"], "deny": ["group:everyone"]}
+  },
+  "documents": [
+    {"source_id": "gizli-doc", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:gizli",
+     "classification": "confidential", "acl_ref": "acl:locked", "redaction_state": "applied",
+     "inline_text": "Gizli proje notlari. Erisim yalnizca yetkili gruba aciktir."},
+    {"source_id": "hassas-pending", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:hassas",
+     "classification": "internal", "sensitive": true, "redaction_state": "pending",
+     "inline_text": "Hassas kayit. Ornek numara 7766 5544 3322 maskelenmeden donmemeli."}
+  ],
+  "requests": [
+    {"name": "izinsiz-erisim", "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"],
+       "principals": ["group:exec", "group:everyone"], "clearance": "confidential", "channel_no_log": true},
+     "expect": {"allow_documents": [], "deny_documents": ["gizli-doc"]}}
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "$comment": "WBS 6.1.4 — Sınıflandırma lattice (G3) + redaction enforcement (G6) + sensitive no-log (G5). 'duyuru-pending' redaction_state=pending → redact modunda ALLOW_REDACTED (sentetik PII maskelenir). 'exec-restricted' restricted + ACL → yalnız tenant_owner. 'hassas-kayit' sensitive → yalnız no-log kanal. Sentetik PII (FR-TST-008; gerçek değer değil). Sentetik.",
+  "scenario": "classification-redaction",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "acls": {
+    "acl:exec": {"default": "deny", "allow": ["role:tenant_owner"]}
+  },
+  "documents": [
+    {"source_id": "duyuru-pending", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:duyuru",
+     "classification": "internal", "acl_ref": null, "redaction_state": "pending",
+     "inline_text": "Iletisim icin destek hattini arayiniz. Ornek kayit numarasi 4521 7788 3300 olarak gecmektedir."},
+    {"source_id": "exec-restricted", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:exec",
+     "classification": "restricted", "acl_ref": "acl:exec", "redaction_state": "applied",
+     "inline_text": "Yonetim kurulu stratejik plan ozeti. Birlesme degerlendirmesi devam etmektedir."},
+    {"source_id": "hassas-kayit", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:hassas",
+     "classification": "confidential", "acl_ref": "acl:exec", "sensitive": true, "redaction_state": "applied",
+     "inline_text": "Hassas musteri dosyasi ozeti. Sadece no-log kanalda erisilebilir."}
+  ],
+  "requests": [
+    {"name": "agent-internal", "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"],
+       "principals": ["role:human_agent"], "clearance": "internal", "channel_no_log": true},
+     "expect": {"allow_documents": ["duyuru-pending"], "deny_documents": ["exec-restricted", "hassas-kayit"]}},
+    {"name": "owner-no-log", "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"],
+       "principals": ["role:tenant_owner"], "clearance": "restricted", "channel_no_log": true},
+     "expect": {"allow_documents": ["duyuru-pending", "exec-restricted", "hassas-kayit"], "deny_documents": []}},
+    {"name": "owner-logged-channel", "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"],
+       "principals": ["role:tenant_owner"], "clearance": "restricted", "channel_no_log": false},
+     "expect": {"allow_documents": ["duyuru-pending", "exec-restricted"], "deny_documents": ["hassas-kayit"]}}
+  ]
+}
