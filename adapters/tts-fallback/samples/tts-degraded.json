@@ -1,0 +1,29 @@
+{
+  "name": "tts-degraded",
+  "$comment": "İLLÜSTRATİF elenen profil (negatif kapı kanıtı). Birincil A → ikincil C-degraded (yavaş setup/first_byte) + C için EŞDEĞER ses haritası TANIMSIZ. u1 sürerken birincil timeout → ikincile geçiş: (a) switch overhead = teardown+setup+first_byte+resynth > 200ms (T3 eler); (b) C için eşdeğer ses yok → voice_switch_unmapped ≥ 1 → ses karakteri kırılır (T8/FR-TTS-009 eler). EXPECT fail: en az bir HARD kapı eler.",
+  "expect": "fail",
+  "voice_id": "voice-tr-warm",
+  "voice_equivalence": {
+    "voice-tr-warm": { "tts-stream-A": "A-tr-f-warm" }
+  },
+  "primary_obj": {
+    "provider_id": "tts-stream-A",
+    "features": ["streaming", "barge_in_cancel", "pronunciation_dict"],
+    "sample_rates": [8000, 16000], "data_retention": "NONE", "voices": ["A-tr-f-warm"],
+    "setup_ms": 60, "teardown_ms": 20, "first_byte_ms": 90, "cancel_ms": 70, "resynth_rtf": 0.20
+  },
+  "secondary_obj": {
+    "provider_id": "tts-stream-C-degraded",
+    "features": ["streaming"],
+    "sample_rates": [16000], "data_retention": "PROVIDER_DEFAULT", "voices": ["C-en-generic"],
+    "setup_ms": 260, "teardown_ms": 90, "first_byte_ms": 300, "cancel_ms": 320, "resynth_rtf": 1.10
+  },
+  "events": [
+    { "kind": "start", "t": 0, "sample_rate_hz": 8000, "voice_id": "voice-tr-warm" },
+    { "kind": "speak", "t": 100, "utterance_id": "u1", "char_len": 40, "dur_ms": 800, "remaining_chars": 60 },
+    { "kind": "provider_error", "t": 900, "utterance_id": "u1", "raw_error": "provider_timeout" },
+    { "kind": "speak", "t": 1400, "utterance_id": "u1", "char_len": 60, "dur_ms": 1100, "remaining_chars": 0 },
+    { "kind": "complete", "t": 2600, "utterance_id": "u1" },
+    { "kind": "end", "t": 5000, "reason": "normal" }
+  ]
+}

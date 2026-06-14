@@ -1,0 +1,29 @@
+{
+  "name": "tts-failover-resynth",
+  "$comment": "Tipik SPEAK akışı (pilot-default: primary tts-stream-A + secondary tts-stream-B; logical voice-tr-warm). İlk söz (u1) birincil TTS ile tamamlanır. İkinci söz (u2) seslendirilirken birincil TTS akışı timeout verir (circuit-open, 4.1.2) → switcher ikincile geçer + u2'nin KALAN (50 char çalınmamış) metnini ikincide EŞDEĞER ses (A-tr-f-warm→B-tr-f-warm) ile yeniden sentezler (T2); zaten çalınmış metin TEKRAR seslendirilmez (resynth_replayed_spoken=0) → kullanıcı kesintiden devam eder, baştan duymaz; söz kaybı yok (T1). Ses karakteri tutarlı kalır (T8/FR-TTS-009). Anahtarlama gecikmesi sınırlı (T3). Tek aktif stream + dup yok (T4). Her iki segment metrelenir, flap yok (T10). Yalnız geçici sınıf (TIMEOUT) failover tetikledi (T7). Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "failovers": 1,
+    "utterance_lost": 0,
+    "unspoken_lost": 0,
+    "resynth_replayed_spoken": 0,
+    "resynth_chars_total": 50.0,
+    "voice_switch_unmapped": 0,
+    "voice_switches_mapped": 1,
+    "effective_voice_at_end": "B-tr-f-warm",
+    "dropped_call": 0,
+    "speak_complete_total": 2,
+    "flap_count": 0
+  },
+  "events": [
+    { "kind": "start", "t": 0, "sample_rate_hz": 8000, "voice_id": "voice-tr-warm" },
+    { "kind": "speak", "t": 100, "utterance_id": "u1", "char_len": 38, "dur_ms": 700, "remaining_chars": 0 },
+    { "kind": "complete", "t": 900, "utterance_id": "u1" },
+    { "kind": "speak", "t": 2500, "utterance_id": "u2", "char_len": 30, "dur_ms": 520, "remaining_chars": 50 },
+    { "kind": "provider_error", "t": 3100, "utterance_id": "u2", "raw_error": "provider_timeout" },
+    { "kind": "speak", "t": 3500, "utterance_id": "u2", "char_len": 50, "dur_ms": 820, "remaining_chars": 0, "voice_id": "B-tr-f-warm" },
+    { "kind": "complete", "t": 4400, "utterance_id": "u2" },
+    { "kind": "end", "t": 8000, "reason": "normal" }
+  ]
+}

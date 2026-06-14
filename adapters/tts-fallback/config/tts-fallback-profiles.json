@@ -1,0 +1,101 @@
+{
+  "$comment": "WBS 4.3.2 TTS fallback sağlayıcı + çalıştırma profilleri (İLLÜSTRATİF, sağlayıcı-nötr — ADR-002; sır YOK). 'providers' = iki SOMUT TtsAdapter implementasyonu (≥2/kategori — BRD §19 (1)); GERÇEK sağlayıcı DEĞİL, isimler vendor-neutral placeholder. Her sağlayıcı: capabilities() beyanı (languages, sample_rates⊇8000, features⊇{streaming,barge_in_cancel,pronunciation_dict}, regions, data_retention, voices=desteklenen fiziksel sesler) + DETERMİNİSTİK gecikme PROFİLİ (setup_ms/teardown_ms = stream kurulum/teardown, first_byte_ms, cancel_ms = barge-in kesme gecikmesi, resynth_rtf = ikincide kalan metin yeniden sentez hızı — random YOK). Gecikme değerleri MÜHENDİSLİK varsayılanı (0.2.3 tts-eval kapılarına uyumlu: first-byte P95 ≤200ms / barge-in ≤200ms SAD §20/NFR 10.1); GERÇEK değerler 0.3.x canlı PoC'ta telefoni (8 kHz) koşullarında ölçülür. 'profiles' = dağıtım/tenant-sınıfı çalıştırma profilleri (primary+secondary sağlayıcı + bölge + voice_equivalence). voice_equivalence: logical voiceId → { provider_id: physical_voice_id } — SES KARAKTERİ TUTARLILIĞI (FR-TTS-009): fallback'te switcher tenant logical voiceId'sine karşılık gelen ikincil sağlayıcı EŞDEĞER fiziksel sesi kullanır; her profilde primary VE secondary için tanımlı olmalı (require_equivalent_voice). switch_overhead = eski_teardown + ikincil_setup + ilk_ses (deterministik; gates.switch_overhead_p95_ms kapısı). Bölge pini NFR 10.7; UsageRecord home-region (FR-BIL-002). Config GÖVDE/credential TAŞIMAZ (yalnız ${ENV}).",
+  "version": "1.0",
+  "default_profile": "pilot-default",
+
+  "providers": [
+    {
+      "provider_id": "tts-stream-A",
+      "$comment": "Adapter #1 — bulut streaming TTS (managed, düşük first-byte). 8 kHz native, EU/TR residency, no-log (NONE). Birincil aday. voices: desteklenen fiziksel sesler (eşdeğer-ses haritası için).",
+      "kind": "cloud-streaming",
+      "languages": ["tr", "en", "de", "ar"],
+      "sample_rates": [8000, 16000],
+      "features": ["streaming", "barge_in_cancel", "pronunciation_dict"],
+      "regions": ["EU", "TR"],
+      "data_retention": "NONE",
+      "voices": ["A-tr-f-warm", "A-tr-m-calm", "A-en-f-neutral"],
+      "setup_ms": 60,
+      "teardown_ms": 20,
+      "first_byte_ms": 90,
+      "cancel_ms": 70,
+      "resynth_rtf": 0.20,
+      "cost_per_1k_chars_minor": 16,
+      "currency": "EUR"
+    },
+    {
+      "provider_id": "tts-stream-B",
+      "$comment": "Adapter #2 — edge/bölgesel streaming TTS (self-host yakın). Çok düşük setup (yerel), 8 kHz native, TR residency, ephemeral retention. ≥2/kategori + fallback (FR-TTS-008) için bağımsız ikinci sağlayıcı. voices: A'daki seslerin EŞDEĞERLERİ (karakter tutarlılığı — FR-TTS-009).",
+      "kind": "edge-regional",
+      "languages": ["tr", "en"],
+      "sample_rates": [8000, 16000],
+      "features": ["streaming", "barge_in_cancel", "pronunciation_dict"],
+      "regions": ["TR"],
+      "data_retention": "EPHEMERAL",
+      "voices": ["B-tr-f-warm", "B-tr-m-calm", "B-en-f-neutral"],
+      "setup_ms": 35,
+      "teardown_ms": 15,
+      "first_byte_ms": 110,
+      "cancel_ms": 60,
+      "resynth_rtf": 0.18,
+      "cost_per_1k_chars_minor": 11,
+      "currency": "EUR"
+    },
+    {
+      "provider_id": "tts-stream-C-degraded",
+      "$comment": "İLLÜSTRATİF elenen aday — yavaş setup/cancel + eşdeğer ses YOK (switch overhead + barge-in + voice kapılarını eler). Yalnız negatif kapı kanıtı için; portföyde DEĞİL.",
+      "kind": "cloud-streaming",
+      "languages": ["en"],
+      "sample_rates": [16000],
+      "features": ["streaming"],
+      "regions": ["US"],
+      "data_retention": "PROVIDER_DEFAULT",
+      "voices": ["C-en-generic"],
+      "setup_ms": 260,
+      "teardown_ms": 90,
+      "first_byte_ms": 300,
+      "cancel_ms": 320,
+      "resynth_rtf": 1.10,
+      "cost_per_1k_chars_minor": 8,
+      "currency": "USD"
+    }
+  ],
+
+  "profiles": [
+    {
+      "name": "pilot-default",
+      "$comment": "Faz 1 pilot: bulut birincil + edge ikincil; EU bölge. ≥2 sağlayıcı + kontrollü fallback (BRD §19 (1)/(4)). voice_equivalence: tenant logical 'voice-tr-warm' → A/B fiziksel eşdeğerleri (FR-TTS-009).",
+      "primary_provider": "tts-stream-A",
+      "secondary_provider": "tts-stream-B",
+      "region": "EU",
+      "default_voice": "voice-tr-warm",
+      "voice_equivalence": {
+        "voice-tr-warm": { "tts-stream-A": "A-tr-f-warm", "tts-stream-B": "B-tr-f-warm" },
+        "voice-tr-calm": { "tts-stream-A": "A-tr-m-calm", "tts-stream-B": "B-tr-m-calm" },
+        "voice-en-neutral": { "tts-stream-A": "A-en-f-neutral", "tts-stream-B": "B-en-f-neutral" }
+      }
+    },
+    {
+      "name": "regional-tr",
+      "$comment": "TR residency: edge birincil + bulut(TR) ikincil; veri TR sınırında. no-log. Eşdeğer ses haritası ters yönde de tutarlı (B↔A).",
+      "primary_provider": "tts-stream-B",
+      "secondary_provider": "tts-stream-A",
+      "region": "TR",
+      "default_voice": "voice-tr-warm",
+      "voice_equivalence": {
+        "voice-tr-warm": { "tts-stream-B": "B-tr-f-warm", "tts-stream-A": "A-tr-f-warm" },
+        "voice-tr-calm": { "tts-stream-B": "B-tr-m-calm", "tts-stream-A": "A-tr-m-calm" }
+      }
+    },
+    {
+      "name": "high-density",
+      "$comment": "Yüksek yoğunluk: düşük-setup edge birincil (hızlı failover) + bulut ikincil.",
+      "primary_provider": "tts-stream-B",
+      "secondary_provider": "tts-stream-A",
+      "region": "EU",
+      "default_voice": "voice-en-neutral",
+      "voice_equivalence": {
+        "voice-en-neutral": { "tts-stream-B": "B-en-f-neutral", "tts-stream-A": "A-en-f-neutral" }
+      }
+    }
+  ]
+}

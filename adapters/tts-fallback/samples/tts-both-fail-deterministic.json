@@ -1,0 +1,23 @@
+{
+  "name": "tts-both-fail-deterministic",
+  "$comment": "İkincil de düşer (pilot-default). u1 sürerken birincil timeout → ikincile geçiş + eşdeğer ses + resynth; u1 ikincide tamamlanır. u2 sürerken ikincil de 5xx (UNAVAILABLE) verir → histerezis: birincile geri DÖNÜLMEZ, deterministik akışa (insan temsilciye kontrollü aktarım / güvenli degrade — SAD §8.3) geçilir; ÇAĞRI DÜŞMEZ (T6, BRD §19 (4)). Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "failovers": 1,
+    "deterministic_flow_count": 1,
+    "dropped_call": 0,
+    "flap_count": 0,
+    "voice_switch_unmapped": 0
+  },
+  "events": [
+    { "kind": "start", "t": 0, "sample_rate_hz": 8000, "voice_id": "voice-tr-warm" },
+    { "kind": "speak", "t": 100, "utterance_id": "u1", "char_len": 30, "dur_ms": 520, "remaining_chars": 25 },
+    { "kind": "provider_error", "t": 600, "utterance_id": "u1", "raw_error": "provider_timeout" },
+    { "kind": "speak", "t": 1000, "utterance_id": "u1", "char_len": 25, "dur_ms": 420, "remaining_chars": 0, "voice_id": "B-tr-f-warm" },
+    { "kind": "complete", "t": 1500, "utterance_id": "u1" },
+    { "kind": "speak", "t": 3000, "utterance_id": "u2", "char_len": 28, "dur_ms": 500, "remaining_chars": 20 },
+    { "kind": "provider_error", "t": 3500, "utterance_id": "u2", "raw_error": "provider_5xx" },
+    { "kind": "end", "t": 6000, "reason": "transfer" }
+  ]
+}

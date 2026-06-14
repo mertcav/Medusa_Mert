@@ -1,0 +1,18 @@
+{
+  "name": "tts-selective-auth-no-failover",
+  "$comment": "Seçici tetik (pilot-default). Birincil TTS AUTH (kimlik) hatası verir — GEÇİCİ DEĞİL; ikincide de aynı sonuç beklenir → boşuna anahtarlama + ölü hava ÜRETİLMEZ (improper_failover=0). Doğrudan deterministik akışa (güvenli degrade / insan aktarımı) geçilir, çağrı düşmez (T7+T6). Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "failovers": 0,
+    "improper_failover": 0,
+    "deterministic_flow_count": 1,
+    "dropped_call": 0
+  },
+  "events": [
+    { "kind": "start", "t": 0, "sample_rate_hz": 8000, "voice_id": "voice-tr-warm" },
+    { "kind": "speak", "t": 100, "utterance_id": "u1", "char_len": 30, "dur_ms": 520, "remaining_chars": 20 },
+    { "kind": "provider_error", "t": 600, "utterance_id": "u1", "raw_error": "auth_failure" },
+    { "kind": "end", "t": 3000, "reason": "transfer" }
+  ]
+}

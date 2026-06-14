@@ -1,0 +1,162 @@
+{
+  "$comment": "WBS 4.3.2 — TTS fallback + ses karakteri tutarlılığı. Sağlayıcı Soyutlama Katmanı'nın FALLBACK ve degradation dilimi (SAD §8.2 adapter ortak yetenekleri + §8.3 fallback/routing stratejisi; BRD §19 (4) kabul kriteri). Bu görev TtsAdapter SPI (SAD §8.1 / API §11.3) ARKASINDA, ortak fallback ANAHTARLAMA mantığını uygular: birincil TTS sentezi hata/timeout (circuit-open) verirse ikincil TTS'ye geçilir (FR-TTS-008) ve çağrı boyunca SES KARAKTERİ TUTARLI kalır (FR-TTS-009) — ikincil sağlayıcı tenant başına önceden tanımlı EŞDEĞER ses ile sentezler; konuşulan sözün KALAN (henüz çalınmamış) metni ikincide YENİDEN SENTEZLENİR — zaten ÇALINMIŞ metin TEKRAR seslendirilmez (kullanıcı tekrar duymaz). Her iki TTS de düşerse DETERMİNİSTİK akışa (insan temsilciye kontrollü aktarım / güvenli degrade) geçilir — ÇAĞRI DÜŞÜRÜLMEZ (SAD §8 ilke 6 'Fail soft, never drop the call'; SAD §8.3 deterministic flow). Orchestrator yalnız TtsAdapter SPI'ye + bu switcher'ın KARARINA bağımlıdır (ADR-001); somut TTS sağlayıcısı arkada değişir (ADR-002). Bu motor TtsAdapter'ın KENDİSİNİ (streaming/pronunciation/cancel) UYGULAMAZ → 4.2.3; ortak yetenekleri (timeout/retry/backoff/circuit-breaker/health) → 4.1.2, connection pool → 4.1.6, metering MOTORU → 4.1.3, residency/retention → 4.1.4, hata normalizasyonu eşlemesi → 4.1.5 (TÜKETİR — switcher yalnız normalize edilmiş ErrorTaxonomy'ye göre karar verir), deterministic-flow/insan aktarımı MOTORU → 8.x handoff + 3.3.x (KARARINI üretir, aktarım akışını değil), TTS cache MOTORU (statik anons) → 16.1, barge-in OLAY üretimi (VAD/turn-taking) → 2.2.3/3.1.3 (BARGE_IN olayını TÜKETİR → cancel()), ses klonlama izni → 4.2.6, TTS sağlayıcı SEÇİMİ → 0.2.3/0.2.6/0.3.x. On bir invariant: (T1) FAILOVER — geçici birincil hata/timeout → ikincile geçiş, çağrı sürer (utterance_lost=0); (T2) RESYNTH CONTINUATION — in-flight sözün KALAN (çalınmamış) metni ikincide yeniden sentezlenir (unspoken_lost=0) + zaten çalınmış metin tekrar seslendirilmez (resynth_replayed_spoken=0); (T3) SWITCH OVERHEAD — anahtarlama gecikmesi P95 ≤ kapı (sınırlı ölü hava, hot-path); (T4) NO DUP / SINGLE STREAM — aynı metin iki kez seslendirilmez (duplicate_speech=0) + her an tek aktif sağlayıcı (concurrent_active≤1); (T5) ≥2 SPI-uyumlu TTS sağlayıcı + EŞDEĞER ses haritası (ADR-002 / BRD §19 (1) / FR-TTS-009); (T6) DETERMINISTIC FLOW / NEVER DROP — her iki sağlayıcı düşerse deterministik akış, dropped_call=0 (BRD §19 (4)); (T7) ERROR NORMALIZED + SELECTIVE TRIGGER — sağlayıcı hataları ortak ErrorTaxonomy'ye çevrilir + YALNIZ geçici sınıflar (TIMEOUT/UNAVAILABLE/RATE_LIMITED) failover tetikler (AUTH/INVALID_REQUEST/REGION_VIOLATION boşuna anahtarlamaz); (T8) VOICE CONSISTENCY — voiceId çağrı boyu sabit (voice_inconsistent=0) + fallback'te önceden tanımlı eşdeğer ses (voice_switch_unmapped=0) — FR-TTS-009; (T9) BARGE-IN PRESERVED — anahtarlama sırasında/sonrasında cancel ≤200ms + kesme sonrası ses chunk'ı yok (chunk_after_cancel=0); (T10) NO FLAP + METERING + RESIDENCY — histerezis salınımı engeller (flap=0), her sağlayıcı segmenti metrelenir (CHARACTERS), residency/no-log; (T11) komşu SEAM'leri TÜKETİR/SINIRDA durur + ErrorTaxonomy + sır/ham-ses/ham-metin/PII yok. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): çekirdek minimal+deterministik (olay-tetikli, sanal saat, random YOK; gerçek TTS/ses üretimi YOK — sağlayıcı gecikme profili + akış/hata MODELİ); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3) + gerçek TtsAdapter + 4.1.2 circuit breaker. Spec/config/örneklerde sır/credential, ham SES/audio, sentezlenecek ham METİN veya PII DEĞERİ YOK — yalnız sağlayıcı kimliği + gecikme/akış SAYILARI + karakter/süre sayıları + voice kimlikleri + söz/segment kimlikleri + sanal zaman + normalize edilmiş hata sınıfı.",
+  "version": "1.0",
+  "wbs": "4.3.2",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-TTS-008", "FR-TTS-009", "FR-TTS-005", "FR-TTS-010", "FR-RES-002", "FR-RES-008", "FR-RES-009", "FR-BIL-002", "FR-TOOL-008", "FR-KB-010", "FR-TEN-002", "FR-HND-001", "FR-RTC-002"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "sad": ["§6", "§6.1", "§8.1", "§8.2", "§8.3", "§20"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003"],
+    "api": ["§11.1 Capabilities/UsageRecord/AdapterConfig", "§11.3 TtsAdapter + Fallback notu", "§11.6 ErrorTaxonomy", "§12.2 BARGE_IN"],
+    "brd": ["§12 (adapter zorunlu yetenekler)", "§19 (1) ≥2 TTS", "§19 (4) kontrollü fallback"],
+    "srs": ["SR-TTS-008", "SR-TTS-009", "SR-TTS-005"],
+    "rtm": ["TC-TTS-008", "TC-TTS-009", "TC-TTS-005"],
+    "poc": ["0.3.1 e2e_inbound_poc.py (SPI seam — fallback referans deseni)"],
+    "vendor_eval": ["0.2.3 tts-eval.md (TtsAdapter ölçülen yüzey + first-byte/barge-in/ses-tutarlılığı kapıları)"],
+    "consumes": ["4.1.2 ortak yetenekler (timeout/retry/backoff/circuit-breaker/health)", "4.1.5 hata normalizasyonu (ErrorTaxonomy eşlemesi)", "4.1.6 connection pool", "4.1.3 usage metering/cost motoru", "4.1.4 residency/retention", "4.2.3 TtsAdapter implementasyonu", "16.1 TTS cache motoru", "2.2.3/3.1.3 barge-in olayı (BARGE_IN → cancel)", "8.x handoff + 3.3.x deterministic flow motoru", "4.2.6 ses klonlama izni"],
+    "observability": ["tts_fallback_total{from,to,reason} / tts_switch_overhead_ms / tts_resynth_chars_total / tts_voice_switch_total{mapped} / tts_barge_in_cancel_ms / tts_deterministic_flow_total / tts_speak_complete_total (BRD §15 → 0.4.7; retry/fallback metriği SAD §17.1)"]
+  },
+
+  "placement": {
+    "$comment": "TTS fallback switcher Conversation Orchestrator'ın SPEAK durumunda (SAD §6.1 turn state machine), TtsAdapter SPI ÜZERİNDE çalışır: LLM token akışı → metin chunk akışı → switcher → AKTİF TtsAdapter.synthesize() → ses chunk akışı → Media Gateway → RTP/SRTP. Switcher aktif sağlayıcının synthesize() akışını izler; hata/timeout (circuit-open, 4.1.2) görürse ikincile geçer + in-flight sözün KALAN metnini ikincide EŞDEĞER ses ile yeniden sentezler (çalınmış metni tekrar etmez). BARGE_IN olayı (2.2.3/3.1.3 → API §12.2) cancel(streamId) tetikler (SPEAK→CAPTURE) — anahtarlama sırasında da geçerli. Orchestrator YALNIZ TtsAdapter SPI'ye + switcher kararına bağımlıdır (ADR-001); somut sağlayıcı arkada değişir (ADR-002). Akış-önce (stream-first, FR-RES-002): metin geldikçe ses akar, tüm yanıt tamponlanmaz. Medya konumu edge/merkez SPI'yi değiştirmez (ADR-009 hibrit). Olay-tetikli + bloklamayan; deterministik (sanal saat, random YOK).",
+    "behind_spi": true,
+    "orchestrator_depends_on_spi_only": true,
+    "turn_state": "SPEAK",
+    "stream_first": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "circuit_breaker_owned_by": "4.1.2 (SAD §8.2); switcher circuit-open sinyalini TÜKETİR",
+    "barge_in_event_source": "2.2.3 edge-vad / 3.1.3 turn-taking (BARGE_IN → cancel)",
+    "deterministic_flow_owned_by": "8.x handoff + 3.3.x; switcher KARARI üretir, aktarım akışını değil",
+    "trace": "SAD §6.1, SAD §8.1, SAD §8.2, SAD §8.3, ADR-001, API §11.3, API §12.2"
+  },
+
+  "spi": {
+    "$comment": "Ölçülen SPI yüzeyi (SAD §8.1 / API §11.3 TtsAdapter). synthesize(textIn: AsyncStream<TextChunk>, voice: VoiceProfile, opts: TtsOptions): AsyncStream<AudioChunk> + cancel(streamId). VoiceProfile{voiceId, language, pronunciationDictId?, rate?/pitch?/volume?, clonedVoiceConsentRef?}. Switcher iki (≥2) TtsAdapter'ı SARMALAR; orchestrator'a TEK mantıksal ses akışı sunar + voiceId'yi çağrı boyu SABİT tutar (fallback'te eşdeğer ses haritasıyla). TtsOptions: sampleRate(8000 — FR-RES-008), firstByteTargetMs (SAD §20). Ortak Adapter: capabilities()/health()/meter()/configure() (API §11.1). capabilities(): features ⊇ {streaming, barge_in_cancel, pronunciation_dict}, sample_rates ⊇ {8000}, voices (eşdeğer ses haritası için), regions (residency). Bir sağlayıcının portföye girmesi için bu sözleşmeyi karşılaması gerekir (T5). Fallback switcher TtsAdapter SPI'sini DEĞİŞTİRMEZ — sarmalar.",
+    "wraps_methods": ["synthesize", "cancel", "capabilities", "health", "meter", "configure"],
+    "voice_profile_fields": ["voiceId", "language", "pronunciationDictId", "rate", "pitch", "volume", "clonedVoiceConsentRef"],
+    "tts_options_fields": ["sampleRate", "firstByteTargetMs"],
+    "audio_chunk_fields": ["t_ms", "dur_ms"],
+    "required_features": ["streaming", "barge_in_cancel", "pronunciation_dict"],
+    "presents_single_logical_stream": true,
+    "voice_consistent_across_switch": true,
+    "trace": "SAD §8.1, API §11.1/§11.3, FR-TTS-002/005/008/009, FR-RES-008"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar. (T1) max_utterance_lost=0: geçici hata/timeout failover'ında in-flight söz kaybolmaz. (T2) max_unspoken_lost=0 (in-flight sözün kalan metni ikincide yeniden sentezlenir) + max_resynth_replayed_spoken=0 (zaten çalınmış metin tekrar seslendirilmez — kullanıcı tekrar duymaz). (T3) switch_overhead_p95_ms ≤ 200 (yeşil 100): anahtarlama gecikmesi sınırlı ölü hava (hot-path; SAD §20 TTS first-byte bandı ile tutarlı). (T4) max_duplicate_speech=0 (aynı metin iki kez seslendirilmez) + max_concurrent_active=1 (her an tek aktif sağlayıcı). (T6) max_dropped_call=0 + require_deterministic_flow (her iki sağlayıcı düşerse aktarım/güvenli degrade — BRD §19 (4)). (T7) max_improper_failover=0 (yalnız geçici sınıf failover tetikler) + require_error_normalized (FR-TOOL-008). (T8) max_voice_inconsistent=0 (voiceId çağrı boyu sabit) + max_voice_switch_unmapped=0 (fallback eşdeğer ses haritasıyla) — FR-TTS-009. (T9) barge_in_cancel_p95_ms ≤ 200 + max_chunk_after_cancel=0 (kesme sonrası ses yok — FR-TTS-005). (T10) max_flap=0 (histerezis salınımı yok) + require_metering (her segment CHARACTERS, FR-BIL-002). min_providers=2 (T5, ADR-002 / BRD §19 (1)). require_equivalent_voice (T5/T8 — eşdeğer ses haritası zorunlu). failover_error_classes = geçici/yeniden-denenebilir set. Eşikler MÜHENDİSLİK varsayılanı (NFR 10.1 + 0.2.3 tts-eval bandı SAD §20 TTS first-byte ≤200ms); gerçek değerler 0.3.x canlı PoC'ta doğrulanır.",
+    "sample_rate_hz": 8000,
+    "switch_overhead_p95_ms": 200,
+    "switch_overhead_green_ms": 100,
+    "barge_in_cancel_p95_ms": 200,
+    "barge_in_cancel_green_ms": 100,
+    "max_utterance_lost": 0,
+    "max_unspoken_lost": 0,
+    "max_resynth_replayed_spoken": 0,
+    "max_duplicate_speech": 0,
+    "max_concurrent_active": 1,
+    "max_chunk_after_cancel": 0,
+    "max_dropped_call": 0,
+    "max_improper_failover": 0,
+    "max_voice_inconsistent": 0,
+    "max_voice_switch_unmapped": 0,
+    "max_flap": 0,
+    "max_cross_tenant": 0,
+    "max_sample_rate_mismatch": 0,
+    "min_providers": 2,
+    "require_deterministic_flow": true,
+    "require_error_normalized": true,
+    "require_metering": true,
+    "require_equivalent_voice": true,
+    "required_features": ["streaming", "barge_in_cancel", "pronunciation_dict"],
+    "failover_error_classes": ["TIMEOUT", "UNAVAILABLE", "RATE_LIMITED"],
+    "trace": "FR-TTS-005/008/009/010, FR-RES-002/008/009, FR-BIL-002, FR-TOOL-008, NFR 10.1, NFR 10.7, SAD §8.3, SAD §20, BRD §19 (1)/(4)"
+  },
+
+  "fallback": {
+    "$comment": "TTS fallback zinciri (SAD §8.3): Primary TTS ──(timeout/error/circuit-open)──► Secondary TTS (eşdeğer ses) ──► Deterministic flow. Bu görev ANAHTARLAMA + ses tutarlılığı mantığını UYGULAR (4.3.2; TtsAdapter 4.2.3'ten 'switching_owned_by 4.3.2' buraya delege edildi). Routing: normalize edilmiş ErrorTaxonomy'de TIMEOUT/UNAVAILABLE/RATE_LIMITED → secondary'ye geç + in-flight sözün KALAN metnini eşdeğer ses ile yeniden sentezle (çalınmış metni tekrar etme); secondary de düşerse → deterministic flow (insan temsilciye aktarım / güvenli degrade). AUTH/INVALID_REQUEST/REGION_VIOLATION → failover ETME. Histerezis: bir kez secondary'ye geçince seans boyunca secondary aktif kalır (flap yok). SES KARAKTERİ TUTARLILIĞI (FR-TTS-009): her sağlayıcı için tenant'ın logical voiceId'sine karşılık gelen EŞDEĞER fiziksel ses voice_equivalence haritasında tanımlıdır; switcher fallback'te bu eşdeğer sesi kullanır → karakter çağrı boyu tutarlı. ≥2 SPI-uyumlu sağlayıcı + her ikisinde eşdeğer ses zorunlu (T5).",
+    "chain": ["primary_tts", "secondary_tts", "deterministic_flow"],
+    "min_providers": 2,
+    "resynth_continuation": true,
+    "equivalent_voice_required": true,
+    "hysteresis_sticky_secondary": true,
+    "deterministic_flow_on_total_failure": true,
+    "switching_owned_by": "4.3.2 (bu görev)",
+    "trace": "FR-TTS-008, FR-TTS-009, SAD §8.3, API §11.3, BRD §19 (4)"
+  },
+
+  "voice_consistency": {
+    "$comment": "FR-TTS-009 'Çağrı boyunca ses karakteri tutarlı kalmalıdır' — görev başlığının ikinci boyutu. İki katman: (a) AYNI sağlayıcıda voiceId çağrı boyu SABİT kalır (mid-call drift yok; cache'ten sunulan statik anonslar da aynı voiceId'yi taşır — FR-TTS-010 cache voiceId anahtarlı); (b) sağlayıcı FALLBACK'inde ikincil, tenant'ın logical voiceId'sine karşılık gelen önceden tanımlı EŞDEĞER fiziksel sesi kullanır (voice_equivalence haritası). Eşdeğer ses tanımlı değilse (voice_switch_unmapped) ya da motor haritayı yok sayarsa → karakter kırılır (FR-TTS-009 ihlali). voice_equivalence: logical voiceId → { provider_id: physical_voice_id }; her profilde primary VE secondary için tanımlı olmalı (require_equivalent_voice).",
+    "voice_id_stable_within_call": true,
+    "equivalent_voice_on_fallback": true,
+    "cache_honors_voice_id": true,
+    "trace": "FR-TTS-009, FR-TTS-010, SAD §8.3, API §11.3 VoiceProfile.voiceId"
+  },
+
+  "metrics": {
+    "$comment": "Switcher her failover/resynth/voice-switch/barge-in/deterministic-flow için BRD §15 (retry/fallback) + adapter metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. tts_fallback_total{from,to,reason} → failover sayısı (SAD §17.1 retry/fallback; reason = ErrorTaxonomy sınıfı DÜŞÜK kardinalite); tts_switch_overhead_ms → anahtarlama gecikmesi (T3); tts_resynth_chars_total → ikincide yeniden sentezlenen kalan karakter (T2); tts_voice_switch_total{mapped} → fallback'te eşdeğer ses eşleşti mi (T8 — mapped DÜŞÜK kardinalite bool); tts_barge_in_cancel_ms → cancel→susma (T9, NFR 10.1); tts_deterministic_flow_total → her iki sağlayıcı düşüp deterministik akışa geçiş (T6); tts_speak_complete_total → tamamlanan söz (duplicate_speech=0 ile T4). provider_id + voice_id + reason + mapped DÜŞÜK kardinalite (label uygun); call_id/stream_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy, 3.1.5 producer). Ham SES, sentez METNİ veya PII metriklerde yok.",
+    "emitted": [
+      "tts_fallback_total", "tts_switch_overhead_ms", "tts_resynth_chars_total",
+      "tts_voice_switch_total", "tts_barge_in_cancel_ms", "tts_deterministic_flow_total", "tts_speak_complete_total"
+    ],
+    "maps_to_observability": {
+      "tts_fallback_total": "adapter_fallback_total",
+      "tts_switch_overhead_ms": "tts_first_byte_latency_ms",
+      "tts_barge_in_cancel_ms": "barge_in_cancel_latency_ms"
+    },
+    "proposed_observability_additions": [
+      "tts_fallback_total", "tts_switch_overhead_ms", "tts_voice_switch_total", "tts_deterministic_flow_total"
+    ],
+    "trace": "BRD §15, SAD §17.1, observability 0.4.7, 3.1.5 context-propagation"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Sağlayıcı hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir (FR-TOOL-008, SAD §8.2; eşleme MOTORU 4.1.5 — switcher TÜKETİR) — routing YALNIZ bu enum'a göre karar verir; ham sağlayıcı kodu yalnız audit/log'da kalır, müşteriye sızmaz. Süre aşımı → TIMEOUT (failover); 429 → RATE_LIMITED (failover); 5xx/bağlantı/circuit-open → UNAVAILABLE (failover); kimlik → AUTH (failover ETME — yapılandırma sorunu, ikincide de olası); geçersiz girdi → INVALID_REQUEST (failover ETME); residency ihlali → REGION_VIOLATION (failover ETME — bölge sorunu). failover_error_classes yalnız geçici/yeniden-denenebilir sınıfları içerir (T7).",
+    "mapping": {
+      "provider_timeout": "TIMEOUT",
+      "provider_429": "RATE_LIMITED",
+      "provider_5xx": "UNAVAILABLE",
+      "circuit_open": "UNAVAILABLE",
+      "connection_reset": "UNAVAILABLE",
+      "auth_failure": "AUTH",
+      "invalid_request": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "failover_classes": ["TIMEOUT", "RATE_LIMITED", "UNAVAILABLE"],
+    "non_failover_classes": ["AUTH", "INVALID_REQUEST", "REGION_VIOLATION"],
+    "trace": "API §11.6, FR-TOOL-008, SAD §8.2, SAD §8.3, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "Her TTS sağlayıcı tenant home-region endpoint'inde (bölgesel pin) sentezler + UsageRecord home-region'da kaydedilir (FR-BIL-002, NFR 10.7). Hassas metin sağlayıcı loglarına yazılmaz: data_retention NONE/EPHEMERAL (FR-KB-010). Resynth tamponu yalnız in-flight sözün kalan metnini (kısa) tutar; durable kalıcı değil — seans/bellek içi, oturum sonu temizlenir. Bölge uyumsuzluğu REGION_VIOLATION (failover ETMEZ). Ses/metin tenant sınırını terk etmez.",
+    "region_pin_required": true,
+    "no_log_required": true,
+    "allowed_retention": ["NONE", "EPHEMERAL"],
+    "resynth_buffer_ephemeral": true,
+    "trace": "NFR 10.7, FR-KB-010, FR-BIL-002, API §11.1 AdapterConfig.dataRetention"
+  },
+
+  "pii": {
+    "$comment": "Bu SPEC/config/örnekler ham SES/audio, sentezlenecek ham METİN veya PII DEĞERİ TUTMAZ — yalnız sağlayıcı kimliği + gecikme/akış SAYILARI (switch_ms/cancel_ms/dur_ms) + karakter/süre SAYILARI + voice kimlikleri (fiziksel ses ID — PII değil) + söz/segment kimlikleri + normalize edilmiş hata sınıfı + sanal zaman. Resynth tamponu çalışma-zamanı belleğinde in-flight sözün kalan METNİNİ tutar ama EPHEMERAL + no-log + home-region; durable kayıt orchestrator katmanında redaction_state='pending' (FR-REC-004). TTS çıktısı (ses) çağrı kaydına orchestrator/medya katmanında yazılır, switcher'da değil.",
+    "raw_audio_in_spec_forbidden": true,
+    "raw_text_in_spec_forbidden": true,
+    "pii_value_in_spec_forbidden": true,
+    "durable_redaction_state": "pending",
+    "trace": "FR-REC-004, FR-KB-010, BRD §14, BRD §17.7"
+  },
+
+  "invariants": [
+    { "id": "T1", "desc": "FAILOVER: aktif (birincil) TTS geçici hata/timeout (circuit-open) verdiğinde switcher ikincil TTS'ye geçer ve çağrı kesintisiz sürer; in-flight söz kaybolmaz (utterance_lost=0). Birincilin kesilmesi çağrıyı düşürmez (FR-TTS-008, SAD §8.3).", "trace": "FR-TTS-008, SAD §8.3, BRD §19 (4)" },
+    { "id": "T2", "desc": "RESYNTH CONTINUATION: failover anında in-flight sözün KALAN (henüz çalınmamış) metni ikincide yeniden sentezlenir (unspoken_lost=0); zaten ÇALINMIŞ metin TEKRAR seslendirilmez (resynth_replayed_spoken=0 — kullanıcı baştan tekrar duymaz, kesintiden devam eder). Söz, ikincide eşdeğer ses ile tamamlanır.", "trace": "FR-TTS-008, FR-TTS-009, API §11.3" },
+    { "id": "T3", "desc": "SWITCH OVERHEAD: anahtarlama gecikmesi (eski stream teardown + ikincil setup + ilk ses) P95 ≤ 200 ms (yeşil 100) — sınırlı ölü hava; hot-path. Aksi halde kullanıcı uzun sessizlik duyar (FR-RES-009 ilişkili; SAD §20 TTS first-byte).", "trace": "NFR 10.1, SAD §20, FR-RES-009" },
+    { "id": "T4", "desc": "NO DUPLICATION / SINGLE STREAM: aynı metin iki kez seslendirilmez (duplicate_speech=0; resynth yalnız kalan metni üretir); her an Media Gateway'e beslenen tek aktif sağlayıcı ses akışı vardır (concurrent_active ≤ 1).", "trace": "FR-TTS-002, SAD §8.1" },
+    { "id": "T5", "desc": "≥2 SPI-uyumlu TTS sağlayıcı + EŞDEĞER ses (ADR-002 / BRD §19 (1) / FR-TTS-009): her sağlayıcı required_features {streaming, barge_in_cancel, pronunciation_dict} + sample_rates ⊇ {8000} + bölge + voices beyan eder; karşılamayan portföye giremez. Her profilde primary≠secondary VE tenant logical voiceId'si için primary+secondary fiziksel eşdeğer ses voice_equivalence'ta tanımlı (require_equivalent_voice).", "trace": "BRD §19 (1), ADR-002, FR-TTS-009, SAD §8.1, API §11.1" },
+    { "id": "T6", "desc": "DETERMINISTIC FLOW / NEVER DROP: her iki TTS sağlayıcı da düşerse switcher deterministik akışa geçer (insan temsilciye kontrollü aktarım / güvenli degrade — SAD §8 ilke 6 'Fail soft, never drop the call'); çağrı düşürülmez (dropped_call=0). Aktarım MOTORU 8.x/3.3.x; switcher KARARI üretir.", "trace": "SAD §8.3, BRD §19 (4), FR-HND-001" },
+    { "id": "T7", "desc": "ERROR NORMALIZED + SELECTIVE TRIGGER: sağlayıcı hataları ortak ErrorTaxonomy'ye (API §11.6) çevrilir (4.1.5 eşlemesi tüketilir); YALNIZ geçici/yeniden-denenebilir sınıflar (TIMEOUT/UNAVAILABLE/RATE_LIMITED) failover tetikler. AUTH/INVALID_REQUEST/REGION_VIOLATION failover ETMEZ (improper_failover=0 — ikincide de aynı sonuç beklenir, boşuna anahtarlama+ölü hava yok).", "trace": "FR-TOOL-008, API §11.6, SAD §8.2/§8.3" },
+    { "id": "T8", "desc": "VOICE CONSISTENCY (FR-TTS-009): voiceId çağrı boyunca sabit kalır (voice_inconsistent=0 — aynı sağlayıcıda mid-call drift yok; cache'ten sunulan statik anonslar da aynı voiceId); sağlayıcı fallback'inde tenant başına önceden tanımlı EŞDEĞER ses haritası kullanılır (voice_switch_unmapped=0). Ses karakteri çağrı boyu tutarlı kalır.", "trace": "FR-TTS-009, FR-TTS-010, SAD §8.3" },
+    { "id": "T9", "desc": "BARGE-IN PRESERVED: anahtarlama sırasında/sonrasında da barge-in kesme çalışır — cancel→susma P95 ≤ 200 ms (NFR 10.1/SAD §6.1) ve kesme SONRASI ses chunk'ı çıkmaz (chunk_after_cancel=0 — talk-over yok). Barge-in olayı 2.2.3/3.1.3'ten TÜKETİLİR.", "trace": "FR-TTS-005, FR-RTC-002, NFR 10.1, SAD §6.1, API §12.2" },
+    { "id": "T10", "desc": "NO FLAP + METERING + RESIDENCY: histerezis ile bir kez ikincile geçilince seans boyunca ikincil kalır (flap_count=0 — primary↔secondary salınımı yok); her sağlayıcı segmenti UsageRecord (unit=CHARACTERS) üretir (FR-BIL-002); region pin + no-log NONE/EPHEMERAL (NFR 10.7/FR-KB-010); sample_rate=8000 (FR-RES-008).", "trace": "FR-BIL-002, NFR 10.7, FR-KB-010, FR-RES-008, SAD §8.2" },
+    { "id": "T11", "desc": "4.3.2 komşu SEAM'leri TÜKETİR/SINIRDA durur: ortak yetenekler (timeout/retry/backoff/circuit-breaker/health) 4.1.2, hata normalizasyonu eşlemesi 4.1.5, connection pool 4.1.6, metering motoru 4.1.3, residency/retention 4.1.4, TtsAdapter implementasyonu 4.2.3, TTS cache motoru 16.1, barge-in olayı 2.2.3/3.1.3, ses klonlama izni 4.2.6, deterministic-flow/handoff motoru 8.x/3.3.x, TTS sağlayıcı SEÇİMİ 0.2.3/0.2.6/0.3.x — bunları UYGULAMAZ; fallback ANAHTARLAMA + resynth + eşdeğer-ses + deterministic-flow KARARINI üretir. Hatalar ortak ErrorTaxonomy'ye (API §11.6) eşlenir (sağlayıcı kodu yalnız audit/log); spec/config/örneklerde literal sır/credential, ham SES, sentez METNİ veya PII DEĞERİ yok (yalnız sağlayıcı kimliği + sayılar + voice/söz/segment kimlikleri + hata sınıfı + sanal zaman).", "trace": "4.1.2, 4.1.3, 4.1.4, 4.1.5, 4.1.6, 4.2.3, 4.2.6, 16.1, 2.2.3, 3.1.3, 8.x, 3.3.x, 0.2.3, API §11.6, BRD §14" }
+  ]
+}
