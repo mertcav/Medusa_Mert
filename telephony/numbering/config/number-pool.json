@@ -1,0 +1,28 @@
+{
+  "$comment": "WBS 2.1.5 numara havuzu konfigürasyonu — İLLÜSTRATİF. Numaralar dokümantasyon/drama için ayrılmış aralıklardan seçilmiştir; canlı abone numarası DEĞİL: NANP 555-01XX (kurgu için ayrık), UK Ofcom 01632 960xxx + 07700 900xxx (drama aralığı), TR 0850 (coğrafi-olmayan, illüstratif). Tenant etiketleri ve bölge adları sır değildir. Canlı sistemde havuz DB phone_number tablosundadır (DB §14), bu dosya yalnız sözleşme/şema illüstrasyonudur. Sır yok; gerekiyorsa ${ENV}.",
+  "default_region": "GB",
+  "pools": [
+    {
+      "tenant": "tenant-uk-retail",
+      "home_region": "uk-london",
+      "cli_presentation": "present",
+      "compliance_allows_withhold": false,
+      "numbers": [
+        { "e164": "+441632960123", "direction": "both",     "region": "uk-london", "caller_id_capable": true,  "agent_id": "agent-uk-support", "campaign_ids": [] },
+        { "e164": "+447700900123", "direction": "outbound", "region": "uk-london", "caller_id_capable": true,  "agent_id": null,               "campaign_ids": ["camp-winback"] },
+        { "e164": "+12025550143",  "direction": "outbound", "region": "uk-london", "caller_id_capable": true,  "agent_id": null,               "campaign_ids": [] },
+        { "e164": "+441632960900", "direction": "inbound",  "region": "uk-london", "caller_id_capable": false, "agent_id": "agent-uk-sales",   "campaign_ids": [] }
+      ]
+    },
+    {
+      "tenant": "tenant-tr-finance",
+      "home_region": "tr-istanbul",
+      "cli_presentation": "present",
+      "compliance_allows_withhold": false,
+      "numbers": [
+        { "e164": "+908500000123", "direction": "both",     "region": "tr-istanbul", "caller_id_capable": true, "agent_id": "agent-tr-ivr", "campaign_ids": [] },
+        { "e164": "+908500000124", "direction": "outbound", "region": "tr-istanbul", "caller_id_capable": true, "agent_id": null,           "campaign_ids": ["camp-tahsilat"] }
+      ]
+    }
+  ]
+}

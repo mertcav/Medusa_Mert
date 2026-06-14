@@ -1,0 +1,10 @@
+{
+  "name": "normalize-degraded",
+  "kind": "normalize",
+  "expect": "fail",
+  "$comment": "Bilinçli bozuk: bir case yanlış 'expected' taşır ve bir geçersiz girdi 'reject' işaretsiz bırakılmış → kapı bunları yakalamalı (negatif kanıt).",
+  "cases": [
+    { "input": "0212 345 67 89", "default_region": "TR", "expected": "+909999999999" },
+    { "input": "abc",            "default_region": "TR", "expected": "+900000000000" }
+  ]
+}

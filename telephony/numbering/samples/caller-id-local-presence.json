@@ -1,0 +1,10 @@
+{
+  "name": "caller-id-local-presence",
+  "kind": "caller_id",
+  "expect": "pass",
+  "$comment": "FR-TEL-005 / BRD §737: UK callee'ye outbound çağrıda tenant havuzundan local-presence (cc=44) Caller ID seçilir; e164-sıralı kararlı ilk (+441632960123). Havuz config/number-pool.json'dan tenant ile yüklenir.",
+  "tenant": "tenant-uk-retail",
+  "callee": "+447700900999",
+  "home_region": "uk-london",
+  "expected_caller_id": "+441632960123"
+}

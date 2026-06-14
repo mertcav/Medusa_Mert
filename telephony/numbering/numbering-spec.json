@@ -1,0 +1,112 @@
+{
+  "$comment": "WBS 2.1.5 — E.164 normalizasyonu + Caller ID & numara havuzu yönetimi. Telefoni NUMARALANDIRMA düzlemi (medya düzlemi DEĞİL): inbound DID→tenant(+agent) çözümü ile 2.1.3 managed-cpaas / 2.1.4 byoc-sip context_binding'in did_to_tenant_map kaynağını, outbound ise API §11.5 DialRequest.callerIdPool/from kaynağını sağlar. KAYNAK DOĞRULUK; çelişkide BRD/SAD/DB/API esastır. Vendor-neutral (ADR-002): E.164 normalize çekirdeği minimal+deterministik, sağlayıcıdan bağımsız; canlı sistemde tam metadata kütüphanesi adapter'da. Sır/credential yok. Havuz numaraları İLLÜSTRATİF — dokümantasyon/drama için ayrılmış aralıklar (NANP 555-01XX, Ofcom 01632 960xxx / 07700 900xxx); canlı abone numarası DEĞİL.",
+  "version": "1.0",
+  "wbs": "2.1.5",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-TEL-004", "FR-TEL-005", "FR-TEL-001", "FR-TEL-002", "FR-TEL-013", "FR-TEL-014", "FR-AUTH-001", "FR-TEN-002"],
+    "nfr": ["NFR 10.7"],
+    "sad": ["§7.1", "§7.2", "§8.1", "§11.5", "§13.3"],
+    "adr": ["ADR-001", "ADR-002"],
+    "api": ["§11.5 TelephonyAdapter / DialRequest", "§11.6 ErrorTaxonomy"],
+    "db": ["§5.x phone_number (varlık 14)"],
+    "srs": ["SR-TEL-004", "SR-TEL-005"],
+    "brd": ["§16 (14) Phone Number", "§737 outbound kuralları (kullanılacak Caller ID)"]
+  },
+
+  "e164": {
+    "$comment": "E.164: '+' + en fazla 15 hane (ülke kodu + ulusal anlamlı numara). Tüm numaralar bu kanonik biçimde normalize edilir ve saklanır (FR-TEL-004, DB §14 'E.164 normalize'). Normalize DETERMİNİSTİK ve IDEMPOTENT'tir: normalize(normalize(x))==normalize(x). Geçersiz/uzunluk dışı/çevrilemeyen girdi SESSIZCE KIRPILMAZ, reddedilir (INVALID_REQUEST).",
+    "plus_prefix": "+",
+    "max_digits": 15,
+    "min_digits": 7,
+    "canonical_regex": "^\\+[1-9]\\d{6,14}$",
+    "strip_chars": [" ", "-", "(", ")", ".", "/", " "],
+    "idd_prefixes": { "default": "00", "nanp": "011" },
+    "idempotent": true,
+    "reject_on_invalid": true,
+    "trace": "FR-TEL-004, SR-TEL-004, DB §14"
+  },
+
+  "country_metadata": {
+    "$comment": "Minimal deterministik ülke tablosu — residency profilleriyle (DPIA PROFILE-TR/UK/EU) hizalı TR/GB/DE/US. libphonenumber DEĞİL: vendor-neutral minimal normalize çekirdeği; canlı sistemde tam E.164 metadata kütüphanesi adapter içindedir. cc=ülke kodu, trunk=ulusal önek, nsn_min/max=ulusal anlamlı numara hane aralığı, idd=uluslararası arama öneki.",
+    "TR": { "cc": "90", "trunk": "0", "nsn_min": 10, "nsn_max": 10, "idd": "00" },
+    "GB": { "cc": "44", "trunk": "0", "nsn_min": 9, "nsn_max": 10, "idd": "00" },
+    "DE": { "cc": "49", "trunk": "0", "nsn_min": 6, "nsn_max": 11, "idd": "00" },
+    "US": { "cc": "1", "trunk": "1", "nsn_min": 10, "nsn_max": 10, "idd": "011" }
+  },
+
+  "number_pool": {
+    "$comment": "Numara havuzu tenant-scoped'tur; ama e164 GLOBAL BENZERSİZdir (DB §14 UNIQUE(e164)) — aynı numara iki tenant'a ait olamaz (FR-TEN-002, çapraz-tenant sızıntı/karışma önlenir). Her numara bir yön (inbound/outbound/both) ve bir bölge pinine (residency, NFR 10.7) sahiptir. Inbound: e164 → tenant(+agent) deterministik çözülür; bu çözüm 2.1.3/2.1.4 context_binding did_to_tenant_map'ini besler. Outbound: caller_id_capable numaralar Caller ID seçimine girer.",
+    "scope": "tenant",
+    "global_uniqueness": true,
+    "directions": ["inbound", "outbound", "both"],
+    "region_pin_required": true,
+    "inbound_routing": "did_to_agent",
+    "feeds_context_binding": ["managed-cpaas (2.1.3)", "byoc-sip (2.1.4)"],
+    "trace": "FR-TEL-005, FR-TEN-002, DB §14, SAD §13.3, NFR 10.7"
+  },
+
+  "caller_id": {
+    "$comment": "Outbound Caller ID (CLI) seçim politikası (FR-TEL-005, BRD §737 'kullanılacak Caller ID'). ANTI-SPOOF: yalnız çağıran tenant'ın havuzundaki + outbound-yetkili numara sunulabilir; havuz-dışı numara sunma REDDEDİLİR (Caller ID güçlü kimlik değildir — FR-AUTH-001 ruhu; THREAT_MODEL TM-S). Seçim deterministik: (1) talep edilen caller_id varsa havuz+outbound doğrulanır, (2) kampanya pin'i varsa daraltılır, (3) local-presence (callee ülke koduyla eşleşen numara) tercih edilir, (4) yoksa havuz içi kararlı (e164-sıralı) varsayılan. Sunum (presentation) compliance profiline tabidir.",
+    "must_belong_to_tenant_pool": true,
+    "must_be_outbound_capable": true,
+    "selection_strategy": "requested_then_campaign_then_local_presence_then_default",
+    "local_presence": true,
+    "rotation": "deterministic",
+    "campaign_binding": true,
+    "presentation": {
+      "$comment": "Geçerli CLI sunumu varsayılan; gizleme (withhold) yalnız compliance profili izin veriyorsa. cp.outbound.cli_presentation (DPIA.md) en-kısıtlayıcı kazanır.",
+      "default": "present",
+      "withhold_allowed_only_if_compliance": true,
+      "cp_key": "cp.outbound.cli_presentation"
+    },
+    "trace": "FR-TEL-005, BRD §737, FR-AUTH-001, DPIA cp.outbound, API §11.5 DialRequest.callerIdPool"
+  },
+
+  "compliance": {
+    "$comment": "Outbound Caller ID seçimi compliance profiline bağlıdır (DPIA.md cp.outbound.*). Geçerli CLI zorunluluğu, arama saatleri ve DNC/opt-out gerçek-zamanlı kontrolü outbound ön-kapısının parçasıdır (BRD §737). Bu sözleşme caller-id kaynağını sağlar; DNC/saat zorlaması ayrı WBS'lerde (FR-TEL-013/014) tüketir.",
+    "cp_keys": ["cp.outbound.cli_presentation", "cp.outbound.calling_hours", "cp.outbound.dnc"],
+    "valid_cli_required": true,
+    "trace": "BRD §737, DPIA.md cp.outbound, FR-TEL-013, FR-TEL-014"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Numaralandırma hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Normalize edilemeyen girdi ve spoof (havuz-dışı caller id) INVALID_REQUEST; çözülemeyen inbound DID INVALID_REQUEST; bölge uyumsuzluğu REGION_VIOLATION.",
+    "mapping": {
+      "e164_unparseable": "INVALID_REQUEST",
+      "e164_too_long": "INVALID_REQUEST",
+      "caller_id_not_in_pool": "INVALID_REQUEST",
+      "caller_id_not_outbound": "INVALID_REQUEST",
+      "did_unresolved": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, FR-TEL-004, FR-TEL-005, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "Havuz numarasının bölge pini tenant home-region'a hizalanır; outbound Caller ID seçiminde bölge uyumsuzluğu REGION_VIOLATION (NFR 10.7).",
+    "region_pin_required": true,
+    "trace": "NFR 10.7"
+  },
+
+  "pii": {
+    "$comment": "Telefon numarası kişisel veridir. Bu spec/config YALNIZ tenant'ın kendi havuz/DID numaralarını (illüstratif ayrılmış aralıklar) tutar; MÜŞTERİ (callee) numarası burada SAKLANMAZ — o contact varlığına (DB §5.x) ve oturum bağlamına aittir. Panel görünümünde numaralar maskeli olabilir (API §ör. from maskeli).",
+    "customer_numbers_in_spec_forbidden": true,
+    "pool_numbers_are_illustrative": true,
+    "trace": "BRD §14, THREAT_MODEL TM-I, API §ör."
+  },
+
+  "invariants": [
+    { "id": "N1", "desc": "Tüm numaralar kanonik E.164 ('+' + 7..15 hane) biçiminde normalize edilir ve saklanır.", "trace": "FR-TEL-004, SR-TEL-004, DB §14" },
+    { "id": "N2", "desc": "Normalize deterministik VE idempotent: normalize(normalize(x))==normalize(x).", "trace": "FR-TEL-004" },
+    { "id": "N3", "desc": "Geçersiz/uzunluk-dışı/çevrilemeyen girdi sessizce kırpılmaz; reddedilir (INVALID_REQUEST).", "trace": "FR-TEL-004, API §11.6" },
+    { "id": "N4", "desc": "e164 global benzersizdir — bir numara tam olarak bir tenant'a aittir (çapraz-tenant çakışma yok).", "trace": "FR-TEL-005, FR-TEN-002, DB §14" },
+    { "id": "N5", "desc": "Inbound DID → tenant(+agent) deterministik ve çapraz-tenant güvenli çözülür; 2.1.3/2.1.4 context_binding did_to_tenant_map'ini besler.", "trace": "FR-TEL-005, SAD §13.3, FR-TEN-002" },
+    { "id": "N6", "desc": "Outbound Caller ID yalnız çağıran tenant'ın havuzundaki + outbound-yetkili bir numara olabilir; havuz-dışı/non-outbound caller id REDDEDİLİR (anti-spoof).", "trace": "FR-TEL-005, FR-AUTH-001, BRD §737, THREAT_MODEL TM-S" },
+    { "id": "N7", "desc": "Havuz numarası bölge pini home-region'a hizalı; uyumsuzluk REGION_VIOLATION.", "trace": "NFR 10.7" },
+    { "id": "N8", "desc": "Caller ID seçimi deterministik: requested → campaign-pin → local-presence (callee cc eşleşmesi) → e164-sıralı varsayılan; asla havuz-dışı/suppressed/non-outbound seçmez.", "trace": "FR-TEL-005, BRD §737" },
+    { "id": "N9", "desc": "Geçerli CLI sunumu zorunlu; gizleme (withhold) yalnız compliance profili (cp.outbound.cli_presentation) izin veriyorsa.", "trace": "BRD §737, DPIA cp.outbound" },
+    { "id": "N10", "desc": "Numaralandırma hataları ortak ErrorTaxonomy'ye (API §11.6) eşlenir.", "trace": "API §11.6" },
+    { "id": "N11", "desc": "Spec/config'te literal sır yok; müşteri (callee) numarası saklanmaz, havuz numaraları illüstratif ayrılmış aralıklardır.", "trace": "CLAUDE.md kısıtlar, BRD §14, THREAT_MODEL TM-I" }
+  ]
+}

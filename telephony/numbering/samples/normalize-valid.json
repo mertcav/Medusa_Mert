@@ -1,0 +1,21 @@
+{
+  "name": "normalize-valid",
+  "kind": "normalize",
+  "expect": "pass",
+  "$comment": "FR-TEL-004: çeşitli giriş biçimleri tek kanonik E.164'e normalize olur (SR-TEL-004 doğrulama yöntemi T). reject=true olanlar sessizce kırpılmaz, reddedilir (N3).",
+  "cases": [
+    { "input": "0212 345 67 89",        "default_region": "TR", "expected": "+902123456789" },
+    { "input": "+90 (212) 345-67-89",   "default_region": "TR", "expected": "+902123456789" },
+    { "input": "+902123456789",         "default_region": "TR", "expected": "+902123456789" },
+    { "input": "00 44 1632 960123",     "default_region": "TR", "expected": "+441632960123" },
+    { "input": "01632 960123",          "default_region": "GB", "expected": "+441632960123" },
+    { "input": "07700 900123",          "default_region": "GB", "expected": "+447700900123" },
+    { "input": "(202) 555-0143",        "default_region": "US", "expected": "+12025550143" },
+    { "input": "1 202 555 0143",        "default_region": "US", "expected": "+12025550143" },
+    { "input": "011 44 1632 960123",    "default_region": "US", "expected": "+441632960123" },
+    { "input": "",                      "default_region": "TR", "expected": null, "reject": true },
+    { "input": "abc-def",               "default_region": "TR", "expected": null, "reject": true },
+    { "input": "+1234567890123456",     "default_region": "US", "expected": null, "reject": true },
+    { "input": "0212 345",              "default_region": "TR", "expected": null, "reject": true }
+  ]
+}

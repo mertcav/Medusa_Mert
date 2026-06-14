@@ -1,0 +1,10 @@
+{
+  "name": "caller-id-spoof",
+  "kind": "caller_id",
+  "expect": "fail",
+  "$comment": "Anti-spoof (N6, FR-AUTH-001 ruhu): havuz-dışı bir numara Caller ID olarak TALEP edilir → REDDEDİLİR. Kapının 'fail' vermesi = güvenlik açısından DOĞRU sonuç (spoof engellendi).",
+  "tenant": "tenant-uk-retail",
+  "callee": "+447700900999",
+  "requested_caller_id": "+15005550000",
+  "home_region": "uk-london"
+}

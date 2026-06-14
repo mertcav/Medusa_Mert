@@ -1,0 +1,11 @@
+{
+  "name": "caller-id-campaign",
+  "kind": "caller_id",
+  "expect": "pass",
+  "$comment": "FR-TEL-005 / BRD §737: kampanya pin'i (camp-winback) Caller ID'yi +447700900123'e daraltır; local-presence pin sonrası uygulanır.",
+  "tenant": "tenant-uk-retail",
+  "callee": "+447700900999",
+  "campaign": "camp-winback",
+  "home_region": "uk-london",
+  "expected_caller_id": "+447700900123"
+}
