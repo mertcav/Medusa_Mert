@@ -1,0 +1,27 @@
+{
+  "name": "voice-consent-degraded",
+  "$comment": "BİLİNÇLİ BOZUK (FR-TST-008 negatif kanıt): tüm yönetişim kontrolleri devre dışı. enforce_approval=false → onaysız ses kullanıldı (P1 eler/FR-TTS-006). require_consent_for_cloned=false → izinsiz klon (P2 eler/FR-TTS-007). honor_expiry/honor_revocation=false → süre/iptal sonrası kullanım (P3 eler). enforce_scope=false → kapsam dışı (P4 eler). tenant_isolation=false → cross-tenant (P5 eler/FR-TEN-002). emit_usage_record=false → kullanım kaydı eksik (P6 eler). audit=false → denetlenmemiş (P7 eler). maker_checker=false + self-approval + worm=false + mutate_record (P8 eler/V9/V10). Beklenen: ELENİR.",
+  "expect": "fail",
+  "policy": {
+    "enforce_approval": false,
+    "require_consent_for_cloned": false,
+    "honor_expiry": false,
+    "honor_revocation": false,
+    "enforce_scope": false,
+    "tenant_isolation": false,
+    "emit_usage_record": false,
+    "audit": false,
+    "maker_checker": false,
+    "worm": false
+  },
+  "events": [
+    { "kind": "register_voice", "voice_id": "v-clone-bad", "voice_kind": "cloned", "tenant_id": "t1", "created_by": "designer-7", "t": 0 },
+    { "kind": "grant_consent", "consent_id": "vc-bad", "voice_id": "v-clone-bad", "tenant_id": "t1", "subject_ref": "subj://owner/anon-99", "evidence_ref": "ev://store/bad", "scope": { "tenants": ["t1"], "agents": ["a1"], "purposes": ["collections"] }, "granted_by": "designer-7", "expires_at": 150, "t": 50 },
+    { "kind": "approve_voice", "voice_id": "v-clone-bad", "approved_by": "designer-7", "t": 80 },
+    { "kind": "mutate_record", "target": "consent", "ref": "vc-bad", "t": 90 },
+    { "kind": "use", "use_id": "u-expired", "voice_id": "v-clone-bad", "consent_ref": "vc-bad", "tenant_id": "t1", "agent_id": "a1", "purpose": "collections", "t": 1000 },
+    { "kind": "revoke_consent", "consent_id": "vc-bad", "t": 1100 },
+    { "kind": "use", "use_id": "u-revoked", "voice_id": "v-clone-bad", "consent_ref": "vc-bad", "tenant_id": "t1", "agent_id": "a1", "purpose": "collections", "t": 1200 },
+    { "kind": "use", "use_id": "u-scope", "voice_id": "v-clone-bad", "consent_ref": "vc-bad", "tenant_id": "t2", "agent_id": "a9", "purpose": "marketing", "t": 1300 }
+  ]
+}

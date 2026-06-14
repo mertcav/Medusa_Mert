@@ -1,0 +1,19 @@
+{
+  "name": "voice-consent-happy-path",
+  "$comment": "Tipik onaylı KLON ses akışı (FR-TTS-006/007): conversation_designer klon sesi kaydeder (pending) → security_compliance_officer ses sahibinin AÇIK iznini (subject_ref + evidence_ref opak; scope tenant t1/agent a1/purpose collections; 1 yıl geçerli) kaydeder → FARKLI bir approver onaylar (maker-checker, status=approved). TtsAdapter (4.2.3) iki SPEAK turunda clonedVoiceConsentRef=c1'i çözer → kapsam içi → ALLOW; her kullanım bir usage record üretir + tüm olay/karar denetlenir. Geçer.",
+  "expect": "pass",
+  "expected": {
+    "allow_total": 2,
+    "deny_total": 0,
+    "usage_records": 2,
+    "missing_usage_record": 0,
+    "unaudited_event": 0
+  },
+  "events": [
+    { "kind": "register_voice", "voice_id": "v-clone-brand-tr", "voice_kind": "cloned", "tenant_id": "t1", "created_by": "designer-7", "owner_subject_ref": "subj://voice-owner/anon-7", "t": 0 },
+    { "kind": "grant_consent", "consent_id": "vc-2026-001", "voice_id": "v-clone-brand-tr", "tenant_id": "t1", "subject_ref": "subj://voice-owner/anon-7", "evidence_ref": "ev://consent-store/2026-001", "scope": { "tenants": ["t1"], "agents": ["a1"], "purposes": ["collections"] }, "granted_by": "sco-3", "expires_at": 31536000, "t": 50 },
+    { "kind": "approve_voice", "voice_id": "v-clone-brand-tr", "approved_by": "approver-2", "t": 80 },
+    { "kind": "use", "use_id": "spk-1", "voice_id": "v-clone-brand-tr", "consent_ref": "vc-2026-001", "tenant_id": "t1", "agent_id": "a1", "purpose": "collections", "call_ref": "call://anon/leg-1", "seconds": 14, "t": 1000 },
+    { "kind": "use", "use_id": "spk-2", "voice_id": "v-clone-brand-tr", "consent_ref": "vc-2026-001", "tenant_id": "t1", "agent_id": "a1", "purpose": "collections", "call_ref": "call://anon/leg-2", "seconds": 9, "t": 2000 }
+  ]
+}

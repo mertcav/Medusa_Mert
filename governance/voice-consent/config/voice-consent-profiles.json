@@ -1,0 +1,45 @@
+{
+  "$about": "WBS 4.2.6 ses klonlama izin/kullanım kaydı çalıştırma profilleri (sağlayıcı-nötr, credential-free). Profiller deployment başına residency + retention + onay sıkılığını sabitler; SIR İÇERMEZ (yalnız ${ENV} placeholder).",
+  "default_profile": "pilot",
+  "consent_defaults": {
+    "consent_required_for": ["cloned"],
+    "maker_checker": true,
+    "scope_dimensions": ["tenants", "agents", "purposes"],
+    "scope_wildcard": "*",
+    "default_consent_ttl_days": 365
+  },
+  "profiles": [
+    {
+      "name": "pilot",
+      "region": "eu-west",
+      "consent_record_retention": "NONE",
+      "usage_record_retention": "NONE",
+      "maker_checker": true,
+      "tenant_isolation": true,
+      "audit": true,
+      "$note": "İlk pilot; izin/usage kaydı home-region (eu-west). retention NONE = sağlayıcı tarafında saklama yok; kalıcı uyumluluk kaydı platform deposunda (DB)."
+    },
+    {
+      "name": "regulated-tr",
+      "region": "tr-central",
+      "consent_record_retention": "EPHEMERAL",
+      "usage_record_retention": "EPHEMERAL",
+      "maker_checker": true,
+      "tenant_isolation": true,
+      "audit": true,
+      "tenant_approval_required": true,
+      "$note": "Regüle/finans tenant (TR residency); ses klonlama her zaman DPIA (DPIA-T-08) + tenant onayı zorunlu."
+    },
+    {
+      "name": "enterprise-eu",
+      "region": "eu-west",
+      "consent_record_retention": "EPHEMERAL",
+      "usage_record_retention": "EPHEMERAL",
+      "maker_checker": true,
+      "tenant_isolation": true,
+      "audit": true,
+      "$note": "Enterprise EU; eşdeğer ses/karakter tutarlılığı 4.3.2 ile, izin/usage kaydı bu modülde."
+    }
+  ],
+  "evidence_store": "${VOICE_CONSENT_EVIDENCE_STORE_URL}"
+}

@@ -1,0 +1,17 @@
+{
+  "name": "voice-consent-custom-approved",
+  "$comment": "ONAYLI ÖZEL (custom, klon DEĞİL) ses (FR-TTS-006): custom ses ses sahibi izni (consent) GEREKTİRMEZ — yalnız onay (maker-checker). Onaylandıktan sonra izin referansı olmadan kullanılabilir. usage record klon-özel zorunluluk olduğundan custom kullanım kayıt üretmez (FR-TTS-007 kapsamı klon). İki SPEAK turu da ALLOW. Geçer.",
+  "expect": "pass",
+  "expected": {
+    "allow_total": 2,
+    "deny_total": 0,
+    "usage_records": 0,
+    "allowed_cloned_uses": 0
+  },
+  "events": [
+    { "kind": "register_voice", "voice_id": "v-custom-en-female", "voice_kind": "custom", "tenant_id": "t1", "created_by": "designer-7", "t": 0 },
+    { "kind": "approve_voice", "voice_id": "v-custom-en-female", "approved_by": "approver-2", "t": 40 },
+    { "kind": "use", "use_id": "spk-1", "voice_id": "v-custom-en-female", "tenant_id": "t1", "agent_id": "a-support", "purpose": "support", "seconds": 11, "t": 1000 },
+    { "kind": "use", "use_id": "spk-2", "voice_id": "v-custom-en-female", "tenant_id": "t1", "agent_id": "a-support", "purpose": "support", "seconds": 7, "t": 2000 }
+  ]
+}

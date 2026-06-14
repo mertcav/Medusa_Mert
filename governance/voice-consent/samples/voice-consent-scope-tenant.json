@@ -1,0 +1,21 @@
+{
+  "name": "voice-consent-scope-tenant",
+  "$comment": "KAPSAM + TENANT İZOLASYONU zorlaması (FR-TTS-007 V5 / FR-TEN-002 V6): klon ses t1'de onaylı, izin kapsamı {tenant t1, agent a1, purpose collections}. (1) kapsam dışı agent a2 → DENY OUT_OF_SCOPE; (2) kapsam dışı purpose marketing → DENY OUT_OF_SCOPE; (3) başka tenant t2'den kullanım → DENY CROSS_TENANT; (4) kapsam içi a1/collections/t1 → ALLOW. Yalnız meşru kullanım geçer; sızıntı/kapsam-aşımı yok → kapılar geçer. Geçer.",
+  "expect": "pass",
+  "expected": {
+    "allow_total": 1,
+    "deny_total": 3,
+    "out_of_scope_allowed": 0,
+    "cross_tenant_allowed": 0,
+    "usage_records": 1
+  },
+  "events": [
+    { "kind": "register_voice", "voice_id": "v-clone-scoped", "voice_kind": "cloned", "tenant_id": "t1", "created_by": "designer-7", "t": 0 },
+    { "kind": "grant_consent", "consent_id": "vc-scope-1", "voice_id": "v-clone-scoped", "tenant_id": "t1", "subject_ref": "subj://owner/anon-11", "evidence_ref": "ev://store/scope-1", "scope": { "tenants": ["t1"], "agents": ["a1"], "purposes": ["collections"] }, "granted_by": "sco-3", "expires_at": 31536000, "t": 50 },
+    { "kind": "approve_voice", "voice_id": "v-clone-scoped", "approved_by": "approver-2", "t": 80 },
+    { "kind": "use", "use_id": "u-bad-agent", "voice_id": "v-clone-scoped", "consent_ref": "vc-scope-1", "tenant_id": "t1", "agent_id": "a2", "purpose": "collections", "t": 1000 },
+    { "kind": "use", "use_id": "u-bad-purpose", "voice_id": "v-clone-scoped", "consent_ref": "vc-scope-1", "tenant_id": "t1", "agent_id": "a1", "purpose": "marketing", "t": 2000 },
+    { "kind": "use", "use_id": "u-cross-tenant", "voice_id": "v-clone-scoped", "consent_ref": "vc-scope-1", "tenant_id": "t2", "agent_id": "a1", "purpose": "collections", "t": 3000 },
+    { "kind": "use", "use_id": "u-ok", "voice_id": "v-clone-scoped", "consent_ref": "vc-scope-1", "tenant_id": "t1", "agent_id": "a1", "purpose": "collections", "seconds": 12, "t": 4000 }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "voice-consent-expiry-revoke",
+  "$comment": "İZİN YAŞAM DÖNGÜSÜ zorlaması (FR-TTS-007 V3/V4): izin t=15000'e kadar geçerli. İlk kullanım (t=1000) geçerli → ALLOW. İkinci kullanım (t=16000) süre dolmuş → DENY CONSENT_EXPIRED. Ses sahibi iznini geri çeker (revoke_consent t=17000, opt-out = YENİ durum, WORM mutasyon değil). Geri çekme sonrası kullanım (t=18000) → DENY CONSENT_WITHDRAWN. Hiçbir uygunsuz ALLOW yok (use_after_expiry=0, use_after_revoke=0) → kapılar geçer. Geçer.",
+  "expect": "pass",
+  "expected": {
+    "allow_total": 1,
+    "deny_total": 2,
+    "use_after_expiry": 0,
+    "use_after_revoke": 0,
+    "usage_records": 1
+  },
+  "events": [
+    { "kind": "register_voice", "voice_id": "v-clone-agent-1", "voice_kind": "cloned", "tenant_id": "t1", "created_by": "designer-7", "t": 0 },
+    { "kind": "grant_consent", "consent_id": "vc-exp-1", "voice_id": "v-clone-agent-1", "tenant_id": "t1", "subject_ref": "subj://owner/anon-9", "evidence_ref": "ev://store/exp-1", "scope": { "tenants": ["t1"], "agents": ["a1"], "purposes": ["support"] }, "granted_by": "sco-3", "expires_at": 15000, "t": 50 },
+    { "kind": "approve_voice", "voice_id": "v-clone-agent-1", "approved_by": "approver-2", "t": 80 },
+    { "kind": "use", "use_id": "spk-1", "voice_id": "v-clone-agent-1", "consent_ref": "vc-exp-1", "tenant_id": "t1", "agent_id": "a1", "purpose": "support", "seconds": 10, "t": 1000 },
+    { "kind": "use", "use_id": "spk-2", "voice_id": "v-clone-agent-1", "consent_ref": "vc-exp-1", "tenant_id": "t1", "agent_id": "a1", "purpose": "support", "seconds": 10, "t": 16000 },
+    { "kind": "revoke_consent", "consent_id": "vc-exp-1", "revoked_by": "sco-3", "t": 17000 },
+    { "kind": "use", "use_id": "spk-3", "voice_id": "v-clone-agent-1", "consent_ref": "vc-exp-1", "tenant_id": "t1", "agent_id": "a1", "purpose": "support", "seconds": 10, "t": 18000 }
+  ]
+}

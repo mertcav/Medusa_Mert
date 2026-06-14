@@ -1,0 +1,129 @@
+{
+  "wbs": "4.2.6",
+  "title": "Ses klonlama izin + kullanım kaydı (onaylı sesler)",
+  "version": "1.0",
+  "phase": "F2",
+  "priority": "Should/Must",
+  "$about": "Onaylı özel/klonlanmış ses YÖNETİŞİM kapısı: ses sahibinin AÇIK izni (consent) + kullanım kaydı (usage record). TtsAdapter (4.2.3) synthesize() öncesi VoiceProfile.clonedVoiceConsentRef'i bu kayıt defterine çözer; yalnız ONAYLI ses + (klon ise) GEÇERLİ izin → ses kullanılabilir. Sağlayıcı-nötr (ADR-002), credential-free, deterministik karar motoru. Ham ses/voiceprint/biyometrik/PII DEĞERİ saklanmaz — yalnız opak referanslar.",
+  "trace": {
+    "fr": ["FR-TTS-006", "FR-TTS-007", "FR-TEN-002", "FR-IAM-006", "FR-REC-006", "FR-REC-009"],
+    "nfr": ["NFR 10.7"],
+    "sad": ["SAD §8.1", "SAD §14", "SAD §6.1 SPEAK"],
+    "adr": ["ADR-001", "ADR-002"],
+    "api": ["API §11.3 VoiceProfile.clonedVoiceConsentRef", "API §11.6 ErrorTaxonomy"],
+    "srs": ["SR-TTS-006", "SR-TTS-007"],
+    "rtm": ["4.2.6 ↔ FR-TTS-006/007"],
+    "brd": ["BRD §14.2 (no deceptive impersonation/AI bildirimi)", "BRD §16 (28 varlık)", "BRD §22"],
+    "threat_model": ["TM-S-07 (deepfake/ses klonlama)", "SEC-01"],
+    "dpia": ["DPIA-T-08 (ses klonlama/sentetik ses)"],
+    "consumes": ["4.2.3 (clonedVoiceConsentRef taşınır)", "1.1.4 audit_log (WORM kayıt)", "1.2.3 retention motoru"],
+    "consumed_by": ["4.2.3 TtsAdapter (synthesize öncesi voice resolution gate)", "3.3.3 no-deceptive-impersonation"],
+    "observability": ["0.4.7 (metrics)"],
+    "vendor_eval": "yok — platform yönetişimi (vendor kategorisi değil)"
+  },
+  "placement": {
+    "plane": "governance/control-plane",
+    "consulted_before_synthesis": true,
+    "consumed_by_spi": "4.2.3 TtsAdapter via VoiceProfile.clonedVoiceConsentRef",
+    "decision_gates_voice_selection": true,
+    "orchestrator_depends_on_decision_only": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "media_path": false,
+    "$note": "Medya hot-path'i DEĞİL — synthesize() ÖNCESİ tek seferlik yetkilendirme kararı (ALLOW/DENY). Karar cache'lenebilir; çağrı içi tekrar maliyeti yok (SAD §20 bütçesine girmez)."
+  },
+  "spi": {
+    "decision": "resolveVoiceUse(voiceId, clonedVoiceConsentRef?, tenantId, agentId, purpose) -> {decision: ALLOW|DENY, deny_reason?}",
+    "lifecycle_methods": ["registerVoice", "grantConsent", "approveVoice", "revokeConsent", "suspendVoice", "revokeVoice"],
+    "voice_kinds": ["custom", "cloned"],
+    "consent_required_for": ["cloned"],
+    "voice_status": ["draft", "pending", "approved", "suspended", "revoked"],
+    "usable_status": ["approved"],
+    "consent_state": ["granted", "withdrawn"],
+    "deny_reasons": ["UNKNOWN_VOICE", "NOT_APPROVED", "NO_CONSENT", "UNKNOWN_CONSENT", "CONSENT_EXPIRED", "CONSENT_WITHDRAWN", "OUT_OF_SCOPE", "CROSS_TENANT"],
+    "consent_record_fields": ["consent_id", "voice_id", "subject_ref", "tenant_id", "scope", "evidence_ref", "granted_by", "granted_at", "expires_at", "state"],
+    "usage_record_fields": ["usage_id", "voice_id", "consent_id", "tenant_id", "agent_id", "call_ref", "purpose", "used_at", "seconds"],
+    "scope_dimensions": ["tenants", "agents", "purposes"],
+    "scope_wildcard": "*"
+  },
+  "gates": {
+    "max_unapproved_use": 0,
+    "max_cloned_without_consent": 0,
+    "max_use_after_expiry": 0,
+    "max_use_after_revoke": 0,
+    "max_out_of_scope": 0,
+    "max_cross_tenant": 0,
+    "require_usage_record": true,
+    "max_missing_usage_record": 0,
+    "require_audit": true,
+    "max_unaudited_event": 0,
+    "require_maker_checker": true,
+    "max_self_approval": 0,
+    "max_mutable_record": 0,
+    "max_pii_in_record": 0,
+    "consent_required_for": ["cloned"]
+  },
+  "metrics": {
+    "emitted": [
+      "voice_consent_active",
+      "voice_usage_total",
+      "voice_consent_denied_total",
+      "voice_consent_revoked_total",
+      "voice_approval_total"
+    ],
+    "high_cardinality_forbidden_as_label": ["consent_id", "voice_id", "subject_ref", "usage_id", "call_ref"],
+    "low_cardinality_labels": ["tenant_id", "voice_kind", "deny_reason"],
+    "maps_to_observability": {
+      "voice_usage_total": "BRD §15 → 0.4.7",
+      "voice_consent_denied_total": "BRD §15 → 0.4.7 (deny_reason label)"
+    }
+  },
+  "error_taxonomy": {
+    "$note": "DENY kararı SPI'ye yüzeyletildiğinde API §11.6 ErrorTaxonomy'ye eşlenir (TtsAdapter ALLOW olmadan ses üretmez).",
+    "mapping": {
+      "NOT_APPROVED": "CONTENT_FILTERED",
+      "NO_CONSENT": "CONTENT_FILTERED",
+      "CONSENT_EXPIRED": "CONTENT_FILTERED",
+      "CONSENT_WITHDRAWN": "CONTENT_FILTERED",
+      "OUT_OF_SCOPE": "AUTH",
+      "CROSS_TENANT": "AUTH",
+      "UNKNOWN_VOICE": "INVALID_REQUEST",
+      "UNKNOWN_CONSENT": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    }
+  },
+  "residency": {
+    "region_pin_required": true,
+    "no_log_required": true,
+    "allowed_retention": ["NONE", "EPHEMERAL"],
+    "$note": "Consent + usage record HOME-REGION'da tutulur (NFR 10.7). Ham ses/voiceprint sağlayıcıya gönderilirse no-train + no-log; izin/usage kaydı kalıcı uyumluluk delili (FR-REC-006 no-loss)."
+  },
+  "retention": {
+    "consent_record": "WORM append-only; geri çekme (withdraw) = YENİ satır (mutasyon yok)",
+    "usage_record": "no-loss / uzun saklama (uyumluluk delili; FR-REC-006)",
+    "legal_hold_aware": true
+  },
+  "pii": {
+    "raw_voiceprint_in_record_forbidden": true,
+    "raw_audio_in_record_forbidden": true,
+    "biometric_template_in_record_forbidden": true,
+    "pii_value_in_record_forbidden": true,
+    "only_opaque_refs": true,
+    "$note": "subject_ref + evidence_ref opak token'dır (kayıt/imza/onay deposuna işaret eder); ses biyometrisi BRD §16/§14.448 özel kategori → ayrı modül (FR-AUTH-006/007), burada DEĞER tutulmaz."
+  },
+  "forbidden_record_keys": ["voiceprint", "raw_audio", "biometric_template", "pii_value", "voice_sample_b64"],
+  "invariants": [
+    { "id": "V1", "desc": "Yalnız ONAYLI ses kullanılabilir (status=approved); draft/pending/suspended/revoked → DENY.", "trace": "FR-TTS-006" },
+    { "id": "V2", "desc": "Klonlanmış ses GEÇERLİ izin (consent) olmadan kullanılamaz; consent_ref yoksa/çözülmezse → DENY.", "trace": "FR-TTS-007" },
+    { "id": "V3", "desc": "Süresi dolmuş (expires_at < used_at) izin → DENY (use_after_expiry=0).", "trace": "FR-TTS-007" },
+    { "id": "V4", "desc": "Geri çekilmiş (withdrawn) izin → DENY; geri çekme anından sonra kullanım yok (use_after_revoke=0).", "trace": "FR-TTS-007" },
+    { "id": "V5", "desc": "İzin KAPSAMI (tenant/agent/purpose) kullanımı kapsamalı; kapsam dışı → DENY.", "trace": "FR-TTS-007" },
+    { "id": "V6", "desc": "Tenant izolasyonu: ses/izin yalnız sahibi tenant'ta kullanılır; cross-tenant → DENY.", "trace": "FR-TEN-002" },
+    { "id": "V7", "desc": "İzin verilen her KLON ses kullanımı tam olarak BİR usage record üretir (append-only); eksik kayıt yok.", "trace": "FR-TTS-007 (kullanım kaydı)" },
+    { "id": "V8", "desc": "Tüm izin/onay yaşam döngüsü olayları + her kullanım kararı audit_log'a yazılır (WORM).", "trace": "FR-IAM-006/FR-REC-009" },
+    { "id": "V9", "desc": "Onay maker-checker'lıdır: onaylayan, oluşturan ile aynı olamaz (self-approval=0).", "trace": "FR-TTS-006/ADR-012" },
+    { "id": "V10", "desc": "Consent + usage record WORM/append-only — mutasyon reddedilir (mutable_record=0).", "trace": "FR-REC-009" },
+    { "id": "V11", "desc": "Kayıtlarda ham ses/voiceprint/biyometrik şablon/PII DEĞERİ saklanmaz — yalnız opak ref.", "trace": "BRD §14.448/THREAT_MODEL TM-S-07" },
+    { "id": "V12", "desc": "Consent + usage record home-region'da; sağlayıcıya giden içerik no-train + no-log.", "trace": "NFR 10.7/FR-KB-010" }
+  ]
+}
