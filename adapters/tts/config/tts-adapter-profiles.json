@@ -1,0 +1,83 @@
+{
+  "$comment": "WBS 4.2.3 TTS adapter sağlayıcı + çalıştırma profilleri (İLLÜSTRATİF, sağlayıcı-nötr — ADR-002; sır YOK). 'providers' = iki SOMUT TtsAdapter implementasyonu (≥2/kategori — FR-TTS-001); GERÇEK sağlayıcı DEĞİL, isimler vendor-neutral placeholder. Her sağlayıcı: capabilities() beyanı (languages, sample_rates⊇8000, features⊇{streaming,barge_in_cancel,pronunciation_dict}, regions, data_retention) + DETERMİNİSTİK gecikme PROFİLİ (first_byte_ms, cancel_stop_ms, per_char_synth_ms, synth_rtf — random YOK). Gecikme değerleri MÜHENDİSLİK varsayılanı (0.2.3 tts-eval kapılarına uyumlu); GERÇEK değerler 0.3.x canlı PoC'ta telefoni (8 kHz) koşullarında ölçülür. 'profiles' = dağıtım/tenant-sınıfı çalıştırma profilleri (primary+fallback sağlayıcı + bölge). 'voice_equivalence' = sağlayıcı fallback'inde (4.3.2) ses karakteri tutarlılığı için tenant-tanımlı eşdeğer-ses haritası (FR-TTS-009). Bölge pini NFR 10.7; UsageRecord home-region (FR-BIL-002). Config GÖVDE/credential TAŞIMAZ.",
+  "version": "1.0",
+  "default_profile": "pilot-default",
+
+  "providers": [
+    {
+      "provider_id": "tts-stream-A",
+      "$comment": "Adapter #1 — bulut nöral TTS (managed). Düşük first-byte streaming, hızlı cancel, gerçek-zamandan hızlı sentez. 8 kHz native, EU residency, no-log (NONE).",
+      "kind": "cloud-neural",
+      "languages": ["tr", "en", "de", "ar"],
+      "sample_rates": [8000, 16000, 24000],
+      "features": ["streaming", "barge_in_cancel", "pronunciation_dict", "cache", "ssml", "voice_clone_consent"],
+      "regions": ["EU", "TR"],
+      "data_retention": "NONE",
+      "first_byte_ms": 120,
+      "cache_first_byte_ms": 12,
+      "cancel_stop_ms": 70,
+      "cancel_stop_ms_degraded": 380,
+      "per_char_synth_ms": 5,
+      "synth_rtf": 0.40,
+      "synth_rtf_degraded": 1.30,
+      "cost_per_1k_chars_minor": 16,
+      "currency": "EUR"
+    },
+    {
+      "provider_id": "tts-stream-B",
+      "$comment": "Adapter #2 — edge/on-prem nöral TTS (self-host yakın). Çok düşük first-byte (yerel), hızlı cancel; 8 kHz native, TR residency, ephemeral retention. ≥2/kategori + fallback (FR-TTS-008) için bağımsız ikinci sağlayıcı.",
+      "kind": "edge-onprem",
+      "languages": ["tr", "en"],
+      "sample_rates": [8000, 16000],
+      "features": ["streaming", "barge_in_cancel", "pronunciation_dict", "cache"],
+      "regions": ["TR"],
+      "data_retention": "EPHEMERAL",
+      "first_byte_ms": 95,
+      "cache_first_byte_ms": 8,
+      "cancel_stop_ms": 55,
+      "cancel_stop_ms_degraded": 340,
+      "per_char_synth_ms": 6,
+      "synth_rtf": 0.50,
+      "synth_rtf_degraded": 1.25,
+      "cost_per_1k_chars_minor": 9,
+      "currency": "TRY"
+    }
+  ],
+
+  "profiles": [
+    {
+      "name": "pilot-default",
+      "deployment": "F1-pilot-shared",
+      "$comment": "Pilot (F1) paylaşımlı varsayılan: primary=tts-stream-A, fallback=tts-stream-B. Bölge ortam değişkeninden (NFR 10.7). first-byte hedefi SAD §20 üst (200 ms).",
+      "primary_provider": "tts-stream-A",
+      "fallback_provider": "tts-stream-B",
+      "first_byte_target_ms": 200,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "edge-low-latency",
+      "deployment": "F2-edge",
+      "$comment": "Edge düşük-gecikme (ADR-009 hibrit topoloji): primary=tts-stream-B (yerel/edge), fallback=tts-stream-A. Agresif first-byte hedefi (yeşil bant 100 ms).",
+      "primary_provider": "tts-stream-B",
+      "fallback_provider": "tts-stream-A",
+      "first_byte_target_ms": 120,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "high-density",
+      "deployment": "F2-high-density",
+      "$comment": "Yüksek-yoğunluk/IVR-benzeri: primary=tts-stream-A, fallback=tts-stream-B; cache yoğun (statik anons hit ≥%80 — 16.1/FR-RES-003). first-byte hedefi 200 ms.",
+      "primary_provider": "tts-stream-A",
+      "fallback_provider": "tts-stream-B",
+      "first_byte_target_ms": 200,
+      "region": "${RUNTIME_REGION}"
+    }
+  ],
+
+  "voice_equivalence": {
+    "$comment": "Ses karakteri tutarlılığı (FR-TTS-009): sağlayıcı fallback'inde (4.3.2) primary voiceId → fallback eşdeğer voiceId haritası. Anahtar = mantıksal ses kimliği; değer = sağlayıcı-özel voiceId çiftleri. Adapter bu haritanın VARLIĞINI kullanır; gerçek anahtarlama 4.3.2'de. voiceId'ler vendor-neutral placeholder (PII/sır değil).",
+    "voice-tr-female-1": { "tts-stream-A": "A-tr-f-01", "tts-stream-B": "B-tr-f-07" },
+    "voice-tr-male-1": { "tts-stream-A": "A-tr-m-02", "tts-stream-B": "B-tr-m-04" },
+    "voice-en-female-1": { "tts-stream-A": "A-en-f-03", "tts-stream-B": "B-en-f-09" }
+  }
+}

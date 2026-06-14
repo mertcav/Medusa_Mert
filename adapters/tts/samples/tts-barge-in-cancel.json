@@ -1,0 +1,20 @@
+{
+  "name": "tts-barge-in-cancel",
+  "$comment": "Barge-in / cancel odaklı (FR-TTS-005/FR-RTC-002/NFR 10.1, P2): adapter #2 (tts-stream-B, edge — en düşük cancel gecikmesi). Üç ardışık SPEAK turunda kullanıcı tekrar tekrar araya girer; her cancel() ≤200ms'de akışı susturur (B: 55ms) ve kesme sonrası ses chunk'ı çıkmaz (chunk_after_cancel=0 — talk-over yok). cancel P95 yeşil bantta (≤100ms). Geçer.",
+  "provider": "tts-stream-B",
+  "expect": "pass",
+  "expected": {
+    "chunk_after_cancel": 0
+  },
+  "events": [
+    { "kind": "request", "req_id": "bi-1", "voice_id": "B-tr-f-07", "language": "tr", "t": 0, "text_chars": 80, "sample_rate_hz": 8000, "pronunciation_dict_id": "pd-tr-1", "fields": [ { "type": "general", "chars": 80 } ] },
+    { "kind": "cancel", "req_id": "bi-1", "t": 130 },
+    { "kind": "end", "req_id": "bi-1", "t": 200, "reason": "cancelled" },
+    { "kind": "request", "req_id": "bi-2", "voice_id": "B-tr-f-07", "language": "tr", "t": 800, "text_chars": 50, "sample_rate_hz": 8000, "pronunciation_dict_id": "pd-tr-1", "fields": [ { "type": "general", "chars": 50 } ] },
+    { "kind": "cancel", "req_id": "bi-2", "t": 920 },
+    { "kind": "end", "req_id": "bi-2", "t": 1000, "reason": "cancelled" },
+    { "kind": "request", "req_id": "bi-3", "voice_id": "B-tr-f-07", "language": "tr", "t": 1600, "text_chars": 40, "sample_rate_hz": 8000, "pronunciation_dict_id": "pd-tr-1", "fields": [ { "type": "general", "chars": 40 } ] },
+    { "kind": "cancel", "req_id": "bi-3", "t": 1700 },
+    { "kind": "end", "req_id": "bi-3", "t": 1780, "reason": "cancelled" }
+  ]
+}

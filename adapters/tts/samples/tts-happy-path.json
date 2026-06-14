@@ -1,0 +1,21 @@
+{
+  "name": "tts-happy-path",
+  "$comment": "Tipik SPEAK turu (adapter #1, tts-stream-A): LLM yanıtı metin chunk'ları olarak synthesize()'e akar; ilk ses paketi düşük gecikmeyle (akış-önce, full_buffered=0) gelir (P1). Yanıtta sayı (telefon no) + para birimi yapısal alanları pronunciation dictionary ile sentezlenir (P3). Kullanıcı araya girer (barge-in) → cancel() → akış ≤200ms susar, kesme sonrası ses yok (P2). voiceId çağrı boyu sabit (P6). Her synthesize UsageRecord üretir + 8 kHz (P8). Geçer.",
+  "provider": "tts-stream-A",
+  "expect": "pass",
+  "expected": {
+    "full_buffered": 0,
+    "chunk_after_cancel": 0,
+    "unhandled_structured": 0,
+    "underrun": 0
+  },
+  "events": [
+    { "kind": "request", "req_id": "spk-1", "voice_id": "A-tr-f-01", "language": "tr", "t": 0, "text_chars": 58, "sample_rate_hz": 8000, "pronunciation_dict_id": "pd-tr-finance",
+      "fields": [ { "type": "general", "chars": 28 }, { "type": "number", "chars": 11 }, { "type": "currency", "chars": 9 } ] },
+    { "kind": "end", "req_id": "spk-1", "t": 900, "reason": "normal" },
+    { "kind": "request", "req_id": "spk-2", "voice_id": "A-tr-f-01", "language": "tr", "t": 1500, "text_chars": 64, "sample_rate_hz": 8000, "pronunciation_dict_id": "pd-tr-finance",
+      "fields": [ { "type": "general", "chars": 64 } ] },
+    { "kind": "cancel", "req_id": "spk-2", "t": 1620 },
+    { "kind": "end", "req_id": "spk-2", "t": 1700, "reason": "cancelled" }
+  ]
+}

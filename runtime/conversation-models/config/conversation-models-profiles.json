@@ -1,0 +1,28 @@
+{
+  "$comment": "WBS 3.2.4 Conversation Model Runner profilleri (illüstratif; sır YOK). Her profil, bir node_flow konuşmasında izin verilen toplam ADIM bütçesini (step_budget — düğüm geçiş üst sayısı; ilerlemesiz/sonsuz döngüye karşı sınır, NFR 10.2 density + 3.1.4 per-call bütçe) bir dağıtım/tenant-sınıfı için taşır. Değerler MÜHENDİSLİK varsayılanı (vendor-neutral, ADR-002); gerçek değerler canlı runtime'da (Go/Rust, ADR-003) gerçek flow karmaşıklığı + per-call bütçe ile ayarlanır. Konuşma modeli (single_prompt/node_flow) + flow grafiği DEĞİŞMEZ + VERSİYONLU (FR-AGT-003/FR-AGT-004); bu profiller yalnız adım bütçesi/bölge taşır, flow GRAFINI TAŞIMAZ (graf registry'de, home-region — DB 1.1.x). Bölge pini NFR 10.7; versiyon kaydı home-region (FR-AGT-004). Tenant override yalnız SIKILAŞTIRIR (daha küçük bütçe).",
+  "version": "1.0",
+  "default_profile": "pilot-default",
+  "profiles": [
+    {
+      "name": "pilot-default",
+      "deployment": "F1-pilot-shared",
+      "$comment": "Pilot (F1) paylaşımlı worker varsayılanı: 40 adım bütçesi. Tipik node_flow konuşması (karşılama→toplama→teyit→bitiş/handoff) bu adım bütçesinde rahatça yürür; sonsuz/ilerlemesiz döngü engellenir. single_prompt için adım bütçesi geçerli değildir (graf gezintisi yok).",
+      "step_budget": 40,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "enterprise-rich",
+      "deployment": "F2-enterprise-extended",
+      "$comment": "Zengin kurumsal flow (çok düğümlü, çok dallı IVR/iş akışı): daha geniş adım bütçesi (80). Daha fazla düğüm + dallanma + tool çağrısı; yine deterministik + adım-sınırlı. Per-call bütçe (3.1.4) ile dengelenir.",
+      "step_budget": 80,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "high-density-tight",
+      "deployment": "F2-high-density",
+      "$comment": "Yüksek-yoğunluk/kısa görüşme (basit IVR): dar adım bütçesi (20) → minimal düğüm, hızlı çözüm/handoff. Konuşma modeli davranışı aynı (FR-AGT-003), yalnız adım sınırı sıkı.",
+      "step_budget": 20,
+      "region": "${RUNTIME_REGION}"
+    }
+  ]
+}

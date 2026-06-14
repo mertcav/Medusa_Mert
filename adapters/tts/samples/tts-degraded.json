@@ -1,0 +1,18 @@
+{
+  "name": "tts-degraded",
+  "$comment": "BİLİNÇLİ BOZUK (FR-TST-008 negatif kanıt): dört politika aynı anda devre dışı → görev başlığındaki üç boyut + ölü hava eler. streaming=false → tüm yanıt tamponlanır, ilk ses ancak sentez bitince (full_buffered>0, first-byte=80×5=400ms > 200 — P1 eler/FR-RES-002 ihlali). cancel_responsive=false → cancel→susma 380ms + kesme sonrası ses (chunk_after_cancel>0 — P2 eler/talk-over). apply_pronunciation=false → sayı/para alanı sözlüksüz (unhandled_structured>0 — P3 eler/FR-TTS-004). realtime=false → RTF≥1 → tampon boşalır (underrun>0 — P4 eler/FR-RES-009). Beklenen: ELENİR.",
+  "provider": "tts-stream-A",
+  "expect": "fail",
+  "policy": {
+    "streaming": false,
+    "cancel_responsive": false,
+    "apply_pronunciation": false,
+    "realtime": false
+  },
+  "events": [
+    { "kind": "request", "req_id": "deg-1", "voice_id": "A-tr-f-01", "language": "tr", "t": 0, "text_chars": 80, "sample_rate_hz": 8000, "pronunciation_dict_id": "pd-tr-1",
+      "fields": [ { "type": "number", "chars": 11 }, { "type": "currency", "chars": 9 }, { "type": "general", "chars": 60 } ] },
+    { "kind": "cancel", "req_id": "deg-1", "t": 450 },
+    { "kind": "end", "req_id": "deg-1", "t": 900, "reason": "cancelled" }
+  ]
+}

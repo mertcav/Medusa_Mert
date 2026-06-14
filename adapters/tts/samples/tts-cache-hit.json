@@ -1,0 +1,19 @@
+{
+  "name": "tts-cache-hit",
+  "$comment": "Statik anons cache odaklı (FR-TTS-010/FR-RES-003, P7): karşılama + onay + IVR ifadeleri statik → cache-hit'te yeniden sentezlenmez, first-byte ~0 (A: 12ms ≤ 30ms eşiği). Araya tek bir cold (gerçek sentez) yanıt girer (first-byte 120ms ≤ 200). Cache MOTORU 16.1'de; bu adapter cache-hit YOLUNU destekler. Geçer.",
+  "provider": "tts-stream-A",
+  "expect": "pass",
+  "expected": {
+    "cache_hits": 3
+  },
+  "events": [
+    { "kind": "request", "req_id": "cache-greet", "voice_id": "A-tr-f-01", "language": "tr", "t": 0, "text_chars": 40, "sample_rate_hz": 8000, "cached": true, "pronunciation_dict_id": "pd-tr-1", "fields": [ { "type": "general", "chars": 40 } ] },
+    { "kind": "end", "req_id": "cache-greet", "t": 600, "reason": "normal" },
+    { "kind": "request", "req_id": "cold-answer", "voice_id": "A-tr-f-01", "language": "tr", "t": 1200, "text_chars": 55, "sample_rate_hz": 8000, "pronunciation_dict_id": "pd-tr-1", "fields": [ { "type": "general", "chars": 30 }, { "type": "number", "chars": 25 } ] },
+    { "kind": "end", "req_id": "cold-answer", "t": 1900, "reason": "normal" },
+    { "kind": "request", "req_id": "cache-confirm", "voice_id": "A-tr-f-01", "language": "tr", "t": 2400, "text_chars": 22, "sample_rate_hz": 8000, "cached": true, "pronunciation_dict_id": "pd-tr-1", "fields": [ { "type": "general", "chars": 22 } ] },
+    { "kind": "end", "req_id": "cache-confirm", "t": 2800, "reason": "normal" },
+    { "kind": "request", "req_id": "cache-ivr", "voice_id": "A-tr-f-01", "language": "tr", "t": 3200, "text_chars": 30, "sample_rate_hz": 8000, "cached": true, "pronunciation_dict_id": "pd-tr-1", "fields": [ { "type": "general", "chars": 30 } ] },
+    { "kind": "end", "req_id": "cache-ivr", "t": 3600, "reason": "normal" }
+  ]
+}

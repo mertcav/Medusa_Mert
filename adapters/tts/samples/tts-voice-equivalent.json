@@ -1,0 +1,16 @@
+{
+  "name": "tts-voice-equivalent",
+  "$comment": "Ses karakteri tutarlılığı + fallback eşdeğer-ses sınırı (FR-TTS-009, P6): çağrı adapter #1 (tts-stream-A, voiceId A-tr-f-01) ile başlar; primary düşer → fallback adapter #2 (tts-stream-B), tenant-tanımlı EŞDEĞER ses B-tr-f-07 ile devam (voice_equivalent=true, config voice_equivalence haritası). voice_inconsistent=0 + voice_switch_unmapped=0 — ses karakteri korunur. Fallback ANAHTARLAMA mantığı 4.3.2'de; bu sample yalnız haritalı geçişin tutarlılığını gösterir. Geçer.",
+  "expect": "pass",
+  "provider": "tts-stream-A",
+  "expected": {
+    "voice_inconsistent": 0,
+    "voice_switch_unmapped": 0
+  },
+  "events": [
+    { "kind": "request", "req_id": "ve-1", "voice_id": "A-tr-f-01", "language": "tr", "t": 0, "text_chars": 50, "sample_rate_hz": 8000, "pronunciation_dict_id": "pd-tr-1", "fields": [ { "type": "general", "chars": 50 } ] },
+    { "kind": "end", "req_id": "ve-1", "t": 700, "reason": "normal" },
+    { "kind": "request", "req_id": "ve-2", "voice_id": "B-tr-f-07", "language": "tr", "t": 1300, "text_chars": 48, "sample_rate_hz": 8000, "pronunciation_dict_id": "pd-tr-1", "provider": "tts-stream-B", "voice_equivalent": true, "fields": [ { "type": "general", "chars": 48 } ] },
+    { "kind": "end", "req_id": "ve-2", "t": 2000, "reason": "normal" }
+  ]
+}

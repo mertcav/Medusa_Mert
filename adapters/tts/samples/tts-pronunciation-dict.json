@@ -1,0 +1,22 @@
+{
+  "name": "tts-pronunciation-dict",
+  "$comment": "Pronunciation dictionary odaklı (FR-TTS-004, P3): dört yapısal alan tipi — sayı (telefon/poliçe no), tarih, para birimi, özel isim — tek synthesize'te. pronunciationDictId (pd-tr-1) tüm yapısal alanlara uygulanır; unhandled_structured=0 (hiçbiri sözlüksüz kalmaz). 'general' alan sözlük gerektirmez. Streaming + 8 kHz + metering korunur. Geçer.",
+  "provider": "tts-stream-A",
+  "expect": "pass",
+  "expected": {
+    "structured_total": 4,
+    "pronunciation_applied": 4,
+    "unhandled_structured": 0
+  },
+  "events": [
+    { "kind": "request", "req_id": "pron-1", "voice_id": "A-tr-m-02", "language": "tr", "t": 0, "text_chars": 72, "sample_rate_hz": 8000, "pronunciation_dict_id": "pd-tr-1",
+      "fields": [
+        { "type": "general", "chars": 20 },
+        { "type": "number", "chars": 11 },
+        { "type": "date", "chars": 10 },
+        { "type": "currency", "chars": 12 },
+        { "type": "name", "chars": 19 }
+      ] },
+    { "kind": "end", "req_id": "pron-1", "t": 1100, "reason": "normal" }
+  ]
+}
