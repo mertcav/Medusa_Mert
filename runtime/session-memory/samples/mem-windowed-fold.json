@@ -1,0 +1,30 @@
+{
+  "name": "mem-windowed-fold",
+  "$comment": "Uzun çağrı, token tavanı (high-density-tight: token_soft_limit=2000) aşılır → en eski turn'ler ÖZETE katlanır (fold). 12 turn × ~250 token = 3000 > 2000 → pencere 2000'e inene dek en eski 4 turn özete katlanır; pencerede 8 turn kalır. KRİTİK: TÜM 12 turn kalıcılaştırılır (pencere 8 + özet 4) — katlama PROMPT bağlamını küçültür ama kalıcı kaydı kaybetmez (M5/M9, FR-RES-010/FR-LLM-005). Geçer.",
+  "profile": "high-density-tight",
+  "expect": "pass",
+  "expected": {
+    "captured_turns": 12,
+    "folded_turns": 4,
+    "summary_turns": 4,
+    "peak_window_turns": 8,
+    "persisted_turns": 12,
+    "dropped_turn": 0,
+    "persisted": true
+  },
+  "events": [
+    { "kind": "turn", "turn_id": "t1",  "speaker": "agent",  "t": 0,     "approx_tokens": 250 },
+    { "kind": "turn", "turn_id": "t2",  "speaker": "caller", "t": 1000,  "approx_tokens": 250 },
+    { "kind": "turn", "turn_id": "t3",  "speaker": "agent",  "t": 2000,  "approx_tokens": 250 },
+    { "kind": "turn", "turn_id": "t4",  "speaker": "caller", "t": 3000,  "approx_tokens": 250 },
+    { "kind": "turn", "turn_id": "t5",  "speaker": "agent",  "t": 4000,  "approx_tokens": 250 },
+    { "kind": "turn", "turn_id": "t6",  "speaker": "caller", "t": 5000,  "approx_tokens": 250 },
+    { "kind": "turn", "turn_id": "t7",  "speaker": "agent",  "t": 6000,  "approx_tokens": 250 },
+    { "kind": "turn", "turn_id": "t8",  "speaker": "caller", "t": 7000,  "approx_tokens": 250 },
+    { "kind": "turn", "turn_id": "t9",  "speaker": "agent",  "t": 8000,  "approx_tokens": 250 },
+    { "kind": "turn", "turn_id": "t10", "speaker": "caller", "t": 9000,  "approx_tokens": 250 },
+    { "kind": "turn", "turn_id": "t11", "speaker": "agent",  "t": 10000, "approx_tokens": 250 },
+    { "kind": "turn", "turn_id": "t12", "speaker": "caller", "t": 11000, "approx_tokens": 250 },
+    { "kind": "end",  "t": 12000, "reason": "normal" }
+  ]
+}

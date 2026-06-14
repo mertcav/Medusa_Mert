@@ -1,0 +1,31 @@
+{
+  "$comment": "WBS 3.2.1 kısa süreli diyalog belleği profilleri (illüstratif; sır YOK). Her profil, oturum-içi diyalog belleği penceresini (window_max_turns) + özetleme/katlama tetiği yaklaşık token tavanını (token_soft_limit — FR-LLM-005/FR-RES-010) bir dağıtım/tenant-sınıfı için taşır. Vendor-neutral (ADR-002): değerler MÜHENDİSLİK varsayılanı; gerçek değerler canlı runtime'da (Go/Rust, ADR-003) gerçek token-sayacı + LLM context-window'a göre (3.2.2 özetleme motoru) ayarlanır. window_max_turns + token_soft_limit, diyalog belleği bileşeninin (dialogue_memory) 3.1.4 per-call bütçesine katkısını (≤~15MB NFR 10.2) sınırlar. Bölge pini NFR 10.7. Tenant override yalnız SIKILAŞTIRIR (daha küçük pencere/tavan — bağlam/token tasarrufu).",
+  "version": "1.0",
+  "default_profile": "pilot-default",
+  "profiles": [
+    {
+      "name": "pilot-default",
+      "deployment": "F1-pilot-shared",
+      "$comment": "Pilot (F1) paylaşımlı worker varsayılanı: 24 turn pencere (~12 tur diyalog) + 3000 token özetleme tetiği. Tipik 3–5 dk telefon görüşmesi pencereye sığar; uzun görüşmede en eski turn'ler özete katlanır (FR-RES-010). dialogue_memory 3.1.4 bütçe payı düşük tutulur.",
+      "window_max_turns": 24,
+      "token_soft_limit": 3000,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "enterprise-long-call",
+      "deployment": "F2-enterprise-extended",
+      "$comment": "Uzun kurumsal görüşme (destek/sigorta): daha geniş pencere (40 turn) + 5000 token tavan — daha çok bağlam prompt'ta tutulur (kalite), katlama daha geç tetiklenir. Yüksek-yoğunlukta bütçe payı arttığından worker density biraz düşer (3.1.4 ile dengelenir).",
+      "window_max_turns": 40,
+      "token_soft_limit": 5000,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "high-density-tight",
+      "deployment": "F2-high-density",
+      "$comment": "Yüksek-yoğunluk/kısa görüşme (IVR-benzeri, hızlı yönlendirme): dar pencere (16 turn) + 2000 token — erken katlama, minimum bellek payı → worker başına daha çok oturum (density üst uca). Özetleme agresif tetiklenir (FR-RES-010).",
+      "window_max_turns": 16,
+      "token_soft_limit": 2000,
+      "region": "${RUNTIME_REGION}"
+    }
+  ]
+}

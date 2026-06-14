@@ -1,0 +1,13 @@
+{
+  "name": "mem-degraded",
+  "$comment": "BİLİNÇLİ BOZUK (FR-TST-008 negatif kanıt): kalıcılaştırma KAPALI (persist=false) + temizlik kapalı (cleanup=false). Biten oturum durable kayda YAZILMAZ → unpersisted_on_end≥1 (M3 eler) ve tüm turn'ler kaybolur → dropped=captured (M5 eler). Beklenen: ELENİR.",
+  "profile": "pilot-default",
+  "expect": "fail",
+  "policy": { "persist": false, "cleanup": false },
+  "events": [
+    { "kind": "turn", "turn_id": "t1", "speaker": "agent",  "t": 0,    "approx_tokens": 15 },
+    { "kind": "turn", "turn_id": "t2", "speaker": "caller", "t": 1500, "approx_tokens": 12 },
+    { "kind": "turn", "turn_id": "t3", "speaker": "agent",  "t": 3000, "approx_tokens": 20 },
+    { "kind": "end",  "t": 4000, "reason": "normal" }
+  ]
+}

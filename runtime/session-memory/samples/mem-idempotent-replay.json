@@ -1,0 +1,23 @@
+{
+  "name": "mem-idempotent-replay",
+  "$comment": "Dayanıklılık: (1) aynı turn_id iki kez gelir (edge retry / olay tekrarı) → IDEMPOTENT, tek kayıt sayılır (duplicate_turn=1, captured=4 benzersiz). (2) durable depo geçici erişilemez (PostgreSQL kısa kesinti) → at-least-once retry (persist_transient_failures=2) sonunda başarılı; çift yazım idempotency_key ile dedupe → tek transcript, kayıp yok. Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "policy": { "persist_transient_failures": 2 },
+  "expected": {
+    "captured_turns": 4,
+    "duplicate_turn": 1,
+    "persist_retries": 2,
+    "persisted_turns": 4,
+    "dropped_turn": 0,
+    "persisted": true
+  },
+  "events": [
+    { "kind": "turn", "turn_id": "t1", "speaker": "agent",  "t": 0,    "approx_tokens": 15 },
+    { "kind": "turn", "turn_id": "t2", "speaker": "caller", "t": 1200, "approx_tokens": 11 },
+    { "kind": "turn", "turn_id": "t2", "speaker": "caller", "t": 1600, "approx_tokens": 11 },
+    { "kind": "turn", "turn_id": "t3", "speaker": "agent",  "t": 2800, "approx_tokens": 20 },
+    { "kind": "turn", "turn_id": "t4", "speaker": "caller", "t": 4000, "approx_tokens": 8 },
+    { "kind": "end",  "t": 5000, "reason": "normal" }
+  ]
+}

@@ -1,0 +1,144 @@
+{
+  "$comment": "WBS 3.2.1 — Kısa süreli diyalog belleği + oturum sonu kalıcılaştırma. Conversation Orchestrator (Çekirdek IP, SAD §6) oturum aktöründe (SAD §6.3) çalışan SESSION MEMORY bileşeni (SAD §6.2: 'Kısa süreli diyalog belleği, özetleme — bellekte tutar, oturum sonunda kalıcılaştırılır'). İki sorumluluk: (a) KISA SÜRELİ DİYALOG BELLEĞİ — çağrı boyunca turn'leri (caller/agent) SINIRLI bir pencerede bellekte tutar (ekleme-sıralı, monoton seq, idempotent); prompt kurulumu (3.2.3) ve THINK için okunur; çalışan kopya Redis session_state/session_summary'de (cache/ 1.1.5, pii=true, ephemeral, delete_on_call_end). Pencere taşınca en eski turn'ler ÖZETE katlanır (fold) — özetleme MOTORU 3.2.2, burada YALNIZ seam/hook + 'katlama içerik kaybetmez' invariant'ı. (b) OTURUM SONU KALICILAŞTIRMA — çağrı her bitişte (normal/transfer/error/abandon) DURABLE kayda yazılır: transcript + transcript_segment (PostgreSQL, db/ 1.1.3, RLS tenant-scoped, redaction_state='pending' → FR-REC-004 redaction hattı) + recording pointer (objstore/ 1.1.6) + olay yayını (eventstream/ 1.1.8). DURABLE persist BAŞARILI olmadan ephemeral session_state SİLİNMEZ (persist_before_delete) — sessiz veri kaybı YOK; persist idempotent (idempotency_key) + at-least-once retry. Kart/parola/OTP düz-metin kalıcılaştırılmaz (FR-REC-005); transcript redaction_state='pending' (FR-REC-004). KAPSAM AYRIMI: token-sınırı özetleme MOTORU → 3.2.2 (FR-LLM-005/FR-RES-010); versiyonlu system prompt enjeksiyonu → 3.2.3; per-call bellek bütçe izleme/sınırlama → 3.1.4 (Session Memory dialogue_memory bileşenini BESLER); Redis keyspace/TTL → 1.1.5; transcript şeması/RLS → 1.1.3; PII redaction L7 MOTORU → 3.3.x; nesne depo → 1.1.6. Burada YALNIZ oturum-içi bellek MODELİ + oturum-sonu kalıcılaştırma SÖZLEŞMESİ. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): çekirdek minimal+deterministik (olay-tetikli, sanal saat, random YOK); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3) gerçek depo (PostgreSQL/Redis/S3) ile. Spec/config/örneklerde sır/credential, ham ses payload'ı, transkript METNİ ve PII DEĞERİ YOK — yalnız turn yapısı (id/speaker/seq/yaklaşık-token) + sanal zaman + redaction-işareti sayıları.",
+  "version": "1.0",
+  "wbs": "3.2.1",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-RES-010", "FR-RES-016", "FR-LLM-005", "FR-REC-004", "FR-REC-005", "FR-REC-006", "FR-TEN-002", "FR-LLM-011"],
+    "nfr": ["NFR 10.1", "NFR 10.2", "NFR 10.7"],
+    "sad": ["§6", "§6.1", "§6.2", "§6.3", "§12.1", "§13", "§13.3", "§17.1"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003"],
+    "api": ["§11.6 ErrorTaxonomy"],
+    "srs": ["SR-LLM-005", "SR-RES-010", "SR-RES-016", "SR-TEN-002"],
+    "rtm": ["TC-LLM-005", "TC-RES-010", "TC-TEN-002"],
+    "brd": ["§8.1 (çağrı özeti)", "§15 (çağrı başına metrik)", "§16 (Transcript/Recording varlıkları 21–22)"],
+    "stores": ["db/ 1.1.3 (transcript/transcript_segment/recording)", "cache/ 1.1.5 (session_state/session_summary)", "objstore/ 1.1.6 (recording pointer)", "eventstream/ 1.1.8 (call.completed/transcript olayı)"],
+    "observability": ["session_turn_count / session_persist_total / session_dropped_turn_total (BRD §15 → 0.4.7)"]
+  },
+
+  "placement": {
+    "$comment": "Session Memory Conversation Orchestrator oturum aktöründedir (SAD §6.2/§6.3). Olay-tetikli: her turn append + her bitiş olayı işlenir; bloklayan çağrı yok — okuma sıcak yola (prompt kurulumu) gecikme EKLEMEZ (NFR 10.1). Çalışan kopya bellekte küçük tutulur (SAD §6.3 ~15MB hedefi; dialogue_memory bileşeni 3.1.4 bütçesini besler) + Redis session_state'te ayna (cache/ 1.1.5, ephemeral). DURABLE kalıcılaştırma oturum SONUNDA yapılır (her turda DEĞİL — sıcak yolu korur); büyük ham ses Media Gateway/objstore'da. Bellek tenant+call ile anahtarlanır ({t:<tenant_id>}:sess:<call_id>); cross-tenant okuma=0.",
+    "in_orchestrator": true,
+    "in_session_actor": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "memory_in_budget": true,
+    "persist_at_session_end": true,
+    "working_copy_store": "redis_session_state",
+    "durable_store": "postgres_transcript",
+    "trace": "SAD §6.2, SAD §6.3, SAD §13, cache/ 1.1.5, db/ 1.1.3"
+  },
+
+  "memory_model": {
+    "$comment": "Kısa süreli diyalog belleği: turn'lerin SINIRLI (bounded) bir penceresi. Bir turn = {turn_id, speaker∈{caller,agent,human}, seq (monoton), approx_tokens, t}. Pencere max_turns ile sınırlı (window_max_turns) + yaklaşık token tavanı (token_soft_limit — 3.2.2 özetleme tetiği, FR-LLM-005/FR-RES-010); taşınca en eski turn'ler ÖZETE katlanır (fold → session_summary), DÜŞÜRÜLMEZ (kayıp yok). Ekleme APPEND-ONLY + monoton seq; aynı turn_id tekrarı IDEMPOTENT (tek kayıt). Bellek bileşeni (dialogue_memory) 3.1.4 per-call bütçesini besler (mitigable). Pencere ASLA sınırsız büyümez (M1).",
+    "turn_fields": ["turn_id", "speaker", "seq", "approx_tokens", "t"],
+    "speakers": ["caller", "agent", "human"],
+    "window_max_turns": 24,
+    "token_soft_limit": 3000,
+    "append_only": true,
+    "monotonic_seq": true,
+    "idempotent_append": true,
+    "fold_on_overflow": true,
+    "fold_preserves_content": true,
+    "budget_component": "dialogue_memory",
+    "trace": "SAD §6.2, FR-LLM-005, FR-RES-010, FR-RES-016, 3.1.4 budget"
+  },
+
+  "persistence": {
+    "$comment": "Oturum sonu kalıcılaştırma (SAD §6.2 'oturum sonunda kalıcılaştırılır'). Çağrı her bitişte (end_states) DURABLE kayda yazılır: transcript (PostgreSQL db/ 1.1.3, tenant_id RLS, redaction_state='pending' FR-REC-004, summary BRD §8.1) + transcript_segment[] (her turn → seq/speaker/approx; ham metin redaction hattına FR-REC-005) + recording pointer (objstore/ 1.1.6) + olay (eventstream/ 1.1.8 call.completed/transcript). KALICILAŞTIRMA TÜM yakalanan turn'leri (pencere + katlanan özet) kapsar — persisted_turns == captured_turns (M5 kayıp yok). PERSIST İDEMPOTENT (idempotency_key = call_id+attempt) + AT-LEAST-ONCE retry (UNAVAILABLE → backoff; çift yazım dedupe). DURABLE persist BAŞARILI olana kadar ephemeral session_state SİLİNMEZ (persist_before_delete=true — M3/M4 sıralaması). Kart/parola/OTP düz-metin DURABLE'a yazılmaz (FR-REC-005; sensitive_cleartext_persisted=0).",
+    "end_states": ["normal", "transfer", "error", "abandon"],
+    "durable_targets": ["transcript", "transcript_segment", "recording_pointer", "completion_event"],
+    "persist_all_captured_turns": true,
+    "persist_before_delete": true,
+    "idempotent_persist": true,
+    "at_least_once_retry": true,
+    "redaction_state_on_persist": "pending",
+    "strip_card_otp_cleartext": true,
+    "trace": "SAD §6.2, FR-REC-004, FR-REC-005, FR-REC-006, BRD §8.1, db/ 1.1.3, eventstream/ 1.1.8"
+  },
+
+  "cleanup": {
+    "$comment": "Ephemeral temizlik (cache/ 1.1.5 delete_on_call_end). DURABLE persist başarılı olduktan SONRA Redis session_state + session_summary AÇIKÇA silinir (standing session memory YOK; leaked_session_key=0 — M4). Persist BAŞARISIZ olursa anahtar TUTULUR (sliding TTL içinde retry/recovery — kaçak oturum güvenlik ağı hard cap 4 sa). Temizlik graceful: sessiz veri kaybı yok (önce durable, sonra delete).",
+    "delete_ephemeral_after_persist": true,
+    "no_standing_session_memory": true,
+    "keep_on_persist_failure": true,
+    "trace": "cache/ 1.1.5 (delete_on_call_end), FR-RES-016"
+  },
+
+  "summarization_hook": {
+    "$comment": "Özetleme SEAM'i (FR-LLM-005/FR-RES-010). Pencere window_max_turns'i veya token_soft_limit'i aşınca, en eski turn'ler ÖZETE katlanır (fold) — içerik özetlenmiş haliyle session_summary'de tutulur; tutar (fold_preserves_content) — orijinal turn'ler kalıcı kayda yine de tam yazılır (M5), yalnız PROMPT bağlamı küçülür (token tüketimi düşer). Özetleme MOTORU (LLM-tabanlı sıkıştırma, kalite, token sayımı) → 3.2.2; burada YALNIZ seam + 'katlama kayıpsız' invariant'ı (M9).",
+    "fold_trigger": "window_or_token_overflow",
+    "fold_target": "session_summary",
+    "engine_out_of_scope": "3.2.2",
+    "trace": "FR-LLM-005, FR-RES-010, cache/ 1.1.5 session_summary"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (oturum-içi bellek + oturum-sonu kalıcılaştırma). (M1) max_unbounded_memory=0: diyalog belleği SINIRLI penceredir (window_max_turns); taşma katlanır, sınırsız büyümez. (M2) max_out_of_order=0 + max_duplicate_turn=0: ekleme monoton seq + idempotent (sıra bozulmaz, çift turn yok). (M3) max_unpersisted_on_end=0: her BİTEN oturum ephemeral silinmeden ÖNCE durable kalıcılaştırılır (persist_before_delete). (M4) max_leaked_session_key=0: durable persist sonrası ephemeral session_state silinir (standing memory yok). (M5) max_dropped_turn=0: persisted_turns == captured_turns (katlanan özet dahil — kayıp yok). (M6) max_sensitive_cleartext_persisted=0: kart/parola/OTP düz-metin durable'a yazılmaz + transcript redaction_state='pending' (FR-REC-004/005). (M7) max_cross_tenant=0: bellek {tenant,call} izole; cross-tenant okuma/yazma yok.",
+    "window_max_turns": 24,
+    "max_unbounded_memory": 0,
+    "max_out_of_order": 0,
+    "max_duplicate_turn": 0,
+    "max_unpersisted_on_end": 0,
+    "max_leaked_session_key": 0,
+    "max_dropped_turn": 0,
+    "max_sensitive_cleartext_persisted": 0,
+    "max_cross_tenant": 0,
+    "trace": "FR-RES-010, FR-RES-016, FR-REC-004, FR-REC-005, FR-TEN-002, SAD §6.2"
+  },
+
+  "metrics": {
+    "$comment": "Session Memory her oturum için BRD §15 + bellek/persist metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. session_turn_count → çağrı turn sayısı (BRD §15); session_memory_turns → pencere doluluğu; session_persist_total/session_persist_latency_ms → kalıcılaştırma; session_fold_total → katlama; session_dropped_turn_total → kayıp (alarm: >0). Yüksek-kardinalite kimlik (call_id) metrik LABEL'ı OLMAZ (yalnız trace/exemplar; 0.4.7 label_policy, 3.1.5 producer). Turn yapısı (id/seq/speaker/token sayısı) PII DEĞİLDİR; ham metin/transkript METNİ metriklerde yok.",
+    "emitted": [
+      "session_turn_count", "session_memory_turns", "session_persist_total",
+      "session_persist_latency_ms", "session_fold_total", "session_dropped_turn_total"
+    ],
+    "maps_to_observability": {
+      "session_turn_count": "conversation_turn_total",
+      "session_persist_latency_ms": "session_persist_duration_ms"
+    },
+    "proposed_observability_additions": [
+      "session_persist_total", "session_fold_total", "session_dropped_turn_total"
+    ],
+    "trace": "BRD §15, FR-LLM-011, SAD §17.1, observability 0.4.7, 3.1.5 context-propagation"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Bellek/kalıcılaştırma hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Bozuk turn (alan eksik / seq sayısal değil) → INVALID_REQUEST; durable depo erişilemez (PostgreSQL/objstore down) → UNAVAILABLE (at-least-once retry sinyali — anahtar TUTULUR, kayıp YOK); cross-tenant erişim → AUTH; bölge uyumsuzluğu → REGION_VIOLATION. Persist retry bir HATA değil, dayanıklılık (durability) mekanizmasıdır.",
+    "mapping": {
+      "invalid_turn": "INVALID_REQUEST",
+      "durable_store_unavailable": "UNAVAILABLE",
+      "cross_tenant_access": "AUTH",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, FR-REC-006, FR-TEN-002, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "Bellek + kalıcılaştırma tenant home-region'da yapılır: Redis session_state home-region (cache/ 1.1.5), transcript PostgreSQL home-region (db/ DB.md residency), recording objstore per-tenant-per-region (objstore/ 1.1.6). Bölge uyumsuzluğu REGION_VIOLATION (NFR 10.7).",
+    "region_pin_required": true,
+    "trace": "NFR 10.7, cache/ 1.1.5, db/, objstore/ 1.1.6"
+  },
+
+  "pii": {
+    "$comment": "Çalışan bellek + session_state PII İÇEREBİLİR (working memory, cache/ 1.1.5 pii=true). DURABLE transcript redaction_state='pending' ile yazılır → redaction hattı (FR-REC-004, L7 motoru 3.3.x); kart/parola/OTP düz-metin DURABLE'a HİÇ yazılmaz (FR-REC-005). Bu SPEC/config/örnekler ham metin/transkript METNİ veya PII DEĞERİ TUTMAZ — yalnız turn yapısı (id/speaker/seq/approx_tokens) + sanal zaman + redaction-işareti SAYILARI (sensitive_token_count). Memory bileşeni içerik yorumlamaz (yapı + boyut muhasebesi).",
+    "raw_transcript_text_in_spec_forbidden": true,
+    "pii_value_in_spec_forbidden": true,
+    "durable_redaction_state": "pending",
+    "card_otp_cleartext_forbidden": true,
+    "trace": "FR-REC-004, FR-REC-005, BRD §14, BRD §17.7, cache/ 1.1.5"
+  },
+
+  "invariants": [
+    { "id": "M1", "desc": "Kısa süreli diyalog belleği SINIRLI bir penceredir (window_max_turns + token_soft_limit); taşma özete katlanır (fold), DÜŞÜRÜLMEZ; bellek ASLA sınırsız büyümez — unbounded_memory = 0 (FR-RES-016, SAD §6.3 ~15MB).", "trace": "FR-RES-016, FR-RES-010, SAD §6.3" },
+    { "id": "M2", "desc": "Turn ekleme APPEND-ONLY + monoton seq + IDEMPOTENT: sıra bozulmaz (out_of_order=0) ve aynı turn_id iki kez sayılmaz (duplicate_turn=0).", "trace": "SAD §6.2, SAD §6.1" },
+    { "id": "M3", "desc": "Her BİTEN oturum (normal/transfer/error/abandon) ephemeral session_state SİLİNMEDEN ÖNCE durable kalıcılaştırılır (persist_before_delete); unpersisted_on_end = 0 — sessiz veri kaybı YOK (SAD §6.2).", "trace": "SAD §6.2, FR-REC-006, BRD §8.1" },
+    { "id": "M4", "desc": "Durable persist BAŞARILI olduktan SONRA Redis session_state + session_summary açıkça silinir (delete_on_call_end); standing session memory YOK — leaked_session_key = 0. Persist başarısızsa anahtar TUTULUR (TTL içinde retry).", "trace": "cache/ 1.1.5, FR-RES-016" },
+    { "id": "M5", "desc": "Kalıcılaştırma TÜM yakalanan turn'leri kapsar (pencere + katlanan özet): persisted_turns == captured_turns; dropped_turn = 0 (kayıp yok). Persist idempotent + at-least-once (çift yazım dedupe).", "trace": "SAD §6.2, FR-REC-006" },
+    { "id": "M6", "desc": "DURABLE transcript redaction_state='pending' (FR-REC-004) ile yazılır + kart/parola/OTP düz-metin durable'a HİÇ yazılmaz (FR-REC-005); sensitive_cleartext_persisted = 0.", "trace": "FR-REC-004, FR-REC-005, BRD §17.7" },
+    { "id": "M7", "desc": "Bellek {tenant_id, call_id} ile anahtarlanır; cross-tenant okuma/yazma = 0. Durable yazım tenant_id taşır (RLS db/ 1.1.x); kalıcılaştırma tenant izolasyonunu korur.", "trace": "FR-TEN-002, db/ 1.1.3, cache/ 1.1.5" },
+    { "id": "M8", "desc": "Diyalog belleği bileşeni (dialogue_memory) 3.1.4 per-call bütçesini besler (mitigable — özetleme küçültür); okuma non-blocking, sıcak yola gecikme eklemez (NFR 10.1).", "trace": "FR-RES-016, FR-RES-010, NFR 10.1, 3.1.4" },
+    { "id": "M9", "desc": "Pencere taşınca katlama (fold) içeriği KAYBETMEZ (fold_preserves_content): özet session_summary'de, orijinal turn'ler kalıcı kayda tam yazılır; özetleme MOTORU 3.2.2 (FR-LLM-005).", "trace": "FR-LLM-005, FR-RES-010, cache/ 1.1.5 session_summary" },
+    { "id": "M10", "desc": "Bellek + kalıcılaştırma tenant home-region'da (NFR 10.7); hatalar ortak ErrorTaxonomy'ye (API §11.6) eşlenir (durable down → UNAVAILABLE/retry, kayıp değil); spec/config/örneklerde literal sır, ham metin/transkript METNİ veya PII DEĞERİ yok (yalnız turn yapısı + sanal zaman + işaret sayıları).", "trace": "NFR 10.7, API §11.6, BRD §14" }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "mem-happy-path",
+  "$comment": "Sağlıklı kısa çağrı: 6 turn (caller/agent), pencereye (24) sığar, normal bitiş. Tüm turn'ler kalıcılaştırılır (transcript+segment, redaction_state=pending), sonra ephemeral session_state silinir. Katlama yok, kayıp yok, kaçak yok. Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "captured_turns": 6,
+    "persisted_turns": 6,
+    "folded_turns": 0,
+    "dropped_turn": 0,
+    "leaked_session_key": 0,
+    "persisted": true,
+    "ephemeral_deleted": true,
+    "redaction_state": "pending",
+    "scenario": ["happy"]
+  },
+  "events": [
+    { "kind": "turn", "turn_id": "t1", "speaker": "agent",  "t": 0,    "approx_tokens": 18 },
+    { "kind": "turn", "turn_id": "t2", "speaker": "caller", "t": 1500, "approx_tokens": 12 },
+    { "kind": "turn", "turn_id": "t3", "speaker": "agent",  "t": 3000, "approx_tokens": 22 },
+    { "kind": "turn", "turn_id": "t4", "speaker": "caller", "t": 5000, "approx_tokens": 9 },
+    { "kind": "turn", "turn_id": "t5", "speaker": "agent",  "t": 6500, "approx_tokens": 26 },
+    { "kind": "turn", "turn_id": "t6", "speaker": "caller", "t": 8000, "approx_tokens": 7 },
+    { "kind": "end",  "t": 9000, "reason": "normal" }
+  ]
+}

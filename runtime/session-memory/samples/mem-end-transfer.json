@@ -1,0 +1,22 @@
+{
+  "name": "mem-end-transfer",
+  "$comment": "İnsan temsilciye aktarım bitişi (transfer end-state, SAD §7.3 Handoff). Aktarımda da diyalog belleği DURABLE kalıcılaştırılır (transcript+segment) — handoff bağlam paketi + audit için; bir turn'de bile kayıp olmaz (M3/M5). Bitiş normal değil ama persist + temizlik aynı disiplinle uygulanır. İçinde kart/OTP işareti (sensitive_tokens) var → düz-metin durable'a yazılmaz (M6). Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "captured_turns": 4,
+    "end_reason": "transfer",
+    "persisted": true,
+    "persisted_turns": 4,
+    "sensitive_seen": 1,
+    "sensitive_cleartext_persisted": 0,
+    "ephemeral_deleted": true
+  },
+  "events": [
+    { "kind": "turn", "turn_id": "t1", "speaker": "agent",  "t": 0,    "approx_tokens": 16 },
+    { "kind": "turn", "turn_id": "t2", "speaker": "caller", "t": 1500, "approx_tokens": 14, "sensitive_tokens": 1 },
+    { "kind": "turn", "turn_id": "t3", "speaker": "agent",  "t": 3000, "approx_tokens": 19 },
+    { "kind": "turn", "turn_id": "t4", "speaker": "caller", "t": 4500, "approx_tokens": 10 },
+    { "kind": "end",  "t": 5500, "reason": "transfer" }
+  ]
+}
