@@ -1,0 +1,18 @@
+{
+  "name": "llm-selective-content-filter",
+  "$comment": "Seçici tetik (L7) — CONTENT_FILTERED. u1'de birincil model sağlayıcı içerik reddi (content_filter → CONTENT_FILTERED) verir. Bu GEÇİCİ DEĞİL: başka modele geçmek YANLIŞ (fallback de büyük olasılıkla reddeder + boşuna ölü hava). Switcher model DEĞİŞTİRMEZ (improper_failover=0) → politika motoru / deterministik akışa (3.3.2) gider. Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "failovers": 0,
+    "improper_failover": 0,
+    "deterministic_flow_count": 1,
+    "dropped_call": 0
+  },
+  "events": [
+    { "kind": "start", "t": 0 },
+    { "kind": "turn_start", "t": 100, "turn_id": "u1", "tier": "large" },
+    { "kind": "provider_error", "t": 200, "turn_id": "u1", "raw_error": "content_filter" },
+    { "kind": "end", "t": 3000, "reason": "transfer" }
+  ]
+}

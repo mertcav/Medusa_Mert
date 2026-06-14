@@ -1,0 +1,24 @@
+{
+  "name": "llm-degraded",
+  "$comment": "İLLÜSTRATİF elenen profil (negatif kapı kanıtı). policy BOZUK: mid_stream_safe=false (ilk token sonrası sessiz yeniden istek → çift konuşma) + tool_idempotency=false (yan etkili tool çift yürütme) + yavaş fallback (llm-cloud-C-degraded: switch overhead > 500ms). u1: ilk token + yan etkili tool sonrası birincil 5xx → BOZUK yeniden istek → double_speak≥1 + double_tool_exec≥1 + switch overhead kapısı. L3/L4/L5 ELENİR (expect=fail). primary_obj/secondary_obj ile profil dışı sağlayıcı verilir (C yavaş).",
+  "expect": "fail",
+  "policy": { "mid_stream_safe": false, "tool_idempotency": false },
+  "primary_obj": {
+    "provider_id": "llm-cloud-A", "features": ["streaming", "tool_call"], "tiers": ["small", "large"],
+    "no_train": true, "data_retention": "NONE", "setup_ms": 60, "teardown_ms": 20, "first_token_ms": 140
+  },
+  "secondary_obj": {
+    "provider_id": "llm-cloud-C-degraded", "features": ["streaming"], "tiers": ["large"],
+    "no_train": false, "data_retention": "PROVIDER_DEFAULT", "setup_ms": 260, "teardown_ms": 90, "first_token_ms": 520
+  },
+  "events": [
+    { "kind": "start", "t": 0 },
+    { "kind": "turn_start", "t": 100, "turn_id": "u1", "tier": "large", "critical": true },
+    { "kind": "first_token", "t": 280, "turn_id": "u1" },
+    { "kind": "tool_exec", "t": 600, "turn_id": "u1", "tool_id": "charge_card", "side_effecting": true },
+    { "kind": "provider_error", "t": 900, "turn_id": "u1", "raw_error": "provider_5xx" },
+    { "kind": "first_token", "t": 1600, "turn_id": "u1" },
+    { "kind": "turn_complete", "t": 2100, "turn_id": "u1" },
+    { "kind": "end", "t": 5000, "reason": "normal" }
+  ]
+}

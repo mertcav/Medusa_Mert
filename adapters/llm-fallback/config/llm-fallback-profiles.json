@@ -1,0 +1,86 @@
+{
+  "$comment": "WBS 4.3.3 LLM fallback sağlayıcı + çalıştırma profilleri (İLLÜSTRATİF, sağlayıcı-nötr — ADR-002; sır YOK). 'providers' = iki SOMUT LlmAdapter implementasyonu (≥2/kategori — BRD §19 (1)); GERÇEK sağlayıcı/model DEĞİL, isimler vendor-neutral placeholder. Her sağlayıcı: capabilities() beyanı (languages, features⊇{streaming,tool_call}, regions, data_retention, no_train, tiers=desteklenen model tier'ları) + DETERMİNİSTİK gecikme PROFİLİ (setup_ms/teardown_ms = complete() kurulum/teardown, first_token_ms = fallback'te yeniden sunulan turun ilk token gecikmesi — random YOK). Gecikme değerleri MÜHENDİSLİK varsayılanı (0.2.4 llm-eval kapılarına uyumlu: first-token P95 ≤400ms SAD §20); GERÇEK değerler 0.3.x canlı PoC'ta ölçülür. switch_overhead = eski_teardown + fallback_setup + fallback_first_token (deterministik; gates.switch_overhead_p95_ms kapısı — fallback fresh first-token içerdiğinden STT/TTS'ten geniş). 'profiles' = dağıtım/tenant-sınıfı çalıştırma profilleri (primary+secondary[=fallback] sağlayıcı + bölge + deterministic_flow_id). deterministic_flow_id: birincil+fallback düşünce kullanılan kural-tabanlı güvenli akış/aktarım şablonu kimliği (İÇERİK değil — 8.x/3.3.2 motoru). Bölge pini NFR 10.7; UsageRecord home-region + model/versiyon (FR-BIL-002/FR-LLM-011). Config GÖVDE/credential TAŞIMAZ (yalnız ${ENV}).",
+  "version": "1.0",
+  "default_profile": "pilot-default",
+
+  "providers": [
+    {
+      "provider_id": "llm-cloud-A",
+      "$comment": "Adapter #1 — bulut LLM (büyük+küçük tier, streaming + schema-doğrulamalı tool-call). noTrain, EU/TR bölgesel endpoint, no-log (NONE). Birincil aday.",
+      "kind": "cloud-managed",
+      "languages": ["tr", "en", "de", "ar"],
+      "features": ["streaming", "tool_call"],
+      "tiers": ["small", "large"],
+      "regions": ["EU", "TR"],
+      "data_retention": "NONE",
+      "no_train": true,
+      "setup_ms": 60,
+      "teardown_ms": 20,
+      "first_token_ms": 140,
+      "cost_per_1k_input_tokens_minor": 3,
+      "cost_per_1k_output_tokens_minor": 12,
+      "currency": "EUR"
+    },
+    {
+      "provider_id": "llm-cloud-B",
+      "$comment": "Adapter #2 — bağımsız ikinci bulut LLM sağlayıcısı (AYRI kota → QUOTA_EXCEEDED'da failover anlamlı). noTrain, TR/EU bölgesel, ephemeral retention. ≥2/kategori + fallback (FR-LLM-010) için bağımsız ikinci sağlayıcı.",
+      "kind": "cloud-managed",
+      "languages": ["tr", "en"],
+      "features": ["streaming", "tool_call"],
+      "tiers": ["small", "large"],
+      "regions": ["TR", "EU"],
+      "data_retention": "EPHEMERAL",
+      "no_train": true,
+      "setup_ms": 40,
+      "teardown_ms": 15,
+      "first_token_ms": 170,
+      "cost_per_1k_input_tokens_minor": 2,
+      "cost_per_1k_output_tokens_minor": 9,
+      "currency": "EUR"
+    },
+    {
+      "provider_id": "llm-cloud-C-degraded",
+      "$comment": "İLLÜSTRATİF elenen aday — yavaş setup/first-token + tool-call YOK + noTrain kapalı + bölge dışı (switch overhead + ≥2-yetenek + no-train/residency kapılarını eler). Yalnız negatif kapı kanıtı için; portföyde DEĞİL.",
+      "kind": "cloud-managed",
+      "languages": ["en"],
+      "features": ["streaming"],
+      "tiers": ["large"],
+      "regions": ["US"],
+      "data_retention": "PROVIDER_DEFAULT",
+      "no_train": false,
+      "setup_ms": 260,
+      "teardown_ms": 90,
+      "first_token_ms": 520,
+      "cost_per_1k_input_tokens_minor": 1,
+      "cost_per_1k_output_tokens_minor": 5,
+      "currency": "USD"
+    }
+  ],
+
+  "profiles": [
+    {
+      "name": "pilot-default",
+      "$comment": "Faz 1 pilot: bulut A birincil + bulut B fallback; EU bölge. ≥2 sağlayıcı + kontrollü fallback (BRD §19 (1)/(4)). Her iki düşerse deterministic_flow_id ile kural-tabanlı güvenli aktarım.",
+      "primary_provider": "llm-cloud-A",
+      "secondary_provider": "llm-cloud-B",
+      "region": "EU",
+      "deterministic_flow_id": "safe-handoff-default"
+    },
+    {
+      "name": "regional-tr",
+      "$comment": "TR residency: B birincil + A(TR) fallback; veri TR sınırında. noTrain + no-log.",
+      "primary_provider": "llm-cloud-B",
+      "secondary_provider": "llm-cloud-A",
+      "region": "TR",
+      "deterministic_flow_id": "safe-handoff-tr"
+    },
+    {
+      "name": "high-density",
+      "$comment": "Yüksek yoğunluk: düşük-setup B birincil (hızlı failover) + A fallback; EU.",
+      "primary_provider": "llm-cloud-B",
+      "secondary_provider": "llm-cloud-A",
+      "region": "EU",
+      "deterministic_flow_id": "safe-handoff-default"
+    }
+  ]
+}

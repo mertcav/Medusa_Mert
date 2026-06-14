@@ -1,0 +1,21 @@
+{
+  "name": "llm-midstream-tool-safe-degrade",
+  "$comment": "LLM'e ÖZGÜ güvenlik (L3+L4). u1: birincil model İLK TOKEN'ı downstream'e (TTS) gönderir VE yan etkili bir tool (ör. ödeme) yürütür; SONRA birincil model 5xx (UNAVAILABLE) verir. Switcher fallback'e SESSİZCE yeniden istek YAPMAZ — yapsa (a) çift/çelişkili konuşma (double_speak) ve (b) yan etkili tool çift yürütme (double_tool_exec) olurdu. Bunun yerine güvenli degrade (deterministik akış): double_speak=0 + double_tool_exec=0. Çağrı düşmez. Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "failovers": 0,
+    "mid_stream_degrade": 1,
+    "double_speak": 0,
+    "double_tool_exec": 0,
+    "dropped_call": 0
+  },
+  "events": [
+    { "kind": "start", "t": 0 },
+    { "kind": "turn_start", "t": 100, "turn_id": "u1", "tier": "large", "critical": true },
+    { "kind": "first_token", "t": 280, "turn_id": "u1" },
+    { "kind": "tool_exec", "t": 600, "turn_id": "u1", "tool_id": "charge_card", "side_effecting": true },
+    { "kind": "provider_error", "t": 900, "turn_id": "u1", "raw_error": "provider_5xx" },
+    { "kind": "end", "t": 4000, "reason": "transfer" }
+  ]
+}

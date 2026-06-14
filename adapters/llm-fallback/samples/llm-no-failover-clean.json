@@ -1,0 +1,22 @@
+{
+  "name": "llm-no-failover-clean",
+  "$comment": "Hatasız çağrı (pilot-default): iki tur birincil modelde tamamlanır, hiç hata yok → failover yok. Tüm kapılar geçer (L1–L8 boş-failover yolu). Negatif olmayan referans.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "failovers": 0,
+    "turns_completed": 2,
+    "deterministic_flow_count": 0,
+    "dropped_call": 0
+  },
+  "events": [
+    { "kind": "start", "t": 0 },
+    { "kind": "turn_start", "t": 100, "turn_id": "u1", "tier": "small" },
+    { "kind": "first_token", "t": 230, "turn_id": "u1" },
+    { "kind": "turn_complete", "t": 500, "turn_id": "u1" },
+    { "kind": "turn_start", "t": 2000, "turn_id": "u2", "tier": "large" },
+    { "kind": "first_token", "t": 2160, "turn_id": "u2" },
+    { "kind": "turn_complete", "t": 2600, "turn_id": "u2" },
+    { "kind": "end", "t": 5000, "reason": "normal" }
+  ]
+}
