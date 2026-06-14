@@ -1,0 +1,40 @@
+{
+  "$comment": "WBS 2.2.1 jitter buffer profilleri (illüstratif; sır YOK). Her profil bir entegrasyon moduna (2.1.3 managed-WS / 2.1.4 ham SIP RTP) karşılık gelen tipik ağ koşulları için adaptif jitter buffer parametrelerini taşır. Vendor-neutral (ADR-002): managed (CPaaS WS taşıma — sağlayıcı kendi jitter'ını sönümler, düşük artık jitter) ve byoc (ham RTP — daha yüksek jitter beklenir, daha derin buffer). Bölge pini NFR 10.7. Gerçek parametreler canlı Media Gateway'de telemetriyle ayarlanır.",
+  "version": "1.0",
+  "default_profile": "managed-ws-default",
+  "profiles": [
+    {
+      "name": "managed-ws-default",
+      "integration_mode": "M1-managed-ws",
+      "$comment": "Managed CPaaS (Twilio/Telnyx Media Streams) WS taşıması: sağlayıcı tarafı jitter'ı zaten sönümlediğinden artık jitter düşük → sığ adaptif buffer yeter, eklenen gecikme minimal. base 30ms, jitter altında 100ms'e kadar büyüyebilir (loss kaçınma) ama o noktada J3 latency bütçesini aşar (loss↔latency gerilimi).",
+      "mode": "adaptive",
+      "base_depth_ms": 30,
+      "target_factor": 2.0,
+      "min_depth_ms": 20,
+      "max_depth_ms": 100,
+      "region": "${MEDIA_REGION}"
+    },
+    {
+      "name": "byoc-rtp-default",
+      "integration_mode": "M2-raw-sip-rtp",
+      "$comment": "Ham SIP trunk + RTP (BYOC): doğrudan PSTN/SBC RTP yolu, ağ jitter'ı daha yüksek olabilir → daha derin adaptif buffer; yine de max 120ms'e clamp'lenir. base 40ms; orta jitter'da büyür ama J3 bütçesi (80ms) içinde headroom bırakır, aşırı jitter'da max'a clamp'lenip latency bütçesini aşar (loss kaçınma önceliği).",
+      "mode": "adaptive",
+      "base_depth_ms": 40,
+      "target_factor": 2.0,
+      "min_depth_ms": 30,
+      "max_depth_ms": 120,
+      "region": "${MEDIA_REGION}"
+    },
+    {
+      "name": "fixed-conservative",
+      "integration_mode": "M2-raw-sip-rtp",
+      "$comment": "Sabit (non-adaptive) buffer — düşük-gecikme/kararlı-ağ senaryoları veya adaptasyonun istenmediği durumlar için. Sabit 30ms derinlik; jitter'a tepki vermez (referans/karşılaştırma profili).",
+      "mode": "fixed",
+      "base_depth_ms": 30,
+      "target_factor": 0.0,
+      "min_depth_ms": 30,
+      "max_depth_ms": 30,
+      "region": "${MEDIA_REGION}"
+    }
+  ]
+}

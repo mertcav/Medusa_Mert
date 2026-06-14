@@ -1,0 +1,125 @@
+{
+  "$comment": "WBS 2.2.1 — RTP/medya sonlandırma + jitter buffer. Real-time Media Gateway (SAD §6/§7, L2 katmanı) ingress medya yolu: RTP paketlerini sonlandırır (terminate), sıra/zaman damgasına göre yeniden sıralar (reorder), adaptif jitter buffer ile ağ jitter'ını sönümler, kayıp/geç paketleri tespit eder + concealment (PLC) uygular ve downstream'e (streaming STT connector 2.2.5) DÜZGÜN (steady) 20ms/50fps çerçeve kadansı verir. 2.1.3 managed-cpaas (M1) / 2.1.4 byoc-sip (M2) adaptörleri taşıma/normalize sözleşmesini kurdu; bu dilim taşıma içindeki gerçek MEDYA SONLANDIRMA + jitter buffer çekirdeğini birinci-sınıf deterministik bir sözleşmeye çevirir. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): jitter buffer çekirdeği minimal+deterministik, sağlayıcıdan bağımsız; canlı sistemde gerçek RTP/WebRTC yığını Media Gateway'de (C/C++/Rust native, SAD §21). Sır/credential ve ham RTP payload/PII YOK — paketler illüstratif (seq/ts/arrival, ses payload'ı yok).",
+  "version": "1.0",
+  "wbs": "2.2.1",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-RTC-001", "FR-RTC-002", "FR-RTC-005", "FR-RES-008", "FR-RES-014", "FR-RES-016", "FR-TEN-002"],
+    "nfr": ["NFR 10.1", "NFR 10.2", "NFR 10.6", "NFR 10.7"],
+    "sad": ["§6", "§6.1", "§7.1", "§7.2", "§17", "§20", "§21"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003", "ADR-005", "ADR-009"],
+    "api": ["§11.5 TelephonyAdapter (medya akışı)", "§11.6 ErrorTaxonomy", "§12.2 TurnEvent (medya çerçeve akışı)"],
+    "srs": ["SR-RTC-001"],
+    "rtm": ["TC-RTC-001"],
+    "brd": ["§15 (packet loss, jitter, codec — saklanan teknik metrikler)"],
+    "observability": ["voice_packet_loss_ratio", "voice_jitter_ms (BRD §15 → 0.4.7)"],
+    "rfc": ["RFC 3550 (RTP/RTCP — sequence/timestamp/SSRC, interarrival jitter)", "RFC 3551 (audio/video profil)"]
+  },
+
+  "media_profile": {
+    "$comment": "Telefoni 8 kHz native; 20ms çerçeve (50 fps). Sonlandırmada gereksiz resample/transcode YOK (FR-RES-008, SAD §7.2, 2.1.3/2.1.4/2.2.2 ile birebir). Jitter buffer payload'a dokunmaz; yalnız zamanlama/sıralama yönetir (codec-agnostik).",
+    "sample_rate_hz": 8000,
+    "frame_ms": 20,
+    "frames_per_sec": 50,
+    "samples_per_frame": 160,
+    "no_transcode": true,
+    "resample_points_max": 1,
+    "trace": "FR-RES-008, SAD §7.2"
+  },
+
+  "rtp_termination": {
+    "$comment": "RTP paket sonlandırma (RFC 3550). Her paket: sequence_number (16-bit), timestamp (32-bit, örnek birimi), ssrc (32-bit kaynak), marker (talk-spurt başı), payload_type. Sonlandırıcı: (a) 16-bit seq wraparound + 32-bit ts wraparound modüler-güvenli fark ile sıralar, (b) yeni SSRC görünce buffer'ı resetler (kaynak değişimi), (c) marker bit'i sessizlik sonrası playout'u yeniden primer (J9). Ham ses payload'ı bu sözleşmede TUTULMAZ.",
+    "seq_bits": 16,
+    "timestamp_bits": 32,
+    "wraparound_safe": true,
+    "ssrc_change_resets_buffer": true,
+    "marker_reprimes_playout": true,
+    "reorder_within_window": true,
+    "trace": "FR-RTC-001, RFC 3550, SAD §7.1"
+  },
+
+  "jitter_buffer": {
+    "$comment": "ADAPTİF jitter buffer. Ölçülen interarrival jitter'a (RFC 3550 J) göre playout hedef gecikmesini ayarlar: target = clamp(base_depth_ms + target_factor*J, min_depth_ms, max_depth_ms). Amaç: ağ jitter'ını sönümleyip downstream'e DÜZGÜN kadans vermek; AMA eklenen playout gecikmesi medya bütçesi (SAD §20 ~50–100ms tek-yön) içinde kalmalı. Derinlik SINIRLI (min/max) → ne sınırsız büyüme (bellek, FR-RES-016) ne de yetersiz sönümleme. fixed mod da desteklenir (sabit base_depth). Playout son tarihinden sonra gelen GEÇ paket atılır (oynatılmaz). Kayıp slot → concealment (PLC) ile doldurulur → kadans sürekli kalır.",
+    "modes": ["adaptive", "fixed"],
+    "default_mode": "adaptive",
+    "base_depth_ms": 40,
+    "target_factor": 2.0,
+    "min_depth_ms": 20,
+    "max_depth_ms": 120,
+    "rfc3550_jitter_gain": 0.0625,
+    "late_packet_policy": "discard",
+    "overflow_policy": "drop_oldest",
+    "concealment": "plc_fill",
+    "trace": "FR-RTC-001, FR-RES-016, RFC 3550, SAD §20"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar. (1) jitter_buffer_budget_ms: jitter buffer'ın EKLEDİĞİ playout gecikmesi P95 ≤ 80ms — SAD §20 'Ağ/medya ~50–100ms tek-yön' bütçesinin jitter-buffer payı; green ≤50ms. (2) max_concealment_ratio: kayıp+geç nedeniyle gizlenen (PLC) slot oranı ≤ 0.05; aşılırsa hat-kalitesi degrade sinyali (FR-RTC-005). (3) cadence_must_be_continuous: downstream her slot için tam olarak bir çerçeve almalı (gerçek veya concealed) — boşluk YOK (stream-first). (4) reorder_must_be_absorbed: pencere içi out-of-order paketler doğru sırada oynatılmalı.",
+    "jitter_buffer_budget_ms": 80,
+    "green_added_latency_ms": 50,
+    "max_concealment_ratio": 0.05,
+    "cadence_must_be_continuous": true,
+    "reorder_must_be_absorbed": true,
+    "trace": "NFR 10.1, SAD §20, FR-RTC-001, FR-RTC-005"
+  },
+
+  "metrics": {
+    "$comment": "Jitter buffer her oturum için BRD §15 medya metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar: jitter (RFC 3550 J), packet loss rate, geç-atma oranı, concealment oranı, nominal derinlik, eklenen gecikme P95, yeniden-sıralanan paket sayısı. Yüksek-kardinalite kimlik (call_id) metrik LABEL'ı OLMAZ (yalnız trace/exemplar; 0.4.7 label_policy). Ham payload metriklerde yok.",
+    "emitted": [
+      "jitter_ms", "packet_loss_rate", "late_discard_rate", "concealment_ratio",
+      "nominal_depth_ms", "added_latency_p95_ms", "reordered", "cadence_continuous"
+    ],
+    "maps_to_observability": {
+      "jitter_ms": "voice_jitter_ms",
+      "packet_loss_rate": "voice_packet_loss_ratio"
+    },
+    "trace": "BRD §15, SAD §17, observability 0.4.7"
+  },
+
+  "barge_in_flush": {
+    "$comment": "EGRESS (TTS→arayan) playout buffer'ı, barge-in algılandığında ≤200ms içinde FLUSH edilir → agent sesi kesilir (FR-RTC-002, NFR 10.1). Barge-in ALGILAMA edge'de (ADR-005/ADR-009, 2.2.7'de derinleşir); burada yalnız buffer flush KANCASI tanımlıdır (medya tarafı sözleşmesi). INGRESS jitter buffer (arayan→STT) bu dilimin çekirdeğidir; egress flush kancası tamlık için.",
+    "flush_deadline_ms": 200,
+    "detection_owner": "2.2.7 + edge (ADR-005)",
+    "trace": "FR-RTC-002, NFR 10.1, ADR-005, ADR-009"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Medya/jitter hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Bozuk/ayrıştırılamayan RTP → INVALID_REQUEST; medya taşıması koparsa → UNAVAILABLE; bölge uyumsuzluğu → REGION_VIOLATION. Aşırı kayıp bir HATA değil, degrade SİNYALİdir (concealment kapısı).",
+    "mapping": {
+      "invalid_rtp": "INVALID_REQUEST",
+      "media_transport_lost": "UNAVAILABLE",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "Medya tenant home-region'da sonlandırılır/işlenir; bölge uyumsuzluğu REGION_VIOLATION (NFR 10.7). ADR-009 hibrit: ağır medya işleme ayrı bölgesel medya katmanında.",
+    "region_pin_required": true,
+    "trace": "NFR 10.7, ADR-009"
+  },
+
+  "pii": {
+    "$comment": "RTP ses payload'ı kişisel veridir (konuşma içeriği). Spec/config/örneklerde HAM PAYLOAD veya transkript TUTULMAZ; örnek paketler yalnız zamanlama metadata'sı (seq/ts/arrival/marker) taşır. Jitter buffer payload'ı yorumlamaz (codec-agnostik); içerik downstream STT'ye akar.",
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "trace": "BRD §14, BRD §15"
+  },
+
+  "invariants": [
+    { "id": "J1", "desc": "RTP paketleri sonlandırılır ve sequence/timestamp'e göre sıralanır; playout penceresi içindeki out-of-order paketler doğru sırada oynatılır (reorder absorbed).", "trace": "FR-RTC-001, RFC 3550, SAD §7.1" },
+    { "id": "J2", "desc": "Jitter buffer ADAPTİF: playout hedef gecikmesi ölçülen jitter'a göre target=clamp(base+factor*J, min, max) ile ayarlanır; min/max derinlikle sınırlı.", "trace": "FR-RTC-001, RFC 3550" },
+    { "id": "J3", "desc": "Jitter buffer'ın EKLEDİĞİ playout gecikmesi P95 ≤ jitter_buffer_budget_ms (SAD §20 medya bütçesi payı); aşılırsa kapı eler.", "trace": "NFR 10.1, SAD §20" },
+    { "id": "J4", "desc": "Playout son tarihinden SONRA gelen geç (late) paketler oynatılmaz, atılır ve sayılır (late_discard).", "trace": "FR-RTC-001, BRD §15" },
+    { "id": "J5", "desc": "Kayıp seq boşluğuyla tespit edilir; concealment (PLC) ile doldurulur; concealment_ratio ≤ max_concealment_ratio; aşılırsa hat-kalitesi degrade sinyali (FR-RTC-005).", "trace": "FR-RTC-001, FR-RTC-005, BRD §15" },
+    { "id": "J6", "desc": "Downstream KADANSI SÜREKLİ: her slot için tam olarak bir çerçeve (gerçek veya concealed) — boşluk yok; stream-first, kritik yolda tam-tampona-alma yok.", "trace": "FR-RTC-001, SAD §6 ilke 1" },
+    { "id": "J7", "desc": "RFC 3550 interarrival jitter + packet loss rate hesaplanır → BRD §15 metrikleri (voice_jitter_ms / voice_packet_loss_ratio) gözlemlenebilirliğe (0.4.7) yayılır.", "trace": "BRD §15, SAD §17" },
+    { "id": "J8", "desc": "8kHz/20ms medya profili korunur; sonlandırmada transcode/resample yok (≤1 resample noktası; 2.2.2 ile hizalı).", "trace": "FR-RES-008, SAD §7.2" },
+    { "id": "J9", "desc": "16-bit seq wraparound + 32-bit RTP timestamp wraparound modüler-güvenli ele alınır; yeni SSRC buffer'ı resetler; marker bit (talk-spurt başı) playout'u yeniden primer.", "trace": "RFC 3550" },
+    { "id": "J10", "desc": "Buffer derinliği SINIRLI — sınırsız büyüme yok; taşmada en eski atılır (drop_oldest, backpressure); oturum-başı medya tamponu Media Gateway'de sınırlı (FR-RES-016/014).", "trace": "FR-RES-016, FR-RES-014, SAD §6" },
+    { "id": "J11", "desc": "Egress (TTS→arayan) playout buffer'ı barge-in'de ≤200ms flush edilir; barge-in algılama edge'de (ADR-005, 2.2.7) — burada flush kancası.", "trace": "FR-RTC-002, NFR 10.1, ADR-005, ADR-009" },
+    { "id": "J12", "desc": "Medya hataları ortak ErrorTaxonomy'ye (API §11.6) eşlenir — bozuk RTP→INVALID_REQUEST, taşıma kopması→UNAVAILABLE, bölge→REGION_VIOLATION.", "trace": "API §11.6, NFR 10.7" },
+    { "id": "J13", "desc": "Medya home-region'da sonlandırılır; bağlam (tenant_id/correlation_id/call_id) medya oturumuna bağlanır ve metriklere taşınır (yüksek-kardinalite kimlik metrik label'ı olmaz).", "trace": "SAD §13.3, NFR 10.7, observability 0.4.7" },
+    { "id": "J14", "desc": "Spec/config/örneklerde literal sır, ham RTP ses payload'ı veya transkript yok; paketler illüstratif zamanlama metadata'sı.", "trace": "CLAUDE.md kısıtlar, BRD §14, BRD §15" }
+  ]
+}

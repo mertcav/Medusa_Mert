@@ -1,0 +1,224 @@
+{
+  "name": "jitter-happy-path",
+  "$comment": "Sentetik temiz RTP akışı (FR-TST-008): 30 çerçeve, ~±1.5ms küçük jitter, kayıp yok. Managed-WS profili. Adaptif derinlik≈base 40ms; concealment 0; eklenen-gecikme P95 yeşil bant. Geçer.",
+  "profile": "managed-ws-default",
+  "expect": "pass",
+  "expected": {
+    "lost": 0,
+    "late_discarded": 0,
+    "concealment_ratio": 0.0,
+    "cadence_continuous": true
+  },
+  "packets": [
+    {
+      "seq": 4000,
+      "ts": 160000,
+      "arrival_ms": -1.0,
+      "marker": true,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4001,
+      "ts": 160160,
+      "arrival_ms": 21.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4002,
+      "ts": 160320,
+      "arrival_ms": 39.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4003,
+      "ts": 160480,
+      "arrival_ms": 61.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4004,
+      "ts": 160640,
+      "arrival_ms": 79.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4005,
+      "ts": 160800,
+      "arrival_ms": 101.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4006,
+      "ts": 160960,
+      "arrival_ms": 119.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4007,
+      "ts": 161120,
+      "arrival_ms": 141.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4008,
+      "ts": 161280,
+      "arrival_ms": 159.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4009,
+      "ts": 161440,
+      "arrival_ms": 181.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4010,
+      "ts": 161600,
+      "arrival_ms": 199.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4011,
+      "ts": 161760,
+      "arrival_ms": 221.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4012,
+      "ts": 161920,
+      "arrival_ms": 239.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4013,
+      "ts": 162080,
+      "arrival_ms": 261.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4014,
+      "ts": 162240,
+      "arrival_ms": 279.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4015,
+      "ts": 162400,
+      "arrival_ms": 301.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4016,
+      "ts": 162560,
+      "arrival_ms": 319.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4017,
+      "ts": 162720,
+      "arrival_ms": 341.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4018,
+      "ts": 162880,
+      "arrival_ms": 359.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4019,
+      "ts": 163040,
+      "arrival_ms": 381.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4020,
+      "ts": 163200,
+      "arrival_ms": 399.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4021,
+      "ts": 163360,
+      "arrival_ms": 421.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4022,
+      "ts": 163520,
+      "arrival_ms": 439.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4023,
+      "ts": 163680,
+      "arrival_ms": 461.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4024,
+      "ts": 163840,
+      "arrival_ms": 479.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4025,
+      "ts": 164000,
+      "arrival_ms": 501.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4026,
+      "ts": 164160,
+      "arrival_ms": 519.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4027,
+      "ts": 164320,
+      "arrival_ms": 541.5,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4028,
+      "ts": 164480,
+      "arrival_ms": 559.0,
+      "marker": false,
+      "ssrc": 1715004
+    },
+    {
+      "seq": 4029,
+      "ts": 164640,
+      "arrival_ms": 581.5,
+      "marker": false,
+      "ssrc": 1715004
+    }
+  ]
+}
