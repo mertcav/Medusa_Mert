@@ -1,0 +1,20 @@
+{
+  "name": "no-train-degraded",
+  "$comment": "BOZUK YAPILANDIRMA (kapı elemesi gösterimi): no-train disiplini gevşetilmiş bir deployment'ta NE OLDUĞUNU kanıtlar. policy ile varsayılan zorlama kapatılır (enforce_no_train_default=false → opt-in'siz eğitim; reject_loosening_override=false → gevşeten override; require_no_train_capable_provider=false → no-train'siz+log'layan sağlayıcı; require_dpa=false → DPA'sız sağlayıcı; enforce_profile_restriction=false → regüle profilde eğitim). Birden çok HARD kapı (P1/P2/P6) ELENİR. expect=fail (kapı doğru elerse test GEÇER).",
+  "expect": "fail",
+  "policy": {
+    "enforce_no_train_default": false,
+    "reject_loosening_override": false,
+    "require_no_train_capable_provider": false,
+    "require_dpa": false,
+    "enforce_profile_restriction": false
+  },
+  "events": [
+    { "kind": "register_provider", "provider_id": "llm-bad", "category": "llm", "no_train_capable": false, "allowed_retention": ["PROVIDER_DEFAULT"], "region_pin_capable": true, "regions": ["eu-west"], "dpa_signed": false, "subprocessor_ref": "sub://x", "t": 0 },
+    { "kind": "bind_profile", "tenant_id": "t9", "profile": "regulated-tr", "region": "eu-west", "requires_no_train": true, "forbid_training_opt_in": true, "t": 10 },
+    { "kind": "grant_opt_in", "opt_in_id": "ti-bad", "tenant_id": "t9", "data_class": "kb_content", "scope": { "tenants": ["t9"], "data_classes": ["kb_content"] }, "evidence_ref": "ev://x", "granted_by": "a", "approved_by": "b", "expires_at": 31536000, "t": 50 },
+    { "kind": "set_override", "tenant_id": "t9", "no_train": false, "reason": "improper loosening", "t": 60 },
+    { "kind": "use", "use_id": "send-1", "tenant_id": "t9", "provider_id": "llm-bad", "data_class": "prompt", "t": 1000 },
+    { "kind": "use", "use_id": "send-2", "tenant_id": "t9", "provider_id": "llm-bad", "data_class": "kb_content", "opt_in_ref": "ti-bad", "t": 1100 }
+  ]
+}

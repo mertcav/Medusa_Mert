@@ -1,0 +1,50 @@
+{
+  "$about": "WBS 5.8 no-train varsayılan çalıştırma profilleri (sağlayıcı-nötr, credential-free). Profiller deployment başına residency + sağlayıcı retention + opt-in sıkılığını sabitler; SIR İÇERMEZ (yalnız ${ENV} placeholder). default_no_train her profilde true (FR-LLM-012); override yalnız-sıkılaştırır; regüle profil eğitim opt-in'ini tamamen yasaklar (most-restrictive-wins, DPIA §D3).",
+  "default_profile": "pilot",
+  "no_train_defaults": {
+    "default_no_train": true,
+    "override_tightens_only": true,
+    "scope_dimensions": ["tenants", "data_classes"],
+    "scope_wildcard": "*",
+    "default_opt_in_ttl_days": 365
+  },
+  "profiles": [
+    {
+      "name": "pilot",
+      "region": "eu-west",
+      "requires_no_train": true,
+      "provider_retention": "NONE",
+      "require_dpa": true,
+      "forbid_training_opt_in": false,
+      "maker_checker": true,
+      "tenant_isolation": true,
+      "audit": true,
+      "$note": "İlk pilot (eu-west). Varsayılan no-train; governed opt-in teoride mümkün ama maker-checker + DPA + süre + kapsam zorunlu. Çoğu akış opt-in'sizdir → no-train."
+    },
+    {
+      "name": "regulated-tr",
+      "region": "tr-central",
+      "requires_no_train": true,
+      "provider_retention": "EPHEMERAL",
+      "require_dpa": true,
+      "forbid_training_opt_in": true,
+      "maker_checker": true,
+      "tenant_isolation": true,
+      "audit": true,
+      "$note": "Regüle/finans tenant (TR residency). Eğitim opt-in'i TAMAMEN YASAK (forbid_training_opt_in=true); geçerli opt-in olsa bile EZİLİR → no-train (T9 most-restrictive). DPIA-T-* yüksek risk."
+    },
+    {
+      "name": "enterprise-eu",
+      "region": "eu-west",
+      "requires_no_train": true,
+      "provider_retention": "EPHEMERAL",
+      "require_dpa": true,
+      "forbid_training_opt_in": false,
+      "maker_checker": true,
+      "tenant_isolation": true,
+      "audit": true,
+      "$note": "Enterprise EU (GDPR). Varsayılan no-train; opt-in için DPA + DPIA + tenant onayı zinciri gerekir."
+    }
+  ],
+  "dpa_registry": "${NO_TRAIN_DPA_REGISTRY_URL}"
+}

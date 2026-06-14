@@ -1,0 +1,20 @@
+{
+  "name": "no-train-governed-opt-in",
+  "$comment": "İSTİSNA: AÇIK governed eğitim opt-in (FR-LLM-012 — varsayılan kapalı, opt-in ile açılır). Enterprise-EU profil (opt-in YASAK değil) bağlanır → conversation_designer KB içeriği için training opt-in talep eder, FARKLI bir approver onaylar (maker-checker), opak evidence_ref + 1 yıl süre + kapsam {t1, kb_content}. Bir use opt_in_ref taşır → kapsam içi + süre geçerli + profil izinli → effective_no_train=false (governed eğitim, denetli). Kapsam DIŞI bir use (prompt) opt-in'i kapsamadığı için GÜVENLİ no-train'e düşer. Geçer (tüm kapılar 0 ihlal — governed eğitim meşrudur, ihlal değil).",
+  "expect": "pass",
+  "expected": {
+    "use_total": 2,
+    "no_train_uses": 1,
+    "training_enabled_uses": 1,
+    "forbidden_profile_training": 0,
+    "out_of_scope_training": 0,
+    "unaudited_event": 0
+  },
+  "events": [
+    { "kind": "register_provider", "provider_id": "llm-stream-A", "category": "llm", "no_train_capable": true, "allowed_retention": ["EPHEMERAL"], "region_pin_capable": true, "regions": ["eu-west"], "dpa_signed": true, "subprocessor_ref": "sub://dpa-registry/llm-A", "t": 0 },
+    { "kind": "bind_profile", "tenant_id": "t1", "profile": "enterprise-eu", "region": "eu-west", "requires_no_train": true, "forbid_training_opt_in": false, "t": 10 },
+    { "kind": "grant_opt_in", "opt_in_id": "ti-2026-001", "tenant_id": "t1", "data_class": "kb_content", "scope": { "tenants": ["t1"], "data_classes": ["kb_content"] }, "evidence_ref": "ev://opt-in-store/2026-001", "granted_by": "designer-7", "approved_by": "sco-3", "expires_at": 31536000, "t": 50 },
+    { "kind": "use", "use_id": "send-kb-1", "tenant_id": "t1", "provider_id": "llm-stream-A", "data_class": "kb_content", "opt_in_ref": "ti-2026-001", "call_ref": "call://anon/leg-1", "t": 1000 },
+    { "kind": "use", "use_id": "send-prompt-1", "tenant_id": "t1", "provider_id": "llm-stream-A", "data_class": "prompt", "opt_in_ref": "ti-2026-001", "call_ref": "call://anon/leg-1", "t": 1200 }
+  ]
+}

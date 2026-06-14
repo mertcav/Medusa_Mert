@@ -1,0 +1,23 @@
+{
+  "name": "no-train-provider-denied",
+  "$comment": "SAĞLAYICI UYGUNSUZ (T2/T11/NFR 10.7): üç uygunsuz sağlayıcı kaydedilir — (a) no-train YETENEKSİZ, (b) log'layan (retention=PROVIDER_DEFAULT, no-log değil), (c) DPA'sız. Tenant verisi bu sağlayıcılara GÖNDERİLEMEZ → her use DENY (PROVIDER_NOT_NO_TRAIN / PROVIDER_LOGS_DATA / PROVIDER_NO_DPA). Hiçbir veri uygunsuz sağlayıcıya akmaz → improper-train sayaçları 0 (politika doğru reddetti). Geçer (kapılar 0 ihlal; DENY beklenen davranıştır).",
+  "expect": "pass",
+  "expected": {
+    "use_total": 3,
+    "no_train_uses": 0,
+    "training_enabled_uses": 0,
+    "deny_total": 3,
+    "non_no_train_provider": 0,
+    "logging_provider": 0,
+    "no_dpa_provider": 0
+  },
+  "events": [
+    { "kind": "register_provider", "provider_id": "llm-no-notrain", "category": "llm", "no_train_capable": false, "allowed_retention": ["NONE"], "region_pin_capable": true, "regions": ["eu-west"], "dpa_signed": true, "subprocessor_ref": "sub://dpa-registry/x1", "t": 0 },
+    { "kind": "register_provider", "provider_id": "llm-logs-data", "category": "llm", "no_train_capable": true, "allowed_retention": ["PROVIDER_DEFAULT"], "region_pin_capable": true, "regions": ["eu-west"], "dpa_signed": true, "subprocessor_ref": "sub://dpa-registry/x2", "t": 1 },
+    { "kind": "register_provider", "provider_id": "llm-no-dpa", "category": "llm", "no_train_capable": true, "allowed_retention": ["NONE"], "region_pin_capable": true, "regions": ["eu-west"], "dpa_signed": false, "subprocessor_ref": "sub://dpa-registry/x3", "t": 2 },
+    { "kind": "bind_profile", "tenant_id": "t1", "profile": "pilot", "region": "eu-west", "requires_no_train": true, "forbid_training_opt_in": false, "t": 10 },
+    { "kind": "use", "use_id": "send-1", "tenant_id": "t1", "provider_id": "llm-no-notrain", "data_class": "prompt", "t": 1000 },
+    { "kind": "use", "use_id": "send-2", "tenant_id": "t1", "provider_id": "llm-logs-data", "data_class": "prompt", "t": 1100 },
+    { "kind": "use", "use_id": "send-3", "tenant_id": "t1", "provider_id": "llm-no-dpa", "data_class": "prompt", "t": 1200 }
+  ]
+}

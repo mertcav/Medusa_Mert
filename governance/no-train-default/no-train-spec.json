@@ -1,0 +1,130 @@
+{
+  "wbs": "5.8",
+  "title": "\"Tenant verisi eğitime kapalı\" varsayılanı (no-train)",
+  "version": "1.0",
+  "phase": "F1",
+  "priority": "Must",
+  "$about": "Platform-geneli NO-TRAIN VARSAYILAN yönetişim kapısı (FR-LLM-012): tenant verisi, bir LLM/STT/TTS sağlayıcısına gönderilmeden ÖNCE, modelin EĞİTİMİNDE kullanılmasına karşı VARSAYILAN OLARAK kapalıdır (noTrain=true, fail-closed). Bu varsayılan SESSİZCE gevşetilemez: yalnız AÇIK + maker-checker'lı + denetimli + süreli bir training opt-in (compliance profile izin veriyorsa) eğitime izin verir; regüle/yasaklı profilde opt-in REDDEDİLİR (most-restrictive-wins; tenant override yalnız-sıkılaştırır — DPIA modeli). Ayrıca sağlayıcının no-train YETENEĞİ (no-train capable) + no-log retention (NONE/EPHEMERAL) + bölgesel pin + imzalı DPA doğrulanır; karşılamayan sağlayıcıya tenant verisi GÖNDERİLMEZ. resolveTrainingDisposition() çağrısı, adapter (4.2.4/4.2.x) complete()/synthesize()/transcribe() ÖNCESİ no_train değerini ve sağlayıcı uygunluğunu çözer; adapter bu kararı UYGULAR (FR-LLM-012/P6). Sağlayıcı-nötr (ADR-002), credential-free, deterministik karar motoru. Ham PROMPT/mesaj/transkript metni veya PII DEĞERİ saklanmaz — yalnız opak referanslar + kimlikler + sanal zaman.",
+  "trace": {
+    "fr": ["FR-LLM-012", "FR-KB-010", "FR-TEN-002", "FR-IAM-006", "FR-REC-009"],
+    "nfr": ["NFR 10.7"],
+    "sad": ["SAD §8.1", "SAD §8.4", "SAD §12.3", "SAD §19", "SAD §14"],
+    "adr": ["ADR-001", "ADR-002"],
+    "api": ["API §11.1 AdapterConfig.dataRetention/noTrain", "API §11.4 LlmRequest.noTrain", "API §11.6 ErrorTaxonomy"],
+    "srs": ["SR-LLM-012"],
+    "rtm": ["TC-LLM-012", "5.8 ↔ FR-LLM-012"],
+    "brd": ["BRD §14.1 (sağlayıcıya giden veri + no-train + alt-işleyen/DPA)", "BRD §14 (compliance by design)", "BRD §22"],
+    "dpia": ["DPIA §D3 (sınır ötesi/sağlayıcı veri akışı)", "cp.residency.provider_region_pinning", "[SABİT] no-train varsayılan (DPIA §D5/§4)"],
+    "threat_model": ["TM-I-09 (tenant verisinin sağlayıcı tarafına sızması/eğitime alınması)", "SEC-15"],
+    "vendor_eval": ["0.2.4 llm-eval.md (no-train knock-out kapısı C4)", "0.2.6 contract-dpa-checklist.md (alt-işleyen Ek-A + no-train madde C-03/C-09)"],
+    "consumes": ["1.1.4 audit_log (WORM kayıt)", "0.2.6 contract-dpa-checklist (alt-işleyen/DPA kaydı)", "DPIA cp.* compliance profile (residency/legal)"],
+    "consumed_by": ["4.2.4 LlmAdapter (noTrain değeri + sağlayıcı no-train yeteneği)", "4.2.3 TtsAdapter / STT adapter (no-train disposition)", "4.1.4 residency/retention motoru"],
+    "observability": ["0.4.7 (metrics)"]
+  },
+  "placement": {
+    "plane": "governance/control-plane",
+    "consulted_before_provider_send": true,
+    "consumed_by_spi": "4.2.4 LlmAdapter (+ STT/TTS adapter) via AdapterConfig.noTrain/dataRetention + LlmRequest.noTrain",
+    "decision_gates_provider_data_use": true,
+    "orchestrator_depends_on_decision_only": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "media_path": false,
+    "$note": "Medya hot-path'i DEĞİL — sağlayıcıya veri GÖNDERİLMEDEN ÖNCE tek seferlik no-train disposition + sağlayıcı uygunluk kararı (ALLOW + effective no_train / DENY). Karar tenant+sağlayıcı+data_class bazında cache'lenebilir; çağrı içi tekrar maliyeti yok (SAD §20 bütçesine girmez). Adapter (4.2.4/P6) çözülen no_train değerini sağlayıcı çağrısında UYGULAR."
+  },
+  "spi": {
+    "decision": "resolveTrainingDisposition(tenantId, providerId, dataClass, optInRef?, t) -> {decision: ALLOW|DENY, effective_no_train: bool, deny_reason?}",
+    "lifecycle_methods": ["registerProvider", "bindProfile", "grantTrainingOptIn", "revokeTrainingOptIn", "setNoTrainOverride"],
+    "provider_categories": ["llm", "stt", "tts"],
+    "data_classes": ["prompt", "transcript", "kb_content", "audio"],
+    "default_no_train": true,
+    "opt_in_state": ["granted", "withdrawn"],
+    "deny_reasons": ["UNKNOWN_PROVIDER", "PROVIDER_NOT_NO_TRAIN", "PROVIDER_LOGS_DATA", "PROVIDER_NO_DPA", "REGION_VIOLATION"],
+    "opt_in_record_fields": ["opt_in_id", "tenant_id", "data_class", "scope", "evidence_ref", "granted_by", "approved_by", "granted_at", "expires_at", "state"],
+    "provider_record_fields": ["provider_id", "category", "no_train_capable", "allowed_retention", "region_pin_capable", "regions", "dpa_signed", "subprocessor_ref"],
+    "scope_dimensions": ["tenants", "data_classes"],
+    "scope_wildcard": "*",
+    "$note": "Bir 'use' (sağlayıcıya gönderim) opt_in_ref TAŞIMAZSA → effective_no_train=true (FR-LLM-012 varsayılan; en sık yol). opt_in_ref taşırsa → AÇIK governed opt-in çözülür (süre/iptal/kapsam/tenant/profil kontrolüyle); GEÇERLİ + profil izinliyse effective_no_train=false (governed eğitim), aksi halde GÜVENLİ varsayılana (no_train=true) düşülür — veri yine ALLOW (sağlayıcı uygunsa) ama eğitime kapalı."
+  },
+  "gates": {
+    "max_train_without_optin": 0,
+    "max_loosening_override": 0,
+    "max_non_no_train_provider": 0,
+    "max_logging_provider": 0,
+    "max_no_dpa_provider": 0,
+    "max_region_violation": 0,
+    "max_training_after_expiry": 0,
+    "max_training_after_revoke": 0,
+    "max_out_of_scope_training": 0,
+    "max_cross_tenant_training": 0,
+    "max_forbidden_profile_training": 0,
+    "max_self_approval": 0,
+    "max_mutable_record": 0,
+    "max_pii_in_record": 0,
+    "require_audit": true,
+    "max_unaudited_event": 0,
+    "require_maker_checker": true,
+    "require_default_no_train": true,
+    "default_no_train": true
+  },
+  "metrics": {
+    "emitted": [
+      "no_train_use_total",
+      "training_enabled_use_total",
+      "no_train_denied_total",
+      "training_opt_in_active",
+      "training_opt_in_revoked_total"
+    ],
+    "high_cardinality_forbidden_as_label": ["opt_in_id", "subprocessor_ref", "evidence_ref", "use_id", "call_ref"],
+    "low_cardinality_labels": ["tenant_id", "provider_category", "data_class", "deny_reason"],
+    "maps_to_observability": {
+      "training_enabled_use_total": "BRD §15 → 0.4.7 (denetim: governed opt-in ile eğitime açılan akış sayısı; beklenen ≈0)",
+      "no_train_denied_total": "BRD §15 → 0.4.7 (deny_reason label)"
+    }
+  },
+  "error_taxonomy": {
+    "$note": "DENY kararı SPI'ye yüzeyletildiğinde API §11.6 ErrorTaxonomy'ye eşlenir (adapter ALLOW olmadan tenant verisini sağlayıcıya GÖNDERMEZ).",
+    "mapping": {
+      "PROVIDER_NOT_NO_TRAIN": "CONTENT_FILTERED",
+      "PROVIDER_LOGS_DATA": "CONTENT_FILTERED",
+      "PROVIDER_NO_DPA": "AUTH",
+      "UNKNOWN_PROVIDER": "INVALID_REQUEST",
+      "REGION_VIOLATION": "REGION_VIOLATION"
+    }
+  },
+  "residency": {
+    "region_pin_required": true,
+    "no_log_required": true,
+    "no_train_required": true,
+    "allowed_retention": ["NONE", "EPHEMERAL"],
+    "$note": "Tenant verisi yalnız home-region'a pinli, no-train + no-log (retention NONE/EPHEMERAL) sağlayıcı endpoint'ine gider (NFR 10.7/FR-KB-010/FR-LLM-012). opt-in + provider + override kayıtları home-region'da; kalıcı uyumluluk delili platform deposunda (DB)."
+  },
+  "retention": {
+    "opt_in_record": "WORM append-only; geri çekme (withdraw) = YENİ satır (mutasyon yok)",
+    "provider_record": "alt-işleyen kaydı (0.2.6 Ek-A); DPA + no-train madde bağlı; no-loss uyumluluk delili",
+    "legal_hold_aware": true
+  },
+  "pii": {
+    "raw_prompt_in_record_forbidden": true,
+    "raw_transcript_in_record_forbidden": true,
+    "raw_audio_in_record_forbidden": true,
+    "pii_value_in_record_forbidden": true,
+    "only_opaque_refs": true,
+    "$note": "subject/evidence/subprocessor opak token'dır (kayıt/imza/DPA deposuna işaret eder). Bu modül sağlayıcıya giden İÇERİĞİ taşımaz/saklamaz — yalnız o akışın no-train DISPOSITION'ını ve sağlayıcı uygunluğunu karara bağlar; içerik yalnız adapter çağrısında geçer (no-train+no-log+home-region)."
+  },
+  "forbidden_record_keys": ["raw_prompt", "raw_transcript", "raw_audio", "pii_value", "prompt_text", "message_text"],
+  "invariants": [
+    { "id": "T1", "desc": "VARSAYILAN NO-TRAIN: geçerli AÇIK governed opt-in yoksa effective_no_train=true (fail-closed); opt-in'siz hiçbir akış eğitime açılmaz (train_without_optin=0).", "trace": "FR-LLM-012" },
+    { "id": "T2", "desc": "SAĞLAYICI UYGUNLUĞU: sağlayıcı no-train YETENEKLİ + no-log retention (NONE/EPHEMERAL) + bölgesel pin olmadan tenant verisi GÖNDERİLMEZ (non_no_train_provider=0, logging_provider=0); aksi → DENY.", "trace": "FR-LLM-012, FR-KB-010, NFR 10.7" },
+    { "id": "T3", "desc": "SESSİZ GEVŞETME YOK: no-train varsayılanını gevşeten (no_train=false) override/config, geçerli governed opt-in olmadan REDDEDİLİR (loosening_override=0); override yalnız-sıkılaştırır (most-restrictive-wins).", "trace": "FR-LLM-012, DPIA most-restrictive-wins" },
+    { "id": "T4", "desc": "OPT-IN MAKER-CHECKER: training opt-in granted_by ≠ approved_by + opak evidence_ref ister (self_approval=0).", "trace": "FR-LLM-012, ADR-012" },
+    { "id": "T5", "desc": "OPT-IN SÜRE DOLUMU: süresi dolmuş opt-in eğitim sağlamaz → effective_no_train=true (training_after_expiry=0).", "trace": "FR-LLM-012" },
+    { "id": "T6", "desc": "OPT-IN GERİ ÇEKME: geri çekilmiş (withdrawn) opt-in eğitim sağlamaz → effective_no_train=true (training_after_revoke=0).", "trace": "FR-LLM-012" },
+    { "id": "T7", "desc": "OPT-IN KAPSAMI: opt-in kapsamı (tenant/data_class) eşleşmeli; kapsam dışı opt-in eğitim sağlamaz (out_of_scope_training=0).", "trace": "FR-LLM-012, FR-TEN-002" },
+    { "id": "T8", "desc": "TENANT İZOLASYONU: opt-in yalnız sahibi tenant için eğitim sağlar; cross-tenant eğitim etkinleştirmesi yok (cross_tenant_training=0).", "trace": "FR-TEN-002" },
+    { "id": "T9", "desc": "PROFİL EN-KISITLAYICI: regüle/yasaklı compliance profile (forbid_training_opt_in) opt-in'i ezer → effective_no_train=true (forbidden_profile_training=0); tenant override yalnız-sıkılaştırır.", "trace": "FR-LLM-012, DPIA §D3, SAD §19" },
+    { "id": "T10", "desc": "DENETİM + WORM: tüm yaşam döngüsü olayları + her disposition kararı audit_log'a yazılır (unaudited_event=0); opt-in/provider kaydı WORM/append-only (mutable_records=0).", "trace": "FR-IAM-006, FR-REC-009" },
+    { "id": "T11", "desc": "ALT-İŞLEYEN/DPA: tenant verisi yalnız imzalı DPA'lı (no-train madde bağlı) alt-işleyen sağlayıcıya gider; DPA'sız sağlayıcı → DENY (no_dpa_provider=0).", "trace": "BRD §14.1, 0.2.6 contract-dpa-checklist" },
+    { "id": "T12", "desc": "PII/İÇERİK YOK: kayıtlarda ham prompt/transkript/audio veya PII DEĞERİ yok — yalnız opak ref + kimlik + sanal zaman (pii_in_record=0).", "trace": "BRD §14, BRD §17.7, FR-KB-010, TM-I-09" }
+  ]
+}

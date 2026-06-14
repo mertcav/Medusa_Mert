@@ -1,0 +1,139 @@
+{
+  "$comment": "WBS 4.3.4 uçtan uca fallback harness sağlayıcı + çalıştırma profilleri (İLLÜSTRATİF, sağlayıcı-nötr — ADR-002; sır YOK). Bu config 4.3.1/4.3.2/4.3.3 birim profillerini uçtan uca ÇAĞRI BAĞLAMINDA birleştirir: her hot-path kategoride (stt/llm/tts) ≥2 SOMUT adapter (≥2/kategori — BRD §19 (1)/(2)/(3)); GERÇEK sağlayıcı/model DEĞİL, isimler vendor-neutral placeholder. Her sağlayıcı: capabilities() beyanı (features, regions, data_retention, no_train) + DETERMİNİSTİK gecikme PROFİLİ (setup_ms/teardown_ms + ilk-çıktı gecikmesi: stt final_ms / llm first_token_ms / tts first_byte_ms; random YOK). Gecikme değerleri MÜHENDİSLİK varsayılanı (0.2.2/0.2.3/0.2.4 eval + SAD §20 kapılarına uyumlu); GERÇEK değerler 0.3.x/F1 canlı testte ölçülür. switch_overhead = eski_teardown + ikincil_setup + ikincil_ilk_çıktı + (stt replay / tts resynth). 'profiles' = dağıtım/tenant-sınıfı çalıştırma profilleri (her aşama için primary+secondary + bölge + deterministic_flow_id). voice_equivalence: TTS fallback'te tenant mantıksal voiceId → ikincil sağlayıcı eşdeğer fiziksel ses (FR-TTS-009). deterministic_flow_id: tüm hot-path düşünce kural-tabanlı güvenli akış/aktarım şablonu kimliği (İÇERİK değil — 8.x/3.3.x motoru). Bölge pini NFR 10.7. Config GÖVDE/credential TAŞIMAZ (yalnız ${ENV}).",
+  "version": "1.0",
+  "default_profile": "pilot-default",
+
+  "providers": {
+    "stt": [
+      {
+        "provider_id": "stt-stream-A",
+        "$comment": "STT adapter #1 — bulut streaming STT (partial/final, confidence, phrase-boost). noTrain, EU/TR bölgesel, no-log. Birincil.",
+        "kind": "cloud-managed",
+        "languages": ["tr", "en", "de", "ar"],
+        "features": ["streaming"],
+        "regions": ["EU", "TR"],
+        "data_retention": "NONE",
+        "no_train": true,
+        "setup_ms": 60,
+        "teardown_ms": 20,
+        "final_ms": 130,
+        "replay_rtf": 0.20
+      },
+      {
+        "provider_id": "stt-stream-B",
+        "$comment": "STT adapter #2 — edge/bölgesel STT. noTrain, TR/EU, ephemeral. ≥2/kategori + fallback (FR-STT-008) için bağımsız ikincil.",
+        "kind": "edge-regional",
+        "languages": ["tr", "en"],
+        "features": ["streaming"],
+        "regions": ["TR", "EU"],
+        "data_retention": "EPHEMERAL",
+        "no_train": true,
+        "setup_ms": 35,
+        "teardown_ms": 12,
+        "final_ms": 155,
+        "replay_rtf": 0.18
+      }
+    ],
+    "llm": [
+      {
+        "provider_id": "llm-cloud-A",
+        "$comment": "LLM adapter #1 — bulut LLM (büyük+küçük tier, streaming + schema-doğrulamalı tool-call). noTrain, EU/TR, no-log. Birincil.",
+        "kind": "cloud-managed",
+        "languages": ["tr", "en", "de", "ar"],
+        "features": ["streaming", "tool_call"],
+        "tiers": ["small", "large"],
+        "regions": ["EU", "TR"],
+        "data_retention": "NONE",
+        "no_train": true,
+        "setup_ms": 60,
+        "teardown_ms": 20,
+        "first_token_ms": 140
+      },
+      {
+        "provider_id": "llm-cloud-B",
+        "$comment": "LLM adapter #2 — bağımsız ikinci bulut LLM (AYRI kota → QUOTA_EXCEEDED'da failover anlamlı). noTrain, TR/EU, ephemeral. ≥2/kategori + fallback (FR-LLM-010).",
+        "kind": "cloud-managed",
+        "languages": ["tr", "en"],
+        "features": ["streaming", "tool_call"],
+        "tiers": ["small", "large"],
+        "regions": ["TR", "EU"],
+        "data_retention": "EPHEMERAL",
+        "no_train": true,
+        "setup_ms": 40,
+        "teardown_ms": 15,
+        "first_token_ms": 170
+      }
+    ],
+    "tts": [
+      {
+        "provider_id": "tts-stream-A",
+        "$comment": "TTS adapter #1 — bulut nöral TTS (streaming, pronunciation dict, barge-in cancel). noTrain, EU/TR, no-log. Birincil.",
+        "kind": "cloud-managed",
+        "languages": ["tr", "en", "de", "ar"],
+        "features": ["streaming", "barge_in_cancel", "pronunciation_dict"],
+        "regions": ["EU", "TR"],
+        "data_retention": "NONE",
+        "no_train": true,
+        "setup_ms": 50,
+        "teardown_ms": 18,
+        "first_byte_ms": 120,
+        "cancel_ms": 70,
+        "resynth_rtf": 0.20
+      },
+      {
+        "provider_id": "tts-stream-B",
+        "$comment": "TTS adapter #2 — edge/bölgesel TTS. noTrain, TR/EU, ephemeral. ≥2/kategori + fallback (FR-TTS-008) + eşdeğer ses (FR-TTS-009).",
+        "kind": "edge-regional",
+        "languages": ["tr", "en"],
+        "features": ["streaming", "barge_in_cancel", "pronunciation_dict"],
+        "regions": ["TR", "EU"],
+        "data_retention": "EPHEMERAL",
+        "no_train": true,
+        "setup_ms": 30,
+        "teardown_ms": 10,
+        "first_byte_ms": 95,
+        "cancel_ms": 55,
+        "resynth_rtf": 0.18
+      }
+    ]
+  },
+
+  "voice_equivalence": {
+    "$comment": "FR-TTS-009 — tenant mantıksal voiceId → her sağlayıcıda eşdeğer fiziksel ses (ses karakteri tutarlılığı). Fallback'te ikincil sağlayıcı eşdeğer sesi kullanır; eşleme eksikse 4.3.2 T8 kapısı eler. İÇERİK/voiceprint DEĞİL — yalnız opak ses kimliği.",
+    "voice-tr-female-1": { "tts-stream-A": "phys-A-tr-f-01", "tts-stream-B": "phys-B-tr-f-07" },
+    "voice-en-male-1": { "tts-stream-A": "phys-A-en-m-03", "tts-stream-B": "phys-B-en-m-02" }
+  },
+
+  "profiles": [
+    {
+      "name": "pilot-default",
+      "$comment": "Faz 1 pilot: her aşamada A birincil + B ikincil; EU bölge. ≥2 sağlayıcı/kategori + kontrollü fallback (BRD §19 (1)/(2)/(3)/(4)). Tüm hot-path düşerse deterministic_flow_id ile kural-tabanlı güvenli aktarım.",
+      "region": "EU",
+      "stt": { "primary": "stt-stream-A", "secondary": "stt-stream-B" },
+      "llm": { "primary": "llm-cloud-A", "secondary": "llm-cloud-B" },
+      "tts": { "primary": "tts-stream-A", "secondary": "tts-stream-B" },
+      "default_voice": "voice-en-male-1",
+      "deterministic_flow_id": "safe-handoff-default"
+    },
+    {
+      "name": "regional-tr",
+      "$comment": "TR-yerleşik tenant: TR-bölgesel sağlayıcılar birincil. Residency TR (NFR 10.7); failover/deterministik akış bölgeyi değiştirmez (ikincil de TR uyumlu).",
+      "region": "TR",
+      "stt": { "primary": "stt-stream-B", "secondary": "stt-stream-A" },
+      "llm": { "primary": "llm-cloud-B", "secondary": "llm-cloud-A" },
+      "tts": { "primary": "tts-stream-B", "secondary": "tts-stream-A" },
+      "default_voice": "voice-tr-female-1",
+      "deterministic_flow_id": "safe-handoff-tr"
+    },
+    {
+      "name": "high-density",
+      "$comment": "Yüksek yoğunluk profili: A birincil + B ikincil, edge medya (ADR-009 hibrit). Switch overhead aşama bütçesinde (E7).",
+      "region": "EU",
+      "stt": { "primary": "stt-stream-A", "secondary": "stt-stream-B" },
+      "llm": { "primary": "llm-cloud-A", "secondary": "llm-cloud-B" },
+      "tts": { "primary": "tts-stream-A", "secondary": "tts-stream-B" },
+      "default_voice": "voice-en-male-1",
+      "deterministic_flow_id": "safe-handoff-default"
+    }
+  ]
+}

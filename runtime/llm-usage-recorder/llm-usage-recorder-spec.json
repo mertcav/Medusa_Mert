@@ -1,0 +1,156 @@
+{
+  "$comment": "WBS 5.7 — LLM Usage Recorder: model + versiyon + token kullanımını ÇAĞRI BAZINDA kaydet (FR-LLM-011). Conversation Orchestrator (Çekirdek IP, SAD §6) oturum aktöründe çalışan, her LLM TURU tamamlandıktan SONRA (THINK→ACT sonrası, token akışı/tool-call/cache-hit/fallback çözüldükten sonra) çalışan kayıt alt bileşeni. SAD §9.2 'Kayıt' kalemini sözleşmeye bağlar: 'Her tur için seçilen model + versiyon + token kullanımı call event'ine yazılır (FR-LLM-011)'. Recorder, tur sonucu UsageRecord'unu (API §11.1, LlmAdapter 4.2.4 meter() ÜRETİR — require_model_version_recorded) + router kararını (5.1-5.3 seçili model/tier) + fallback gerçeğini (4.3.3 served model) + cache-hit gerçeğini (5.4) TÜKETİR ve İKİ KALICI SINK'e yazar: (a) call_event (DB 1.1.3, partition'lı, append) — event_type='llm_turn', payload{turn_index,model,model_version,tier,input_tokens,output_tokens,cached,fallback_used} → FR-LLM-011 çağrı-bazlı gözlemlenebilirlik + SAD §9.2; (b) usage_record (DB 1.1.4, partition'lı, append) — category='llm', faturalama için (FR-BIL-001/002). ON invariant (U1-U10): (U1) BÜTÜNLÜK — her LLM turu (cache-hit + fallback + deterministik dahil) TAM BİR kayıt üretir, kayıtsız tur YOK + çift kayıt YOK (FR-LLM-011 'çağrı bazında' = çağrının TÜM turları); (U2) ZORUNLU ALANLAR — her kayıt model + model_version + input_tokens + output_tokens taşır (hepsi non-null, token≥0) — FR-LLM-011'in KALBİ (SR-LLM-011 'model/versiyon/token alanları bulunur'); (U3) GERÇEK-MODEL SADAKATİ — kaydedilen model/versiyon turu GERÇEKTEN servis eden modeldir (router seçimi VE fallback anahtarlaması SONRASI), istenen model DEĞİL → fallback'te kaydedilen=fallback modeli (FR-LLM-010 ⨯ FR-LLM-011; 4.3.3 require_model_version_recorded); (U4) CACHE ATFI — cache-hit turu (5.4) cached=true + served_by=semantic_cache + LLM token=0 kaydedilir; tur YİNE kaydedilir (U1) ama fantom token FATURALANMAZ (FR-RES-004 ⨯ FR-LLM-014 ⨯ FR-BIL-002); (U5) ÇAĞRI/TUR ATFI + KORELASYON — her kayıt tenant_id + call_id + correlation_id + turn_index taşır; turlar çağrıya toplanır (SAD §9.2/§13.3); (U6) TOKEN MUHASEBESİ — çağrı-düzeyi token toplamı = Σ tur token (input/output ayrı); negatif değil; tutarlı (FR-BIL-001/002); (U7) TENANT İZOLASYON — kayıt turun tenant_id'si altında; cross-tenant yazım/toplama YASAK (FR-TEN-002, RLS 1.1.3/1.1.4); (U8) KARDİNALİTE/METRİK DİSİPLİNİ — model/model_version/tier DÜŞÜK-kardinalite metrik label'ı (uygun); call_id/correlation_id/turn_index YÜKSEK-kardinalite → yalnız trace/exemplar, metrik label OLAMAZ (0.4.7 label_policy); (U9) DAYANIKLILIK/APPEND + ÇİFT-SINK — her tur HEM call_event HEM usage_record'a append edilir; in-place mutasyon YOK (partition append); sink hatası → tamponlanır/yeniden denenir, SESSİZCE düşürülmez (FR-REC-006 no-loss); (U10) RESIDENCY + PII + HATA TAKSONOMİSİ — kayıt tenant home-region'da (NFR 10.7); ham prompt/çıktı/token METNİ YOK — yalnız SAYILAR + model id + versiyon + opak id; hatalar API §11.6 ErrorTaxonomy'ye (sink-down→UNAVAILABLE tamponlu, cross-tenant→AUTH, bozuk→INVALID_REQUEST, bölge→REGION_VIOLATION). KAPSAM AYRIMI: model ROUTER/tiering KARARI → 5.1/5.2/5.3 (recorder kararı KAYDEDER, vermez); semantic cache MOTORU → 5.4 (cache-hit gerçeğini TÜKETİR); LLM adapter token ÜRETİMİ + served model/versiyon → 4.2.4 (UsageRecord TÜKETİLİR); LLM fallback ANAHTARLAMA → 4.3.3 (served model gerçeğini TÜKETİR); GENEL metering MOTORU (telephony/stt/tts + cost hesabı + agregasyon job) → 4.1.3 (recorder yalnız LLM dilimi + tur→kayıt; cost alanı opsiyonel taşınır, fiyatlandırma motoru 4.1.3/14.x); call_event/usage_record FİZİKSEL şema + partition + RLS → DB 1.1.3/1.1.4 (recorder yazar, şema kurmaz); gerçek tokenizer → adapter arkasında (recorder adapter-bildirilen token SAYILARINI kaydeder); analitik/raporlama → 14.x/A-13; PII redaction L7 → 3.3.x. Burada YALNIZ tur→kayıt MODELİ + çağrı-bazlı kayıt SÖZLEŞMESİ + deterministik referans kaydedici. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): çekirdek minimal+deterministik (olay-tetikli, sanal saat, random YOK; gerçek LLM çağrısı/DB yazımı yok — tur→kayıt + sink MODELİ); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3) gerçek DB 1.1.3/1.1.4'e yazar. Spec/config/örneklerde sır/credential, ham prompt/çıktı METNİ ve PII DEĞERİ YOK — yalnız model/versiyon kimlikleri + token SAYILARI + opak id'ler + sanal zaman.",
+  "version": "1.0",
+  "wbs": "5.7",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-LLM-011", "FR-BIL-001", "FR-BIL-002", "FR-LLM-010", "FR-LLM-014", "FR-RES-004", "FR-TEN-002", "FR-REC-004", "FR-REC-006"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "sad": ["§6", "§9", "§9.2", "§13.3", "§17.1"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003"],
+    "api": ["§11.1 UsageRecord", "§11.6 ErrorTaxonomy"],
+    "srs": ["SR-LLM-011"],
+    "rtm": ["TC-LLM-011 (I)"],
+    "db": ["1.1.3 call_event (DB.md §5.5, partition'lı, payload JSONB)", "1.1.4 usage_record (DB.md §5.6, partition'lı, category=llm)"],
+    "brd": ["§16 (23) Event", "§16 (26) Usage Record", "§15 (çağrı başına metrik)"],
+    "consumes": ["4.2.4 llm-adapter UsageRecord/meter() (served model+versiyon+token)", "4.3.3 llm-fallback (anahtarlanan gerçek model)", "5.1-5.3 router/tiering (seçili model/tier)", "5.4 semantic-cache (cache-hit gerçeği)"],
+    "observability": ["llm_turn_total / llm_input_tokens_total / llm_output_tokens_total / llm_model_version_recorded_total / llm_turn_unrecorded_total (BRD §15 → 0.4.7)"]
+  },
+
+  "placement": {
+    "$comment": "LLM Usage Recorder Conversation Orchestrator oturum aktöründe (SAD §6.3) çalışır; her LLM TURU çözüldükten SONRA (token akışı bitti / tool-call yapıldı / cache-hit / fallback anahtarlandı) tur sonucundan TAM BİR kayıt üretir (post_turn). Medya hot-path'i DEĞİL (turn_record=false media_path; kayıt tur sınırında bir kez, SAD §20 gecikme bütçesi dışı). Olay-tetikli + bloklamayan; deterministik (sanal saat, random YOK). Recorder modeli SEÇMEZ (router 5.1-5.3) ve token ÜRETMEZ (adapter 4.2.4) — yalnız tur GERÇEĞİNİ (served model/versiyon/token/cached/fallback) iki kalıcı sink'e yazar.",
+    "in_orchestrator": true,
+    "in_session_actor": true,
+    "record_point": "post_turn",
+    "media_path": false,
+    "event_driven": true,
+    "non_blocking": true,
+    "trace": "SAD §6.3, SAD §9.2, FR-LLM-011"
+  },
+
+  "record_model": {
+    "$comment": "Bir LLM turu → bir TUR KAYDI (turn record). served_by tur sonucunu sınıflandırır: 'llm'=normal model akışı (adapter token üretir), 'fallback'=fallback model servis etti (4.3.3; fallback_used=true), 'semantic_cache'=cache-hit (5.4; LLM çağrısı yok, token=0), 'deterministic'=deterministik akış (her iki model düştü / CONTENT_FILTERED; token=0). ZORUNLU alanlar (U2): model + model_version + input_tokens + output_tokens. ATIF alanları (U5): tenant_id + call_id + correlation_id + turn_index. SINIFLANDIRMA: tier (low-card) + cached (bool) + fallback_used (bool). served_model/served_version GERÇEKTEN servis eden modeldir (U3) — fallback/cache'te istenen değil GERÇEK. Tek tur → call_event'e 1 append (her zaman, U1/U9) + usage_record'a token satır(lar)ı (billable token>0 ise INPUT_TOKENS+OUTPUT_TOKENS, cache/deterministik'te quantity=0; U4/U9). Recorder yalnız adapter-bildirilen token SAYILARINI kaydeder (gerçek tokenizer adapter arkasında).",
+    "served_by": ["llm", "fallback", "semantic_cache", "deterministic"],
+    "required_fields": ["served_model", "served_version", "input_tokens", "output_tokens"],
+    "attribution_fields": ["tenant_id", "call_id", "correlation_id", "turn_index"],
+    "classification_fields": ["tier", "cached", "fallback_used"],
+    "zero_token_served_by": ["semantic_cache", "deterministic"],
+    "sinks": ["call_event", "usage_record"],
+    "usage_record_category": "llm",
+    "usage_units": ["INPUT_TOKENS", "OUTPUT_TOKENS"],
+    "trace": "SAD §9.2, API §11.1 UsageRecord, DB 1.1.3, DB 1.1.4, FR-LLM-011, FR-BIL-002"
+  },
+
+  "completeness": {
+    "$comment": "BÜTÜNLÜK (U1, FR-LLM-011 'çağrı bazında' = çağrının HER turu). Her LLM turu — cache-hit + fallback + deterministik dahil — TAM BİR kayıt üretir; kayıtsız tur YOK (unrecorded=0) + aynı tur iki kez kaydedilmez (duplicate=0). Cache-hit/deterministik turlar LLM token üretmez ama YİNE kaydedilir (atıf + cached işareti). Çağrı sonunda kaydedilen tur sayısı = gözlemlenen LLM tur sayısı.",
+    "record_every_turn": true,
+    "no_unrecorded_turn": true,
+    "no_duplicate_record": true,
+    "trace": "FR-LLM-011, SAD §9.2"
+  },
+
+  "required_field_enforcement": {
+    "$comment": "ZORUNLU ALANLAR (U2 — FR-LLM-011'in KALBİ; SR-LLM-011 'Her çağrı kaydında model/versiyon/token alanları bulunur'). Her kayıt served_model (non-empty) + served_version (non-empty) + input_tokens (int≥0) + output_tokens (int≥0) taşır. Eksik/null alan → kayıt REDDEDİLİR (fail-closed; eksik model/versiyon ile tur kaydı yazılmaz). cache/deterministik turlarda model='semantic_cache'/'deterministic_flow' + version sentinel (örn. 'cache'/'n-a') + token=0 — alanlar yine DOLU.",
+    "require_model": true,
+    "require_version": true,
+    "require_input_tokens": true,
+    "require_output_tokens": true,
+    "fail_closed_on_missing": true,
+    "trace": "FR-LLM-011, SR-LLM-011"
+  },
+
+  "actual_model_fidelity": {
+    "$comment": "GERÇEK-MODEL SADAKATİ (U3 — FR-LLM-010 ⨯ FR-LLM-011). Kaydedilen model/versiyon turu GERÇEKTEN servis eden modeldir: router (5.1-5.3) bir model SEÇER, fallback (4.3.3) hata sonrası BAŞKA modele anahtarlayabilir; recorder requested_model'i DEĞİL served_model'i kaydeder. fallback_used=true iken served_model != requested_model olabilir; recorded == served (mismatch=0). 4.3.3 require_model_version_recorded bu recorder'a delege eder.",
+    "record_served_not_requested": true,
+    "fallback_records_actual_model": true,
+    "trace": "FR-LLM-010, FR-LLM-011, 4.3.3"
+  },
+
+  "cache_attribution": {
+    "$comment": "CACHE ATFI (U4 — FR-RES-004 ⨯ FR-LLM-014 ⨯ FR-BIL-002). Semantic cache-hit (5.4) turu LLM çağrısı YAPMAZ → input/output LLM token = 0 + cached=true + served_by=semantic_cache kaydedilir. Tur YİNE call_event'e kaydedilir (U1) ama usage_record token quantity'si 0 (fantom token faturalanmaz). cache_billed_tokens = cache-hit turlarının usage_record INPUT/OUTPUT token quantity toplamı → 0 olmalı.",
+    "cache_hit_zero_llm_tokens": true,
+    "cache_hit_still_recorded": true,
+    "no_phantom_cache_billing": true,
+    "trace": "FR-RES-004, FR-LLM-014, FR-BIL-002"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (model+versiyon+token çağrı-bazlı kayıt). (U1) max_unrecorded_turn=0 + max_duplicate_record=0: her tur tam bir kayıt (FR-LLM-011). (U2) max_missing_field=0 + require_model_version_token: model/versiyon/token alanları her kayıtta (SR-LLM-011). (U3) max_model_mismatch=0: kaydedilen = gerçekten servis eden model (fallback dahil; FR-LLM-010). (U4) max_cache_billed_tokens=0: cache-hit fantom token faturalamaz (FR-RES-004/FR-BIL-002). (U5) max_missing_call_id=0 + max_missing_correlation=0: çağrı/tur atfı + korelasyon (SAD §13.3). (U6) max_token_accounting_error=0: çağrı token toplamı = Σ tur token, negatif yok (FR-BIL-001/002). (U7) max_cross_tenant=0: tenant izolasyon (FR-TEN-002, RLS 1.1.3/1.1.4). (U8) max_high_card_label=0 + require_low_card_labels: kardinalite disiplini (0.4.7). (U9) max_record_loss=0 + require_dual_sink: çift-sink append, kayıp yok (FR-REC-006). (U10) max_region_violation=0 + require_error_normalized: residency + ErrorTaxonomy (NFR 10.7/API §11.6).",
+    "require_model_version_token": true,
+    "require_dual_sink": true,
+    "require_low_card_labels": true,
+    "require_error_normalized": true,
+    "max_unrecorded_turn": 0,
+    "max_duplicate_record": 0,
+    "max_missing_field": 0,
+    "max_model_mismatch": 0,
+    "max_cache_billed_tokens": 0,
+    "max_missing_call_id": 0,
+    "max_missing_correlation": 0,
+    "max_token_accounting_error": 0,
+    "max_cross_tenant": 0,
+    "max_high_card_label": 0,
+    "max_record_loss": 0,
+    "max_region_violation": 0,
+    "trace": "FR-LLM-011, FR-BIL-001/002, FR-LLM-010, FR-RES-004, FR-TEN-002, FR-REC-006, NFR 10.7, SAD §9.2"
+  },
+
+  "metrics": {
+    "$comment": "Recorder her çağrı için BRD §15 + kayıt metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. llm_turn_total{model,tier,cached,fallback_used} → tur sayısı (DÜŞÜK-kardinalite label'lar); llm_input_tokens_total{model,tier} + llm_output_tokens_total{model,tier} → token kümülatifi (4.2.4 llm-adapter ile aynı metrik ailesi); llm_model_version_recorded_total{model_version} → versiyon kaydı kanıtı (FR-LLM-011); llm_turn_unrecorded_total → kayıtsız tur (U1 ihlali — alarm, 0 olmalı). YÜKSEK-kardinalite kimlikler (call_id/correlation_id/turn_index) METRİK LABEL DEĞİL — yalnız call_event payload + trace/exemplar (0.4.7 label_policy, 3.1.5 producer). Token SAYILARI PII DEĞİLDİR; ham prompt/çıktı METNİ metriklerde yok.",
+    "emitted": [
+      "llm_turn_total", "llm_input_tokens_total", "llm_output_tokens_total",
+      "llm_model_version_recorded_total", "llm_turn_unrecorded_total"
+    ],
+    "low_card_labels": ["model", "tier", "cached", "fallback_used", "model_version"],
+    "high_card_forbidden_labels": ["call_id", "correlation_id", "turn_index"],
+    "maps_to_observability": {
+      "llm_input_tokens_total": "llm_input_tokens_total",
+      "llm_output_tokens_total": "llm_output_tokens_total"
+    },
+    "proposed_observability_additions": [
+      "llm_model_version_recorded_total", "llm_turn_unrecorded_total"
+    ],
+    "trace": "BRD §15, SAD §17.1, observability 0.4.7, 3.1.5 context-propagation"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Kayıt hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Eksik zorunlu alan / bozuk tur (model/versiyon/token yok, token negatif/sayısal değil) → INVALID_REQUEST (FAIL-CLOSED: eksik kayıt yazılmaz); sink (DB 1.1.3/1.1.4) erişilemez → UNAVAILABLE (tampon + yeniden dene, SESSİZCE düşürme — record_loss=0); cross-tenant kayıt/toplama → AUTH; bölge uyumsuzluğu → REGION_VIOLATION. Kayıt EKSİKLİĞİ bir DEGRADE değil, fail-closed HATA'dır (FR-LLM-011 kanıt zorunlu).",
+    "mapping": {
+      "missing_required_field": "INVALID_REQUEST",
+      "malformed_turn": "INVALID_REQUEST",
+      "sink_unavailable": "UNAVAILABLE",
+      "cross_tenant_write": "AUTH",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, FR-LLM-011, FR-TEN-002, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "Tur kaydı tenant home-region call_event/usage_record partition'ına yazılır (DB 1.1.3/1.1.4; SAD §12.3 residency, NFR 10.7). Bölge uyumsuzluğu REGION_VIOLATION. Model/versiyon/token SAYILARI tenant sınırını terk etmez; ham prompt/çıktı kaydedilmez.",
+    "region_pin_required": true,
+    "recorded_home_region": true,
+    "trace": "NFR 10.7, FR-LLM-011, DB 1.1.3, DB 1.1.4, SAD §12.3"
+  },
+
+  "pii": {
+    "$comment": "Tur kaydı yalnız META veri taşır: served_model + served_version (model kimlikleri, PII değil) + input_tokens/output_tokens (SAYILAR) + tier/cached/fallback_used + opak id'ler (tenant_id/call_id/correlation_id/turn_index). Ham prompt/çıktı METNİ veya PII DEĞERİ KAYDEDİLMEZ (BRD §17.7, FR-REC-004). Bu SPEC/config/örnekler ham metin/PII DEĞERİ TUTMAZ — yalnız model/versiyon kimlikleri + token SAYILARI + opak id'ler + sanal zaman.",
+    "raw_prompt_text_in_record_forbidden": true,
+    "raw_output_text_in_record_forbidden": true,
+    "pii_value_in_spec_forbidden": true,
+    "only_counts_and_ids": true,
+    "trace": "FR-REC-004, BRD §14, BRD §17.7"
+  },
+
+  "invariants": [
+    { "id": "U1", "desc": "BÜTÜNLÜK: her LLM turu (cache-hit + fallback + deterministik dahil) TAM BİR kayıt üretir — unrecorded_turn=0 + duplicate_record=0; çağrının TÜM turları kaydedilir (FR-LLM-011 'çağrı bazında').", "trace": "FR-LLM-011, SAD §9.2" },
+    { "id": "U2", "desc": "ZORUNLU ALANLAR: her kayıt model + model_version + input_tokens + output_tokens taşır (non-null, token≥0); eksik → fail-closed reddet — missing_field=0. FR-LLM-011'in KALBİ.", "trace": "FR-LLM-011, SR-LLM-011" },
+    { "id": "U3", "desc": "GERÇEK-MODEL SADAKATİ: kaydedilen model/versiyon turu GERÇEKTEN servis eden modeldir (router seçimi + fallback anahtarlaması sonrası), istenen değil — model_mismatch=0. Fallback'te recorded=fallback modeli (FR-LLM-010).", "trace": "FR-LLM-010, FR-LLM-011, 4.3.3" },
+    { "id": "U4", "desc": "CACHE ATFI: cache-hit turu cached=true + served_by=semantic_cache + LLM token=0 kaydedilir; tur YİNE kaydedilir (U1) ama fantom token faturalanmaz — cache_billed_tokens=0 (FR-RES-004/FR-LLM-014/FR-BIL-002).", "trace": "FR-RES-004, FR-LLM-014, FR-BIL-002" },
+    { "id": "U5", "desc": "ATIF + KORELASYON: her kayıt tenant_id + call_id + correlation_id + turn_index taşır; turlar çağrıya toplanır — missing_call_id=0 + missing_correlation=0 (SAD §9.2/§13.3).", "trace": "SAD §9.2, SAD §13.3, FR-LLM-011" },
+    { "id": "U6", "desc": "TOKEN MUHASEBESİ: çağrı-düzeyi token toplamı = Σ tur token (input/output ayrı), negatif yok, tutarlı — token_accounting_error=0 (FR-BIL-001/002).", "trace": "FR-BIL-001, FR-BIL-002" },
+    { "id": "U7", "desc": "TENANT İZOLASYON: kayıt turun tenant_id'si altında; cross-tenant yazım/toplama yasak — cross_tenant=0 (FR-TEN-002, RLS 1.1.3/1.1.4).", "trace": "FR-TEN-002, DB 1.1.3, DB 1.1.4" },
+    { "id": "U8", "desc": "KARDİNALİTE DİSİPLİNİ: model/model_version/tier DÜŞÜK-kardinalite metrik label'ı; call_id/correlation_id/turn_index YÜKSEK-kardinalite → metrik label OLAMAZ (yalnız payload/trace/exemplar) — high_card_label=0 (0.4.7 label_policy).", "trace": "observability 0.4.7, BRD §15" },
+    { "id": "U9", "desc": "DAYANIKLILIK + ÇİFT-SINK: her tur HEM call_event HEM usage_record'a APPEND edilir (in-place mutasyon yok); sink hatası → tampon/yeniden dene, sessizce düşürme yok — record_loss=0 + dual_sink (FR-REC-006, DB 1.1.3/1.1.4).", "trace": "FR-REC-006, DB 1.1.3, DB 1.1.4" },
+    { "id": "U10", "desc": "RESIDENCY + PII + HATA: kayıt tenant home-region'da (NFR 10.7); ham prompt/çıktı METNİ yok (yalnız sayı+id, FR-REC-004); hatalar API §11.6 ErrorTaxonomy'ye (sink-down→UNAVAILABLE tamponlu, cross-tenant→AUTH, bozuk→INVALID_REQUEST, bölge→REGION_VIOLATION); spec/config/örnekte literal sır/ham metin/PII DEĞERİ yok.", "trace": "NFR 10.7, API §11.6, FR-REC-004, BRD §17.7" }
+  ]
+}

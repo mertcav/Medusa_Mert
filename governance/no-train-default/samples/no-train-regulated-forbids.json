@@ -1,0 +1,20 @@
+{
+  "name": "no-train-regulated-forbids",
+  "$comment": "MOST-RESTRICTIVE-WINS (T9): regüle-tr profil (tr-central, forbid_training_opt_in=true) bağlı tenant t2. Biri yine de geçerli bir governed opt-in tanımlasa BİLE, regüle profil eğitim opt-in'ini EZER → her use effective_no_train=true (eğitime kapalı). Ayrıca tightening override eklenir (yalnız-sıkılaştırır; zaten no-train). forbidden_profile_training=0 (profil doğru ezdi — ihlal değil). Geçer.",
+  "expect": "pass",
+  "expected": {
+    "use_total": 2,
+    "no_train_uses": 2,
+    "training_enabled_uses": 0,
+    "forbidden_profile_training": 0,
+    "deny_total": 0
+  },
+  "events": [
+    { "kind": "register_provider", "provider_id": "llm-stream-TR", "category": "llm", "no_train_capable": true, "allowed_retention": ["EPHEMERAL"], "region_pin_capable": true, "regions": ["tr-central"], "dpa_signed": true, "subprocessor_ref": "sub://dpa-registry/llm-TR", "t": 0 },
+    { "kind": "bind_profile", "tenant_id": "t2", "profile": "regulated-tr", "region": "tr-central", "requires_no_train": true, "forbid_training_opt_in": true, "t": 10 },
+    { "kind": "grant_opt_in", "opt_in_id": "ti-2026-099", "tenant_id": "t2", "data_class": "kb_content", "scope": { "tenants": ["t2"], "data_classes": ["kb_content"] }, "evidence_ref": "ev://opt-in-store/2026-099", "granted_by": "designer-2", "approved_by": "sco-9", "expires_at": 31536000, "t": 50 },
+    { "kind": "set_override", "tenant_id": "t2", "no_train": true, "reason": "tenant tightening", "t": 60 },
+    { "kind": "use", "use_id": "send-1", "tenant_id": "t2", "provider_id": "llm-stream-TR", "data_class": "kb_content", "opt_in_ref": "ti-2026-099", "call_ref": "call://anon/leg-1", "t": 1000 },
+    { "kind": "use", "use_id": "send-2", "tenant_id": "t2", "provider_id": "llm-stream-TR", "data_class": "prompt", "call_ref": "call://anon/leg-2", "t": 2000 }
+  ]
+}

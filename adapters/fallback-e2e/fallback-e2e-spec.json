@@ -1,0 +1,161 @@
+{
+  "$comment": "WBS 4.3.4 — Birincil kesintide kontrollü fallback UÇTAN UCA testi. Bu görev 4.3.1 (STT fallback) + 4.3.2 (TTS fallback + ses tutarlılığı) + 4.3.3 (LLM fallback) ANAHTARLAMA motorlarını, 0.3.1 e2e_inbound_poc turn state machine'i (SAD §6.1 LISTEN→CAPTURE→THINK→ACT→SPEAK + barge-in) üzerinde TEK uçtan uca çağrı akışında BİRLEŞTİRİR ve BRD §19 (4) kabul kriterini ('Birincil sağlayıcı kesildiğinde kontrollü fallback gerçekleşmelidir') + SAD §8 ilke 6 ('Fail soft, never drop the call') + SAD §8.3 fallback zincirini (Primary ──(timeout/error/circuit-open)──► Secondary ──► Deterministic flow) DOĞRULAR. Bu bir ENTEGRASYON/kabul testi harness'idir; tek-tek switcher davranışı (audio replay / context resubmit / resynth continuation / eşdeğer ses / mid-stream güvenliği / tool idempotency) 4.3.1–4.3.3'te birim olarak doğrulanmıştı — burada BİLEŞİK davranış uçtan uca kanıtlanır: bir veya birden çok hot-path aşamasında (STT/LLM/TTS) birincil sağlayıcı kesildiğinde (i) ilgili aşama ikincile geçer ve çağrı kesintisiz sürer, (ii) bir aşamanın HER İKİ sağlayıcısı da düşerse deterministik akışa (kural-tabanlı güvenli yanıt / insan temsilciye kontrollü aktarım) geçilir, (iii) HİÇBİR durumda çağrı DÜŞÜRÜLMEZ (dropped_call=0). Kapsam ayrımı: aşama-içi switcher MOTORU 4.3.1/4.3.2/4.3.3 (burada TÜKETİLİR/BESTELENİR — yeniden uygulanmaz), orchestrator turn state machine 0.3.1 (referans), ortak yetenekler (timeout/retry/circuit-breaker/health) 4.1.2, hata normalizasyonu eşlemesi 4.1.5 (TÜKETİLİR), metering MOTORU 4.1.3, deterministic-flow/handoff MOTORU 8.x/3.3.x (KARARI üretilir, aktarım akışı değil), sağlayıcı SEÇİMİ 0.2.x/0.3.x. Orchestrator yalnız adapter SPI'ye + her aşamanın switcher KARARINA bağımlıdır (ADR-001); somut sağlayıcı arkada değişir (ADR-002). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): çekirdek minimal+deterministik (olay/tur-tetikli, sanal saat, random YOK; gerçek STT/LLM/TTS/medya YOK — sağlayıcı gecikme profili + akış/hata MODELİ); canlı sistemde (0.3.x/F1 §18) Go/Rust async runtime (ADR-003) + gerçek adapter'lar + 4.1.2 circuit breaker + gerçek telemetri ile dolar. Spec/config/örneklerde sır/credential, ham audio/transkript/prompt/sentez-metni veya PII DEĞERİ YOK — yalnız sağlayıcı/aşama kimliği + gecikme/akış SAYILARI + tur/tool kimlikleri + tool yan-etki BAYRAĞI + normalize edilmiş hata sınıfı + sanal zaman.",
+  "version": "1.0",
+  "wbs": "4.3.4",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-STT-008", "FR-TTS-008", "FR-TTS-009", "FR-LLM-010", "FR-TOOL-009", "FR-HND-001", "FR-RES-002", "FR-RES-009", "FR-BIL-002", "FR-TOOL-008", "FR-RTC-002", "FR-TST-008", "FR-TEN-002", "FR-KB-010"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "sad": ["§6", "§6.1", "§8", "§8.1", "§8.2", "§8.3", "§9.1", "§20", "§25"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003", "ADR-005", "ADR-009"],
+    "api": ["§11.1 Capabilities/UsageRecord/AdapterConfig", "§11.2 SttAdapter", "§11.3 TtsAdapter", "§11.4 LlmAdapter", "§11.6 ErrorTaxonomy"],
+    "brd": ["§12 (adapter zorunlu yetenekler)", "§19 (1) ≥2 STT", "§19 (2) ≥2 TTS", "§19 (3) ≥2 LLM", "§19 (4) birincil kesintide kontrollü fallback", "§19 (19) regression"],
+    "srs": ["SR-STT-008", "SR-TTS-008", "SR-LLM-010"],
+    "rtm": ["§7 Kabul Kapısı §19 (4) → SR-STT-008/SR-TTS-008/SR-LLM-010 → TC-STT-008/TC-TTS-008/TC-LLM-010 → {4.3.1, 4.3.2, 4.3.3, 4.3.4}"],
+    "poc": ["0.3.1 e2e_inbound_poc.py (turn state machine LISTEN→CAPTURE→THINK→ACT→SPEAK + barge-in + STT primary→secondary fallback — bu harness'in mimari referansı)", "0.3.2 latency-budget (switch overhead bütçe bağlamı)"],
+    "composes": ["4.3.1 stt-fallback (CAPTURE: STT primary→secondary + kısmi audio replay + deterministic flow)", "4.3.2 tts-fallback (SPEAK: TTS primary→secondary + eşdeğer ses + resynth continuation + barge-in korunumu + deterministic flow)", "4.3.3 llm-fallback (THINK: LLM primary→fallback + context resubmit + mid-stream güvenliği + tool idempotency + deterministic flow)"],
+    "consumes": ["4.1.2 ortak yetenekler (timeout/retry/backoff/circuit-breaker/health)", "4.1.5 hata normalizasyonu (ErrorTaxonomy eşlemesi)", "4.1.6 connection pool", "4.1.3 usage metering motoru", "4.1.4 residency/retention", "4.2.1/4.2.3/4.2.4/4.2.5 adapter implementasyonları", "8.x handoff + 3.3.x deterministic flow motoru", "0.4.7 observability (fallback metrikleri)"],
+    "observability": ["e2e_fallback_total{stage,from,to,reason} / e2e_switch_overhead_ms{stage} / e2e_deterministic_flow_total{stage} / e2e_dropped_call_total (sağlıklı=0, NEVER-DROP alarmı) / e2e_call_completed_total (BRD §15 → 0.4.7; stage/reason DÜŞÜK kardinalite; call_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar)"]
+  },
+
+  "placement": {
+    "$comment": "E2E fallback harness Conversation Orchestrator'ın TÜM turn state machine'ini (SAD §6.1) sarmalar: her tur LISTEN→CAPTURE(STT switcher 4.3.1)→THINK(LLM switcher 4.3.3)→[ACT tool]→SPEAK(TTS switcher 4.3.2)→LISTEN. Her hot-path aşamasının SPI'si (SttAdapter/LlmAdapter/TtsAdapter — SAD §8.1) kendi fallback switcher'ı tarafından sarmalanır; orchestrator yalnız her switcher'ın TEK mantıksal yüzeyine + kararına bağımlıdır (ADR-001). Birincil kesintisi (circuit-open, 4.1.2) ilgili aşamada ikincile geçişle veya deterministik akışla karşılanır; medya konumu edge/merkez SPI'yi değiştirmez (ADR-009 hibrit). Telephony (çağrı yaşam döngüsü) hiçbir hot-path aşaması düşse de çağrıyı AÇIK tutar — never drop (SAD §8 ilke 6). Olay/tur-tetikli + bloklamayan; deterministik (sanal saat, random YOK).",
+    "behind_spi": true,
+    "orchestrator_depends_on_spi_only": true,
+    "wraps_turn_state_machine": true,
+    "stages": {
+      "CAPTURE": "STT switcher (4.3.1) — primary STT → secondary STT (kısmi audio replay) → deterministic flow",
+      "THINK": "LLM switcher (4.3.3) — primary LLM → fallback LLM (context resubmit, mid-stream güvenliği, tool idempotency) → deterministic flow",
+      "SPEAK": "TTS switcher (4.3.2) — primary TTS → secondary TTS (eşdeğer ses, resynth continuation, barge-in korunumu) → deterministic flow"
+    },
+    "stream_first": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "never_drop_owned_by": "telephony çağrı yaşam döngüsü (2.1.x) + her aşama switcher'ı; harness uçtan uca DOĞRULAR",
+    "circuit_breaker_owned_by": "4.1.2 (SAD §8.2); aşama switcher'ları circuit-open sinyalini TÜKETİR",
+    "deterministic_flow_owned_by": "8.x handoff + 3.3.x; switcher'lar KARARI üretir, aktarım akışını değil",
+    "trace": "SAD §6.1, SAD §8.1, SAD §8.3, SAD §25, ADR-001, ADR-009"
+  },
+
+  "spi": {
+    "$comment": "Harness üç hot-path SPI'sini (SAD §8.1 / API §11.2/§11.3/§11.4) kendi switcher'ları (4.3.1/4.3.2/4.3.3) arkasından TÜKETİR — her switcher orchestrator'a TEK mantıksal yüzey sunar (presents_single_logical_stream). Harness yeni SPI metodu EKLEMEZ; mevcut SttAdapter.stream / LlmAdapter.complete / TtsAdapter.synthesize+cancel + ortak capabilities/health/meter/configure (API §11.1) üzerinden çağrı yaşam döngüsünü uçtan uca koşturur. Her kategoride ≥2 SPI-uyumlu sağlayıcı zorunlu (BRD §19 (1)/(2)/(3)); primary≠secondary. Telephony SPI (API §11.5) çağrıyı açık tutar (dial/answer/hangup) — hiçbir hot-path düşüşü hangup tetiklemez.",
+    "composed_spis": ["SttAdapter", "LlmAdapter", "TtsAdapter", "TelephonyAdapter"],
+    "wraps_methods": ["stream", "complete", "synthesize", "cancel", "capabilities", "health", "meter", "configure"],
+    "required_features_per_stage": {
+      "stt": ["streaming"],
+      "llm": ["streaming", "tool_call"],
+      "tts": ["streaming", "barge_in_cancel"]
+    },
+    "presents_single_logical_stream": true,
+    "trace": "SAD §8.1, API §11.1/§11.2/§11.3/§11.4/§11.5"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (E1–E10). (E1) NEVER DROP — max_dropped_call=0: hiçbir senaryoda (tek/çoklu/total aşama kesintisi) çağrı düşürülmez; çağrı yaşam döngüsü answered→ended tamamlanır (BRD §19 (4), SAD §8 ilke 6). (E2) KONTROLLÜ FAILOVER — failover sınıfı (TIMEOUT/UNAVAILABLE/RATE_LIMITED/QUOTA_EXCEEDED) birincil kesintisi + sağlıklı ikincil → ilgili aşama ikincile geçer, tur kaybolmaz (max_turn_lost=0). (E3) DETERMINISTIC FLOW — bir aşamanın HER İKİ sağlayıcısı düşerse VEYA non-failover sınıf → deterministik akış (kural-tabanlı / aktarım) engaged, çağrı sürer (require_deterministic_flow + max_dropped_call=0). (E4) SEÇİCİ TETİK — non-failover sınıf (AUTH/INVALID_REQUEST/REGION_VIOLATION/CONTENT_FILTERED) boşuna sağlayıcı değiştirmez (max_improper_failover=0) + require_error_normalized (FR-TOOL-008). (E5) SÜREKLİLİK — failover'da bağlam korunur: STT kısmi audio replay + LLM context resubmit + TTS resynth continuation; çalınmış/üretilmiş içerik tekrarlanmaz (max_lost_context=0, max_double_output=0). (E6) TEK MANTIKSAL AKIŞ — her aşamada her an tek aktif sağlayıcı (max_concurrent_active=1) + yinelenen final/konuşma/yanıt yok (max_duplicate_output=0). (E7) SWITCH OVERHEAD — aşama anahtarlama gecikmesi aşama bütçesinde: STT/TTS P95 ≤ stage_switch_overhead_p95_ms (200, sınırlı ölü hava NFR 10.1), LLM P95 ≤ llm_switch_overhead_p95_ms (500, fresh first-token). (E8) ≥2 SAĞLAYICI/KATEGORİ — her hot-path kategoride (STT/TTS/LLM) ≥2 SPI-uyumlu sağlayıcı (BRD §19 (1)/(2)/(3); min_providers_per_stage=2). (E9) METERING + OBSERVABILITY — her sağlayıcı segmenti metrelenir (require_metering, FR-BIL-002) + fallback/deterministic-flow olayları DÜŞÜK-kardinalite label ile yayılır (require_observability). (E10) BAĞLAM YAYILIMI + İZOLASYON — her olayda correlation_id+tenant_id (SAD §13.3) + max_cross_tenant=0 + AI şeffaflık bildirimi karşılamada (BRD §14.2). Eşikler MÜHENDİSLİK varsayılanı (NFR 10.1 + 4.3.1/4.3.2/4.3.3 kapıları); gerçek değerler 0.3.x/F1 canlı testte doğrulanır.",
+    "max_dropped_call": 0,
+    "max_turn_lost": 0,
+    "max_lost_context": 0,
+    "max_double_output": 0,
+    "max_duplicate_output": 0,
+    "max_concurrent_active": 1,
+    "max_improper_failover": 0,
+    "max_cross_tenant": 0,
+    "max_flap": 0,
+    "stage_switch_overhead_p95_ms": 200,
+    "llm_switch_overhead_p95_ms": 500,
+    "min_providers_per_stage": 2,
+    "require_deterministic_flow": true,
+    "require_error_normalized": true,
+    "require_metering": true,
+    "require_observability": true,
+    "require_ai_disclosure": true,
+    "failover_error_classes": ["TIMEOUT", "RATE_LIMITED", "UNAVAILABLE", "QUOTA_EXCEEDED"],
+    "trace": "BRD §19 (1)/(2)/(3)/(4), SAD §8/§8.3/§20, NFR 10.1, NFR 10.7, FR-STT-008, FR-TTS-008/009, FR-LLM-010, FR-TOOL-008/009, FR-BIL-002, FR-RES-002/009, FR-HND-001"
+  },
+
+  "fallback": {
+    "$comment": "Uçtan uca fallback zinciri her hot-path aşamasında (SAD §8.3): Primary ──(timeout/error/circuit-open)──► Secondary ──► Deterministic flow. Harness bu zinciri her aşamada (CAPTURE/THINK/SPEAK) ayrı ayrı + çağrı boyunca BİRLEŞİK koşturur. Aşama bazında anahtarlama mantığının SAHİBİ ilgili switcher (STT→4.3.1, LLM→4.3.3, TTS→4.3.2); harness onları BESTELER ve uçtan uca kontrollü-fallback + never-drop garantisini doğrular. Histerezis: bir kez bir aşamada ikincile geçilince seans boyunca o aşamada ikincil kalır (flap yok). Routing: normalize edilmiş ErrorTaxonomy'de failover_error_classes → ikincile geç; non_failover → deterministik akış (sağlayıcı değiştirmek yanlış). LLM'e özgü iki güvenlik (4.3.3) uçtan uca korunur: mid-stream (ilk token sonrası çift konuşma yok) + tool idempotency (yan etkili tool çift yürütme yok).",
+    "stage_chains": {
+      "stt": ["primary_stt", "secondary_stt", "deterministic_flow"],
+      "llm": ["primary_llm", "fallback_llm", "deterministic_flow"],
+      "tts": ["primary_tts", "secondary_tts", "deterministic_flow"]
+    },
+    "min_providers_per_stage": 2,
+    "hysteresis_sticky_secondary": true,
+    "deterministic_flow_on_total_failure": true,
+    "never_drop": true,
+    "switching_owned_by": "stage: 4.3.1 (stt) / 4.3.2 (tts) / 4.3.3 (llm); composition + e2e doğrulama: 4.3.4 (bu görev)",
+    "trace": "SAD §8.3, BRD §19 (4), FR-STT-008, FR-TTS-008, FR-LLM-010"
+  },
+
+  "outage_model": {
+    "$comment": "Senaryolar (samples/*.json) her tur için bir veya çok aşamada birincil kesinti ENJEKTE eder. outage = {stage∈{stt,llm,tts}, error∈ErrorTaxonomy ham anahtarı, scope∈{primary,both}, point∈{pre,post_first_output}}. scope=primary: yalnız birincil düşer → ikincile geçilir (failover sınıfıysa). scope=both: birincil+ikincil düşer → deterministik akış. point=post_first_output (yalnız llm/tts anlamlı): ilk çıktı (token/ses) downstream'e gittikten SONRA düşer → mid-stream güvenli degrade (LLM: double_speak=0; TTS: resynth continuation yalnız çalınmamış metin). non-failover sınıf (AUTH/INVALID_REQUEST/REGION_VIOLATION/CONTENT_FILTERED): scope ne olursa olsun → deterministik akış (boşuna anahtarlama yok). Bu MODEL gerçek kesinti değil; deterministik tekrarlanabilir enjeksiyon (CI).",
+    "stages": ["stt", "llm", "tts"],
+    "scopes": ["primary", "both"],
+    "points": ["pre", "post_first_output"],
+    "trace": "FR-TST-008, SAD §8.3"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Sağlayıcı hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir (FR-TOOL-008, eşleme MOTORU 4.1.5 — harness TÜKETİR). failover_classes yalnız geçici/yeniden-denenebilir + ayrı-kota sınıfları (ikincile geçiş anlamlı). non_failover_classes sağlayıcı değiştirmez (CONTENT_FILTERED → politika/deterministik akış; AUTH/INVALID_REQUEST → yapılandırma; REGION_VIOLATION → bölge). Ham sağlayıcı kodu yalnız audit/log'da; müşteriye sızmaz.",
+    "mapping": {
+      "provider_timeout": "TIMEOUT",
+      "provider_429": "RATE_LIMITED",
+      "provider_5xx": "UNAVAILABLE",
+      "circuit_open": "UNAVAILABLE",
+      "connection_reset": "UNAVAILABLE",
+      "quota_exceeded": "QUOTA_EXCEEDED",
+      "auth_failure": "AUTH",
+      "invalid_request": "INVALID_REQUEST",
+      "content_filter": "CONTENT_FILTERED",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "failover_classes": ["TIMEOUT", "RATE_LIMITED", "UNAVAILABLE", "QUOTA_EXCEEDED"],
+    "non_failover_classes": ["AUTH", "INVALID_REQUEST", "CONTENT_FILTERED", "REGION_VIOLATION"],
+    "trace": "API §11.6, FR-TOOL-008, SAD §8.2/§8.3, NFR 10.7"
+  },
+
+  "metrics": {
+    "$comment": "Harness her aşama failover/deterministic-flow + çağrı sonucu için BRD §15 metriklerini hesaplar ve 0.4.7 gözlemlenebilirliğe yayar. e2e_fallback_total{stage,from,to,reason} → aşama bazında failover sayısı; e2e_switch_overhead_ms{stage} → anahtarlama gecikmesi (E7); e2e_deterministic_flow_total{stage} → aşamada deterministik akışa geçiş (E3); e2e_dropped_call_total → NEVER-DROP ihlali sayacı (sağlıklı=0, E1 alarmı); e2e_call_completed_total → tamamlanan çağrı. stage/reason/from/to DÜŞÜK kardinalite (label uygun); call_id/correlation_id/turn_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Ham audio/transkript/prompt/sentez-metni/token DEĞERİ/PII metriklerde yok.",
+    "emitted": [
+      "e2e_fallback_total", "e2e_switch_overhead_ms", "e2e_deterministic_flow_total",
+      "e2e_dropped_call_total", "e2e_call_completed_total"
+    ],
+    "maps_to_observability": {
+      "e2e_fallback_total": "adapter_fallback_total",
+      "e2e_switch_overhead_ms": "adapter_switch_overhead_ms"
+    },
+    "trace": "BRD §15, SAD §17.1, observability 0.4.7, 3.1.5 context-propagation"
+  },
+
+  "residency": {
+    "$comment": "Her aşama sağlayıcısı tenant home-region endpoint'inde çalışır (bölgesel pin, NFR 10.7) + UsageRecord home-region'da; hassas veri sağlayıcı loglarına yazılmaz (data_retention NONE/EPHEMERAL, FR-KB-010); LLM noTrain (FR-LLM-012). Failover/deterministik-akış kararı residency'i değiştirmez; ikincil de home-region uyumlu olmalı (aksi REGION_VIOLATION → non-failover). Replay/resubmit/resynth tamponları EPHEMERAL, oturum sonu temizlenir.",
+    "region_pin_required": true,
+    "no_log_required": true,
+    "allowed_retention": ["NONE", "EPHEMERAL"],
+    "ephemeral_buffers": true,
+    "trace": "NFR 10.7, FR-KB-010, FR-LLM-012, FR-BIL-002, API §11.1 AdapterConfig.dataRetention"
+  },
+
+  "pii": {
+    "$comment": "Bu SPEC/config/örnekler ham audio/transkript/prompt/mesaj/sentez-metni/model-çıktısı/token DEĞERİ veya PII DEĞERİ TUTMAZ — yalnız sağlayıcı/aşama kimliği + gecikme/akış SAYILARI + tur/tool kimlikleri + tool yan-etki BAYRAĞI (boolean) + normalize edilmiş hata sınıfı + sanal zaman + opak metin referansı (user_text_ref). Replay/resubmit/resynth tamponları çalışma-zamanı belleğinde EPHEMERAL; durable kayıt orchestrator katmanında redaction_state='pending' (FR-REC-004).",
+    "raw_media_in_spec_forbidden": true,
+    "raw_text_in_spec_forbidden": true,
+    "pii_value_in_spec_forbidden": true,
+    "durable_redaction_state": "pending",
+    "trace": "FR-REC-004, FR-KB-010, BRD §14, BRD §17.7"
+  },
+
+  "invariants": [
+    { "id": "E1", "desc": "NEVER DROP: hiçbir senaryoda (tek aşama / çoklu aşama / total aşama kesintisi) çağrı düşürülmez; telephony çağrı yaşam döngüsü answered→ended tamamlanır (dropped_call=0). Hot-path bir bağımlılığın düşüşü çağrıyı KAPATMAZ — kontrollü kalite düşüşü (SAD §8 ilke 6 'Fail soft, never drop the call'; BRD §19 (4)).", "trace": "BRD §19 (4), SAD §8, SAD §8.3" },
+    { "id": "E2", "desc": "KONTROLLÜ FAILOVER: failover sınıfı (TIMEOUT/UNAVAILABLE/RATE_LIMITED/QUOTA_EXCEEDED) birincil kesintisi + sağlıklı ikincil → ilgili aşama (STT 4.3.1 / LLM 4.3.3 / TTS 4.3.2) ikincile geçer; tur kaybolmaz (turn_lost=0) ve çağrı kesintisiz sürer. Birden çok aşama aynı çağrıda bağımsız failover edebilir.", "trace": "FR-STT-008, FR-TTS-008, FR-LLM-010, SAD §8.3, BRD §19 (4)" },
+    { "id": "E3", "desc": "DETERMINISTIC FLOW: bir aşamanın HER İKİ sağlayıcısı düşerse (scope=both) → deterministik akışa (kural-tabanlı güvenli yanıt / insan temsilciye kontrollü aktarım, 8.x/3.3.x) geçilir; çağrı sürer (dropped_call=0). Aktarım/yanıt MOTORU komşu seam; harness KARARIN üretildiğini + çağrının açık kaldığını doğrular.", "trace": "SAD §8.3, SAD §9.1 [4], BRD §19 (4), FR-HND-001" },
+    { "id": "E4", "desc": "SEÇİCİ TETİK: non-failover sınıf (AUTH/INVALID_REQUEST/REGION_VIOLATION/CONTENT_FILTERED) boşuna sağlayıcı değiştirmez (improper_failover=0) — başka sağlayıcı da reddeder/yapılandırma/bölge sorunu; bunlar doğrudan deterministik akışa/politikaya gider. Tüm sağlayıcı hataları ortak ErrorTaxonomy'ye normalize edilir (FR-TOOL-008).", "trace": "FR-TOOL-008, API §11.6, SAD §8.2/§8.3" },
+    { "id": "E5", "desc": "SÜREKLİLİK KORUNUR: failover'da bağlam kaybolmaz (lost_context=0) — STT in-flight kısmi audio replay (4.3.1), LLM tur isteği context resubmit (4.3.3, ilk-token öncesi), TTS kalan-metin resynth continuation (4.3.2); zaten çalınmış/üretilmiş içerik tekrarlanmaz ve mid-stream çift çıktı olmaz (double_output=0). Kullanıcı baştan duymaz, kesintiden devam eder.", "trace": "FR-STT-008, FR-TTS-008, FR-LLM-010, FR-RES-002/009" },
+    { "id": "E6", "desc": "TEK MANTIKSAL AKIŞ: her aşamada her an tek aktif sağlayıcı vardır (concurrent_active≤1) ve yinelenen final/konuşma/yanıt üretilmez (duplicate_output=0). Orchestrator her aşamadan TEK mantıksal akış görür (ADR-001); switcher değişimi şeffaftır.", "trace": "FR-STT-002, FR-RES-009, ADR-001" },
+    { "id": "E7", "desc": "SWITCH OVERHEAD: aşama anahtarlama gecikmesi (teardown + ikincil setup + ilk çıktı + replay/resynth) aşama bütçesinde — STT/TTS P95 ≤ 200ms (sınırlı ölü hava, NFR 10.1), LLM P95 ≤ 500ms (fresh first-token; SAD §20 LLM kalemi genel 400). Birden çok eş zamanlı failover bütçeyi aşmamalı (en kötü aşama raporlanır).", "trace": "NFR 10.1, SAD §20, 4.3.1/4.3.2/4.3.3 switch kapıları" },
+    { "id": "E8", "desc": "≥2 SAĞLAYICI/KATEGORİ: her hot-path kategoride (STT/TTS/LLM) ≥2 SPI-uyumlu sağlayıcı yapılandırılır (BRD §19 (1)/(2)/(3)); primary≠secondary; her sağlayıcı kategori required_features'ı + bölge + (LLM) noTrain'i capabilities()'te beyan eder. Tek sağlayıcılı kategori failover'ı imkansız kılar → kapı eler.", "trace": "BRD §19 (1)/(2)/(3), ADR-002, API §11.1" },
+    { "id": "E9", "desc": "METERING + OBSERVABILITY: her sağlayıcı segmenti UsageRecord üretir (FR-BIL-002, metering MOTORU 4.1.3 tüketilir) + her failover/deterministic-flow olayı DÜŞÜK-kardinalite label (stage/reason/from/to) ile gözlemlenebilirliğe (0.4.7) yayılır; never-drop sayacı (e2e_dropped_call_total) alarm kaynağıdır (sağlıklı=0). Yüksek-kardinalite kimlik (call_id/correlation_id) yalnız trace/exemplar.", "trace": "FR-BIL-002, BRD §15, SAD §17.1, observability 0.4.7, label_policy" },
+    { "id": "E10", "desc": "BAĞLAM YAYILIMI + İZOLASYON + ŞEFFAFLIK: her olay correlation_id + tenant_id taşır (SAD §13.3, 3.1.5); cross-tenant erişim yok (cross_tenant=0, FR-TEN-002); AI şeffaflık bildirimi (BRD §14.2) ilk kullanıcı turundan önce; spec/config/örneklerde literal sır/credential, ham media/metin veya PII DEĞERİ yok.", "trace": "SAD §13.3, FR-TEN-002, BRD §14.2, BRD §17.7, NFR 10.7" }
+  ]
+}
