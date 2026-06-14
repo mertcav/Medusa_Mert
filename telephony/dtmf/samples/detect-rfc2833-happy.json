@@ -1,0 +1,31 @@
+{
+  "name": "detect-rfc2833-happy",
+  "$comment": "Sentetik RFC 2833 algılama dizisi (FR-TST-008). Üç basamak '1','5','*' — her biri marker'lı başlangıç + ara + 3 artık End-bit paketi (çok-paketli → tek mantıksal basamağa debounce, D2). 160ms@8000Hz=1280 örnek (>40ms kapısı, D4). Geçer.",
+  "profile": "byoc-trunk-primary",
+  "sensitive": false,
+  "expect": "pass",
+  "expected_digits": "15*",
+  "events": [
+    { "type": "rfc2833", "packets": [
+      { "event": 1, "marker": true, "duration": 640, "e": false },
+      { "event": 1, "duration": 1280, "e": false },
+      { "event": 1, "duration": 1280, "e": true },
+      { "event": 1, "duration": 1280, "e": true },
+      { "event": 1, "duration": 1280, "e": true }
+    ] },
+    { "type": "rfc2833", "packets": [
+      { "event": 5, "marker": true, "duration": 640, "e": false },
+      { "event": 5, "duration": 1280, "e": false },
+      { "event": 5, "duration": 1280, "e": true },
+      { "event": 5, "duration": 1280, "e": true },
+      { "event": 5, "duration": 1280, "e": true }
+    ] },
+    { "type": "rfc2833", "packets": [
+      { "event": 10, "marker": true, "duration": 640, "e": false },
+      { "event": 10, "duration": 1280, "e": false },
+      { "event": 10, "duration": 1280, "e": true },
+      { "event": 10, "duration": 1280, "e": true },
+      { "event": 10, "duration": 1280, "e": true }
+    ] }
+  ]
+}

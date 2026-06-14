@@ -1,0 +1,13 @@
+{
+  "name": "detect-degraded",
+  "$comment": "Bilinçli ELENEN algılama dizisi (FR-TST-008). İlk olay aralık-dışı RFC 2833 olay kodu (16 — küme dışı, D3 ihlali) taşır → algılama REDDEDER (INVALID_REQUEST). Kapı elemeli; expect=fail.",
+  "profile": "byoc-trunk-primary",
+  "sensitive": false,
+  "expect": "fail",
+  "events": [
+    { "type": "rfc2833", "packets": [
+      { "event": 16, "marker": true, "duration": 1280, "e": false },
+      { "event": 16, "duration": 1280, "e": true }
+    ] }
+  ]
+}

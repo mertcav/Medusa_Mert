@@ -1,0 +1,7 @@
+{
+  "name": "generate-rfc2833",
+  "$comment": "Sentetik DTMF üretme (FR-TST-008, API §11.5 sendDtmf). Müzakere edilen mod rfc2833 → her basamak için marker'lı başlangıç + ara + 3 End-bit artık paket; basamaklar arası 40ms boşluk. Basamaklar gönderim öncesi doğrulanır (D7). Geçer.",
+  "profile": "byoc-trunk-primary",
+  "digits": "1809#",
+  "expect": "pass"
+}

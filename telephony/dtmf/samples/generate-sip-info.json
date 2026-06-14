@@ -1,0 +1,7 @@
+{
+  "name": "generate-sip-info",
+  "$comment": "Sentetik DTMF üretme (FR-TST-008, API §11.5 sendDtmf). Müzakere edilen mod sip_info → her basamak için bir application/dtmf-relay INFO isteği; basamaklar arası 50ms boşluk (D7). Geçer.",
+  "profile": "byoc-trunk-secondary",
+  "digits": "42A",
+  "expect": "pass"
+}

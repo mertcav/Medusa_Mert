@@ -1,0 +1,14 @@
+{
+  "name": "detect-sip-info",
+  "$comment": "Sentetik SIP INFO algılama dizisi (FR-TST-008). secondary trunk, application/dtmf-relay Signal=/Duration= ile üç basamak '9','#','3' + bir application/dtmf düz gövde '7'. Her INFO = bir basamak (D5). Her iki yol da birleşik 'dtmf' olayına indirgenir (D6). Geçer.",
+  "profile": "byoc-trunk-secondary",
+  "sensitive": false,
+  "expect": "pass",
+  "expected_digits": "9#37",
+  "events": [
+    { "type": "sip_info", "content_type": "application/dtmf-relay", "body": "Signal=9\r\nDuration=160" },
+    { "type": "sip_info", "content_type": "application/dtmf-relay", "body": "Signal=#\r\nDuration=140" },
+    { "type": "sip_info", "content_type": "application/dtmf-relay", "body": "Signal=3\r\nDuration=160" },
+    { "type": "sip_info", "content_type": "application/dtmf", "body": "7" }
+  ]
+}

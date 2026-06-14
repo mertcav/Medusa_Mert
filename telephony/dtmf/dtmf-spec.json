@@ -1,0 +1,119 @@
+{
+  "$comment": "WBS 2.1.6 — DTMF algılama/üretme (RFC 2833 / SIP INFO). Telefoni DTMF olay düzlemi: TelephonyAdapter (2.1.3 managed-cpaas M1 / 2.1.4 byoc-sip M2) içindeki DTMF'i birinci-sınıf, deterministik bir sözleşmeye dönüştürür. 2.1.3/2.1.4 yalnız yüzey-seviye DTMF (mode + normalized `dtmf`) bildiriyordu; bu dilim ALGILAMA (RFC 2833 çok-paketli telephone-event debounce + SIP INFO ayrıştırma) ve ÜRETME (sendDtmf, API §11.5) sözleşmesini + PCI maskeleme kancasını (BRD §8.5, SEC-17) tanımlar. Her iki yol birleşik `dtmf` turn-event'ine (API §12.1/§12.2) indirgenir. KAYNAK DOĞRULUK; çelişkide BRD/SAD/API esastır. Vendor-neutral (ADR-002): algılama/üretme çekirdeği minimal+deterministik, sağlayıcıdan bağımsız; canlı sistemde gerçek RTP/SIP yığını adapter'da. Sır/credential ve gerçek kart/PIN verisi YOK — örnekler illüstratiftir.",
+  "version": "1.0",
+  "wbs": "2.1.6",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-TEL-006", "FR-TEL-001", "FR-TEL-002", "FR-REC-004", "FR-REC-005", "FR-RES-008", "FR-RTC-002", "FR-TEN-002"],
+    "nfr": ["NFR 10.6", "NFR 10.7"],
+    "sad": ["§6.1", "§7.2", "§8.1", "§11.5", "§12.1", "§12.2"],
+    "adr": ["ADR-001", "ADR-002", "ADR-005", "ADR-009"],
+    "api": ["§11.5 TelephonyAdapter.sendDtmf / on(DTMF)", "§11.6 ErrorTaxonomy", "§12.1 dtmf kontrol mesajı", "§12.2 TurnEvent"],
+    "srs": ["SR-TEL-006"],
+    "rtm": ["TC-TEL-006"],
+    "brd": ["§8.5 PCI (kart verisi LLM/transkript/kayıt dışı; DTMF masking)", "§16 Call Event"],
+    "threat_model": ["TM-I-03 (DTMF/sesle kart verisi yakalama)", "SEC-17 (PCI DTMF masking)"],
+    "rfc": ["RFC 2833 (RTP telephone-event)", "RFC 4733 (telephone-event güncelleyen)", "RFC 2976 (SIP INFO)"]
+  },
+
+  "dtmf": {
+    "$comment": "DTMF iki STANDART OUT-OF-BAND yolla algılanır: (a) RFC 2833/4733 RTP telephone-event (payload type müzakere edilir, tipik 101, clock 8000) veya (b) SIP INFO (application/dtmf-relay veya application/dtmf). In-band (sesbandı tek-ton) algılama KULLANILMAZ: 8kHz G.711 no-transcode hat (FR-RES-008) içinde güvenilmez ve STT'yi kirletir → yalnız out-of-band. İki yol da tek birleşik `dtmf` olayına indirgenir (mode-agnostik downstream).",
+    "normalized_event": "dtmf",
+    "modes": ["rfc2833", "sip_info"],
+    "inband_detection": false,
+    "rfc2833_clock_rate": 8000,
+    "rfc2833_default_payload_type": 101,
+    "digit_set": "0123456789*#ABCD",
+    "event_code_map": {
+      "$comment": "RFC 2833/4733 olay kodu → kanonik basamak. 0..9 = '0'..'9'; 10='*'; 11='#'; 12..15='A'..'D'. Aralık dışı (>15) REDDEDİLİR (INVALID_REQUEST).",
+      "0": "0", "1": "1", "2": "2", "3": "3", "4": "4",
+      "5": "5", "6": "6", "7": "7", "8": "8", "9": "9",
+      "10": "*", "11": "#", "12": "A", "13": "B", "14": "C", "15": "D"
+    },
+    "trace": "FR-TEL-006, SR-TEL-006, RFC 2833, RFC 4733, RFC 2976, FR-RES-008"
+  },
+
+  "detection": {
+    "$comment": "ALGILAMA sözleşmesi (inbound). RFC 2833'te tek bir mantıksal basamak BİRDEN ÇOK RTP paketi üretir: marker bit'li başlangıç paketi + artan duration'lı ara paketler + End-bit (E=1) bitiş paketi(leri) (tipik 3 artık/redundant kopya). Algılayıcı bunları TAM OLARAK BİR mantıksal basamağa DEBOUNCE eder (paket başına tekrar YOK). Bir basamak (i) End-bit paketinde, veya (ii) yeni bir marker/farklı olay başladığında (kayıp End-bit dayanıklılığı) sonlandırılır. SÜRE KAPISI: nihai duration < min_duration_ms ise sahte (spurious) sayılıp düşürülür. SIP INFO'da her INFO isteği = bir basamak (Signal/Duration ayrıştırılır).",
+    "rfc2833_debounce": true,
+    "finalize_on_end_bit": true,
+    "finalize_on_event_change": true,
+    "min_duration_ms": 40,
+    "end_bit_redundancy_tolerated": true,
+    "sip_info_content_types": ["application/dtmf-relay", "application/dtmf"],
+    "trace": "FR-TEL-006, RFC 2833, RFC 4733"
+  },
+
+  "generation": {
+    "$comment": "ÜRETME sözleşmesi (outbound, API §11.5 sendDtmf(callId, digits)). MÜZAKERE EDİLEN moda göre: rfc2833 → her basamak için marker'lı başlangıç + ara paketler + End-bit'li (E=1) artık paketler (end_redundancy adet) RTP telephone-event dizisi; sip_info → her basamak için bir INFO isteği. Basamaklar arası inter_digit_gap_ms boşluk. Gönderilecek basamaklar digit_set'e karşı doğrulanır; geçersiz basamak gönderim ÖNCESİ reddedilir (INVALID_REQUEST). Üretilen DTMF, kendi ses-bandına yazılmaz (out-of-band).",
+    "default_tone_duration_ms": 160,
+    "inter_digit_gap_ms": 40,
+    "end_redundancy": 3,
+    "validate_before_send": true,
+    "trace": "FR-TEL-006, API §11.5, RFC 2833, RFC 2976"
+  },
+
+  "normalized_dtmf_event": {
+    "$comment": "Her iki mod da AYNI normalize olaya indirgenir (mode-agnostik downstream; 2.1.3/2.1.4 ingress `dtmf` sözleşmesiyle birebir). Olay turn-event akışına (API §12.2) bağlam (tenant_id/correlation_id/call_id) taşıyarak girer ve SAD §6.1 turn state machine girdisidir. `masked` PCI penceresinde true; o zaman transkript/kayıt/gözlemlenebilirlik MASK_TOKEN görür, basamak değeri yalnız aksiyon kanalına gider.",
+    "fields": ["digit", "mode", "duration_ms", "masked", "tenant_id", "correlation_id", "call_id", "ts_ms"],
+    "mask_token": "•",
+    "feeds": ["SAD §6.1 turn state machine", "API §12.2 TurnEvent", "managed-cpaas (2.1.3) ingress dtmf", "byoc-sip (2.1.4) ingress dtmf"],
+    "trace": "API §12.1, API §12.2, SAD §6.1, SAD §13.3, ADR-001"
+  },
+
+  "masking": {
+    "$comment": "PCI / hassas-toplama penceresi (BRD §8.5, THREAT_MODEL TM-I-03/SEC-17). Ödeme/kart/PIN/OTP toplanırken DTMF basamakları KART VERİSİ taşıyabilir; bu pencerede basamak değeri YALNIZ aksiyon kanalına (deterministik IVR/ödeme hattı) gider, transkript/kayıt/LLM/gözlemlenebilirliğe MASK_TOKEN olarak yazılır (FR-REC-004/005). Maskeli DTMF asla açık-metin loglanmaz. Pencere oturum politikasıyla açılır (collection window); F3 tam PCI akışı 17.2.6'da derinleşir — burada SÖZLEŞME/kanca tanımlıdır.",
+    "sensitive_window_supported": true,
+    "mask_in": ["transcript", "recording", "llm_context", "observability"],
+    "digit_value_to": "action_channel_only",
+    "cp_key": "cp.sector.pci_in_scope",
+    "trace": "BRD §8.5, FR-REC-004, FR-REC-005, THREAT_MODEL TM-I-03, SEC-17, DPIA cp.sector.pci_in_scope"
+  },
+
+  "turn_integration": {
+    "$comment": "DTMF bir turn girdisidir ve TTS oynatımı sırasında geldiğinde barge-in benzeri kesme tetikleyebilir (kullanıcı tuşa basarak agent'ı keser). Kesme edge'de (ADR-005/ADR-009) algılanır; orchestrator TTS akışını ≤200ms içinde iptal eder (FR-RTC-002, NFR 10.1). DTMF'in kendisi RTP/SIP-INFO out-of-band olduğundan medya hattını kirletmez.",
+    "can_trigger_barge_in": true,
+    "barge_in_deadline_ms": 200,
+    "trace": "FR-RTC-002, NFR 10.1, SAD §6.1, ADR-005, ADR-009"
+  },
+
+  "error_taxonomy": {
+    "$comment": "DTMF hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Geçersiz basamak/olay kodu (>15 veya küme dışı) ve süre-altı sahte olay reddi INVALID_REQUEST; müzakere edilmemiş/desteklenmeyen mod UNAVAILABLE; bölge uyumsuzluğu REGION_VIOLATION.",
+    "mapping": {
+      "invalid_digit": "INVALID_REQUEST",
+      "event_code_out_of_range": "INVALID_REQUEST",
+      "duration_below_min": "INVALID_REQUEST",
+      "unsupported_mode": "UNAVAILABLE",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, FR-TEL-006, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "DTMF olayları tenant home-region'da işlenir/saklanır; bölge uyumsuzluğu REGION_VIOLATION (NFR 10.7).",
+    "region_pin_required": true,
+    "trace": "NFR 10.7"
+  },
+
+  "pii": {
+    "$comment": "DTMF basamağı kişisel/hassas veri olabilir (kart/PIN/OTP). Spec/config'te ham RTP payload, gerçek kart/PIN veya müşteri girdisi TUTULMAZ; örnek basamaklar illüstratiftir. Hassas pencerede basamak maskelenir (masking sözleşmesi).",
+    "raw_payload_in_spec_forbidden": true,
+    "card_data_in_spec_forbidden": true,
+    "trace": "BRD §14, BRD §8.5, THREAT_MODEL TM-I-03"
+  },
+
+  "invariants": [
+    { "id": "D1", "desc": "DTMF yalnız out-of-band algılanır: RFC 2833/4733 RTP telephone-event veya SIP INFO; in-band (sesbandı ton) algılama KULLANILMAZ (no-transcode 8kHz hat).", "trace": "FR-TEL-006, FR-RES-008, SAD §7.2" },
+    { "id": "D2", "desc": "RFC 2833 çok-paketli olay (marker başlangıç + ara + End-bit artık paketler) TAM OLARAK BİR mantıksal basamağa debounce edilir — paket başına tekrar yok.", "trace": "FR-TEL-006, RFC 2833, RFC 4733" },
+    { "id": "D3", "desc": "Olay kodu → basamak eşlemesi kanonik (0..9,*,#,A..D = kod 0..15); aralık dışı (>15) reddedilir (INVALID_REQUEST).", "trace": "FR-TEL-006, API §11.6" },
+    { "id": "D4", "desc": "Süre kapısı: nihai duration < min_duration_ms olan olaylar sahte sayılıp düşürülür (yayılmaz).", "trace": "FR-TEL-006, RFC 2833" },
+    { "id": "D5", "desc": "SIP INFO (application/dtmf-relay Signal=/Duration= veya application/dtmf) tek basamağa ayrıştırılır; Signal kanonik basamağa çevrilir.", "trace": "FR-TEL-006, RFC 2976" },
+    { "id": "D6", "desc": "Her iki mod (rfc2833, sip_info) AYNI normalize `dtmf` olayına indirgenir — mode-agnostik downstream; 2.1.3/2.1.4 ingress dtmf sözleşmesiyle birebir.", "trace": "API §12.1, ADR-001, SAD §8.1" },
+    { "id": "D7", "desc": "Üretme (sendDtmf) müzakere edilen modu kullanır; basamak başına paket/INFO dizisi + inter-digit boşluk; basamaklar gönderim öncesi digit_set'e karşı doğrulanır (geçersiz → INVALID_REQUEST).", "trace": "FR-TEL-006, API §11.5, RFC 2833, RFC 2976" },
+    { "id": "D8", "desc": "PCI/hassas pencerede basamak değeri yalnız aksiyon kanalına gider; transkript/kayıt/LLM/gözlemlenebilirlik MASK_TOKEN görür — maskeli DTMF açık-metin loglanmaz.", "trace": "BRD §8.5, FR-REC-004, FR-REC-005, THREAT_MODEL TM-I-03, SEC-17" },
+    { "id": "D9", "desc": "DTMF turn girdisidir; TTS sırasında gelirse barge-in benzeri kesme tetikler → TTS ≤200ms iptal (SAD §6.1).", "trace": "FR-RTC-002, NFR 10.1, ADR-005, ADR-009" },
+    { "id": "D10", "desc": "DTMF hataları ortak ErrorTaxonomy'ye (API §11.6) eşlenir — geçersiz basamak/kod/süre→INVALID_REQUEST, desteklenmeyen mod→UNAVAILABLE.", "trace": "API §11.6" },
+    { "id": "D11", "desc": "DTMF olayları home-region'da işlenir; bölge uyumsuzluğu REGION_VIOLATION.", "trace": "NFR 10.7" },
+    { "id": "D12", "desc": "Spec/config/örneklerde literal sır, ham RTP payload veya gerçek kart/PIN verisi yok; basamaklar illüstratif.", "trace": "CLAUDE.md kısıtlar, BRD §14, BRD §8.5, THREAT_MODEL TM-I-03" }
+  ]
+}

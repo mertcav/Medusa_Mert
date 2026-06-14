@@ -1,0 +1,20 @@
+{
+  "name": "detect-pci-masked",
+  "$comment": "Sentetik PCI/hassas-pencere algılama dizisi (FR-TST-008, BRD §8.5, SEC-17). Ödeme toplama penceresi açık (sensitive=true) → basamak değerleri yalnız aksiyon kanalına gider, transkript/kayıt MASK_TOKEN '•' görür (D8). Basamaklar İLLÜSTRATİF (gerçek kart/PIN DEĞİL). Geçer: maskeleme doğru, değer sızmaz.",
+  "profile": "byoc-trunk-primary",
+  "sensitive": true,
+  "expect": "pass",
+  "expected_digits": "1234",
+  "events": [
+    { "type": "rfc2833", "packets": [
+      { "event": 1, "marker": true, "duration": 1280, "e": false },
+      { "event": 1, "duration": 1280, "e": true }
+    ] },
+    { "type": "rfc2833", "packets": [
+      { "event": 2, "marker": true, "duration": 1280, "e": false },
+      { "event": 2, "duration": 1280, "e": true }
+    ] },
+    { "type": "sip_info", "content_type": "application/dtmf-relay", "body": "Signal=3\r\nDuration=160" },
+    { "type": "sip_info", "content_type": "application/dtmf-relay", "body": "Signal=4\r\nDuration=160" }
+  ]
+}

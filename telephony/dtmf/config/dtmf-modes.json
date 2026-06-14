@@ -1,0 +1,41 @@
+{
+  "$comment": "WBS 2.1.6 — İllüstratif DTMF mod profilleri. Her telefoni profili (managed-cpaas M1 / byoc-sip M2 trunk'ı) müzakere edilen DTMF modunu + zamanlama parametrelerini taşır. Sır YOK; gerçek kart/PIN/müşteri verisi YOK. Bu config 2.1.3/2.1.4 trunk/bağlantı profillerini DTMF açısından tamamlar — algılama+üretme parametrelerini sabitler.",
+  "default_min_duration_ms": 40,
+  "mask_token": "•",
+  "profiles": [
+    {
+      "$comment": "Managed CPaaS (M1) — RFC 2833 telephone-event tercih edilir (medya WebSocket üzerinden out-of-band telephone-event).",
+      "name": "managed-rfc2833",
+      "integration_mode": "M1",
+      "dtmf_mode": "rfc2833",
+      "rfc2833_payload_type": 101,
+      "rfc2833_clock_rate": 8000,
+      "tone_duration_ms": 160,
+      "inter_digit_gap_ms": 40,
+      "end_redundancy": 3,
+      "region": "eu-west"
+    },
+    {
+      "$comment": "BYOC SIP trunk (M2) — primary: RFC 2833 (SDP telephone-event/8000 müzakere edilir).",
+      "name": "byoc-trunk-primary",
+      "integration_mode": "M2",
+      "dtmf_mode": "rfc2833",
+      "rfc2833_payload_type": 101,
+      "rfc2833_clock_rate": 8000,
+      "tone_duration_ms": 160,
+      "inter_digit_gap_ms": 40,
+      "end_redundancy": 3,
+      "region": "eu-central"
+    },
+    {
+      "$comment": "BYOC SIP trunk (M2) — secondary: SIP INFO (telephone-event müzakere edilmediğinde out-of-band yedek).",
+      "name": "byoc-trunk-secondary",
+      "integration_mode": "M2",
+      "dtmf_mode": "sip_info",
+      "sip_info_content_type": "application/dtmf-relay",
+      "tone_duration_ms": 160,
+      "inter_digit_gap_ms": 50,
+      "region": "eu-west"
+    }
+  ]
+}

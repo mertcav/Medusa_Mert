@@ -1,0 +1,7 @@
+{
+  "name": "generate-degraded",
+  "$comment": "Bilinçli ELENEN üretme (FR-TST-008). Basamak dizisi küme-dışı karakter 'X' içerir (D3/D7 ihlali) → gönderim ÖNCESİ tüm dizi reddedilir (INVALID_REQUEST), hiçbir paket gönderilmez. Kapı elemeli; expect=fail.",
+  "profile": "byoc-trunk-primary",
+  "digits": "12X9",
+  "expect": "fail"
+}
