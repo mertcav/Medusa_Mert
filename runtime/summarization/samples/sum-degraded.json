@@ -1,0 +1,144 @@
+{
+  "name": "sum-degraded",
+  "$comment": "BİLİNÇLİ BOZUK (FR-TST-008 negatif kanıt): özetleme yerine KIRPMA (truncate_instead=true) — token-sınırı en eski turn'leri DÜŞÜREREK karşılanır. Bu token'ı düşürür AMA bilgi kaybıdır: katlanan turn özete GİRMEZ (uncovered_fold>0) ve coverage tavanın ALTINA düşer (S4 eler). Gereksinim ÖZETLEME ister, kırpma değil (FR-LLM-005). Beklenen: ELENİR.",
+  "profile": "pilot-default",
+  "expect": "fail",
+  "policy": {
+    "truncate_instead": true
+  },
+  "events": [
+    {
+      "kind": "turn",
+      "turn_id": "t1",
+      "speaker": "caller",
+      "t": 0,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t2",
+      "speaker": "agent",
+      "t": 1000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t3",
+      "speaker": "caller",
+      "t": 2000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t4",
+      "speaker": "agent",
+      "t": 3000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t5",
+      "speaker": "caller",
+      "t": 4000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t6",
+      "speaker": "agent",
+      "t": 5000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t7",
+      "speaker": "caller",
+      "t": 6000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t8",
+      "speaker": "agent",
+      "t": 7000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t9",
+      "speaker": "caller",
+      "t": 8000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t10",
+      "speaker": "agent",
+      "t": 9000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t11",
+      "speaker": "caller",
+      "t": 10000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t12",
+      "speaker": "agent",
+      "t": 11000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t13",
+      "speaker": "caller",
+      "t": 12000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t14",
+      "speaker": "agent",
+      "t": 13000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t15",
+      "speaker": "caller",
+      "t": 14000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "turn",
+      "turn_id": "t16",
+      "speaker": "agent",
+      "t": 15000,
+      "approx_tokens": 250,
+      "salient_units": 1
+    },
+    {
+      "kind": "end",
+      "t": 16000,
+      "reason": "normal"
+    }
+  ]
+}

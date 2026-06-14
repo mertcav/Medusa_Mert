@@ -1,0 +1,40 @@
+{
+  "$comment": "WBS 3.2.2 token-sınırı özetleme profilleri (illüstratif; sır YOK). Her profil, konuşma geçmişine ayrılan token tavanını (history_token_budget — FR-RES-010 'yapılandırılan tavan'; 3.2.1 token_soft_limit ile hizalı) + yuvarlanan özet tavanını (summary_token_cap < budget) + bilgi koruma tabanını (coverage_floor) bir dağıtım/tenant-sınıfı için taşır. Vendor-neutral (ADR-002): değerler MÜHENDİSLİK varsayılanı; gerçek değerler canlı runtime'da (Go/Rust, ADR-003) gerçek tokenizer + LLM context-window + küçük tier (SAD §9/ADR-008) ile ayarlanır. history_token_budget, diyalog belleği bileşeninin (dialogue_memory) 3.1.4 per-call bütçesine + her LLM çağrısının token maliyetine katkısını sınırlar (NFR 10.1/10.2). Bölge pini NFR 10.7; özetleyici no-train (FR-LLM-012). Tenant override yalnız SIKILAŞTIRIR (daha küçük tavan/cap — daha agresif özetleme, daha az token).",
+  "version": "1.0",
+  "default_profile": "pilot-default",
+  "profiles": [
+    {
+      "name": "pilot-default",
+      "deployment": "F1-pilot-shared",
+      "$comment": "Pilot (F1) paylaşımlı worker varsayılanı: 3000 token geçmiş tavanı + 600 token yuvarlanan özet + %90 koruma. Tipik 3–5 dk görüşme tavan altında kalır; uzun görüşmede en eski turn'ler 600 token'lık yuvarlanan özete sıkışır (FR-RES-010), bağlam %90 üstünde korunur (SR-LLM-005). 3.2.1 token_soft_limit=3000 ile hizalı.",
+      "history_token_budget": 3000,
+      "summary_token_cap": 600,
+      "coverage_floor": 0.9,
+      "compression_ratio": 0.2,
+      "summary_retention": 0.95,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "enterprise-long-call",
+      "deployment": "F2-enterprise-extended",
+      "$comment": "Uzun kurumsal görüşme (destek/sigorta): daha geniş geçmiş tavanı (5000 token) + 1000 token özet — daha çok bağlam prompt'ta tutulur (kalite), özetleme daha geç tetiklenir, koruma tabanı yüksek (%92). Token maliyeti artar; worker density 3.1.4 ile dengelenir.",
+      "history_token_budget": 5000,
+      "summary_token_cap": 1000,
+      "coverage_floor": 0.92,
+      "compression_ratio": 0.2,
+      "summary_retention": 0.95,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "high-density-tight",
+      "deployment": "F2-high-density",
+      "$comment": "Yüksek-yoğunluk/kısa görüşme (IVR-benzeri): dar geçmiş tavanı (2000 token) + 400 token özet — erken/agresif özetleme, minimum token payı → worker başına daha çok oturum + daha ucuz LLM çağrısı (density üst uca, FR-RES-010). Koruma tabanı %88 (agresif sıkıştırma kabul).",
+      "history_token_budget": 2000,
+      "summary_token_cap": 400,
+      "coverage_floor": 0.88,
+      "compression_ratio": 0.18,
+      "summary_retention": 0.94,
+      "region": "${RUNTIME_REGION}"
+    }
+  ]
+}

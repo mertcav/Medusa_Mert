@@ -1,0 +1,161 @@
+{
+  "$comment": "WBS 3.2.2 — Token sınırına göre konuşma geçmişi özetleme. Conversation Orchestrator (Çekirdek IP, SAD §6) oturum aktöründe (SAD §6.3) çalışan SESSION MEMORY'nin (SAD §6.2: 'Token sınırına gelince özetler — FR-LLM-005') ÖZETLEME MOTORU. Bu görev, 3.2.1'in (runtime/session-memory/) summarization_hook SEAM'inin ERTELEDİĞİ motoru uygular: 3.2.1 pencere taşınca en eski turn'leri session_summary'ye 'katlar' (fold) ama özetleme MOTORUNU 3.2.2'ye bırakır. 3.2.2 = o motor. Sorumluluk: konuşma geçmişinin (rolling summary + aktif turn penceresi) toplam token'ı yapılandırılan TAVANI (history_token_budget) aşınca, en eski turn'leri YUVARLANAN bir özete SIKIŞTIRARAK (LLM tabanlı, LlmAdapter SPI küçük tier — SAD §9/ADR-008) token tüketimini DÜŞÜRMEK (FR-RES-010), AMA bağlamı/anlamı KORUMAK (FR-LLM-005 'özetlenebilmelidir', kırpma DEĞİL). Beş çekirdek invariant: (S1) sınır aşımında TETİKLE — altında SPURIOUS özetleme yok; (S2) özet+pencere token'ı tavanı AŞMAZ (token tüketimi düşer — SR-RES-010); (S3) yuvarlanan özet SINIRLI (summary_token_cap) — büyürse özyinelemeli RE-COMPRESS, asla sınırsız; (S4) ÖZET ≠ KIRPMA — katlanan her turn özete GİRER + salient bilgi coverage_floor üstünde KORUNUR (SR-LLM-005 'bağlam korunur'); (S5) SICAK YOL korunur — özetleme turlar ARASINDA, küçük tier'da, ASENKRON (yanıt turunu bloklamaz — NFR 10.1). KAPSAM AYRIMI: oturum-içi pencere/append/fold-tetiği/oturum-sonu persist/temizlik → 3.2.1 (Session Memory; bu motor 3.2.1'in hook'una BAĞLANIR, pencereyi/persist'i UYGULAMAZ); LLM model tiering/cost-routing/semantic-cache/fallback → SAD §9 LLM Router (motor küçük tier'ı SPI ile KULLANIR, routing'i uygulamaz); RAG retrieval top-k/token trimming (FR-RES-010'un DİĞER yarısı) → RAG Client SAD §10.2 (kardeş token-azaltma kolu, SR-KB-011); versiyonlu system prompt enjeksiyonu → 3.2.3; per-call bellek bütçe izleme/sınırlama → 3.1.4 (3.2.2 özetleme 3.1.4'ün WARN-bandı 'özetle' AZALTMA motorudur — summarize_factor); gerçek tokenizer/token sayımı → adapter arkasında (motor approx_tokens kullanır, 3.2.1 ile tutarlı); PII redaction L7 motoru → 3.3.x. Burada YALNIZ özetleme MODELİ + token-bütçe SÖZLEŞMESİ + deterministik referans motor. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): çekirdek minimal+deterministik (olay-tetikli, sanal saat, random YOK; gerçek LLM çağrısı yok — token-muhasebe + sıkıştırma MODELİ); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3) gerçek LlmAdapter (no-train/bölgesel, FR-LLM-012/NFR 10.7) ile. Spec/config/örneklerde sır/credential, ham metin/transkript METNİ ve PII DEĞERİ YOK — yalnız token SAYILARI (approx_tokens) + salient-birim SAYILARI + sanal zaman + redaction-işareti sayıları.",
+  "version": "1.0",
+  "wbs": "3.2.2",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-LLM-005", "FR-RES-010", "FR-RES-005", "FR-LLM-012", "FR-LLM-004", "FR-REC-004", "FR-REC-005", "FR-TEN-002"],
+    "nfr": ["NFR 10.1", "NFR 10.2", "NFR 10.7"],
+    "sad": ["§6", "§6.2", "§6.3", "§9", "§10.2", "§17.1", "§20"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003", "ADR-008"],
+    "api": ["§11.6 ErrorTaxonomy", "LlmAdapter SPI"],
+    "srs": ["SR-LLM-005", "SR-RES-010", "SR-KB-011"],
+    "rtm": ["TC-LLM-005", "TC-RES-010"],
+    "brd": ["§8.1 (çağrı özeti)", "§15 (çağrı başına metrik)"],
+    "consumes": ["3.2.1 session-memory (summarization_hook / fold_target=session_summary)", "3.1.4 resource-budget (WARN-bandı 'özetle' mitigasyonu — summarize_factor)", "SAD §9 LLM Router (küçük tier — LlmAdapter SPI)"],
+    "observability": ["summarization_total / summarization_tokens_saved / summary_token_size / summarization_coverage_ratio (BRD §15 → 0.4.7)"]
+  },
+
+  "placement": {
+    "$comment": "Özetleme motoru Conversation Orchestrator oturum aktöründe Session Memory'nin bir alt-fonksiyonudur (SAD §6.2). SICAK YOLU (LISTEN→SPEAK turu, NFR 10.1) KORUMAK için özetleme TURLAR ARASINDA / arka planda, ASENKRON yürütülür: yanıt turunu (THINK→SPEAK ilk-ses) BLOKLAMAZ. Özetleme LLM çağrısı KÜÇÜK tier'da (SAD §9 model tiering, ADR-008; FR-RES-005 'turların ≥%60'ı küçük modelde') LlmAdapter SPI üzerinden yapılır (no-train/bölgesel, FR-LLM-012/NFR 10.7). Motor 3.2.1'in fold_target=session_summary hook'una BAĞLANIR (3.2.1 pencereyi/persist'i yönetir, 3.2.2 sıkıştırmayı yapar). Çıktı (yuvarlanan özet) çalışan kopya Redis session_summary'de (cache/ 1.1.5, ephemeral); oturum sonunda durable kayda 3.2.1 yazar (redaction_state='pending').",
+    "in_orchestrator": true,
+    "in_session_actor": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "runs_between_turns": true,
+    "off_hot_path": true,
+    "summarizer_tier": "small",
+    "adapter_surface": "LlmAdapter",
+    "plugs_into_hook": "3.2.1 summarization_hook (fold_target=session_summary)",
+    "trace": "SAD §6.2, SAD §6.3, SAD §9, NFR 10.1, 3.2.1 session-memory, cache/ 1.1.5"
+  },
+
+  "token_model": {
+    "$comment": "Konuşma geçmişi token modeli. LLM bağlamının GEÇMİŞ payı = rolling_summary_tokens + Σ(aktif pencere turn approx_tokens). history_token_budget (B) bu paya ayrılan token tavanı (FR-RES-010 'yapılandırılan tavan'; 3.2.1 token_soft_limit ile hizalı). summary_token_cap (C) yuvarlanan özetin tek başına aşamayacağı token tavanı (B'den küçük). Bir turn = {turn_id, speaker∈{caller,agent,human}, seq, approx_tokens, salient_units, t}. salient_units = turn'ün taşıdığı 'korunması gereken' bilgi birimi SAYISI (varlık/karar/taahhüt; PII DEĞERİ değil — yalnız sayı). compression_ratio = bir turn batch'inin özete katkı oranı (token); summary_retention = sıkıştırmada korunan salient pay; recompress_retention = re-compress'te korunan salient pay. Gerçek tokenizer/sayım adapter arkasında; motor approx_tokens kullanır (3.2.1 ile tutarlı).",
+    "turn_fields": ["turn_id", "speaker", "seq", "approx_tokens", "salient_units", "t"],
+    "speakers": ["caller", "agent", "human"],
+    "history_token_budget": 3000,
+    "summary_token_cap": 600,
+    "compression_ratio": 0.2,
+    "summary_retention": 0.95,
+    "recompress_retention": 0.9,
+    "coverage_floor": 0.9,
+    "trace": "FR-LLM-005, FR-RES-010, SR-RES-010, 3.2.1 token_soft_limit, cache/ 1.1.5 session_summary"
+  },
+
+  "trigger": {
+    "$comment": "Özetleme TETİĞİ (S1, FR-LLM-005 / SR-LLM-005 'sınır aşımında özetleme tetiklenir'). Özetleme YALNIZ history token'ı (özet+pencere) history_token_budget'ı AŞINCA tetiklenir; tavan ALTINDA tetiklenmez (spurious_summarize=0 — gereksiz özetleme prompt kalitesini düşürür + küçük-tier maliyeti/gecikmesi ekler, 3.1.4 adillik bandıyla aynı ruh). Tetiklenince en eski turn'ler (FIFO) tavan altına inilene dek özete katlanır (en az 1 turn pencerede kalır). Tetik 3.2.1 fold tetiğiyle (window_max_turns + token_soft_limit) aynı olayda; 3.2.2 motoru o katlanan batch'i sıkıştırır.",
+    "trigger_on": "history_tokens_over_budget",
+    "no_spurious_under_budget": true,
+    "evict_oldest_fifo": true,
+    "keep_at_least_one_turn": true,
+    "trace": "FR-LLM-005, SR-LLM-005, 3.2.1 fold_on_overflow, 3.1.4 fairness"
+  },
+
+  "reduction": {
+    "$comment": "Token AZALTMA garantisi (S2, FR-RES-010 / SR-RES-010 'token tüketimi yapılandırılan tavanı aşmaz'). Bir tetik-döngüsü SONUNDA history token'ı (rolling_summary_tokens + pencere token'ı) history_token_budget'ı AŞMAZ (budget_exceeded_after=0). Özet+pencere her zaman tavanın altında tutulur → her LLM çağrısının bağlam token'ı sınırlı → maliyet/gecikme/density korunur (NFR 10.1/10.2). Bu, motorun BİRİNCİL amacıdır.",
+    "history_within_budget_after_trigger": true,
+    "max_context_tokens_equals_budget": true,
+    "trace": "FR-RES-010, SR-RES-010, NFR 10.1, NFR 10.2"
+  },
+
+  "rolling_summary": {
+    "$comment": "YUVARLANAN (rolling/recursive) özet (S3). Yeni katlanan batch özete eklenince toplam summary_token_cap'i AŞARSA, özet KENDİSİ özyinelemeli olarak yeniden sıkıştırılır (re-compress) → summary_tokens ≤ summary_token_cap her zaman (summary_overflow=0). Özet ASLA sınırsız büyümez (3.2.1 M1 sınırlı-bellek ile aynı ruh — bütçe NFR 10.2). Re-compress salient'in bir kısmını kaybeder (recompress_retention<1) — bu yüzden DAYANIKLI KAYIT (3.2.1 M5 persisted==captured: tüm turn'ler oturum sonunda durable'a TAM yazılır), özetin DEĞİL, kaynak doğruluktur; özet yalnız PROMPT bağlamını küçültür.",
+    "bounded": true,
+    "recompress_on_cap": true,
+    "summary_token_cap": 600,
+    "durable_record_is_source_of_truth": true,
+    "trace": "FR-RES-010, NFR 10.2, 3.2.1 M5/M9 (persisted==captured)"
+  },
+
+  "coverage": {
+    "$comment": "Bilgi KORUMA — özet KIRPMA (truncation) DEĞİLDİR (S4, FR-LLM-005 'özetlenebilmelidir' + SR-LLM-005 'bağlam korunur'). Token-sınırı naif bir biçimde en eski turn'leri DÜŞÜREREK (truncate) de karşılanabilir — ama bu bilgi kaybıdır; gereksinim ÖZETLEME ister. İki kapı: (a) katlanan HER turn özete GİRER (summarized_turns == folded_turns; uncovered_fold=0 — sessiz düşürme yok); (b) salient bilgi (varlık/karar/taahhüt) coverage_floor üstünde KORUNUR (coverage = korunan_salient/toplam_salient ≥ coverage_floor). Pencerede kalan turn'ler tam (salient %100); katlananlar summary_retention ile korunur. Naif truncation → uncovered_fold>0 + coverage<floor (S4 eler). Bu, 3.2.2'nin KALBİDİR.",
+    "summarize_not_truncate": true,
+    "every_folded_turn_summarized": true,
+    "coverage_floor": 0.9,
+    "trace": "FR-LLM-005, SR-LLM-005, BRD §8.1"
+  },
+
+  "latency": {
+    "$comment": "SICAK YOL gecikme korunması (S5, NFR 10.1). Özetleme YANIT turunu (THINK→SPEAK ilk-ses) BLOKLAMAZ: turlar ARASINDA / arka planda asenkron yürütülür (summarize_blocks_turn=0). Özetleme LLM çağrısı KÜÇÜK tier'da (SAD §9, ADR-008; küçük model ilk-token SAD §20 ~200ms) → summarize_latency ≤ summarize_latency_budget_ms; özet bir sonraki THINK gerekmeden HAZIR olur. Bloklayan özetleme (yanıt turu içinde) → e2e tur gecikmesine eklenir (NFR 10.1 ihlali) → blocking_summarize>0 (S5 eler).",
+    "summarize_blocks_turn": false,
+    "summarizer_uses_small_tier": true,
+    "summarize_latency_budget_ms": 200,
+    "tier_first_token_ms": 150,
+    "per_token_ms": 0.1,
+    "trace": "NFR 10.1, SAD §9, SAD §20, ADR-008, FR-RES-005"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (token-sınırı özetleme motoru). (S1) max_spurious_summarize=0: özetleme yalnız tavan aşımında tetiklenir, altında değil. (S2) max_budget_exceeded_after=0: tetik-döngüsü sonunda özet+pencere token'ı history_token_budget'ı AŞMAZ (FR-RES-010/SR-RES-010). (S3) max_summary_overflow=0: yuvarlanan özet summary_token_cap'i aşmaz (re-compress; sınırsız büyüme yok). (S4) max_uncovered_fold=0 + coverage≥coverage_floor: katlanan her turn özete girer + salient korunur (özet≠kırpma; SR-LLM-005 'bağlam korunur'). (S5) max_blocking_summarize=0: özetleme sıcak yanıt turunu bloklamaz (asenkron, küçük tier; NFR 10.1) + summarize_latency≤budget. (S6) max_double_summarize=0: aynı batch iki kez özetlenmez (idempotent/deterministik). (S7) max_cross_tenant=0: özetleme {tenant,call} izole + adapter no-train/bölgesel. (S8) max_sensitive_cleartext_summarized=0: kart/parola/OTP düz-metin özete GİRMEZ (FR-REC-005); durable özet redaction_state='pending' (FR-REC-004).",
+    "history_token_budget": 3000,
+    "summary_token_cap": 600,
+    "coverage_floor": 0.9,
+    "summarize_latency_budget_ms": 200,
+    "max_spurious_summarize": 0,
+    "max_budget_exceeded_after": 0,
+    "max_summary_overflow": 0,
+    "max_uncovered_fold": 0,
+    "max_blocking_summarize": 0,
+    "max_double_summarize": 0,
+    "max_cross_tenant": 0,
+    "max_sensitive_cleartext_summarized": 0,
+    "trace": "FR-LLM-005, FR-RES-010, FR-LLM-012, FR-REC-004, FR-REC-005, FR-TEN-002, SAD §6.2/§9"
+  },
+
+  "metrics": {
+    "$comment": "Özetleme motoru her oturum için BRD §15 + özetleme metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. summarization_total → özetleme tetik sayısı; summarization_tokens_saved → düşürülen token (FR-RES-010 kanıtı); summary_token_size → yuvarlanan özet boyutu; summarization_coverage_ratio → salient koruma; summarization_recompress_total → re-compress; summarization_latency_ms → küçük-tier özetleme gecikmesi (off-path). Yüksek-kardinalite kimlik (call_id) metrik LABEL'ı OLMAZ (yalnız trace/exemplar; 0.4.7 label_policy, 3.1.5 producer). Token/salient SAYILARI PII DEĞİLDİR; ham metin/transkript METNİ metriklerde yok.",
+    "emitted": [
+      "summarization_total", "summarization_tokens_saved", "summary_token_size",
+      "summarization_coverage_ratio", "summarization_recompress_total", "summarization_latency_ms"
+    ],
+    "maps_to_observability": {
+      "summarization_latency_ms": "llm_summarize_duration_ms",
+      "summary_token_size": "session_summary_token_size"
+    },
+    "proposed_observability_additions": [
+      "summarization_total", "summarization_tokens_saved", "summarization_coverage_ratio"
+    ],
+    "trace": "BRD §15, SAD §17.1, observability 0.4.7, 3.1.5 context-propagation"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Özetleme hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Bozuk turn (alan eksik / approx_tokens sayısal değil) → INVALID_REQUEST; özetleyici LLM (küçük tier) erişilemez → UNAVAILABLE (fallback: özetleme ATLANIR, ham pencere kullanılır / fallback tier — DAYANIKLI KAYIT 3.2.1 zaten tüm turn'leri tutar, VERİ KAYBI YOK); cross-tenant özetleme → AUTH; bölge uyumsuzluğu (adapter home-region değil) → REGION_VIOLATION. Özetleyici hatası bir DEGRADE'dir (prompt biraz büyür), veri kaybı DEĞİL.",
+    "mapping": {
+      "invalid_turn": "INVALID_REQUEST",
+      "summarizer_unavailable": "UNAVAILABLE",
+      "cross_tenant_access": "AUTH",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, FR-LLM-012, FR-TEN-002, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "Özetleyici LLM çağrısı tenant home-region'da (NFR 10.7) + no-train/no-log (FR-LLM-012) yapılır; yuvarlanan özet Redis session_summary home-region (cache/ 1.1.5). Bölge uyumsuzluğu REGION_VIOLATION. Özetleme verisi (geçmiş) tenant sınırını terk etmez.",
+    "region_pin_required": true,
+    "no_train_required": true,
+    "trace": "NFR 10.7, FR-LLM-012, cache/ 1.1.5"
+  },
+
+  "pii": {
+    "$comment": "Yuvarlanan özet PII İÇEREBİLİR (working memory, cache/ 1.1.5 pii=true) — ama kart/parola/OTP düz-metin özete HİÇ girmez (FR-REC-005); durable özet redaction_state='pending' (FR-REC-004, L7 motoru 3.3.x). Bu SPEC/config/örnekler ham metin/transkript METNİ veya PII DEĞERİ TUTMAZ — yalnız token SAYILARI (approx_tokens) + salient-birim SAYILARI (salient_units) + sanal zaman + redaction-işareti SAYILARI (sensitive_tokens). Motor içerik yorumlamaz (token + salient + boyut muhasebesi).",
+    "raw_transcript_text_in_spec_forbidden": true,
+    "pii_value_in_spec_forbidden": true,
+    "durable_redaction_state": "pending",
+    "card_otp_cleartext_in_summary_forbidden": true,
+    "trace": "FR-REC-004, FR-REC-005, BRD §14, BRD §17.7, cache/ 1.1.5"
+  },
+
+  "invariants": [
+    { "id": "S1", "desc": "Özetleme YALNIZ history token'ı (özet+pencere) history_token_budget'ı AŞINCA tetiklenir; tavan altında SPURIOUS özetleme yok — spurious_summarize=0 (FR-LLM-005, SR-LLM-005 'sınır aşımında tetiklenir').", "trace": "FR-LLM-005, SR-LLM-005, 3.1.4 fairness" },
+    { "id": "S2", "desc": "Tetik-döngüsü sonunda özet+pencere token'ı history_token_budget'ı AŞMAZ — budget_exceeded_after=0; token tüketimi yapılandırılan tavanı aşmaz (FR-RES-010, SR-RES-010). Motorun birincil amacı.", "trace": "FR-RES-010, SR-RES-010, NFR 10.2" },
+    { "id": "S3", "desc": "Yuvarlanan özet SINIRLI: summary_tokens ≤ summary_token_cap her zaman; aşımda özyinelemeli re-compress; summary_overflow=0 — özet asla sınırsız büyümez (3.2.1 M1 ile aynı ruh).", "trace": "FR-RES-010, NFR 10.2, 3.2.1 M1" },
+    { "id": "S4", "desc": "Özet KIRPMA DEĞİL: katlanan her turn özete girer (summarized_turns==folded_turns; uncovered_fold=0) + salient bilgi coverage_floor üstünde korunur (coverage≥floor) — 'bağlam korunur' (SR-LLM-005). Naif truncation bu kapıyı eler. 3.2.2'nin kalbi.", "trace": "FR-LLM-005, SR-LLM-005, BRD §8.1" },
+    { "id": "S5", "desc": "Özetleme SICAK YANIT turunu bloklamaz: turlar arasında, küçük tier'da (SAD §9/ADR-008), asenkron — summarize_blocks_turn=0 + summarize_latency≤budget; e2e tur gecikmesine (NFR 10.1) eklenmez.", "trace": "NFR 10.1, SAD §9, SAD §20, ADR-008, FR-RES-005" },
+    { "id": "S6", "desc": "Motor DETERMİNİSTİK (olay-tetikli, sanal saat, random YOK) + aynı katlama batch'i iki kez özetlenmez (idempotent; double_summarize=0); aynı girdi → birebir aynı özetleme kararları.", "trace": "SAD §6.3, ADR-002" },
+    { "id": "S7", "desc": "Özetleme {tenant_id, call_id} ile izole (cross_tenant=0) + özetleyici LlmAdapter çağrısı no-train/no-log (FR-LLM-012) + tenant home-region (NFR 10.7); geçmiş tenant sınırını terk etmez.", "trace": "FR-TEN-002, FR-LLM-012, NFR 10.7" },
+    { "id": "S8", "desc": "Yuvarlanan özet PII içerebilir ama kart/parola/OTP düz-metin özete HİÇ girmez (FR-REC-005; sensitive_cleartext_summarized=0); durable özet redaction_state='pending' (FR-REC-004).", "trace": "FR-REC-004, FR-REC-005, BRD §17.7" },
+    { "id": "S9", "desc": "3.2.2 = 3.2.1'in summarization_hook SEAM'inin (fold_target=session_summary) ERTELEDİĞİ motor: 3.2.1'in katladığı turn batch'ini sıkıştırır + 3.1.4'ün WARN-bandı 'özetle' mitigasyonunu (summarize_factor) GERÇEKLER; pencereyi/persist'i/temizliği (3.2.1) veya LLM routing'i (SAD §9) UYGULAMAZ — seam'leri tüketir.", "trace": "3.2.1 summarization_hook, 3.1.4 resource-budget, SAD §9 LLM Router" },
+    { "id": "S10", "desc": "Özetleme tenant home-region'da (NFR 10.7); hatalar ortak ErrorTaxonomy'ye (API §11.6) eşlenir (özetleyici-down → UNAVAILABLE/atla, KAYIP değil — durable kayıt 3.2.1 tam); spec/config/örneklerde literal sır, ham metin/transkript METNİ veya PII DEĞERİ yok (yalnız token + salient sayıları + sanal zaman).", "trace": "NFR 10.7, API §11.6, BRD §14" }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "sum-happy-path",
+  "$comment": "Kısa çağrı, geçmiş token'ı tavan (pilot-default history_token_budget=3000) ALTINDA → özetleme TETİKLENMEZ (S1). 6 turn × ~200 token = 1200 ≤ 3000. Hiç fold yok, özet boş, spurious=0. Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "captured_turns": 6,
+    "folded_turns": 0,
+    "summarize_ops": 0,
+    "spurious_summarize": 0
+  },
+  "events": [
+    { "kind": "turn", "turn_id": "t1", "speaker": "agent",  "t": 0,    "approx_tokens": 200, "salient_units": 2 },
+    { "kind": "turn", "turn_id": "t2", "speaker": "caller", "t": 1000, "approx_tokens": 200, "salient_units": 1 },
+    { "kind": "turn", "turn_id": "t3", "speaker": "agent",  "t": 2000, "approx_tokens": 200, "salient_units": 1 },
+    { "kind": "turn", "turn_id": "t4", "speaker": "caller", "t": 3000, "approx_tokens": 200, "salient_units": 2 },
+    { "kind": "turn", "turn_id": "t5", "speaker": "agent",  "t": 4000, "approx_tokens": 200, "salient_units": 1 },
+    { "kind": "turn", "turn_id": "t6", "speaker": "caller", "t": 5000, "approx_tokens": 200, "salient_units": 1 },
+    { "kind": "end",  "t": 6000, "reason": "normal" }
+  ]
+}
