@@ -1,0 +1,24 @@
+{
+  "name": "byoc-degraded",
+  "$comment": "Bilinçli ELENEN BYOC dizisi (FR-TST-008). Çoklu ihlal: düz-metin sinyalleşme (I1), RTP answer/early-media ÖNCESİ (I9), wideband G722 codec (I4/I15), eksik tenant bağlamı (I3), bölge uyumsuz (I11), barge-in 260ms overhead (I5). Kapı elemeli.",
+  "trunk": "byoc-trunk-primary",
+  "signaling_transport": "tcp",
+  "media_transport": "rtp",
+  "authenticated": true,
+  "home_region": "eu-central",
+  "expect": "fail",
+  "messages": [
+    { "event": "rtp", "rtp": { "payload_type": 9, "sample_rate": 16000, "encoding": "G722/8000" } },
+    { "event": "invite", "invite": {
+        "to_did": "+493012345678",
+        "headers": { "tenant_id": "t1" },
+        "region": "us-east",
+        "sdp_offer": ["G722/8000", "opus/48000"] } },
+    { "event": "answer", "answer": { "sdp_answer": ["G722/8000"] } },
+    { "event": "rtp", "rtp": { "payload_type": 9, "sample_rate": 16000, "encoding": "G722/8000" } },
+    { "event": "bye" }
+  ],
+  "egress": [
+    { "action": "barge_in_clear", "barge_in_detect_ms": 0, "overhead_override_ms": 260 }
+  ]
+}

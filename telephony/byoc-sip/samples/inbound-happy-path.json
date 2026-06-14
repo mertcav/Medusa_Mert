@@ -1,0 +1,26 @@
+{
+  "name": "byoc-inbound-happy-path",
+  "$comment": "Sentetik BYOC inbound SIP/RTP dizisi (FR-TST-008). INVITE→180→200 OK(answer)→RTP→DTMF(RFC2833)→BYE. G.711 μ-law 8kHz, SDP ortak codec PCMU, bağlam DID→tenant. Geçer.",
+  "trunk": "byoc-trunk-primary",
+  "signaling_transport": "tls",
+  "media_transport": "srtp",
+  "authenticated": true,
+  "home_region": "eu-central",
+  "expect": "pass",
+  "messages": [
+    { "event": "invite", "invite": {
+        "to_did": "+493012345678",
+        "headers": { "tenant_id": "t1", "correlation_id": "c1", "call_id": "k1" },
+        "region": "eu-central",
+        "sdp_offer": ["PCMU/8000", "PCMA/8000", "telephone-event/8000"] } },
+    { "event": "ringing" },
+    { "event": "answer", "answer": { "sdp_answer": ["PCMU/8000", "telephone-event/8000"] } },
+    { "event": "rtp", "rtp": { "payload_type": 0, "sample_rate": 8000, "encoding": "PCMU/8000" } },
+    { "event": "dtmf", "dtmf": { "digit": "5", "mode": "rfc2833" } },
+    { "event": "bye" }
+  ],
+  "egress": [
+    { "action": "play_audio" },
+    { "action": "barge_in_clear", "barge_in_detect_ms": 0 }
+  ]
+}

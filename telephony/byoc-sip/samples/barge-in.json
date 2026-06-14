@@ -1,0 +1,27 @@
+{
+  "name": "byoc-barge-in",
+  "$comment": "Sentetik BYOC barge-in + early media dizisi (FR-TST-008). secondary trunk, 183 early media (RTP answer öncesi MEŞRU), SIP INFO DTMF, barge-in rtp_playout_stop 25ms ≤200ms. Geçer.",
+  "trunk": "byoc-trunk-secondary",
+  "signaling_transport": "tls",
+  "media_transport": "srtp",
+  "authenticated": true,
+  "home_region": "eu-west",
+  "expect": "pass",
+  "messages": [
+    { "event": "invite", "invite": {
+        "to_did": "+442012345678",
+        "headers": { "tenant_id": "t2", "correlation_id": "c2", "call_id": "k2" },
+        "region": "eu-west",
+        "sdp_offer": ["PCMA/8000", "PCMU/8000", "telephone-event/8000"] } },
+    { "event": "ringing" },
+    { "event": "progress", "progress": { "early_media": true, "sdp_answer": ["PCMA/8000", "telephone-event/8000"] } },
+    { "event": "rtp", "rtp": { "payload_type": 8, "sample_rate": 8000, "encoding": "PCMA/8000" } },
+    { "event": "answer", "answer": { "sdp_answer": ["PCMA/8000", "telephone-event/8000"] } },
+    { "event": "rtp", "rtp": { "payload_type": 8, "sample_rate": 8000, "encoding": "PCMA/8000" } },
+    { "event": "dtmf", "dtmf": { "digit": "#", "mode": "sip_info" } },
+    { "event": "bye" }
+  ],
+  "egress": [
+    { "action": "barge_in_clear", "barge_in_detect_ms": 0 }
+  ]
+}

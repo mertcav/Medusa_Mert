@@ -1,0 +1,31 @@
+{
+  "$comment": "WBS 2.1.4 — BYOC SIP trunk dağıtım profilleri (sağlayıcı-nötr). Endpoint/secret/region YALNIZ ${ENV} placeholder — sır repoya yazılmaz. byoc-spec.json trunk kümesiyle birebir; fallback sırası + çapraz-mod M1 (2.1.3) referansı.",
+  "version": "1.0",
+  "wbs": "2.1.4",
+  "fallback_order": ["byoc-trunk-primary", "byoc-trunk-secondary"],
+  "cross_mode_fallback": "managed_cpaas_m1",
+  "trunks": [
+    {
+      "id": "byoc-trunk-primary",
+      "role": "primary",
+      "sbc_peer": "${BYOC_PRIMARY_SBC_HOST}",
+      "signaling_uri": "${BYOC_PRIMARY_SIP_URI}",
+      "auth_method": "ip_acl",
+      "registration_mode": "ip_trunk",
+      "auth_secret": "${BYOC_PRIMARY_SIP_SECRET}",
+      "region": "${BYOC_PRIMARY_REGION}",
+      "dtmf_mode": "rfc2833"
+    },
+    {
+      "id": "byoc-trunk-secondary",
+      "role": "secondary",
+      "sbc_peer": "${BYOC_SECONDARY_SBC_HOST}",
+      "signaling_uri": "${BYOC_SECONDARY_SIP_URI}",
+      "auth_method": "sip_digest",
+      "registration_mode": "register",
+      "auth_secret": "${BYOC_SECONDARY_SIP_SECRET}",
+      "region": "${BYOC_SECONDARY_REGION}",
+      "dtmf_mode": "sip_info"
+    }
+  ]
+}
