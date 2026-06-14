@@ -1,0 +1,143 @@
+{
+  "$comment": "WBS 2.2.3 — Edge VAD / endpointing (dinamik). Real-time Media Gateway (SAD §6/§7, L2 edge katmanı) ingress yolunda, 2.2.1 jitter buffer'ın verdiği DÜZGÜN 20ms/50fps kadansı tüketir: (a) VAD ile her çerçeveyi konuşma/sessizlik olarak sınıflar (adaptif gürültü tabanı + histerezis + hangover), (b) DİNAMİK endpointing ile söz sonunu (end-of-utterance) bağlama göre değişen onay-sessizliği (T_confirm) ile tespit eder — tereddütte (hesitation) bekler, tamamlanmış turda hızlı keser (FR-RTC-004), (c) barge-in (kullanıcı agent konuşurken araya girer) onset'ini ≤200ms içinde algılar (ADR-005, NFR 10.1), (d) ölü havayı (dead air) STT/LLM'e GÖNDERMEYEREK gereksiz çağrıları azaltır (FR-RES-009, FR-RTC-013). VAD/endpointing EDGE'de yapılır (ADR-005 Kabul; ADR-009 hibrit edge VAD+barge-in). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): VAD/endpointer çekirdeği minimal+deterministik (sanal saat, random YOK); canlı sistemde gerçek WebRTC VAD/native DSP Media Gateway'de (C/C++/Rust, SAD §21). Sır/credential, ham ses payload'ı, transkript ve PII YOK — çerçeveler yalnız illüstratif enerji (dBov) metadata'sı taşır.",
+  "version": "1.0",
+  "wbs": "2.2.3",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-RTC-004", "FR-RTC-013", "FR-RES-009", "FR-RTC-002", "FR-RTC-005", "FR-RES-008", "FR-RES-016", "FR-TEN-002"],
+    "nfr": ["NFR 10.1", "NFR 10.2", "NFR 10.7"],
+    "sad": ["§6", "§6.1", "§7.1", "§7.2", "§17", "§20", "§21", "§23"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003", "ADR-005", "ADR-009"],
+    "api": ["§11.5 TelephonyAdapter (medya akışı)", "§11.6 ErrorTaxonomy", "§12.2 TurnEvent (endpoint/barge-in olayları)"],
+    "srs": ["SR-RTC-004", "SR-RTC-013", "SR-RES-009"],
+    "rtm": ["TC-RTC-004", "TC-RTC-013"],
+    "brd": ["§15 (silence süresi, barge-in sayısı — saklanan teknik metrikler)"],
+    "observability": ["silence_duration_ms", "barge_in_total (BRD §15 → 0.4.7)"]
+  },
+
+  "media_profile": {
+    "$comment": "Telefoni 8 kHz native; 20ms çerçeve (50 fps). VAD/endpointing payload'a dokunmaz; yalnız enerji/zamanlama üzerinden karar verir (codec-agnostik). Gereksiz resample/transcode YOK (FR-RES-008, 2.2.1/2.2.2 ile birebir).",
+    "sample_rate_hz": 8000,
+    "frame_ms": 20,
+    "frames_per_sec": 50,
+    "samples_per_frame": 160,
+    "no_transcode": true,
+    "resample_points_max": 1,
+    "trace": "FR-RES-008, SAD §7.2"
+  },
+
+  "edge_placement": {
+    "$comment": "VAD/endpointing + barge-in algılama EDGE'de (media gateway yakınında) yapılır — merkezde değil (ADR-005 Kabul; ADR-009 hibrit). Böylece (1) barge-in tepkisi hızlanır (ağ gidiş-dönüşü yok), (2) ölü hava STT/LLM'e gönderilmeden edge'de elenir → gereksiz çağrı azalır (FR-RTC-013, FR-RES-009). Ağır medya işleme ayrı bölgesel katmanda (ADR-009 hibrit), ama VAD/endpointing/barge-in edge'de kalır.",
+    "at_edge": true,
+    "layer": "media-gateway-L2",
+    "trace": "FR-RTC-013, ADR-005, ADR-009, SAD §23"
+  },
+
+  "vad": {
+    "$comment": "Çerçeve-bazlı Voice Activity Detection. Adaptif gürültü tabanı (noise floor) sessiz çerçevelerden yavaşça güncellenir; aktif eşik = noise_floor + speech_margin_db. Histerezis (onset/offset ayrı) gürültü/eşik sınırındaki titremeyi (chattering) önler. Hangover: konuşma sonrası birkaç çerçeve 'konuşma' sayılarak mikro-duraklamalar (kısa nefes/ünsüz boşluğu) köprülenir → STT'ye trailing bağlam korunur. Agent konuşurken (TTS playout) eşik echo_guard_db kadar yükseltilir → agent'ın kendi sesi (echo) yanlış barge-in tetiklemez (tam akustik echo cancellation 2.2.4; burada debounce/guard kancası). Ham ses payload'ı TUTULMAZ; yalnız enerji (dBov) işlenir.",
+    "init_noise_floor_dbov": -55,
+    "speech_margin_db": 12,
+    "onset_hysteresis_db": 3,
+    "offset_hysteresis_db": 3,
+    "hangover_frames": 3,
+    "noise_adapt": 0.05,
+    "barge_in_echo_guard_db": 10,
+    "trace": "FR-RTC-004, FR-RTC-005, FR-RTC-006 (sınırı), ADR-005"
+  },
+
+  "endpointer": {
+    "$comment": "DİNAMİK endpointing (FR-RTC-004). Konuşma bittikten sonra söz sonunu onaylamak için bir 'onay-sessizliği' (T_confirm) beklenir; bu süre BAĞLAMA göre dinamik ayarlanır: T = clamp(base + (kısa-söz? +hesitation_extra) + (önceki-duraklama? +hesitation_extra) − (uzun-akıcı-söz? completeness_discount), min, max). Mantık: kısa/kesik söz veya önceden tereddüt edilmiş tur → kullanıcı muhtemelen düşünüyor → DAHA UZUN bekle (erken kesme); uzun akıcı tur → tamamlanmış olası → DAHA HIZLI kes (düşük gecikme). Bu, SR-RTC-004 'erken/geç kesme oranı sınırlı' gerilimini çözer. T_confirm içinde konuşma yeniden başlarsa duraklama köprülenir (within-utterance pause = hesitation), kesilmez; T_confirm dolarsa söz sonu olayı (endpoint) üretilir → STT/LLM finalize tetiklenir. Statik (non-dinamik) eşik bu dengeyi kuramaz.",
+    "dynamic": true,
+    "base_confirm_ms": 160,
+    "short_speech_ms": 400,
+    "long_speech_ms": 800,
+    "hesitation_extra_ms": 150,
+    "completeness_discount_ms": 30,
+    "min_confirm_ms": 100,
+    "max_confirm_ms": 480,
+    "trace": "FR-RTC-004, SR-RTC-004, SAD §6.1, SAD §20"
+  },
+
+  "barge_in": {
+    "$comment": "Barge-in: kullanıcı agent konuşurken (SPEAK) araya girer. Edge VAD, agent playout sırasında echo_guard'lı eşikle yalnız GERÇEK kullanıcı sesini arar; min_speech_frames ardışık konuşma çerçevesiyle debounce edilir (anlık gürültü/echo tetiklemez). Onset onaylanınca orchestrator'a barge_in olayı gider → TTS akışı iptal + egress buffer FLUSH (2.2.1 J11, ≤200ms). Burada ALGILAMA (detection) edge'de yapılır; ALGILAMA gecikmesi NFR 10.1/ADR-005 barge-in ≤200ms bütçesinin edge payıdır (green ≤100ms). TTS kesme/flush 2.2.7 + 2.2.1.",
+    "min_speech_frames": 4,
+    "echo_guard": true,
+    "detection_budget_ms": 200,
+    "green_detection_ms": 100,
+    "trace": "FR-RTC-002, ADR-005, NFR 10.1, SAD §6.1"
+  },
+
+  "dead_air": {
+    "$comment": "Ölü hava (dead air) yönetimi (FR-RES-009, FR-RTC-013). Sessiz çerçeveler (VAD=silence, hangover dışı) STT'ye GÖNDERİLMEZ → gereksiz STT akışı + LLM çağrısı azalır. STT/LLM finalize YALNIZ endpoint'te tetiklenir (sürekli değil) → çağrı sayısı düşer. Bu, edge VAD/endpointing'in kaynak (NFR 10.2) ve maliyet kazancının çekirdeğidir.",
+    "suppress_silence": true,
+    "finalize_only_at_endpoint": true,
+    "trace": "FR-RES-009, FR-RTC-013, NFR 10.2"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar. (1) endpoint_decision_latency_p95_ms: gerçek söz sonu → endpoint olayı gecikmesi P95 ≤ 250ms — SAD §20 'Endpointing (VAD karar gecikmesi) ~150–250ms, Edge'de; dinamik' bütçesi; green ≤200ms. (2) max_false_early_cut_rate: within-utterance (hesitation) duraklamada yanlış kesme oranı ≤ 0.05 (SR-RTC-004 erken kesme sınırlı). (3) max_missed_endpoint_rate: gerçek söz sonunun max pencerede kaçırılma/geç kesme oranı ≤ 0.0 (SR-RTC-004 geç kesme sınırlı). (4) barge_in_detection_latency_p95_ms: barge-in onset → algılama gecikmesi P95 ≤ 200ms (ADR-005/NFR 10.1); green ≤100ms. (5) max_false_barge_in_rate: echo/gürültüden yanlış barge-in ≤ 0.0. (6) dead_air_must_be_suppressed: sessizlik STT'ye akmamalı (FR-RES-009/FR-RTC-013).",
+    "endpoint_decision_latency_p95_ms": 250,
+    "green_endpoint_latency_ms": 200,
+    "max_false_early_cut_rate": 0.05,
+    "max_missed_endpoint_rate": 0.0,
+    "barge_in_detection_latency_p95_ms": 200,
+    "green_barge_in_latency_ms": 100,
+    "max_false_barge_in_rate": 0.0,
+    "dead_air_must_be_suppressed": true,
+    "trace": "NFR 10.1, SAD §20, FR-RTC-004, FR-RTC-013, FR-RES-009, ADR-005"
+  },
+
+  "metrics": {
+    "$comment": "Edge VAD/endpointer her oturum için BRD §15 metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar: söz sonu gecikmesi, erken-kesme/kaçırma oranı, barge-in gecikmesi/sayısı, sessizlik süresi/oranı, STT'ye iletilen-bastırılan çerçeve. Yüksek-kardinalite kimlik (call_id) metrik LABEL'ı OLMAZ (yalnız trace/exemplar; 0.4.7 label_policy). Ham payload/transkript metriklerde yok.",
+    "emitted": [
+      "endpoint_latency_p95_ms", "false_early_cut_rate", "missed_endpoint_rate",
+      "barge_in_latency_p95_ms", "barge_in_count", "silence_ratio", "silence_total_ms",
+      "stt_suppression_ratio", "utterances_emitted"
+    ],
+    "maps_to_observability": {
+      "silence_total_ms": "silence_duration_ms",
+      "barge_in_count": "barge_in_total"
+    },
+    "trace": "BRD §15, SAD §17, observability 0.4.7"
+  },
+
+  "error_taxonomy": {
+    "$comment": "VAD/endpointing hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Bozuk/ayrıştırılamayan çerçeve (enerji yok/sayısal değil) → INVALID_REQUEST; medya taşıması koparsa → UNAVAILABLE; bölge uyumsuzluğu → REGION_VIOLATION. Düşük SNR / yüksek erken-kesme bir HATA değil, degrade SİNYALİdir (kapılar).",
+    "mapping": {
+      "invalid_frame": "INVALID_REQUEST",
+      "media_transport_lost": "UNAVAILABLE",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "VAD/endpointing medya tenant home-region'da (edge) yapılır; bölge uyumsuzluğu REGION_VIOLATION (NFR 10.7). ADR-009 hibrit: edge VAD/barge-in + ayrı bölgesel medya katmanı.",
+    "region_pin_required": true,
+    "trace": "NFR 10.7, ADR-009"
+  },
+
+  "pii": {
+    "$comment": "Ses payload'ı ve transkript kişisel veridir. Spec/config/örneklerde HAM PAYLOAD veya transkript TUTULMAZ; çerçeveler yalnız illüstratif enerji (dBov) metadata'sı + ground-truth söz yapısı (frame indeksleri) taşır. VAD/endpointer payload'ı yorumlamaz (codec-agnostik); içerik downstream STT'ye akar.",
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "trace": "BRD §14, BRD §15"
+  },
+
+  "invariants": [
+    { "id": "V1", "desc": "VAD/endpointing + barge-in algılama EDGE'de (media gateway, L2) yapılır — merkezde değil; ölü hava edge'de elenir, barge-in edge'de algılanır (ADR-005 Kabul; ADR-009 hibrit).", "trace": "FR-RTC-013, ADR-005, ADR-009, SAD §23" },
+    { "id": "V2", "desc": "Endpointing DİNAMİK: onay-sessizliği T_confirm bağlama göre değişir — kısa/kesik söz veya önceki duraklama → uzar (hesitation), uzun akıcı tur → kısalır (completeness); min/max ile sınırlı.", "trace": "FR-RTC-004, SR-RTC-004, SAD §6.1" },
+    { "id": "V3", "desc": "VAD adaptif gürültü tabanı + onset/offset histerezisi ile eşik-sınırı titremesini önler; agent konuşurken echo_guard ile yanlış tetik bastırılır (tam AEC 2.2.4).", "trace": "FR-RTC-005, FR-RTC-006 (sınırı), ADR-005" },
+    { "id": "V4", "desc": "Hangover: konuşma sonrası birkaç çerçeve 'konuşma' sayılarak mikro-duraklamalar köprülenir (STT'ye trailing bağlam) — kelime-içi kısa boşluk kesmez.", "trace": "FR-RTC-004, FR-RTC-005" },
+    { "id": "V5", "desc": "Gerçek söz sonu → endpoint olayı gecikmesi P95 ≤ endpoint_decision_latency_p95_ms (SAD §20 endpointing bandı ~150–250ms); aşılırsa kapı eler.", "trace": "FR-RTC-004, NFR 10.1, SAD §20" },
+    { "id": "V6", "desc": "Within-utterance (hesitation) duraklamada yanlış erken kesme oranı ≤ max_false_early_cut_rate; dinamik T_confirm tereddüt duraklamasını köprüler.", "trace": "FR-RTC-004, SR-RTC-004" },
+    { "id": "V7", "desc": "Gerçek söz sonu max pencerede kaçırılmaz/geç kesilmez (missed_endpoint_rate ≤ max_missed_endpoint_rate).", "trace": "FR-RTC-004, SR-RTC-004" },
+    { "id": "V8", "desc": "Barge-in onset → algılama gecikmesi P95 ≤ barge_in_detection_latency_p95_ms (ADR-005/NFR 10.1 barge-in ≤200ms edge payı; green ≤100ms).", "trace": "FR-RTC-002, ADR-005, NFR 10.1, SAD §6.1" },
+    { "id": "V9", "desc": "Echo/anlık gürültüden YANLIŞ barge-in üretilmez (min_speech_frames debounce + echo_guard); false_barge_in_rate ≤ max_false_barge_in_rate.", "trace": "FR-RTC-002, FR-RTC-006 (sınırı), ADR-005" },
+    { "id": "V10", "desc": "Ölü hava (sessizlik) STT'ye GÖNDERİLMEZ → bastırılır; iletilen çerçeve ⊆ konuşma + hangover (dead air STT/LLM yükü oluşturmaz).", "trace": "FR-RES-009, FR-RTC-013, NFR 10.2" },
+    { "id": "V11", "desc": "STT/LLM finalize YALNIZ endpoint'te tetiklenir (sürekli değil) → gereksiz STT/LLM çağrısı azalır (utterances_emitted = endpoint sayısı).", "trace": "FR-RTC-013, FR-RES-009, NFR 10.2" },
+    { "id": "V12", "desc": "8kHz/20ms medya profili korunur; VAD/endpointer codec-agnostik, payload'a dokunmaz; transcode/resample yok (≤1 resample, 2.2.1/2.2.2 ile hizalı).", "trace": "FR-RES-008, SAD §7.2" },
+    { "id": "V13", "desc": "Metrikler (silence süresi, barge-in sayısı) BRD §15 → observability 0.4.7'ye eşlenir (silence_duration_ms / barge_in_total); yüksek-kardinalite kimlik metrik label'ı olmaz.", "trace": "BRD §15, SAD §17, observability 0.4.7" },
+    { "id": "V14", "desc": "Medya hataları ortak ErrorTaxonomy'ye (API §11.6) eşlenir; medya home-region'da; spec/config/örneklerde literal sır, ham ses payload'ı veya transkript yok (yalnız enerji metadata'sı).", "trace": "API §11.6, NFR 10.7, BRD §14" }
+  ]
+}
