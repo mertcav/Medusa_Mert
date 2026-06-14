@@ -1,0 +1,23 @@
+{
+  "name": "budget-breach-shed",
+  "$comment": "Patolojik oturum: çok uzun özetlenemez geçmiş (dialogue 22MB) + RAG şişmesi (8MB) → talep ≈34.9MB. Azaltma uygulanır ama YETMEZ (özetleme sonrası ≈21.4MB hâlâ > 15 hard). grace_samples=2 ardışık BREACH sonrası Guard KONTROLLÜ shed tetikler: oturum graceful sonlandırılır/insan temsilciye aktarılır (FR-RES-014) — çökme/OOM-kill DEĞİL. Her aşım izlenir+yayılır (B4). Graceful sınırlama olduğundan GEÇER (kontrolsüz OOM/aşım = 0).",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "breach_samples": 3,
+    "breach_detected": 3,
+    "missed_breach": 0,
+    "mitigation_applied": 2,
+    "shed_count": 1,
+    "shed_graceful": true,
+    "uncontrolled_oom": 0,
+    "unbounded_overshoot": 0,
+    "scenario": ["breach", "mitigation", "shed"]
+  },
+  "samples": [
+    { "t": 0,     "components_mb": { "session_state": 1.2, "dialogue_memory": 4.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 45 },
+    { "t": 7000,  "components_mb": { "session_state": 1.2, "dialogue_memory": 22.0, "rag_context": 8.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 70 },
+    { "t": 14000, "components_mb": { "session_state": 1.2, "dialogue_memory": 22.0, "rag_context": 8.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 72 },
+    { "t": 21000, "components_mb": { "session_state": 1.2, "dialogue_memory": 22.0, "rag_context": 8.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 72 }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "$comment": "WBS 3.1.4 per-call kaynak bütçesi profilleri (illüstratif; sır YOK). Her profil, oturum-başı bellek/CPU bütçesini (mem_budget_mb ≤ 15 NFR 10.2/FR-RES-016 — medya HARİÇ) + WARN bandı eşiğini (soft_threshold_mb) + BREACH'i shed'e yükseltmeden önce ardışık grace_samples'i + özetleme azaltma oranını (summarize_factor, FR-RES-010) bir dağıtım/tenant-sınıfı için taşır. Vendor-neutral (ADR-002): değerler MÜHENDİSLİK varsayılanı (0.3.3 density profillerinden türetilmiş); gerçek değerler canlı runtime'da (Go/Rust, ADR-003) gerçek RSS/heap+CPU telemetrisiyle (BRD §15) ayarlanır. Bölge pini NFR 10.7. mem_budget_mb hiçbir profilde 15'i AŞMAZ; tenant override yalnız SIKILAŞTIRIR (daha düşük tavan/eşik — DPIA most-restrictive-wins ruhu).",
+  "version": "1.0",
+  "default_profile": "pilot-default",
+  "profiles": [
+    {
+      "name": "pilot-default",
+      "deployment": "F1-pilot-shared",
+      "$comment": "Pilot (F1) paylaşımlı worker varsayılanı: NFR 10.2 hedefiyle birebir — hard 15MB, WARN 12MB (≈%80), 2 örnek grace, özetleme dialogue/rag'i %45 küçültür. Density ≥250–500 (0.3.3) ile tutarlı.",
+      "mem_budget_mb": 15.0,
+      "soft_threshold_mb": 12.0,
+      "cpu_budget_mcore": 100.0,
+      "cpu_soft_mcore": 80.0,
+      "grace_samples": 2,
+      "summarize_factor": 0.45,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "enterprise-tight",
+      "deployment": "F2-enterprise-high-density",
+      "$comment": "Enterprise yüksek-yoğunluk: daha sıkı bütçe (hard 14MB, WARN 11MB) → worker başına daha çok oturum (density üst uca yakın). Özetleme biraz daha agresif (%50). Erken azaltma ile breach/shed nadirleşir.",
+      "mem_budget_mb": 14.0,
+      "soft_threshold_mb": 11.0,
+      "cpu_budget_mcore": 90.0,
+      "cpu_soft_mcore": 72.0,
+      "grace_samples": 2,
+      "summarize_factor": 0.50,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "regulated-conservative",
+      "deployment": "F2-regulated-dedicated",
+      "$comment": "Regüle tenant (finans/sağlık) ayrılmış worker: daha geniş grace (3 örnek) + insan aktarımı tercihli shed — bağlam kaybını minimize eder (DPIA/uyumluluk). Hard yine ≤15 (12.5 WARN). Özetleme korunumlu (%40) — özet kalitesi uyumluluk için önemli.",
+      "mem_budget_mb": 15.0,
+      "soft_threshold_mb": 12.5,
+      "cpu_budget_mcore": 100.0,
+      "cpu_soft_mcore": 80.0,
+      "grace_samples": 3,
+      "summarize_factor": 0.40,
+      "region": "${RUNTIME_REGION}"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "budget-degraded",
+  "$comment": "Bilinçli BOZUK Guard (negatif kanıt, FR-TST-008): sınırlama KAPALI (enforce=false → aşım KONTROLSÜZ büyür, B2 eler) + izleme KAPALI (monitor=false → aşım TESPİTSİZ kalır, B4 eler). Aynı patolojik talep (≈34.9MB) ama Guard ne azaltır ne shed eder ne kaydeder → bütçe ilkesi çöker. Bu sample'ın ELENMESİ beklenir (kapı doğru çalışıyor demektir).",
+  "profile": "pilot-default",
+  "expect": "fail",
+  "policy": { "enforce": false, "monitor": false, "mitigate": false },
+  "expected": {
+    "breach_samples": 3,
+    "breach_detected": 0,
+    "missed_breach": 3,
+    "unbounded_overshoot": 3,
+    "shed_count": 0
+  },
+  "samples": [
+    { "t": 0,     "components_mb": { "session_state": 1.2, "dialogue_memory": 4.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 45 },
+    { "t": 7000,  "components_mb": { "session_state": 1.2, "dialogue_memory": 22.0, "rag_context": 8.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 70 },
+    { "t": 14000, "components_mb": { "session_state": 1.2, "dialogue_memory": 22.0, "rag_context": 8.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 72 },
+    { "t": 21000, "components_mb": { "session_state": 1.2, "dialogue_memory": 22.0, "rag_context": 8.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 72 }
+  ]
+}

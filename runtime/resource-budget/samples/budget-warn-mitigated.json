@@ -1,0 +1,19 @@
+{
+  "name": "budget-warn-mitigated",
+  "$comment": "Uzun oturum: dialogue_memory + rag_context birikir, ayak izi WARN bandına girer (soft 12 < 13.4 ≤ hard 15). Guard AZALTMA uygular (özetleme FR-RES-010 + RAG kırpma): dialogue/rag %45 küçülür → ayak izi ≈9.6MB ile bütçeye DÖNER. Breach/shed YOK, oturum kesintisiz sürer (kullanıcıya görünmez). Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "mitigation_applied": 2,
+    "mitigation_effective": 2,
+    "mitigation_ineffective": 0,
+    "breach_samples": 0,
+    "shed_count": 0,
+    "scenario": ["mitigation"]
+  },
+  "samples": [
+    { "t": 0,     "components_mb": { "session_state": 1.2, "dialogue_memory": 4.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 40 },
+    { "t": 9000,  "components_mb": { "session_state": 1.2, "dialogue_memory": 7.0, "rag_context": 1.5, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 62 },
+    { "t": 18000, "components_mb": { "session_state": 1.2, "dialogue_memory": 7.0, "rag_context": 1.5, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 65 }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "budget-happy-path",
+  "$comment": "Sağlıklı oturum: ayak izi (medya hariç) hep ≤ soft (12MB). dialogue_memory ılımlı büyür (özetleme zaten kısıtlıyor — FR-RES-010). Guard hiçbir eylem yapmaz (adillik B7); aşım/azaltma/shed yok. base sabit 4.9MB (session_state+prompt_context+adapter_state+runtime_overhead) + dialogue. Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "breach_samples": 0,
+    "mitigation_applied": 0,
+    "shed_count": 0,
+    "spurious_action": 0,
+    "peak_enforced_mb": 9.9,
+    "scenario": ["healthy"]
+  },
+  "samples": [
+    { "t": 0,     "components_mb": { "session_state": 1.2, "dialogue_memory": 2.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 30 },
+    { "t": 6000,  "components_mb": { "session_state": 1.2, "dialogue_memory": 4.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 45 },
+    { "t": 12000, "components_mb": { "session_state": 1.2, "dialogue_memory": 5.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "cpu_mcore": 50 }
+  ]
+}

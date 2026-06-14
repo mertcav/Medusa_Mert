@@ -1,0 +1,138 @@
+{
+  "$comment": "WBS 3.1.4 — Per-call kaynak bütçesi (~15MB) izleme + sınırlama. Conversation Orchestrator (Çekirdek IP, SAD §6) oturum aktöründe (SAD §6.3) çalışan RESOURCE BUDGET GUARD + Resource Manager Cost/Resource Meter (SAD §15.2) sözleşmesi. FR-RES-016: 'Çağrı başına kaynak bütçesi (bellek/CPU) tanımlanmalı ve aşımı izlenmelidir.' Bu, 0.3.3 density ölçümünün (offline Monte-Carlo, bütçenin ULAŞILABİLİR olduğunu kanıtlar — fleet düzeyi) RUNTIME karşılığıdır: her CANLI çağrının ayak izini ömrü boyunca İZLER (monitoring) ve aşımda KONTROLLÜ SINIRLAMA (limiting) uygular. (a) Bütçe (FR-RES-016/NFR 10.2): oturum-başı orkestratör belleği (MEDYA tamponları HARİÇ) ≤ ~15MB + CPU bütçesi. (b) İzleme (izleme): her oturumun ayak izi örneklenir, bantlanır (OK/WARN/BREACH); her AŞIM tespit + kaydedilir/yayılır (BRD §15 'çağrı başına kaynak tüketimi (CPU/bellek)' → observability 0.4.7). (c) Sınırlama (sınırlama) — graceful (FR-RES-014, 'kaynak çökmesi yerine kontrollü sınırlama'): WARN bandında AZALTMA (özetleme FR-RES-010 + RAG kırpma → dialogue/rag belleği küçülür); BREACH bandında ZORLA-ÖZETLE → grace sonrası KONTROLLÜ shed/insan aktarımı (handoff). ASLA OOM-crash / sessiz-öldürme / sessiz veri kaybı YOK. (d) Adillik: bütçe içindeki SAĞLIKLI oturumlara azaltma/shed UYGULANMAZ (spurious_action=0). KAPSAM AYRIMI: density'nin offline ÖLÇÜMÜ + fleet kapasite kapısı → 0.3.3 (density_probe); backpressure/admission worker düzeyi yeni-çağrı reddi → FR-RES-014 (Resource Manager, sistem düzeyi 0.4.8 load-test); özetleme MOTORU implementasyonu → ileri WBS (3.2.x). Burada YALNIZ oturum-başı RUNTIME izleme + sınırlama sözleşmesi. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): Guard çekirdeği minimal+deterministik (örnek/olay-tetikli, sanal saat, random YOK); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3) gerçek RSS/heap + CPU telemetrisiyle (BRD §15). Spec/config/örneklerde sır/credential, ham ses payload'ı, transkript ve PII YOK — yalnız bileşen-boyutu (MB/mcore) + sanal zaman damgası.",
+  "version": "1.0",
+  "wbs": "3.1.4",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-RES-016", "FR-RES-014", "FR-RES-010", "FR-RES-001", "FR-ANA-013", "FR-TEN-002"],
+    "nfr": ["NFR 10.1", "NFR 10.2", "NFR 10.7"],
+    "sad": ["§6", "§6.3", "§13", "§15", "§15.2", "§21", "§23"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003", "ADR-008", "ADR-009"],
+    "api": ["§11.6 ErrorTaxonomy"],
+    "srs": ["SR-RES-016", "SR-RES-014", "SR-RES-010", "SR-DEN-001", "SR-ANA-013"],
+    "rtm": ["TC-RES-016"],
+    "brd": ["§10.2 (oturum-başı ≤~15MB)", "§15 (çağrı başına kaynak tüketimi CPU/bellek — saklanan metrik)"],
+    "observability": ["per_call_memory_mb / per_call_cpu_mcore / budget_breach_total (BRD §15 → 0.4.7)"],
+    "poc": ["0.3.3 density-measurement (offline ölçüm — bu görevin RUNTIME karşılığı)"]
+  },
+
+  "placement": {
+    "$comment": "Resource Budget Guard Conversation Orchestrator oturum aktöründedir (SAD §6.3). Olay/örnek-tetiklidir: bloklayan çağrı yok; izleme sıcak yola (hot-path) gecikme EKLEMEZ (NFR 10.1). Guard YALNIZ orkestratör belleğini (medya HARİÇ) ölçer — büyük medya tamponları Media Gateway'dedir (SAD §6/§13, ADR-009 hibrit). Aşım/metrik Resource Manager Cost/Resource Meter'a (SAD §15.2) raporlanır; sınırlama kararı oturum-yerel verilir (özetleme/shed). 15MB bütçe medya konumundan BAĞIMSIZDIR (medya bütçeye girmez).",
+    "in_orchestrator": true,
+    "in_session_actor": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "media_in_budget": false,
+    "reports_to_resource_manager": true,
+    "trace": "SAD §6.3, SAD §13, SAD §15.2, ADR-003, ADR-009"
+  },
+
+  "budget": {
+    "$comment": "Per-call kaynak bütçesi (FR-RES-016). mem_budget_mb = NFR 10.2 oturum-başı orkestratör belleği HARD tavanı (medya HARİÇ). soft_threshold_mb = WARN bandı girişi (azaltma tetikler). cpu_budget_mcore = çağrı-başı steady CPU tavanı (millicore; SAD §10.2 'düşük, çekirdek paylaşımlı'). Bütçe BİLEŞENLERİ 0.3.3 density kompozisyonuyla birebir (session_state + dialogue_memory + prompt_context + rag_context + adapter_state + runtime_overhead); MEDYA tamponları (jitter/RTP/frame) HARİÇ. mitigable_components: özetleme/kırpma ile küçültülebilen kalemler (FR-RES-010). grace_samples: BREACH'in shed'e yükseltilmeden önce ardışık tolere edilen örnek sayısı (azaltmanın etki etmesine fırsat).",
+    "mem_budget_mb": 15.0,
+    "soft_threshold_mb": 12.0,
+    "cpu_budget_mcore": 100.0,
+    "cpu_soft_mcore": 80.0,
+    "media_excluded": true,
+    "components": ["session_state", "dialogue_memory", "prompt_context", "rag_context", "adapter_state", "runtime_overhead"],
+    "mitigable_components": ["dialogue_memory", "rag_context"],
+    "grace_samples": 2,
+    "trace": "FR-RES-016, NFR 10.2, BRD §10.2, SAD §13, 0.3.3 density"
+  },
+
+  "bands": {
+    "$comment": "Üç-bantlı bütçe izleme. OK: ayak izi ≤ soft → eylem yok. WARN: soft < ayak izi ≤ hard → AZALTMA (özetleme FR-RES-010 + RAG kırpma → mitigable bileşenler küçülür). BREACH: ayak izi > hard → ZORLA-AZALT; grace_samples boyunca düşmezse KONTROLLÜ shed (graceful handoff/sonlandırma — FR-RES-014). CPU bandı simetrik (cpu_soft/cpu_budget); CPU özetlenemez → CPU BREACH grace sonrası doğrudan shed'e yükselir.",
+    "ok": "footprint <= soft",
+    "warn": "soft < footprint <= hard",
+    "breach": "footprint > hard",
+    "trace": "FR-RES-016, FR-RES-010, FR-RES-014"
+  },
+
+  "enforcement": {
+    "$comment": "Sınırlama merdiveni (graceful — FR-RES-014). WARN→azaltma: özetleme (FR-RES-010) dialogue_memory'yi + RAG kırpma rag_context'i summarize_factor oranında küçültür; bütçeye geri döner, oturum kesintisiz sürer. BREACH→yükseltme: zorla-özetle; ayak izi grace_samples boyunca hâlâ hard üstündeyse KONTROLLÜ shed: oturum graceful sonlandırılır veya insan temsilciye aktarılır (handoff) — çökme/OOM-kill DEĞİL, sessiz veri kaybı DEĞİL. on_breach_action ∈ {shed, handoff}; 'crash' YASAK (uncontrolled_oom — B3 ihlali). Adillik: bütçe içindeki oturuma azaltma/shed UYGULANMAZ.",
+    "warn_action": "mitigate_summarize_trim",
+    "breach_action": "force_mitigate_then_controlled_shed",
+    "graceful_only": true,
+    "crash_forbidden": true,
+    "summarize_factor": 0.45,
+    "fairness_no_spurious_action": true,
+    "trace": "FR-RES-014, FR-RES-010, SAD §15.2, SAD §21"
+  },
+
+  "monitoring": {
+    "$comment": "İzleme (FR-RES-016 'aşımı izlenmelidir'). Guard her oturumu örnekler; ayak izi + bant + bileşen atfı izlenir. Her BREACH (hard aşımı) TESPİT + KAYDEDİLİR ve metrik olarak yayılır (BRD §15 → observability 0.4.7). İzleme örneklemeli ve non-blocking (FR-RES-001/012); kendi ayak izi runtime_overhead içinde amorti (monitor_overhead küçük). missed_breach=0: hiçbir aşım tespitsiz kalmaz.",
+    "every_session_sampled": true,
+    "breach_detected_and_emitted": true,
+    "sampling_non_blocking": true,
+    "monitor_overhead_amortized": true,
+    "trace": "FR-RES-016, FR-RES-001, FR-RES-012, BRD §15"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (oturum-başı runtime izleme + sınırlama). (B2) max_unbounded_overshoot=0: hiçbir oturum bütçeyi KONTROLSÜZ aşmaz — her hard-aşımı ya azaltılır ya da grace sonrası kontrollü shed ile sınırlanır (enforce kapalıysa veya shed devreye girmezse ihlal — FR-RES-014). (B3) max_uncontrolled_oom=0: sınırlama HER ZAMAN graceful (özetleme/shed/handoff); crash/OOM-kill YASAK. (B4) max_missed_breach=0: her aşım izlenir+yayılır (FR-RES-016 'aşımı izlenmelidir'). (B5) max_mitigation_ineffective=0: WARN bandında, mitigable bileşen varken azaltma ayak izini gerçekten düşürür (özetleme etkili — FR-RES-010). (B7) max_spurious_action=0: bütçe içindeki sağlıklı oturuma azaltma/shed uygulanmaz (adillik). (B8) media_in_budget=false: 15MB bütçe medya tamponlarını HARİÇ tutar (SAD §6/§13). mem_budget_mb≤15 + soft<hard (B1).",
+    "mem_budget_mb": 15.0,
+    "soft_threshold_mb": 12.0,
+    "cpu_budget_mcore": 100.0,
+    "grace_samples": 2,
+    "max_unbounded_overshoot": 0,
+    "max_uncontrolled_oom": 0,
+    "max_missed_breach": 0,
+    "max_mitigation_ineffective": 0,
+    "max_spurious_action": 0,
+    "media_in_budget": false,
+    "trace": "FR-RES-016, FR-RES-014, FR-RES-010, NFR 10.2, SAD §15.2"
+  },
+
+  "metrics": {
+    "$comment": "Guard her oturum için BRD §15 + bütçe metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. per_call_memory_mb/per_call_cpu_mcore → mevcut observability kaynak metriklerine eşlenir; budget_breach/mitigation/shed 0.4.7 kataloğuna ÖNERİLEN eklemelerdir (bütçe görünürlüğü + alarm — FR-RES-016 'aşım alarmlanır'). Yüksek-kardinalite kimlik (call_id) metrik LABEL'ı OLMAZ (yalnız trace/exemplar; 0.4.7 label_policy). Bileşen boyutu (MB/mcore) PII DEĞİLDİR; ham payload/transkript metriklerde yok.",
+    "emitted": [
+      "per_call_memory_mb", "per_call_cpu_mcore", "budget_breach_total",
+      "budget_mitigation_total", "budget_shed_total", "budget_band",
+      "session_peak_memory_mb"
+    ],
+    "maps_to_observability": {
+      "per_call_memory_mb": "orchestrator_session_memory_mb",
+      "per_call_cpu_mcore": "orchestrator_session_cpu_mcore"
+    },
+    "proposed_observability_additions": [
+      "budget_breach_total", "budget_mitigation_total", "budget_shed_total"
+    ],
+    "trace": "BRD §15, FR-ANA-013, SAD §17, observability 0.4.7"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Bütçe/sınırlama hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Bozuk örnek (bileşen sayısal değil / tip yok) → INVALID_REQUEST; kontrollü shed (kaynak tükenmesi → graceful sınırlama/backpressure) → QUOTA_EXCEEDED (çökme DEĞİL, kontrollü ret/aktarım sinyali); bölge uyumsuzluğu → REGION_VIOLATION. Yüksek breach/shed bir HATA değil, kapasite/degrade SİNYALİdir (kapılar + alarm).",
+    "mapping": {
+      "invalid_sample": "INVALID_REQUEST",
+      "resource_exhausted_controlled_shed": "QUOTA_EXCEEDED",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, FR-RES-014, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "Bütçe izleme/sınırlama oturum bağlamı tenant home-region'da (orchestrator) yapılır; aşım metrikleri home-region telemetri hattında kalır (NFR 10.7). Bölge uyumsuzluğu REGION_VIOLATION.",
+    "region_pin_required": true,
+    "trace": "NFR 10.7, ADR-009"
+  },
+
+  "pii": {
+    "$comment": "Örnekler yalnız bileşen BOYUTU (MB/mcore) + sanal zaman damgası taşır; HAM SES payload'ı, transkript, müşteri/PII spec/config/örneklerde TUTULMAZ. Guard içerik yorumlamaz (yalnız bellek/CPU muhasebesi); transkript/içerik downstream THINK/Session Memory'de işlenir. Bileşen boyutu PII değildir.",
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "trace": "BRD §14, BRD §15, BRD §17.7"
+  },
+
+  "invariants": [
+    { "id": "B1", "desc": "Per-call bütçe TANIMLI: mem_budget_mb ≤ 15 (medya hariç, NFR 10.2) + cpu_budget_mcore > 0; soft_threshold < mem_budget (WARN bandı geçerli) — FR-RES-016.", "trace": "FR-RES-016, NFR 10.2, BRD §10.2" },
+    { "id": "B2", "desc": "Hiçbir oturum bütçeyi KONTROLSÜZ aşmaz: her hard-aşımı ya azaltma (özetleme/kırpma) ile bütçeye döner ya da grace_samples sonrası KONTROLLÜ shed ile sınırlanır; unbounded_overshoot = 0 (FR-RES-014).", "trace": "FR-RES-014, FR-RES-016, SAD §15.2, SAD §21" },
+    { "id": "B3", "desc": "Sınırlama HER ZAMAN graceful: aşım azaltma → zorla-özetle → kontrollü shed/handoff ile çözülür; crash/OOM-kill/sessiz veri kaybı YOK; uncontrolled_oom = 0 (FR-RES-014).", "trace": "FR-RES-014, SAD §15.2" },
+    { "id": "B4", "desc": "Her oturum örneklenir ve her AŞIM tespit + kaydedilir/yayılır (BRD §15 → observability 0.4.7); missed_breach = 0 (FR-RES-016 'aşımı izlenmelidir').", "trace": "FR-RES-016, FR-RES-001, BRD §15" },
+    { "id": "B5", "desc": "WARN bandında, mitigable bileşen (dialogue_memory/rag_context) varken azaltma ayak izini GERÇEKTEN düşürür (özetleme etkili); mitigation_ineffective = 0 (FR-RES-010).", "trace": "FR-RES-010, SR-LLM-005, SR-KB-011" },
+    { "id": "B6", "desc": "İzleme örneklemeli + non-blocking: sıcak yola gecikme eklemez (NFR 10.1) ve kendi belleği runtime_overhead içinde amorti (FR-RES-001/012).", "trace": "NFR 10.1, FR-RES-001, FR-RES-012" },
+    { "id": "B7", "desc": "Adillik: bütçe içindeki SAĞLIKLI oturuma (OK bandı) azaltma/shed UYGULANMAZ; spurious_action = 0.", "trace": "FR-RES-014, FR-RES-016" },
+    { "id": "B8", "desc": "15MB bütçe MEDYA tamponlarını HARİÇ tutar (jitter/RTP/frame Media Gateway'de — SAD §6/§13); medya bütçeye girmez (media_in_budget=false), bütçe medya konumundan bağımsız (ADR-009).", "trace": "SAD §6, SAD §13, NFR 10.2, ADR-009" },
+    { "id": "B9", "desc": "Metrikler (per-call bellek/CPU, breach, mitigation, shed) BRD §15 → observability 0.4.7'ye yayılır + aşım alarmlanır; yüksek-kardinalite kimlik (call_id) metrik label'ı olmaz; bileşen boyutu PII değil.", "trace": "BRD §15, FR-ANA-013, SAD §17, observability 0.4.7" },
+    { "id": "B10", "desc": "Sınırlama hataları ortak ErrorTaxonomy'ye (API §11.6) eşlenir (kontrollü shed → QUOTA_EXCEEDED, çökme değil); oturum bağlamı home-region'da; spec/config/örneklerde literal sır, ham ses payload'ı veya transkript yok (yalnız bileşen boyutu + sanal zaman).", "trace": "API §11.6, NFR 10.7, BRD §14" }
+  ]
+}

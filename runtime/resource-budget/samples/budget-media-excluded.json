@@ -1,0 +1,18 @@
+{
+  "name": "budget-media-excluded",
+  "$comment": "Medya eş-konumlu (ADR-009 hibrit alt-uç) oturum: büyük medya tamponları (jitter/RTP/frame, 12MB'a kadar) eş-konumda dursa da bütçeye GİRMEZ (SAD §6/§13 — büyük tamponlar Media Gateway'de). Orkestratör ayak izi (medya hariç) ≈9.9MB ≤ soft → aşım/azaltma yok. Toplam RSS yüksek olsa da 15MB bütçe medya-bağımsız (B8). Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "media_excluded_mb": 12.0,
+    "breach_samples": 0,
+    "mitigation_applied": 0,
+    "shed_count": 0,
+    "peak_enforced_mb": 9.9,
+    "scenario": ["media"]
+  },
+  "samples": [
+    { "t": 0,    "components_mb": { "session_state": 1.2, "dialogue_memory": 4.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "media_mb": 10.0, "cpu_mcore": 40 },
+    { "t": 6000, "components_mb": { "session_state": 1.2, "dialogue_memory": 5.0, "prompt_context": 1.4, "adapter_state": 1.4, "runtime_overhead": 0.9 }, "media_mb": 12.0, "cpu_mcore": 48 }
+  ]
+}
