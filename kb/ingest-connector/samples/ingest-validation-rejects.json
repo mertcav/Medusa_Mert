@@ -1,0 +1,13 @@
+{
+  "$comment": "WBS 6.1.1 — doğrulama/güvenlik reddi senaryosu (G2/G3/G8/G9): her kaynak BEKLENEN bir taksonomi sınıfıyla reddedilir; connector çökmez. spoof (.txt uzantılı pdf → FORMAT_MISMATCH), zip-bomb (DECOMPRESSION_BOMB), şifreli pdf (ENCRYPTED), bozuk pdf (CORRUPT/NEEDS_OCR), allowlist-dışı (regulated-tr web kapalı → UNSUPPORTED_FORMAT), boş (EMPTY). expect_gate=pass çünkü hepsi BEKLENEN sınıfla reddedilir (G9 expect uyumu).",
+  "scenario": "validation-rejects",
+  "expect_gate": "pass",
+  "profile": "regulated-tr",
+  "sources": [
+    {"source_id": "spoof", "format_declared": "text", "fixture": "policy.pdf", "filename": "evil.txt", "region": "tr", "tenant_id": "t-bank", "kb_id": "kb-1", "expect": {"status": "rejected", "error_class": "FORMAT_MISMATCH"}},
+    {"source_id": "bomb", "format_declared": "docx", "fixture": "bomb.docx", "region": "tr", "tenant_id": "t-bank", "kb_id": "kb-1", "expect": {"status": "rejected", "error_class": "DECOMPRESSION_BOMB"}},
+    {"source_id": "corrupt", "format_declared": "pdf", "fixture": "corrupt.pdf", "region": "tr", "tenant_id": "t-bank", "kb_id": "kb-1", "expect": {"status": "rejected", "error_class": "CORRUPT"}},
+    {"source_id": "webclosed", "format_declared": "web", "url": "https://x.test", "body": "<html><body>x</body></html>", "region": "tr", "tenant_id": "t-bank", "kb_id": "kb-1", "expect": {"status": "rejected", "error_class": "UNSUPPORTED_FORMAT"}},
+    {"source_id": "empty", "format_declared": "text", "inline_text": "   \n  ", "region": "tr", "tenant_id": "t-bank", "kb_id": "kb-1", "expect": {"status": "rejected", "error_class": "EMPTY"}}
+  ]
+}

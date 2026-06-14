@@ -1,0 +1,16 @@
+{
+  "$comment": "WBS 6.1.1 — happy path: FR-KB-001'in 6 formatının HEPSİ gerçek fixture/inline kaynaktan başarıyla parse+normalize edilir (SR-KB-001). pdf (uncompressed + FlateDecode), docx (paragraf+tablo), html (boilerplate atılır), text, csv (header+satır), web (URL gövdesi offline). Tüm G1–G10 kapıları geçer. Sentetik içerik (FR-TST-008 — PII/sır yok).",
+  "scenario": "happy-all-formats",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "virtual_t0": 1718323200,
+  "sources": [
+    {"source_id": "kb-pdf", "format_declared": "pdf", "fixture": "policy.pdf", "filename": "policy.pdf", "content_type": "application/pdf", "tenant_id": "t-acme", "kb_id": "kb-faq", "classification": "internal", "language_hint": "tr", "expect": {"status": "ingested", "min_chars": 40}},
+    {"source_id": "kb-pdf-flate", "format_declared": "pdf", "fixture": "policy-flate.pdf", "filename": "policy-flate.pdf", "content_type": "application/pdf", "tenant_id": "t-acme", "kb_id": "kb-faq", "classification": "internal", "expect": {"status": "ingested", "min_chars": 40}},
+    {"source_id": "kb-docx", "format_declared": "docx", "fixture": "policy.docx", "filename": "policy.docx", "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "tenant_id": "t-acme", "kb_id": "kb-faq", "classification": "internal", "expect": {"status": "ingested", "min_chars": 40}},
+    {"source_id": "kb-html", "format_declared": "html", "fixture": "page.html", "filename": "page.html", "content_type": "text/html", "tenant_id": "t-acme", "kb_id": "kb-faq", "classification": "public", "expect": {"status": "ingested", "min_chars": 30}},
+    {"source_id": "kb-text", "format_declared": "text", "fixture": "policy.txt", "filename": "policy.txt", "content_type": "text/plain", "tenant_id": "t-acme", "kb_id": "kb-faq", "classification": "internal", "expect": {"status": "ingested", "min_chars": 30}},
+    {"source_id": "kb-csv", "format_declared": "csv", "fixture": "faq.csv", "filename": "faq.csv", "content_type": "text/csv", "tenant_id": "t-acme", "kb_id": "kb-faq", "classification": "internal", "expect": {"status": "ingested", "min_chars": 20}},
+    {"source_id": "kb-web", "format_declared": "web", "url": "https://acme.example/refund-policy", "body": "<!DOCTYPE html><html lang=\"en\"><head><title>Refund Policy</title><style>.x{}</style></head><body><nav>Home</nav><h1>Refund Policy</h1><p>Returns accepted within 14 days, no questions asked.</p><footer>(c) acme</footer></body></html>", "tenant_id": "t-acme", "kb_id": "kb-faq", "classification": "public", "language_hint": "en", "expect": {"status": "ingested", "min_chars": 20}}
+  ]
+}

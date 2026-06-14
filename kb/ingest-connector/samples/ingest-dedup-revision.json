@@ -1,0 +1,11 @@
+{
+  "$comment": "WBS 6.1.1 — dedup/idempotent re-ingest (G5): aynı içerik iki formatta/iki kez yüklenir. Aynı kanonik metin → aynı content_hash → ikinci kopya duplicate_of işaretler (6.1.3 versiyonlama tüketir). Değişmiş içerik yeni hash → yeni doc. Tüm kapılar geçer.",
+  "scenario": "dedup-and-revision",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "sources": [
+    {"source_id": "v1-a", "format_declared": "text", "inline_text": "Iade politikasi: 14 gun icinde kosulsuz iade.", "tenant_id": "t-acme", "kb_id": "kb-faq", "expect": {"status": "ingested"}},
+    {"source_id": "v1-b-dup", "format_declared": "text", "inline_text": "Iade politikasi: 14 gun icinde kosulsuz iade.", "tenant_id": "t-acme", "kb_id": "kb-faq", "expect": {"status": "ingested"}},
+    {"source_id": "v2-changed", "format_declared": "text", "inline_text": "Iade politikasi: 30 gun icinde kosulsuz iade.", "tenant_id": "t-acme", "kb_id": "kb-faq", "expect": {"status": "ingested"}}
+  ]
+}

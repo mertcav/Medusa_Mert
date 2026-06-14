@@ -1,0 +1,10 @@
+{
+  "$comment": "WBS 6.1.1 — NEGATİF kapı kanıtı (expect_gate=fail): kapıların gerçekten eleyebildiğini gösterir. Bu senaryo bir regresyonu modeller — bozuk/görüntü PDF 'ingested' beklenir (ama parse edilemez) → G9 expect-mismatch eler; ayrıca oversize bir metin 'ingested' beklenir → G9 eler. expect_gate=fail olduğundan en az bir kapı ELEMELİDİR; aksi halde probe HATA döndürür. Sentetik (FR-TST-008).",
+  "scenario": "degraded-expectations",
+  "expect_gate": "fail",
+  "profile": "pilot-default",
+  "sources": [
+    {"source_id": "ocr-as-ingested", "format_declared": "pdf", "fixture": "corrupt.pdf", "filename": "scan.pdf", "tenant_id": "t-x", "kb_id": "kb-1", "expect": {"status": "ingested", "min_chars": 100}},
+    {"source_id": "spoof-as-ingested", "format_declared": "csv", "fixture": "policy.pdf", "filename": "data.csv", "tenant_id": "t-x", "kb_id": "kb-1", "expect": {"status": "ingested"}}
+  ]
+}

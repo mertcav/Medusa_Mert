@@ -1,0 +1,42 @@
+{
+  "$comment": "WBS 6.1.1 ingest connector çalıştırma profilleri (illüstratif; vendor-neutral, credential-free). allowed_formats ⊆ {pdf,docx,html,text,csv,web}; max_bytes kaynak boyut tavanı; max_units birim (pages/rows/chars/paragraphs/blocks) tavanı (DoS/bellek guard); max_decompression_ratio docx/flate zip-bomb guard; residency_region + allowed_regions home-region pin (NFR 10.7); virtual_t0 sanal saat tohumu (determinizm — Date.now yok). Gerçek değerler tenant compliance profile (DPIA cp.retention/cp.residency) + üretim ölçümüyle ayarlanır. Web fetch endpoint/credential repoya YAZILMAZ — yalnız ${ENV} (run_live_test).",
+  "profiles": {
+    "pilot-default": {
+      "$comment": "F1 pilot varsayılanı: tüm 6 format açık, makul boyut/birim tavanları, tek home-region.",
+      "allowed_formats": ["pdf", "docx", "html", "text", "csv", "web"],
+      "max_bytes": 26214400,
+      "max_units": {"pages": 2000, "rows": 1000000, "chars": 5000000, "paragraphs": 50000, "blocks": 100000},
+      "max_decompression_ratio": 200,
+      "residency_region": "home",
+      "allowed_regions": ["home"],
+      "web_fetch_enabled": false,
+      "web_ssrf_guard": true,
+      "virtual_t0": 1718323200
+    },
+    "regulated-tr": {
+      "$comment": "Regüle TR tenant (finans/sağlık): web fetch kapalı (yalnız kontrollü upload), daha sıkı boyut tavanı, tr home-region. cp.* DPIA most-restrictive-wins ile sıkılaşır.",
+      "allowed_formats": ["pdf", "docx", "html", "text", "csv"],
+      "max_bytes": 10485760,
+      "max_units": {"pages": 1000, "rows": 200000, "chars": 2000000, "paragraphs": 20000, "blocks": 40000},
+      "max_decompression_ratio": 100,
+      "residency_region": "tr",
+      "allowed_regions": ["tr"],
+      "web_fetch_enabled": false,
+      "web_ssrf_guard": true,
+      "virtual_t0": 1718323200
+    },
+    "enterprise-eu": {
+      "$comment": "Enterprise EU tenant: web fetch açık (SSRF-guard'lı), büyük doküman tavanı, eu home-region.",
+      "allowed_formats": ["pdf", "docx", "html", "text", "csv", "web"],
+      "max_bytes": 52428800,
+      "max_units": {"pages": 4000, "rows": 2000000, "chars": 10000000, "paragraphs": 100000, "blocks": 200000},
+      "max_decompression_ratio": 200,
+      "residency_region": "eu",
+      "allowed_regions": ["eu"],
+      "web_fetch_enabled": true,
+      "web_ssrf_guard": true,
+      "web_fetch_url_env": "${KB_WEB_FETCH_BASE_URL}",
+      "virtual_t0": 1718323200
+    }
+  }
+}

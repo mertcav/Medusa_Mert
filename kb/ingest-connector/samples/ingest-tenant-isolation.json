@@ -1,0 +1,11 @@
+{
+  "$comment": "WBS 6.1.1 — tenant/kb namespace izolasyonu (G6, FR-KB-004): aynı içerik iki farklı tenant tarafından yüklenir → her biri kendi tenant_id/kb_id namespace'inde AYRI doc; cross-tenant sızıntı=0; aynı hash farklı tenant'ta DUP sayılmaz (izole dedup uzayı). Tenant'sız kaynak fail-closed reddedilir. Karışık: bazı doc ingested, biri (tenant'sız) reddedilir; senaryo yine GEÇER çünkü reddetme beklenendir (expect).",
+  "scenario": "tenant-isolation",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "sources": [
+    {"source_id": "acme-doc", "format_declared": "text", "inline_text": "paylasilan sektor bilgisi", "tenant_id": "t-acme", "kb_id": "kb-1", "expect": {"status": "ingested"}},
+    {"source_id": "globex-doc", "format_declared": "text", "inline_text": "paylasilan sektor bilgisi", "tenant_id": "t-globex", "kb_id": "kb-1", "expect": {"status": "ingested"}},
+    {"source_id": "no-tenant", "format_declared": "text", "inline_text": "kimsesiz", "kb_id": "kb-1", "expect": {"status": "rejected", "error_class": "MISSING_TENANT_CONTEXT"}}
+  ]
+}

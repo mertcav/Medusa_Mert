@@ -1,0 +1,104 @@
+{
+  "$comment": "WBS 6.1.1 — Ingest connector: PDF/Word/HTML/metin/CSV/web (FR-KB-001). Bilgi Tabanı & RAG offline indeksleme hattının (SAD §10.1) İLK aşaması: ingest connector. Doküman (PDF/Word/HTML/CSV/web) → [ingest connector] → Parse & normalize → NormalizedDocument; çıktıyı 6.1.3 chunk→embed→index+versiyonlama TÜKETİR. Connector'ın işi: her formatı (PDF, Word/DOCX, HTML, düz metin, CSV, web sayfası) ALIR; format/MIME ALGILAR + beyanla (extension/content-type) UZLAŞTIRIR — content-sniffing YETKİLİDİR, spoof tipi doğrulamayı atlatamaz (G2); doğrular (boyut/birim/allowlist/charset/decompression-bomb — G3); KANONİK NormalizedDocument'a (Unicode NFC normalize metin + hafif yapı [heading/paragraph/table_row] + metadata + içerik hash'i — G4/G5) AYIKLAR; tenant/kb namespace etiketler + cross-tenant izolasyon fail-closed (G6); doküman-bazı erişim metadata KANCASI ekler (classification/acl_ref → 6.1.4 UYGULAMA — G7); residency home-region + no-log + redaction_state=pending (FR-KB-010/NFR 10.7 — G8); malformed/corrupt/encrypted/oversize girdide ASLA çökmez, STRUCTURED hata taksonomisi üretir + bir kötü doc batch'i durdurmaz (G9). Format-spesifik ayıklama BURADA (her formatın ayıklayıcısı bir SPI arkasında — vendor-neutral ADR-001/002; referans stdlib ayıklayıcı text/csv/html/docx-zip+xml/pdf-bounded yeterlidir, canlı sistemde ağır PDF/Office kütüphanesi aynı SPI arkasına TAKILIR), format-agnostik chunk/embed/index 6.1.3'te (G10). Bu motor EMBEDDING ÜRETMEZ, VEKTÖR YAZMAZ. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Determinizm: sanal saat (Date.now/rastgele YOK). Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (fixture içerikleri sentetik — FR-TST-008).",
+  "version": "1.0",
+  "wbs": "6.1.1",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-KB-001", "FR-KB-004", "FR-KB-005", "FR-KB-010", "FR-TST-008"],
+    "nfr": ["NFR 10.7"],
+    "srs": ["SR-KB-001"],
+    "rtm": ["TC-KB-001"],
+    "sad": ["§10.1 (offline indeksleme: ingest connector → parse & normalize)", "§12.1 (polyglot persistence)", "§14 (residency/no-log)"],
+    "brd": ["§9.9 (Bilgi Tabanı ve RAG)", "§14 (residency/PII)", "§16 (Knowledge Base varlığı)"],
+    "adr": ["ADR-001 (orchestrator SPI bağımsızlığı — ayıklayıcı SPI arkası)", "ADR-002 (vendor-neutral — format ayıklayıcı değiştirilebilir)"],
+    "api": ["§ L1/L2 Knowledge base POST /knowledge-bases/{id}/documents (async indexleme)", "§11.6 ErrorTaxonomy ruhu"],
+    "consumes": [],
+    "consumed_by": ["6.1.3 parse→chunk→embed→index+versiyonlama (NormalizedDocument girdisi)"],
+    "observability": ["kb_ingest_total{format,status} / kb_ingest_bytes / kb_ingest_units{kind} / kb_ingest_rejected_total{error_class} / kb_ingest_dedup_total → BRD §15 → 0.4.7 (tenant_id/doc_id/source_uri YÜKSEK kardinalite → yalnız trace/exemplar)"]
+  },
+
+  "placement": {
+    "$comment": "Ingest connector OFFLINE indeksleme hattında (Control/Analytics Plane, SAD §10.1) çalışır — hot-path DEĞİL (medya/turn döngüsü değil). L1/L2 panel 'POST /knowledge-bases/{id}/documents' (async indexleme) çağrısıyla tetiklenir veya web URL fetch ile beslenir. Tenant admin/conversation_designer doküman yükler → connector parse+normalize → NormalizedDocument → (6.1.3) chunk/embed/index. Vendor-neutral (ADR-002): her formatın ayıklayıcısı bir SPI arkasındadır; orchestrator/RAG client yalnız NormalizedDocument sözleşmesine bağımlıdır (ADR-001). Offline olduğundan SAD §20 hot-path gecikme bütçesine tabi DEĞİL; yine de bounded (boyut/birim/decompression sınırları). Web fetch SSRF-guard'lı (özel IP/iç ağ yasak) + robots/rate saygısı (canlı, run_live_test ${ENV}).",
+    "plane": "control-analytics (offline indeksleme)",
+    "hot_path": false,
+    "behind_spi": true,
+    "orchestrator_depends_on_normalizeddocument_only": true,
+    "trigger": ["L1/L2 POST /knowledge-bases/{id}/documents (async)", "web URL fetch"],
+    "trace": "SAD §10.1, SAD §14.4, ADR-001, ADR-002, API L1/L2 Knowledge base"
+  },
+
+  "spi": {
+    "$comment": "İki SPI yüzeyi. (1) SourceConnector: bir format ailesinin kaynağını ALIR → ham bayt + content-type sağlar (upload veya web fetch). (2) FormatExtractor: extract(bytes, ctx) → NormalizedDocument | IngestError; her format için ayrı ayıklayıcı (pdf/docx/html/web/text/csv) bir kayıt defterinde (registry) bağlıdır. Vendor-neutral: referans stdlib ayıklayıcı yerine canlı sistemde ağır PDF/Office kütüphanesi AYNI imza arkasına takılır (ADR-001/002). NormalizedDocument sözleşmesi: {doc_id, tenant_id, kb_id, format, detected_format, text (kanonik NFC), blocks [{type, text}], unit_count, unit_kind, char_count, byte_size, content_hash, title, language_hint, classification, acl_ref, sensitive, redaction_state, no_log, residency_region, source_uri, ingested_at, duplicate_of}. IngestError: {error_class, detail} (taksonomi).",
+    "source_connector_methods": ["accept(upload)", "fetch(url) [SSRF-guard]", "content_type"],
+    "format_extractor_method": "extract(bytes, ctx) -> NormalizedDocument | IngestError",
+    "registry_formats": ["pdf", "docx", "html", "web", "text", "csv"],
+    "normalized_document_fields": ["doc_id", "tenant_id", "kb_id", "format", "detected_format", "text", "blocks", "unit_count", "unit_kind", "char_count", "byte_size", "content_hash", "title", "language_hint", "classification", "acl_ref", "sensitive", "redaction_state", "no_log", "residency_region", "source_uri", "ingested_at", "duplicate_of"],
+    "trace": "ADR-001, ADR-002, SAD §10.1, API §11.6"
+  },
+
+  "formats": {
+    "$comment": "FR-KB-001'in 6 formatı + referans ayıklama yöntemi. Hepsi stdlib (vendor-neutral; ağır lib canlıda SPI arkası).",
+    "pdf": {"detect": "%PDF magic", "extractor": "bounded: uncompressed + FlateDecode (zlib) text stream, Tj/TJ operatörleri; /Encrypt→ENCRYPTED, text-op yok→NEEDS_OCR", "unit_kind": "pages", "lib_note": "canlıda ağır PDF lib (ADR-002) aynı SPI arkası"},
+    "docx": {"detect": "PK zip + word/document.xml", "extractor": "zipfile + xml.etree: w:p paragraf + w:tbl/w:tr/w:tc tablo; decompression-bomb guard (oran)", "unit_kind": "paragraphs"},
+    "html": {"detect": "<html/<!doctype/<body", "extractor": "html.parser: script/style/head atılır, nav/footer/aside boilerplate atılır, h1-h6 heading + p/li/td block, title", "unit_kind": "blocks"},
+    "web": {"detect": "HTTP üzerinden gelen HTML", "extractor": "html ile aynı; source_uri=url; SSRF-guard + offline'da gövde sample içinde", "unit_kind": "blocks"},
+    "text": {"detect": "utf-8/utf-8-sig çözülebilir", "extractor": "BOM/utf-8/cp1254/latin-1 charset çözümü; satır→paragraph", "unit_kind": "chars"},
+    "csv": {"detect": "düz metin + csv dialect", "extractor": "csv.Sniffer dialect+header; header+satırlar yapı korunur (table_header/table_row)", "unit_kind": "rows"}
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (G1–G10). min_formats_supported=6: FR-KB-001'in tüm formatları desteklenir + her birinden geçerli kaynak parse+index edilir (SR-KB-001 'her format başarıyla parse+index edilir'). max_format_mismatch_leak=0: content-sniffing yetkili; spoof tipi (ör. .txt uzantılı PDF) doğrulamayı atlatamaz. max_cross_tenant=0: doc'lar yalnız kendi tenant/kb namespace'ine yazılır; aynı içerik farklı tenant'ta ayrı doc (izole dedup uzayı). max_bytes/max_units: kaynak boyutu + birim (pages/rows/chars/paragraphs/blocks) üst sınırı (DoS/bellek guard). require_content_hash + require_dedup: her doc sha256 içerik hash'i; idempotent re-ingest aynı (tenant,kb,hash) için duplicate_of işaretler (6.1.3 versiyonlama tüketir). require_tenant_context: tenant_id/kb_id yoksa fail-closed reddet. require_acl_hook: classification + redaction_state (→6.1.4). require_no_log + require_redaction_pending: home-region no-log + redaction_state=pending (FR-KB-010). Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler tenant compliance profile (DPIA cp.*) + üretim ölçümüyle ayarlanır.",
+    "min_formats_supported": 6,
+    "max_bytes": 26214400,
+    "max_units": {"pages": 2000, "rows": 1000000, "chars": 5000000, "paragraphs": 50000, "blocks": 100000},
+    "max_decompression_ratio": 200,
+    "max_format_mismatch_leak": 0,
+    "max_cross_tenant": 0,
+    "max_control_char_leak": 0,
+    "require_content_hash": true,
+    "require_dedup": true,
+    "require_tenant_context": true,
+    "require_acl_hook": true,
+    "require_no_log": true,
+    "require_redaction_pending": true,
+    "require_nfc_normalized": true,
+    "trace": "FR-KB-001, SR-KB-001, FR-KB-004, FR-KB-005, FR-KB-010, NFR 10.7, SAD §10.1"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Ingest hata sınıfları (API §11.6 ruhu — connector'a özgü). DETERMİNİSTİK + müşteriye sızmaz (ham sağlayıcı/parser kodu yalnız audit/log). Geçici-olmayan / içerik kalıcı sorunları (UNSUPPORTED_FORMAT/FORMAT_MISMATCH/CORRUPT/ENCRYPTED/NEEDS_OCR/EMPTY) yeniden deneme boşuna → sınıflandır + atla (G9). TOO_LARGE/TOO_MANY_UNITS/DECOMPRESSION_BOMB guard reddi. REGION_VIOLATION residency. MISSING_TENANT_CONTEXT fail-closed. FETCH_ERROR web kaynak erişim/SSRF.",
+    "classes": ["UNSUPPORTED_FORMAT", "FORMAT_MISMATCH", "TOO_LARGE", "TOO_MANY_UNITS", "CORRUPT", "EMPTY", "ENCODING_ERROR", "ENCRYPTED", "NEEDS_OCR", "DECOMPRESSION_BOMB", "FETCH_ERROR", "REGION_VIOLATION", "MISSING_TENANT_CONTEXT"],
+    "trace": "API §11.6, FR-KB-001, SAD §10.1"
+  },
+
+  "residency": {
+    "$comment": "Ayıklama tenant home-region'da yapılır (NFR 10.7); hassas doküman metni sağlayıcı loglarına yazılmaz (FR-KB-010) → no_log=true + redaction_state=pending (downstream redaction 6.1.4/4.x). Connector katmanı yereldir (LLM/embedding sağlayıcısına bu aşamada veri gitmez; embedding 6.1.3). Bölge uyumsuz kaynak REGION_VIOLATION (reddet). doküman ham metni durable store'a redaction_state=pending ile yazılır.",
+    "region_pin_required": true,
+    "no_log_required": true,
+    "durable_redaction_state": "pending",
+    "embedding_sent_in_this_stage": false,
+    "trace": "NFR 10.7, FR-KB-010, SAD §14"
+  },
+
+  "pii": {
+    "$comment": "Bu SPEC/config/sample DESCRIPTOR'ları sır/credential ve gerçek PII DEĞERİ TUTMAZ (fixture içerikleri sentetik — FR-TST-008). NOT: ingest edilen DOKÜMAN İÇERİĞİ runtime'da PII içerebilir (meşru) → connector bunu no_log=true + redaction_state=pending ile taşır; redaction/maskeleme UYGULAMASI 6.1.4 + retrieval no-log 6.2.4. Spec/config'te uzun rakam dizisi (kart/TCKN) yasak.",
+    "raw_pii_in_spec_forbidden": true,
+    "durable_redaction_state": "pending",
+    "document_content_may_contain_pii": true,
+    "trace": "FR-KB-010, BRD §14, BRD §17.7, FR-REC-004"
+  },
+
+  "invariants": [
+    { "id": "G1", "desc": "FORMAT COVERAGE: FR-KB-001'in 6 formatı (PDF, Word/DOCX, HTML, düz metin, CSV, web sayfası) desteklenir; her birinden geçerli bir kaynak boş-olmayan kanonik metin + hafif yapı üreterek NormalizedDocument'a parse edilir (SR-KB-001 'her format başarıyla parse+index edilir' — index 6.1.3'e devredilir).", "trace": "FR-KB-001, SR-KB-001, SAD §10.1" },
+    { "id": "G2", "desc": "FORMAT DETECTION + RECONCILE: format magic/yapıdan algılanır ve beyan (extension/content-type) ile uzlaştırılır; content-sniffing YETKİLİDİR → spoof tip (ör. .txt uzantılı PDF, text olarak servis edilen zip) FORMAT_MISMATCH ile reddedilir, doğrulamayı atlatamaz (mismatch_leak=0).", "trace": "FR-KB-001, güvenlik (content-sniffing)" },
+    { "id": "G3", "desc": "VALIDATION GATES: allowlist (UNSUPPORTED_FORMAT) + boyut (TOO_LARGE) + birim sayısı pages/rows/chars/paragraphs (TOO_MANY_UNITS) + charset (ENCODING_ERROR) + decompression-bomb oranı (DECOMPRESSION_BOMB) + boş/şifreli/görüntü (EMPTY/ENCRYPTED/NEEDS_OCR) kapıları; ihlal STRUCTURED taksonomi reddi, çökme YOK.", "trace": "FR-KB-001, güvenlik (DoS/bellek guard)" },
+    { "id": "G4", "desc": "NORMALIZATION: çıktı KANONİK NormalizedDocument — Unicode NFC + kontrol karakteri temizliği + boşluk daraltma (control_char_leak=0, nfc); HTML script/style/nav/footer boilerplate atılır; CSV header+satır yapısı korunur; ham bayt çıktıya sızmaz.", "trace": "FR-KB-001, SAD §10.1 (parse & normalize)" },
+    { "id": "G5", "desc": "METADATA + CONTENT HASH + DEDUP: her doc sha256 içerik hash'i + zorunlu metadata (doc_id/source_uri/byte_size/unit_count/title/ingested_at sanal saat) taşır; idempotent re-ingest aynı (tenant,kb,hash) için duplicate_of işaretler (versiyonlama 6.1.3 tüketir).", "trace": "FR-KB-001, FR-KB-003 (versiyonlama girdisi), SAD §10.1" },
+    { "id": "G6", "desc": "TENANT/KB NAMESPACE + ISOLATION: her NormalizedDocument tenant_id + kb_id namespace etiketi taşır (FR-KB-004 sınır); tenant context yoksa fail-closed reddet; cross-tenant sızıntı=0 — aynı içerik farklı tenant'ta ayrı doc (izole dedup uzayı), doc yanlış tenant'a yazılmaz.", "trace": "FR-KB-004, FR-TEN-002, güvenlik (tenant izolasyon)" },
+    { "id": "G7", "desc": "ACCESS METADATA HOOK: connector doküman-bazı erişim-kontrol metadata KANCASI ekler (classification + acl_ref + redaction_state) → 6.1.4 doküman-bazı erişim yetkisi UYGULAMASI bunu tüketir; connector yalnız metadata üretir, ENFORCEMENT yapmaz (sınır).", "trace": "FR-KB-005, →6.1.4" },
+    { "id": "G8", "desc": "RESIDENCY + NO-LOG + PII: her doc home-region (residency_region izinli) + no_log=true + redaction_state=pending; bölge uyumsuz kaynak REGION_VIOLATION; hassas doküman sağlayıcı loglarına gitmez (embedding bu aşamada gönderilmez).", "trace": "FR-KB-010, NFR 10.7, SAD §14" },
+    { "id": "G9", "desc": "ROBUST / NEVER-CRASH: malformed/corrupt/encrypted/oversize/boş girdide hiçbir exception kaçmaz → STRUCTURED IngestError taksonomisi + mümkünse kısmi ayıklama; bir kötü doc batch'teki diğer doc'ları durdurmaz (batch dayanıklılığı).", "trace": "FR-KB-001, güvenlik (girdi güvenliği)" },
+    { "id": "G10", "desc": "SCOPE BOUNDARY: connector NormalizedDocument ÜRETİR; chunk/embed/index/versiyonlama → 6.1.3 (TÜKETİR), SharePoint/Confluence → 6.1.2, ACL ENFORCEMENT → 6.1.4, içerik TTL/bayatlama → 6.1.5, vector store namespace fiziksel → 1.1.7, retrieval/trim → 6.2.x, benchmark → 6.2.5. Bu motor embedding/vektör üretmez (embedding/vector/chunk_ids/index_id alanı doc'ta yok). Sır/credential üretmez.", "trace": "6.1.2, 6.1.3, 6.1.4, 6.1.5, 1.1.7, 6.2.x" }
+  ]
+}
