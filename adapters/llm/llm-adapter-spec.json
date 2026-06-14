@@ -1,0 +1,136 @@
+{
+  "$comment": "WBS 4.2.4 — LLM adapter #1 + #2 (streaming token/tool call). Sağlayıcı Soyutlama Katmanı'nda (Adapters, BRD §16/SAD §8) iki SOMUT LlmAdapter implementasyonunu (≥2/kategori — ADR-002, FR-LLM-001) ortak SPI (SAD §8.1 / API §11.4 LlmAdapter) arkasına bağlar. Orchestrator (Çekirdek IP, SAD §6/§9; ADR-001) YALNIZ bu SPI'ye bağımlıdır — sağlayıcı değişimi orchestrator'ı etkilemez. complete(req): AsyncStream<LlmChunk> sözleşmesi; LlmChunk = TokenChunk | ToolCallChunk. Görev başlığındaki İKİ boyut: (a) STREAMING TOKEN — ilk token düşük gecikmeyle, akış-önce (no full buffering — FR-RES-002); ilk token tüm yanıt bitmeden gelir; first-token P95 ≤ SAD §20 LLM kalemi (genel 400 ms; yeşil 200 ms); token-arası süreklilik (inter-token stall yok — aksi halde downstream TTS ölü hava, FR-RES-009). (b) TOOL CALL — kritik işlemler serbest metin yerine schema-DOĞRULAMALI tool çağrısıyla yapılır (ToolCallChunk, argumentsJson — FR-LLM-008); kritik işlem bekleyen turun hiçbiri serbest metinle bırakılmaz. Ek (Must) boyutlar: model tiering (küçük/büyük tier; küçük-tier first-token daha sıkı — FR-LLM-013/FR-RES-005), no-train + no-log endpoint (noTrain + data_retention NONE/EPHEMERAL — FR-LLM-012/FR-KB-010), bölgesel endpoint/residency (region pinning — NFR 10.7), system prompt değişmezliği (adapter system mesajını user/KB içeriğiyle değiştirmez — FR-LLM-006), usage metering + model/versiyon kaydı (UsageRecord unit=INPUT_TOKENS/OUTPUT_TOKENS + model + version — FR-BIL-002/FR-LLM-011), ortak hata taksonomisi normalizasyonu (FR-TOOL-008, API §11.6). On invariant: (P1) streaming token first-token + akış-önce; (P2) kritik işlemde schema-doğrulamalı tool-call (serbest metin değil); (P3) token-arası süreklilik / stall yok; (P4) ≥2 model tier (küçük/büyük) + küçük-tier first-token sıkı kapı; (P5) ≥2 SPI-uyumlu sağlayıcı (streaming+tool_call yetenekleri); (P6) no-train + no-log + bölgesel/residency; (P7) system prompt değişmezliği; (P8) metering + model/versiyon kaydı + hata normalizasyonu; (P9) komşu SEAM tüketimi; (P10) ErrorTaxonomy + sır/ham-prompt/PII yok. KAPSAM AYRIMI: model ROUTING/tiering MOTORU (küçük↔büyük seçim, ≥%60 küçük-tier hedefi SR-DEN-005) → 5.1/5.2/5.3 (SAD §9; bu motor sağlayıcının iki tier SUNDUĞUNU + her tier first-token'ını DOĞRULAR, router KARARINI değil); semantic cache (tekrarlayan turda LLM atlama, FR-LLM-014) → 5.4 (bu motor cache-hit YOLUNU desteklemez — adapter tek sağlayıcı; cache orchestrator'da); prompt-injection/jailbreak kontrolü (FR-LLM-007) → 3.3.1; politika motoru (model çıktısı policy gate, FR-LLM-009) → 3.3.2; LLM FALLBACK uygulaması (sağlayıcı düşünce fallback model/deterministic flow, FR-LLM-010) → 4.3.3 (bu motor ≥2 SPI-uyum + ErrorTaxonomy VARLIĞINI doğrular, fallback ANAHTARLAMA mantığını DEĞİL); ortak adapter yetenekleri (timeout/retry/breaker/health/connection pool) → 4.1.2/4.1.6 (SAD §8.2; bu motor TÜKETİR); usage metering/cost MOTORU → 4.1.3 (bu motor UsageRecord ÜRETİMİNİ doğrular); residency/retention motoru → 4.1.4; tenant/use-case model seçimi (FR-LLM-002/003) → 5.5/5.1; sağlayıcı SEÇİMİ → 0.2.6/0.3.x (vendor-neutral, ADR-002). Burada YALNIZ iki somut adapter'ın SPI-uyum DAVRANIŞI (streaming token + tool-call + süreklilik) + deterministik referans adapter. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): çekirdek minimal+deterministik (olay-tetikli, sanal saat, random YOK; gerçek LLM çıkarımı yok — sağlayıcı gecikme profili + akış MODELİ); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3) + gerçek LlmAdapter. Spec/config/örneklerde sır/credential, ham PROMPT/mesaj METNİ veya PII DEĞERİ YOK — yalnız sağlayıcı kimliği + gecikme/akış/token SAYILARI + model/tier/tool kimlikleri + sanal zaman.",
+  "version": "1.0",
+  "wbs": "4.2.4",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-LLM-001", "FR-LLM-004", "FR-LLM-006", "FR-LLM-008", "FR-LLM-011", "FR-LLM-012", "FR-LLM-013", "FR-RES-005", "FR-RES-002", "FR-BIL-002", "FR-TOOL-008", "FR-KB-010", "FR-TEN-002"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "sad": ["§6", "§6.1", "§6.3", "§8.1", "§8.2", "§8.3", "§9", "§20"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003"],
+    "api": ["§11.1 Capabilities/UsageRecord/AdapterConfig", "§11.4 LlmAdapter", "§11.6 ErrorTaxonomy"],
+    "srs": ["SR-LLM-001", "SR-LLM-004", "SR-LLM-008", "SR-LLM-011", "SR-LLM-012", "SR-LLM-013"],
+    "rtm": ["TC-LLM-001", "TC-LLM-004", "TC-LLM-008", "TC-LLM-011", "TC-LLM-012", "TC-LLM-013"],
+    "vendor_eval": ["0.2.4 llm-eval.md (LlmAdapter ölçülen yüzey + kapı eşikleri)"],
+    "consumes": ["4.1.2 ortak yetenekler (timeout/retry/breaker/health)", "4.1.6 connection pool", "4.1.3 usage metering/cost motoru", "5.1/5.2/5.3 model router/tiering motoru", "5.4 semantic cache", "3.3.1 prompt-injection guard", "3.3.2 policy engine", "4.3.3 LLM fallback anahtarlama (FR-LLM-010)"],
+    "observability": ["llm_first_token_ms / llm_inter_token_ms / llm_token_stall_total / llm_tool_call_total / llm_input_tokens_total / llm_output_tokens_total (BRD §15 → 0.4.7; llm_latency_ms / llm_tokens_total ile eşlenir)"]
+  },
+
+  "placement": {
+    "$comment": "LlmAdapter Conversation Orchestrator'ın THINK durumunda (SAD §6.1 turn state machine) çalışır: STT final transcript → diyalog yönetimi → complete(req) → AsyncStream<LlmChunk> → token akışı SPEAK'e (TTS synthesize) beslenir VEYA ToolCallChunk ACT'e (tool yürütücü) gider. Orchestrator YALNIZ LlmAdapter SPI'ye bağımlıdır (ADR-001); somut sağlayıcı arkada değişir (ADR-002). Akış-önce (stream-first, FR-RES-002): ilk token gelir gelmez TTS başlar, tüm yanıt tamponlanmaz. Model ROUTING/tiering + semantic cache orchestrator/router katmanındadır (SAD §9 — 5.1/5.4); adapter tek sağlayıcıyı temsil eder. Olay-tetikli + bloklamayan; deterministik (sanal saat, random YOK).",
+    "behind_spi": true,
+    "orchestrator_depends_on_spi_only": true,
+    "turn_state": "THINK",
+    "stream_first": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "routing_owned_by": "5.1/5.2/5.3 (SAD §9 LLM Router/tiering); semantic cache 5.4",
+    "trace": "SAD §6.1, SAD §8.1, SAD §9, ADR-001, API §11.4"
+  },
+
+  "spi": {
+    "$comment": "Ölçülen SPI yüzeyi (SAD §8.1 / API §11.4 LlmAdapter). complete(req): LlmRequest → AsyncStream<LlmChunk>; ilk chunk = first-token. LlmChunk = TokenChunk{delta} | ToolCallChunk{toolName, argumentsJson, callId} (serbest metin DEĞİL — FR-LLM-008). LlmRequest alanları: messages[{role∈{system,user,assistant,tool}, content}], tools[ToolSchema] (JSON Schema — FR-TOOL-002), model (router seçer FR-LLM-003 / tenant override FR-LLM-002), maxTokens, temperature, noTrain (FR-LLM-012). Ortak Adapter: capabilities()/health()/meter()/configure() (API §11.1 — yetenekler 4.1.x'te). capabilities(): features ⊇ {streaming, tool_call}, noTrain=true, regions (residency), ≥2 model tier. Bir sağlayıcının eval/portföye girmesi için bu sözleşmeyi karşılaması gerekir (P5).",
+    "methods": ["complete", "capabilities", "health", "meter", "configure"],
+    "llm_request_fields": ["messages", "tools", "model", "maxTokens", "temperature", "noTrain"],
+    "message_roles": ["system", "user", "assistant", "tool"],
+    "chunk_types": ["TokenChunk", "ToolCallChunk"],
+    "tool_call_chunk_fields": ["toolName", "argumentsJson", "callId"],
+    "required_features": ["streaming", "tool_call"],
+    "trace": "SAD §8.1, API §11.1/§11.4, FR-LLM-004/008/012, FR-TOOL-002"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar. (P1) first_token_p95_ms ≤ 400 (SAD §20 LLM kalemi genel; yeşil 200) + max_full_buffered=0 (akış-önce: ilk token tüm yanıt bitmeden — FR-LLM-004/FR-RES-002). (P2) max_unhandled_tool=0: kritik işlem bekleyen tur schema-doğrulamalı tool-call ile bırakılır, serbest metinle DEĞİL (FR-LLM-008). (P3) max_token_stall=0: token-arası boşluk stall_threshold_ms (120) altında — süreklilik (FR-LLM-004; aksi halde TTS ölü hava FR-RES-009). (P4) small_tier_first_token_p95_ms ≤ 200 (SAD §20 küçük model; yeşil 120) + min_tiers=2 (küçük/büyük — FR-LLM-013). (P6) max_no_train_violation=0 (noTrain + NONE/EPHEMERAL — FR-LLM-012/FR-KB-010) + max_region_violation=0 (bölgesel pin — NFR 10.7). (P7) max_system_prompt_mutation=0 (FR-LLM-006). (P8) require_metering (FR-BIL-002) + require_model_version_recorded (FR-LLM-011) + require_error_normalized (FR-TOOL-008). min_providers=2 (P5, ADR-002). tool_call_min_ratio=0.95 SOFT rapor (C7; kritik-tur unhandled_tool=0 hard, genel doğruluk soft). Eşikler MÜHENDİSLİK varsayılanı (0.2.4 llm-eval kapıları); gerçek değerler 0.3.x canlı PoC'ta doğrulanır.",
+    "first_token_p95_ms": 400,
+    "first_token_green_ms": 200,
+    "small_tier_first_token_p95_ms": 200,
+    "small_tier_first_token_green_ms": 120,
+    "stall_threshold_ms": 120,
+    "max_full_buffered": 0,
+    "max_unhandled_tool": 0,
+    "max_token_stall": 0,
+    "max_no_train_violation": 0,
+    "max_region_violation": 0,
+    "max_system_prompt_mutation": 0,
+    "max_cross_tenant": 0,
+    "min_providers": 2,
+    "min_tiers": 2,
+    "require_metering": true,
+    "require_model_version_recorded": true,
+    "require_error_normalized": true,
+    "tool_call_min_ratio": 0.95,
+    "required_features": ["streaming", "tool_call"],
+    "trace": "FR-LLM-001/004/006/008/011/012/013, FR-RES-002/005, FR-BIL-002, NFR 10.1, NFR 10.7, SAD §20"
+  },
+
+  "fallback": {
+    "$comment": "LLM fallback (P9 sınır): bir sağlayıcı düşerse alternatif modele veya deterministic flow'a geçilir (FR-LLM-010). Bu görev fallback ANAHTARLAMA mantığını UYGULAMAZ (→ 4.3.3) ama (a) ≥2 SPI-uyumlu sağlayıcının VARLIĞINI (P5) ve (b) ortak ErrorTaxonomy (API §11.6) eşlemesinin varlığını doğrular; routing kararı TIMEOUT/UNAVAILABLE/RATE_LIMITED → secondary, CONTENT_FILTERED → policy/deterministic flow.",
+    "min_providers": 2,
+    "deterministic_flow_on_failure": true,
+    "switching_owned_by": "4.3.3",
+    "trace": "FR-LLM-010, SAD §8.3, API §11.6"
+  },
+
+  "metrics": {
+    "$comment": "LlmAdapter her complete için BRD §15 + adapter metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. llm_first_token_ms → first-token (SAD §20; observability llm_latency_ms ile eşlenir); llm_inter_token_ms → token-arası süreklilik; llm_token_stall_total → stall (FR-RES-009 ilişkili alarm); llm_tool_call_total → schema-doğrulamalı tool-call (FR-LLM-008); llm_input_tokens_total/llm_output_tokens_total → token kullanımı (FR-BIL-002 metering; observability llm_tokens_total ile eşlenir). provider_id + model + tier DÜŞÜK kardinalite (label uygun); request_id/call_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy, 3.1.5 producer). Ham PROMPT/mesaj METNİ, token DEĞERİ veya PII metriklerde yok.",
+    "emitted": [
+      "llm_first_token_ms", "llm_inter_token_ms", "llm_token_stall_total",
+      "llm_tool_call_total", "llm_input_tokens_total", "llm_output_tokens_total"
+    ],
+    "maps_to_observability": {
+      "llm_first_token_ms": "llm_latency_ms",
+      "llm_input_tokens_total": "llm_tokens_total",
+      "llm_output_tokens_total": "llm_tokens_total"
+    },
+    "proposed_observability_additions": [
+      "llm_first_token_ms", "llm_token_stall_total", "llm_tool_call_total"
+    ],
+    "trace": "BRD §15, SAD §17.1, observability 0.4.7, 3.1.5 context-propagation"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Sağlayıcı hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir (FR-TOOL-008, SAD §8.2) — routing yalnız bu enum'a göre fallback (4.3.3) kararı verir; ham sağlayıcı kodu yalnız audit/log'da kalır, müşteriye sızmaz. Süre aşımı → TIMEOUT (retry → secondary); 429 → RATE_LIMITED; 5xx/bağlantı → UNAVAILABLE (circuit-open → secondary); kimlik → AUTH; geçersiz girdi → INVALID_REQUEST; sağlayıcı içerik reddi → CONTENT_FILTERED (policy/deterministic flow); sağlayıcı kotası → QUOTA_EXCEEDED; residency ihlali → REGION_VIOLATION (NFR 10.7).",
+    "mapping": {
+      "provider_timeout": "TIMEOUT",
+      "provider_429": "RATE_LIMITED",
+      "provider_5xx": "UNAVAILABLE",
+      "auth_failure": "AUTH",
+      "invalid_request": "INVALID_REQUEST",
+      "content_filter": "CONTENT_FILTERED",
+      "quota_exceeded": "QUOTA_EXCEEDED",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, FR-TOOL-008, SAD §8.2, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "Çıkarım tenant home-region LLM endpoint'inde (bölgesel pin) yapılır + UsageRecord home-region'da kaydedilir (FR-BIL-002, NFR 10.7). Tenant verisi model EĞİTİMİNE gitmez: noTrain=true varsayılan (FR-LLM-012). Hassas mesaj sağlayıcı loglarına yazılmaz: data_retention NONE/EPHEMERAL (FR-KB-010). Bölge uyumsuzluğu REGION_VIOLATION. Mesaj/token tenant sınırını terk etmez.",
+    "region_pin_required": true,
+    "no_log_required": true,
+    "no_train_required": true,
+    "allowed_retention": ["NONE", "EPHEMERAL"],
+    "trace": "NFR 10.7, FR-KB-010, FR-LLM-012, FR-BIL-002, API §11.1 AdapterConfig.dataRetention/noTrain"
+  },
+
+  "pii": {
+    "$comment": "Bu SPEC/config/örnekler ham PROMPT/mesaj METNİ, model çıktısı METNİ, token DEĞERİ veya PII DEĞERİ TUTMAZ — yalnız sağlayıcı kimliği + gecikme/akış SAYILARI (first_token_ms/inter_token_ms/token SAYILARI) + model/tier/tool kimlikleri + tool-call BEKLENTİSİ (boolean, içerik DEĞİL) + sanal zaman. Kart/parola/OTP gibi hassas içerik sağlayıcıya gider ama no-train + no-log (data_retention NONE/EPHEMERAL) + home-region; durable kayıt redaction_state='pending' (FR-REC-004, L7 motoru 3.3.x). Model çıktısı (yanıt) çağrı transkriptine orchestrator katmanında yazılır, adapter'da değil.",
+    "raw_prompt_in_spec_forbidden": true,
+    "raw_output_in_spec_forbidden": true,
+    "pii_value_in_spec_forbidden": true,
+    "durable_redaction_state": "pending",
+    "trace": "FR-REC-004, FR-KB-010, FR-LLM-012, BRD §14, BRD §17.7"
+  },
+
+  "invariants": [
+    { "id": "P1", "desc": "STREAMING TOKEN: complete() ilk token'ı akış-önce (stream-first, no full buffering — FR-RES-002) düşük gecikmeyle döndürür; ilk token tüm yanıt bitmeden gelir (full_buffered=0); first-token P95 ≤ SAD §20 LLM kalemi (genel 400 ms; yeşil 200 ms).", "trace": "FR-LLM-004, FR-RES-002, SAD §20" },
+    { "id": "P2", "desc": "TOOL CALL: kritik işlem bekleyen turlar schema-DOĞRULAMALI tool-call (ToolCallChunk{toolName, argumentsJson, callId}) ile yapılır, serbest metinle DEĞİL; kritik turun hiçbiri serbest metinle bırakılmaz (unhandled_tool=0).", "trace": "FR-LLM-008, API §11.4 ToolCallChunk, FR-TOOL-002" },
+    { "id": "P3", "desc": "TOKEN SÜREKLİLİĞİ / STALL YOK: token-arası boşluk stall eşiğinin (120 ms) altında kalır (token_stall=0); aksi halde downstream TTS'te ölü hava oluşur (FR-RES-009). Stall yok → akıcı konuşma.", "trace": "FR-LLM-004, FR-RES-009, SAD §20" },
+    { "id": "P4", "desc": "MODEL TIERING: sağlayıcı ≥2 model tier (küçük/büyük) sunar (min_tiers=2); küçük-tier first-token daha sıkı kapıdan geçer (P95 ≤ 200 ms; yeşil 120). Küçük-modelle karşılanan tur oranı (≥%60 SR-DEN-005) raporlanır — router KARARI (5.1-5.3), kapı değil.", "trace": "FR-LLM-013, FR-RES-005, SAD §20, SR-DEN-005" },
+    { "id": "P5", "desc": "≥2 SPI-uyumlu sağlayıcı (ADR-002/FR-LLM-001): her sağlayıcı required_features {streaming, tool_call} + noTrain=true + ≥2 model tier yeteneklerini capabilities()'te beyan eder; karşılamayan portföye giremez.", "trace": "FR-LLM-001, ADR-002, SAD §8.1, API §11.1" },
+    { "id": "P6", "desc": "NO-TRAIN + NO-LOG + RESIDENCY: noTrain=true (tenant verisi eğitime kapalı — FR-LLM-012) + data_retention NONE/EPHEMERAL (hassas içerik sağlayıcı log'una yazılmaz — FR-KB-010) + bölgesel endpoint/region pin (home-region — NFR 10.7); ihlal yok (no_train_violation=0, region_violation=0).", "trace": "FR-LLM-012, FR-KB-010, NFR 10.7" },
+    { "id": "P7", "desc": "SYSTEM PROMPT DEĞİŞMEZLİĞİ: adapter sözleşmesi system mesajını user/KB içeriğiyle değiştirmez/yeniden sıralamaz (system_prompt_mutation=0 — FR-LLM-006); messages[] sırası ve system rolü korunur. Enforcement Prompt Manager (3.2.3) + Policy Engine (3.3.2); adapter mutasyon YAPMAZ.", "trace": "FR-LLM-006, API §11.4 LlmRequest.messages" },
+    { "id": "P8", "desc": "METERING + MODEL/VERSİYON KAYDI + HATA NORMALİZASYONU: her complete UsageRecord (unit=INPUT_TOKENS/OUTPUT_TOKENS) üretir + model + version kaydeder (FR-BIL-002/FR-LLM-011); sağlayıcı hataları ortak ErrorTaxonomy'ye çevrilir (FR-TOOL-008).", "trace": "FR-BIL-002, FR-LLM-011, FR-TOOL-008" },
+    { "id": "P9", "desc": "4.2.4 komşu SEAM'leri TÜKETİR/SINIRDA durur: ortak yetenekler (timeout/retry/breaker/health/pool) 4.1.2/4.1.6, metering motoru 4.1.3, residency/retention 4.1.4, model router/tiering motoru 5.1-5.3, semantic cache 5.4, prompt-injection 3.3.1, policy engine 3.3.2, fallback ANAHTARLAMA 4.3.3, sağlayıcı SEÇİMİ 0.2.6/0.3.x — bunları UYGULAMAZ; SPI-uyum davranışını (streaming token/tool-call/süreklilik) üretir.", "trace": "4.1.2, 4.1.3, 4.1.6, 5.1, 5.2, 5.3, 5.4, 3.3.1, 3.3.2, 4.3.3, 0.2.6" },
+    { "id": "P10", "desc": "Hatalar ortak ErrorTaxonomy'ye (API §11.6) eşlenir (sağlayıcı kodu yalnız audit/log, müşteriye sızmaz); spec/config/örneklerde literal sır/credential, ham PROMPT/mesaj METNİ, model çıktısı METNİ veya PII DEĞERİ yok (yalnız sağlayıcı kimliği + sayılar + model/tier/tool kimlikleri + sanal zaman).", "trace": "API §11.6, NFR 10.7, BRD §14" }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "llm-tool-call",
+  "$comment": "Kritik işlem turu (FR-LLM-008): müşteri 'faturamı öde' der → model serbest metin yerine schema-DOĞRULAMALI tool-call (ToolCallChunk{toolName, argumentsJson, callId}) üretir (P2). Üç ardışık kritik tur (ödeme/randevu/kimlik-doğrulama) — hepsi tool-call ile (unhandled_tool=0, tool_call_ratio=1.0). Streaming first-token + süreklilik korunur. Geçer.",
+  "provider": "llm-stream-A",
+  "expect": "pass",
+  "expected": {
+    "unhandled_tool": 0,
+    "critical_total": 3,
+    "tool_calls_ok": 3
+  },
+  "events": [
+    { "kind": "request", "req_id": "act-1", "model": "m-big-1", "model_version": "2026-05", "tier": "big", "t": 0, "input_tokens": 360, "output_tokens": 18, "expects_tool": true, "tool_call": true },
+    { "kind": "end", "req_id": "act-1", "t": 700, "reason": "normal" },
+    { "kind": "request", "req_id": "act-2", "model": "m-big-1", "model_version": "2026-05", "tier": "big", "t": 1500, "input_tokens": 410, "output_tokens": 22, "expects_tool": true, "tool_call": true },
+    { "kind": "end", "req_id": "act-2", "t": 2200, "reason": "normal" },
+    { "kind": "request", "req_id": "act-3", "model": "m-big-1", "model_version": "2026-05", "tier": "big", "t": 3000, "input_tokens": 280, "output_tokens": 16, "expects_tool": true, "tool_call": true },
+    { "kind": "end", "req_id": "act-3", "t": 3600, "reason": "normal" }
+  ]
+}

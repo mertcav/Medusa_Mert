@@ -1,0 +1,16 @@
+{
+  "name": "llm-fallback-secondary",
+  "$comment": "Sağlayıcı fallback sınırı (P9 → 4.3.3): primary (llm-stream-A) UNAVAILABLE (provider_5xx) → ortak ErrorTaxonomy'ye normalize (P8/P10); akış ikincil sağlayıcıya (llm-stream-B) devam eder ve tur tool-call ile tamamlanır. Bu sample ANAHTARLAMA mantığını uygulamaz (4.3.3); yalnız ≥2 SPI-uyumlu sağlayıcı + normalize edilmiş hata ile devamı gösterir. Geçer.",
+  "expect": "pass",
+  "expected": {
+    "errors_seen": 1,
+    "errors_normalized": 1,
+    "unhandled_tool": 0
+  },
+  "events": [
+    { "kind": "request", "req_id": "fb-1", "provider": "llm-stream-A", "model": "m-big-1", "model_version": "2026-05", "tier": "big", "t": 0, "input_tokens": 300, "output_tokens": 12 },
+    { "kind": "end", "req_id": "fb-1", "t": 350, "reason": "error", "error_taxonomy": "UNAVAILABLE" },
+    { "kind": "request", "req_id": "fb-2", "model": "m-big-1", "model_version": "2026-05", "tier": "big", "t": 400, "input_tokens": 300, "output_tokens": 20, "expects_tool": true, "tool_call": true },
+    { "kind": "end", "req_id": "fb-2", "t": 1100, "reason": "normal" }
+  ]
+}

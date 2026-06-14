@@ -1,0 +1,22 @@
+{
+  "name": "llm-tiering",
+  "$comment": "Model tiering (FR-LLM-013/SR-DEN-005): adapter #2 (llm-stream-B, bölgesel) küçük + büyük tier sunar. Beş tur: 3 küçük-tier (rutin) + 2 büyük-tier (karmaşık) → küçük-tier payı %60 (≥%60 hedef raporlanır; router 5.3 kararı). Küçük-tier first-token (120ms) genel-tier'dan (240ms) belirgin hızlı + sıkı kapıyı (≤200) geçer (P4). Geçer.",
+  "provider": "llm-stream-B",
+  "expect": "pass",
+  "expected": {
+    "small_tier_count": 3,
+    "tiers_seen": ["big", "small"]
+  },
+  "events": [
+    { "kind": "request", "req_id": "t1", "model": "m-small-2", "model_version": "2026-04", "tier": "small", "t": 0, "input_tokens": 150, "output_tokens": 20 },
+    { "kind": "end", "req_id": "t1", "t": 400, "reason": "normal" },
+    { "kind": "request", "req_id": "t2", "model": "m-small-2", "model_version": "2026-04", "tier": "small", "t": 800, "input_tokens": 160, "output_tokens": 18 },
+    { "kind": "end", "req_id": "t2", "t": 1200, "reason": "normal" },
+    { "kind": "request", "req_id": "t3", "model": "m-big-2", "model_version": "2026-04", "tier": "big", "t": 1600, "input_tokens": 540, "output_tokens": 90 },
+    { "kind": "end", "req_id": "t3", "t": 2500, "reason": "normal" },
+    { "kind": "request", "req_id": "t4", "model": "m-small-2", "model_version": "2026-04", "tier": "small", "t": 3000, "input_tokens": 140, "output_tokens": 22 },
+    { "kind": "end", "req_id": "t4", "t": 3400, "reason": "normal" },
+    { "kind": "request", "req_id": "t5", "model": "m-big-2", "model_version": "2026-04", "tier": "big", "t": 3800, "input_tokens": 480, "output_tokens": 76 },
+    { "kind": "end", "req_id": "t5", "t": 4700, "reason": "normal" }
+  ]
+}

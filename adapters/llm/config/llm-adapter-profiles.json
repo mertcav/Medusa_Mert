@@ -1,0 +1,79 @@
+{
+  "$comment": "WBS 4.2.4 LLM adapter sağlayıcı + çalıştırma profilleri (İLLÜSTRATİF, sağlayıcı-nötr — ADR-002; sır YOK). 'providers' = iki SOMUT LlmAdapter implementasyonu (≥2/kategori — FR-LLM-001); GERÇEK sağlayıcı DEĞİL, isimler vendor-neutral placeholder. Her sağlayıcı: capabilities() beyanı (languages, features⊇{streaming,tool_call}, regions, no_train, tiers⊇{small,big}, data_retention) + DETERMİNİSTİK gecikme PROFİLİ (first_token_ms[büyük], first_token_small_ms[küçük], inter_token_ms, inter_token_ms_degraded, per_token_gen_ms — random YOK). Gecikme değerleri MÜHENDİSLİK varsayılanı (0.2.4 llm-eval kapılarına uyumlu); GERÇEK değerler 0.3.x canlı PoC'ta ölçülür. 'profiles' = dağıtım/tenant-sınıfı çalıştırma profilleri (primary+fallback sağlayıcı + bölge). Bölge pini NFR 10.7; UsageRecord home-region (FR-BIL-002). Config GÖVDE/credential TAŞIMAZ; hassas mesaj/PROMPT yok.",
+  "version": "1.0",
+  "default_profile": "pilot-default",
+
+  "providers": [
+    {
+      "provider_id": "llm-stream-A",
+      "$comment": "Adapter #1 — bulut çoklu-tier LLM (managed). Düşük first-token streaming, küçük+büyük model tier (FR-LLM-013), schema-doğrulamalı tool-call, no-train + no-log (NONE), bölgesel endpoint. EU/TR residency.",
+      "kind": "cloud-multitier",
+      "languages": ["tr", "en", "de", "ar"],
+      "features": ["streaming", "tool_call", "json_mode", "system_prompt"],
+      "regions": ["EU", "TR"],
+      "no_train": true,
+      "data_retention": "NONE",
+      "tiers": ["small", "big"],
+      "first_token_ms": 280,
+      "first_token_small_ms": 150,
+      "inter_token_ms": 32,
+      "inter_token_ms_degraded": 260,
+      "per_token_gen_ms": 9,
+      "cost_per_1k_input_tokens_minor": 3,
+      "cost_per_1k_output_tokens_minor": 12,
+      "currency": "EUR"
+    },
+    {
+      "provider_id": "llm-stream-B",
+      "$comment": "Adapter #2 — bölgesel/self-host yakın çoklu-tier LLM. Çok düşük first-token (yerel), küçük+büyük tier, schema-doğrulamalı tool-call, ephemeral retention + no-train, TR residency. ≥2/kategori + fallback (FR-LLM-010) için bağımsız ikinci sağlayıcı.",
+      "kind": "regional-selfhost",
+      "languages": ["tr", "en"],
+      "features": ["streaming", "tool_call", "system_prompt"],
+      "regions": ["TR"],
+      "no_train": true,
+      "data_retention": "EPHEMERAL",
+      "tiers": ["small", "big"],
+      "first_token_ms": 240,
+      "first_token_small_ms": 120,
+      "inter_token_ms": 28,
+      "inter_token_ms_degraded": 240,
+      "per_token_gen_ms": 8,
+      "cost_per_1k_input_tokens_minor": 2,
+      "cost_per_1k_output_tokens_minor": 7,
+      "currency": "TRY"
+    }
+  ],
+
+  "profiles": [
+    {
+      "name": "pilot-default",
+      "deployment": "F1-pilot-shared",
+      "$comment": "Pilot (F1) paylaşımlı varsayılan: primary=llm-stream-A, fallback=llm-stream-B. Bölge ortam değişkeninden (NFR 10.7). first-token hedefi SAD §20 üst (genel 400 ms).",
+      "primary_provider": "llm-stream-A",
+      "fallback_provider": "llm-stream-B",
+      "first_token_target_ms": 400,
+      "small_tier_target_ms": 200,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "regional-low-latency",
+      "deployment": "F2-regional",
+      "$comment": "Bölgesel düşük-gecikme: primary=llm-stream-B (yerel), fallback=llm-stream-A. Agresif first-token hedefi (yeşil bant 200 ms).",
+      "primary_provider": "llm-stream-B",
+      "fallback_provider": "llm-stream-A",
+      "first_token_target_ms": 300,
+      "small_tier_target_ms": 150,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "high-density",
+      "deployment": "F2-high-density",
+      "$comment": "Yüksek-yoğunluk: primary=llm-stream-A, fallback=llm-stream-B; küçük-tier ağırlıklı (≥%60 küçük-tier hedefi SR-DEN-005 — router 5.3). first-token hedefi genel 400 ms.",
+      "primary_provider": "llm-stream-A",
+      "fallback_provider": "llm-stream-B",
+      "first_token_target_ms": 400,
+      "small_tier_target_ms": 200,
+      "region": "${RUNTIME_REGION}"
+    }
+  ]
+}

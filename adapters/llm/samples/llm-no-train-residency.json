@@ -1,0 +1,17 @@
+{
+  "name": "llm-no-train-residency",
+  "$comment": "No-train + no-log + residency (FR-LLM-012/FR-KB-010/NFR 10.7): regüle tenant turu — hassas içerik (kart/kimlik) sağlayıcıya gider ama noTrain=true (tenant verisi eğitime kapalı) + data_retention=NONE (sağlayıcı log'una yazılmaz) + bölgesel endpoint pinlenmiş (home-region). Hata turu sağlayıcı içerik reddi → CONTENT_FILTERED normalize (P8). Hiç ihlal yok (P6). Geçer.",
+  "provider": "llm-stream-A",
+  "expect": "pass",
+  "expected": {
+    "no_train_violation": 0,
+    "region_violation": 0,
+    "errors_normalized": 1
+  },
+  "events": [
+    { "kind": "request", "req_id": "reg-1", "model": "m-big-1", "model_version": "2026-05", "tier": "big", "t": 0, "input_tokens": 300, "output_tokens": 40, "no_train": true, "region_pinned": true, "data_retention": "NONE" },
+    { "kind": "end", "req_id": "reg-1", "t": 800, "reason": "normal" },
+    { "kind": "request", "req_id": "reg-2", "model": "m-big-1", "model_version": "2026-05", "tier": "big", "t": 1500, "input_tokens": 220, "output_tokens": 0, "no_train": true, "region_pinned": true, "data_retention": "NONE" },
+    { "kind": "end", "req_id": "reg-2", "t": 2100, "reason": "error", "error_taxonomy": "CONTENT_FILTERED" }
+  ]
+}

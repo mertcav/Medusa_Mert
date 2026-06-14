@@ -1,0 +1,19 @@
+{
+  "name": "llm-happy-path",
+  "$comment": "Tipik THINK turu (adapter #1, llm-stream-A): STT final → complete(req) → ilk token düşük gecikmeyle (akış-önce, full_buffered=0) → SPEAK'e (TTS) akar (P1). Token-arası süreklilik (stall yok — P3). Sıradan tur büyük tier; kısa rutin tur küçük tier (P4). Her complete UsageRecord + model/versiyon kaydı (P8). noTrain + NONE + bölgesel pin (P6). system prompt değişmez (P7). Geçer.",
+  "provider": "llm-stream-A",
+  "expect": "pass",
+  "expected": {
+    "full_buffered": 0,
+    "token_stall": 0,
+    "unhandled_tool": 0,
+    "no_train_violation": 0,
+    "system_prompt_mutation": 0
+  },
+  "events": [
+    { "kind": "request", "req_id": "thk-1", "model": "m-big-1", "model_version": "2026-05", "tier": "big", "t": 0, "input_tokens": 520, "output_tokens": 86 },
+    { "kind": "end", "req_id": "thk-1", "t": 900, "reason": "normal" },
+    { "kind": "request", "req_id": "thk-2", "model": "m-small-1", "model_version": "2026-05", "tier": "small", "t": 1500, "input_tokens": 180, "output_tokens": 24 },
+    { "kind": "end", "req_id": "thk-2", "t": 1900, "reason": "normal" }
+  ]
+}

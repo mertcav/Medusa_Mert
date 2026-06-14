@@ -1,0 +1,16 @@
+{
+  "name": "llm-degraded",
+  "$comment": "BİLİNÇLİ BOZUK (FR-TST-008 negatif kanıt): dört politika aynı anda devre dışı → görev başlığındaki iki boyut + residency + system prompt eler. streaming=false → tüm yanıt tamponlanır, ilk token ancak üretim bitince (full_buffered>0, first-token=90×9=810ms > 400 — P1 eler/FR-RES-002). emit_tool_call=false → kritik işlem serbest metinle bırakılır (unhandled_tool>0 — P2 eler/FR-LLM-008). continuity=false → token-arası boşluk 260ms > 120 eşiği (token_stall>0 — P3 eler/FR-RES-009). system_immutable=false → system mesajı user/KB ile değiştirilir (system_prompt_mutation>0 — P7 eler/FR-LLM-006). Beklenen: ELENİR.",
+  "provider": "llm-stream-A",
+  "expect": "fail",
+  "policy": {
+    "streaming": false,
+    "emit_tool_call": false,
+    "continuity": false,
+    "system_immutable": false
+  },
+  "events": [
+    { "kind": "request", "req_id": "deg-1", "model": "m-big-1", "model_version": "2026-05", "tier": "big", "t": 0, "input_tokens": 400, "output_tokens": 90, "expects_tool": true, "tool_call": true },
+    { "kind": "end", "req_id": "deg-1", "t": 1200, "reason": "normal" }
+  ]
+}
