@@ -1,0 +1,17 @@
+{
+  "name": "pm-degraded",
+  "$comment": "BİLİNÇLİ BOZUK (FR-TST-008 negatif kanıt): immutable_system=false → düşük-güven içerik (caller override + KB) system GÖVDESİNE birleştirilir. Bu, FR-LLM-006'nın doğrudan ihlali: assembled_system_hash pin'lenmiş gövdeden SAPAR (system_mutated>0, hash_matches=false), caller/KB içeriği system rolüne girer (content_in_system_role>0), override system'e UYGULANIR (override_applied>0). P2+P3+P4 eler. System prompt kullanıcı/KB içeriğiyle değiştirilemez (FR-LLM-006). Beklenen: ELENİR.",
+  "profile": "pilot-default",
+  "expect": "fail",
+  "policy": {
+    "immutable_system": false
+  },
+  "events": [
+    { "kind": "pin", "version_id": "pv-2", "version_no": 2, "published": true, "system_hash": "sys-h-2", "system_tokens": 380, "t": 0 },
+    { "kind": "segment", "role": "history", "t": 100, "approx_tokens": 210, "source": "session_memory" },
+    { "kind": "segment", "role": "kb_context", "t": 200, "approx_tokens": 160, "source": "kb_retrieval", "contains_override": true },
+    { "kind": "segment", "role": "user_turn", "t": 300, "approx_tokens": 95, "source": "caller", "contains_override": true },
+    { "kind": "assemble", "t": 400 },
+    { "kind": "end", "t": 500, "reason": "normal" }
+  ]
+}

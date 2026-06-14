@@ -1,0 +1,148 @@
+{
+  "$comment": "WBS 3.2.3 — Prompt Manager: versiyonlu SABİT system prompt enjeksiyonu. Conversation Orchestrator (Çekirdek IP, SAD §6) oturum aktöründe (SAD §6.3) çalışan PROMPT MANAGER alt bileşeni (SAD §6.2: 'Versiyonlu system prompt + flow node'ları enjekte eder; System prompt değişmezdir; kullanıcı içeriği prompt'u değiştiremez — FR-LLM-006'). Bu görev iki çekirdek sorumluluğu sözleşmeye bağlar: (a) VERSİYONLU enjeksiyon — system prompt çağrı başında bir YAYIMLANMIŞ (is_published) prompt VERSİYONUNA (prompt.version_no, DB.md §5.2 prompt tablosu, FR-AGT-004) SABİTLENİR (pin) ve çağrı boyunca DRIFT etmez (FR-LLM-011 'kullanılan versiyon çağrı bazında kaydedilir'); (b) DEĞİŞMEZLİK (immutability) — enjekte edilen system segmenti, yayımlanmış prompt gövdesiyle BAYT-BAYT aynıdır; kullanıcı konuşması (caller) veya bilgi tabanı/RAG (kb_retrieval) içeriği system prompt'u DEĞİŞTİREMEZ (FR-LLM-006). Düşük-güven içerik (kullanıcı/KB) AYRI, çitlenmiş (fenced), daha düşük yetkili segmentlerde taşınır; ASLA system rolüne sızdırılmaz. On invariant: (P1) versiyon SABİTLENİR + drift YOK; (P2) system segmenti pinlenmiş gövdeyle birebir — system_mutated=0 (FR-LLM-006'nın KALBİ); (P3) caller/KB içeriği system rolünde DEĞİL (trust layering) — content_in_system_role=0; (P4) düşük-güven içerikteki override/jailbreak girişimi YAPISAL olarak çitlenir, system'e UYGULANMAZ — override_applied=0 (semantik tespit → Policy Engine 3.3.1/FR-LLM-007); (P5) yetki sırası: system ÖNCE/EN YÜKSEK (system→policy→history→kb_context→user_turn) — order_violation=0; (P6) montaj DETERMİNİSTİK + tam BİR system segmenti — duplicate_system=0; (P7) {tenant,agent} izolasyon — cross_tenant=0 (RLS 1.1.2); (P8) yalnız YAYIMLANMIŞ versiyon + kaydedilir — unpublished_injected=0 + version_recorded (FR-LLM-011). KAPSAM AYRIMI: prompt-injection/jailbreak SEMANTİK tespiti (input/output guard) → 3.3.1/3.3.2 (FR-LLM-007/009; Prompt Manager YALNIZ yapısal sınır/çit uygular, içeriği yorumlamaz); prompt EDITÖRÜ + versiyonlama API (yeni versiyon oluştur/yayımla) → A-06 Prompt Editor + API §POST /agents/{id}/prompts (FR-AGT-004); prompt DEPOLAMA + WORM değişmezliği → DB 1.1.2 (prompt tablosu, UNIQUE(tenant,agent,version_no)); single-prompt vs node/flow MODELİ çalıştırma + flow node enjeksiyonu → 3.2.4 (FR-AGT-003; bu motor system+segment montajını yapar, flow yürütmeyi değil); konuşma geçmişi PENCERESİ + özet (history segmenti) → 3.2.1 (window) + 3.2.2 (rolling summary) — bu motor history segmentini TÜKETİR, üretmez; LLM tiering/routing/semantic-cache → SAD §9 LLM Router; gerçek tokenizer → adapter arkasında (motor approx_tokens kullanır); PII redaction L7 → 3.3.x. Burada YALNIZ enjeksiyon/montaj MODELİ + system-prompt değişmezlik SÖZLEŞMESİ + deterministik referans montajcı. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): çekirdek minimal+deterministik (olay-tetikli, sanal saat, random YOK; gerçek LLM çağrısı yok — segment montaj + hash MODELİ); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3). Spec/config/örneklerde sır/credential, ham prompt/transkript METNİ ve PII DEĞERİ YOK — yalnız rol/kaynak + token SAYILARI + opak içerik HASH'leri (hex) + versiyon kimlikleri + sanal zaman.",
+  "version": "1.0",
+  "wbs": "3.2.3",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-LLM-006", "FR-AGT-004", "FR-LLM-011", "FR-LLM-007", "FR-TEN-002", "FR-REC-004"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "sad": ["§6", "§6.2", "§6.3", "§9", "§9.3"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003"],
+    "api": ["§11.6 ErrorTaxonomy", "POST /agents/{id}/prompts (versiyonlu) — A-06"],
+    "srs": ["SR-LLM-006"],
+    "rtm": ["TC-LLM-006"],
+    "db": ["1.1.2 prompt tablosu (DB.md §5.2, UNIQUE(tenant,agent,version_no), is_published)"],
+    "brd": ["§16 (7) Prompt", "§15 (çağrı başına metrik)"],
+    "consumes": ["3.2.1 session-memory (history penceresi)", "3.2.2 summarization (rolling summary → history segmenti)", "DB 1.1.2 prompt tablosu (yayımlanmış versiyon + WORM)", "A-06 Prompt Editor / API (versiyon oluşturma)"],
+    "observability": ["prompt_assembly_total / system_prompt_immutable_violations_total / prompt_override_blocked_total / prompt_tokens_total (BRD §15 → 0.4.7)"]
+  },
+
+  "placement": {
+    "$comment": "Prompt Manager Conversation Orchestrator oturum aktöründe THINK durumunda (SAD §6.1) — final transcript sonrası, LLM Router çağrısından ÖNCE — system prompt + segmentleri montajlar (SAD §6.2). System prompt VERSİYONU çağrı/oturum BAŞINDA (THINK ilk girişte) yayımlanmış prompt tablosundan (DB 1.1.2) SABİTLENİR (pin_scope=session_start) ve çağrı boyunca DEĞİŞMEZ — oturum içinde yeni bir versiyon yayımlanması UÇUŞTAKİ çağrıyı ETKİLEMEZ (tutarlılık + FR-LLM-011 kaydı). Montaj olay-tetikli + bloklamayan; deterministik (sanal saat, random YOK). Düşük-güven içerik (caller/KB) AYRI segmentlerde; system segmenti registry kaynaklı + değişmez.",
+    "in_orchestrator": true,
+    "in_session_actor": true,
+    "turn_state": "THINK",
+    "event_driven": true,
+    "non_blocking": true,
+    "pin_scope": "session_start",
+    "version_source": "prompt_registry (DB 1.1.2 prompt — is_published)",
+    "consumes_history_from": "3.2.1 window + 3.2.2 rolling summary",
+    "trace": "SAD §6.1, SAD §6.2, SAD §6.3, FR-AGT-004, FR-LLM-011, DB 1.1.2"
+  },
+
+  "prompt_model": {
+    "$comment": "Montajlanan LLM prompt'u SIRALI, YETKİ-KATMANLI segmentlerden oluşur. Roller ve yetki ÖNCELİĞİ (precedence): system(0)=registry kaynaklı SABİT system prompt (en yüksek yetki, değişmez) → policy(1)=Policy Engine kuralları (deterministik, BRD §13) → history(2)=session memory (3.2.1 window + 3.2.2 rolling summary) → kb_context(3)=RAG retrieval (FR-KB; ÇİTLENMİŞ, düşük güven) → user_turn(4)=geçerli kullanıcı turn'ü (caller; EN DÜŞÜK güven). UNTRUSTED kaynaklar = {caller, kb_retrieval}: bunların içeriği ASLA system rolüne girmez (P3) + içlerindeki override/talimat YAPISAL olarak system'e uygulanmaz (P4). Bir segment = {role, source, approx_tokens, content_hash?, contains_override?, sensitive_tokens?}. content_hash = içeriğin opak hex özeti (PII DEĞİL — yalnız bütünlük/karşılaştırma). System segmenti pin'lenmiş versiyon gövdesinden gelir (system_hash); montajlanan system hash'i pin'lenmiş hash'e EŞİT olmalı (P2). Gerçek tokenizer/hash adapter/registry arkasında; motor approx_tokens + opak hash kullanır.",
+    "segment_fields": ["role", "source", "approx_tokens", "content_hash", "contains_override", "sensitive_tokens"],
+    "roles": ["system", "policy", "history", "kb_context", "user_turn"],
+    "content_roles": ["policy", "history", "kb_context", "user_turn"],
+    "precedence": { "system": 0, "policy": 1, "history": 2, "kb_context": 3, "user_turn": 4 },
+    "untrusted_sources": ["caller", "kb_retrieval"],
+    "system_source": "prompt_registry",
+    "system_token_budget": 1200,
+    "total_prompt_token_budget": 6000,
+    "trace": "SAD §6.2, FR-LLM-006, FR-KB, DB 1.1.2"
+  },
+
+  "versioning": {
+    "$comment": "Versiyonlama (P1, FR-AGT-004 'prompt versiyonlanmalıdır' + FR-LLM-011 'kullanılan versiyon çağrı bazında kaydedilir'). System prompt çağrı başında bir YAYIMLANMIŞ versiyona (version_id + version_no, is_published=true) SABİTLENİR; aynı çağrıda farklı versiyona REPIN yok (stable_within_call). Kullanılan versiyon çağrı kaydına yazılır (version_recorded). pin_scope=session_start: oturum içinde yeni yayım uçuştaki çağrıyı etkilemez (drift=0).",
+    "pin_required": true,
+    "stable_within_call": true,
+    "version_recorded": true,
+    "no_mid_call_drift": true,
+    "trace": "FR-AGT-004, FR-LLM-011, DB 1.1.2"
+  },
+
+  "immutability": {
+    "$comment": "DEĞİŞMEZLİK (P2/P3/P4 — FR-LLM-006'nın KALBİ: 'System prompt kullanıcı konuşması veya bilgi tabanı içeriği tarafından değiştirilememelidir'). (a) byte_stable: montajlanan system segmenti pin'lenmiş yayımlanmış gövdeyle BAYT-BAYT aynı (assembled_system_hash == pinned_system_hash) — caller/KB/runtime içeriği system'e BİRLEŞTİRİLMEZ; (b) trust_layering: caller/KB içeriği yalnız düşük-yetkili segmentlerde (user_turn/kb_context), system rolünde DEĞİL; (c) override_neutralized: düşük-güven içerikteki 'önceki talimatları yok say' / sahte system işaretleri YAPISAL olarak çitlenir (fence) — system'e UYGULANMAZ. NOT: SEMANTİK injection/jailbreak tespiti Policy Engine input guard'da (3.3.1/FR-LLM-007); Prompt Manager YAPISAL sınırı (rol ayrımı + çit) uygular.",
+    "system_byte_stable": true,
+    "trust_layering": true,
+    "untrusted_in_system_forbidden": true,
+    "override_structurally_fenced": true,
+    "no_fallback_to_user_content": true,
+    "trace": "FR-LLM-006, SR-LLM-006, SAD §9.3, FR-LLM-007 (sınır)"
+  },
+
+  "assembly": {
+    "$comment": "Montaj sırası (P5/P6). Segmentler SABİT yetki önceliğinde dizilir: system → policy → history → kb_context → user_turn. system HER ZAMAN ilk/en yüksek (system_first). Tam BİR system segmenti (duplicate_system=0; içerik segmenti role=system talep edemez → reddedilir). Aynı girdi → BAYT-BAYT aynı montaj (deterministik, random YOK).",
+    "ordered_by_precedence": true,
+    "system_first": true,
+    "single_system_segment": true,
+    "deterministic": true,
+    "trace": "SAD §6.2, FR-LLM-006"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (versiyonlu sabit system prompt enjeksiyonu). (P1) max_version_drift=0: versiyon çağrı başında sabitlenir + çağrı içinde drift yok (FR-AGT-004). (P2) max_system_mutated=0: montajlanan system segmenti pin'lenmiş gövdeyle birebir — caller/KB içeriği system'i değiştirmez (FR-LLM-006'nın kalbi). (P3) max_content_in_system_role=0: caller/KB içeriği system rolünde değil (trust layering). (P4) max_override_applied=0: düşük-güven override system'e uygulanmaz (yapısal çit; semantik → 3.3.1). (P5) max_order_violation=0: system önce/en yüksek + sabit yetki sırası. (P6) max_duplicate_system=0: tam bir system segmenti + deterministik. (P7) max_cross_tenant=0: {tenant,agent} izolasyon (RLS 1.1.2). (P8) max_unpublished_injected=0 + require_version_recorded: yalnız yayımlanmış versiyon enjekte edilir + kullanılan versiyon kaydedilir (FR-LLM-011).",
+    "system_token_budget": 1200,
+    "total_prompt_token_budget": 6000,
+    "require_published": true,
+    "require_version_recorded": true,
+    "max_version_drift": 0,
+    "max_system_mutated": 0,
+    "max_content_in_system_role": 0,
+    "max_override_applied": 0,
+    "max_order_violation": 0,
+    "max_duplicate_system": 0,
+    "max_cross_tenant": 0,
+    "max_unpublished_injected": 0,
+    "trace": "FR-LLM-006, FR-AGT-004, FR-LLM-011, FR-LLM-007, FR-TEN-002, SAD §6.2/§9.3"
+  },
+
+  "metrics": {
+    "$comment": "Prompt Manager her oturum için BRD §15 + enjeksiyon metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. prompt_assembly_total → montaj sayısı; system_prompt_immutable_violations_total → system_mutated (FR-LLM-006 ihlali — alarm); prompt_override_blocked_total → çitlenen override (FR-LLM-007 sınır kanıtı); prompt_tokens_total → montajlanan prompt token boyutu; prompt_version_pinned → kullanılan versiyon (version_no DÜŞÜK kardinalite — label uygun; version_id YÜKSEK kardinalite → yalnız trace/exemplar; 0.4.7 label_policy, 3.1.5 producer). Token/hash SAYILARI PII DEĞİLDİR; ham prompt/transkript METNİ metriklerde yok.",
+    "emitted": [
+      "prompt_assembly_total", "system_prompt_immutable_violations_total",
+      "prompt_override_blocked_total", "prompt_tokens_total", "prompt_version_pinned"
+    ],
+    "maps_to_observability": {
+      "prompt_tokens_total": "llm_prompt_token_size",
+      "system_prompt_immutable_violations_total": "prompt_immutability_violation_total"
+    },
+    "proposed_observability_additions": [
+      "prompt_assembly_total", "prompt_override_blocked_total"
+    ],
+    "trace": "BRD §15, SAD §17.1, observability 0.4.7, 3.1.5 context-propagation"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Prompt montaj hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Bozuk segment (rol/kaynak geçersiz, approx_tokens sayısal değil, content segmenti role=system) → INVALID_REQUEST; yayımlanmamış/eksik prompt versiyonu → INVALID_REQUEST (FAIL-CLOSED: kullanıcı içeriği system'e ASLA fallback edilmez — no_fallback_to_user_content); prompt registry erişilemez → UNAVAILABLE (çağrı güvenli reddedilir, system uydurulmaz); cross-tenant/agent prompt çekme → AUTH; bölge uyumsuzluğu → REGION_VIOLATION. System prompt EKSİKLİĞİ bir DEGRADE değil, fail-closed HATA'dır.",
+    "mapping": {
+      "invalid_segment": "INVALID_REQUEST",
+      "unpublished_version": "INVALID_REQUEST",
+      "registry_unavailable": "UNAVAILABLE",
+      "cross_tenant_access": "AUTH",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, FR-LLM-006, FR-TEN-002, NFR 10.7"
+  },
+
+  "residency": {
+    "$comment": "Prompt versiyonu tenant home-region prompt registry'sinden (DB 1.1.2; SAD §12.3 residency) çekilir + kullanılan versiyon çağrı kaydına home-region'da yazılır (FR-LLM-011, NFR 10.7). Bölge uyumsuzluğu REGION_VIOLATION. Prompt gövdesi tenant sınırını terk etmez.",
+    "region_pin_required": true,
+    "version_recorded_home_region": true,
+    "trace": "NFR 10.7, FR-LLM-011, DB 1.1.2, SAD §12.3"
+  },
+
+  "pii": {
+    "$comment": "System prompt KÜRATÖRLÜdür (operatör/designer tasarlar, A-06) — kullanıcı PII'si içermez; düşük-güven segmentler (history/kb_context/user_turn) PII İÇEREBİLİR ama AYRI segmentlerde + durable kayıt redaction_state='pending' (FR-REC-004, L7 motoru 3.3.x). Kart/parola/OTP düz-metin system segmentine HİÇ girmez (caller/KB system'e birleştirilemediği için yapısal olarak da imkânsız — P2/P3). Bu SPEC/config/örnekler ham prompt/transkript METNİ veya PII DEĞERİ TUTMAZ — yalnız rol/kaynak + token SAYILARI (approx_tokens) + opak içerik HASH'leri (content_hash) + versiyon kimlikleri + sanal zaman + sensitive-işaret SAYILARI.",
+    "raw_prompt_text_in_spec_forbidden": true,
+    "pii_value_in_spec_forbidden": true,
+    "system_prompt_curated": true,
+    "card_otp_cleartext_in_system_forbidden": true,
+    "durable_redaction_state": "pending",
+    "trace": "FR-REC-004, FR-REC-005, BRD §14, BRD §17.7"
+  },
+
+  "invariants": [
+    { "id": "P1", "desc": "System prompt çağrı/oturum başında bir YAYIMLANMIŞ prompt VERSİYONUNA sabitlenir (pin_scope=session_start) ve çağrı boyunca drift etmez — version_drift=0; kullanılan versiyon kaydedilir (FR-AGT-004, FR-LLM-011).", "trace": "FR-AGT-004, FR-LLM-011, DB 1.1.2" },
+    { "id": "P2", "desc": "Montajlanan system segmenti pin'lenmiş yayımlanmış gövdeyle BAYT-BAYT aynı (assembled_system_hash==pinned_system_hash); caller/KB/runtime içeriği system'e birleştirilmez — system_mutated=0. FR-LLM-006'nın KALBİ.", "trace": "FR-LLM-006, SR-LLM-006, SAD §6.2" },
+    { "id": "P3", "desc": "Trust layering: caller (user_turn) ve KB (kb_context) içeriği AYRI düşük-yetkili segmentlerde; system rolünde DEĞİL — content_in_system_role=0 (FR-LLM-006).", "trace": "FR-LLM-006, SAD §9.3" },
+    { "id": "P4", "desc": "Düşük-güven içerikteki override/jailbreak girişimi ('önceki talimatları yok say', sahte system işareti) YAPISAL olarak çitlenir, system'e UYGULANMAZ — override_applied=0; SEMANTİK tespit Policy Engine input guard'da (3.3.1/FR-LLM-007).", "trace": "FR-LLM-006, FR-LLM-007, SAD §9.3" },
+    { "id": "P5", "desc": "Yetki sırası: system ÖNCE/EN YÜKSEK + sabit precedence (system→policy→history→kb_context→user_turn) — order_violation=0.", "trace": "SAD §6.2, FR-LLM-006" },
+    { "id": "P6", "desc": "Montaj DETERMİNİSTİK (olay-tetikli, sanal saat, random YOK) + tam BİR system segmenti (içerik segmenti role=system talep edemez) — duplicate_system=0; aynı girdi → bayt-bayt aynı prompt.", "trace": "SAD §6.3, ADR-002" },
+    { "id": "P7", "desc": "Prompt versiyonu {tenant_id, agent_id} kapsamında çekilir (cross_tenant=0); veri-katmanı RLS (1.1.2) + montaj-katmanı yapısal izolasyon.", "trace": "FR-TEN-002, DB 1.1.2" },
+    { "id": "P8", "desc": "Yalnız YAYIMLANMIŞ (is_published=true) versiyon enjekte edilir; yayımlanmamış/eksik → reddedilir (FAIL-CLOSED, kullanıcı içeriğine fallback YOK) — unpublished_injected=0 + version_recorded (FR-LLM-011).", "trace": "FR-AGT-004, FR-LLM-011, DB 1.1.2" },
+    { "id": "P9", "desc": "3.2.3 komşu SEAM'leri TÜKETİR: history segmenti 3.2.1 window + 3.2.2 rolling summary'den, prompt gövdesi DB 1.1.2 prompt tablosundan (yayımlanmış+WORM), versiyon oluşturma A-06/API'den; pencereyi/özetlemeyi/depolamayı/editörü/flow yürütmeyi (3.2.4) UYGULAMAZ.", "trace": "3.2.1 session-memory, 3.2.2 summarization, DB 1.1.2, A-06, 3.2.4" },
+    { "id": "P10", "desc": "Kullanılan versiyon tenant home-region'da kaydedilir (FR-LLM-011, NFR 10.7); hatalar ortak ErrorTaxonomy'ye (API §11.6) eşlenir (registry-down → UNAVAILABLE/fail-closed, system uydurulmaz); spec/config/örneklerde literal sır, ham prompt/transkript METNİ veya PII DEĞERİ yok (yalnız rol/kaynak + token + opak hash + versiyon kimliği + sanal zaman).", "trace": "NFR 10.7, API §11.6, FR-LLM-011, BRD §14" }
+  ]
+}

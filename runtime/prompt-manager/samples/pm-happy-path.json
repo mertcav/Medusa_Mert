@@ -1,0 +1,20 @@
+{
+  "name": "pm-happy-path",
+  "$comment": "Tipik tur: çağrı başında yayımlanmış prompt versiyonu (v3) sabitlenir + kaydedilir (P1/P8), THINK'te system + policy + history (3.2.1/3.2.2) + kb_context (RAG) + user_turn segmentleri yetki sırasında montajlanır (P5). System segmenti pin'lenmiş gövdeyle birebir (P2), caller/KB içeriği system rolünde değil (P3). Hiç override yok. Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "pinned_version_no": 3,
+    "system_mutated": 0,
+    "content_in_system_role": 0
+  },
+  "events": [
+    { "kind": "pin", "version_id": "pv-3", "version_no": 3, "published": true, "system_hash": "sys-h-3", "system_tokens": 420, "t": 0 },
+    { "kind": "segment", "role": "policy", "t": 100, "approx_tokens": 60, "content_hash": "pol-h" },
+    { "kind": "segment", "role": "history", "t": 200, "approx_tokens": 240, "content_hash": "hist-h", "source": "session_memory" },
+    { "kind": "segment", "role": "kb_context", "t": 300, "approx_tokens": 180, "content_hash": "kb-h", "source": "kb_retrieval" },
+    { "kind": "segment", "role": "user_turn", "t": 400, "approx_tokens": 90, "content_hash": "user-h", "source": "caller" },
+    { "kind": "assemble", "t": 500 },
+    { "kind": "end", "t": 600, "reason": "normal" }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "pm-version-pinned",
+  "$comment": "Versiyon SABİTLEME (P1, FR-AGT-004/FR-LLM-011): çağrı başında v5 sabitlenir. Oturum boyunca İKİ assemble (çok turlu çağrı); aralarda AYNI versiyona (v5) tekrar 'pin' gelir (idempotent — operatör yeni yayım yapmadı) → version_drift=0. Kullanılan versiyon kaydedilir. Her iki assemble'de de system gövdesi birebir aynı (P2). Geçer.",
+  "profile": "pilot-default",
+  "expect": "pass",
+  "expected": {
+    "pinned_version_no": 5,
+    "version_drift": 0,
+    "assemble_ops": 2
+  },
+  "events": [
+    { "kind": "pin", "version_id": "pv-5", "version_no": 5, "published": true, "system_hash": "sys-h-5", "system_tokens": 500, "t": 0 },
+    { "kind": "segment", "role": "history", "t": 100, "approx_tokens": 200, "source": "session_memory" },
+    { "kind": "segment", "role": "user_turn", "t": 200, "approx_tokens": 80, "source": "caller" },
+    { "kind": "assemble", "t": 300 },
+    { "kind": "pin", "version_id": "pv-5", "version_no": 5, "published": true, "system_hash": "sys-h-5", "system_tokens": 500, "t": 400 },
+    { "kind": "segment", "role": "history", "t": 500, "approx_tokens": 260, "source": "session_memory" },
+    { "kind": "segment", "role": "user_turn", "t": 600, "approx_tokens": 75, "source": "caller" },
+    { "kind": "assemble", "t": 700 },
+    { "kind": "end", "t": 800, "reason": "normal" }
+  ]
+}

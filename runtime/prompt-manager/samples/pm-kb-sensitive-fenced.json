@@ -1,0 +1,20 @@
+{
+  "name": "pm-kb-sensitive-fenced",
+  "$comment": "Düşük-güven segment hassas işaret taşır (P2/P3): kullanıcı turn'ü kart/OTP benzeri sensitive_tokens=3 taşıyor. Bu içerik user_turn segmentinde KALIR; system gövdesine girmez (sensitive_in_system=0) — kart/OTP düz-metin system'e yasak (FR-REC-005), system kuratörlü+değişmez (P2). KB context (RAG) ayrı çitlenmiş segment. Durable kayıt redaction_state='pending' (3.2.1/3.3.x ilgilenir; prompt montaj katmanı içeriği yorumlamaz). Geçer.",
+  "profile": "enterprise-rich",
+  "expect": "pass",
+  "expected": {
+    "sensitive_seen": 3,
+    "sensitive_in_system": 0,
+    "system_mutated": 0
+  },
+  "events": [
+    { "kind": "pin", "version_id": "pv-7", "version_no": 7, "published": true, "system_hash": "sys-h-7", "system_tokens": 900, "t": 0 },
+    { "kind": "segment", "role": "policy", "t": 100, "approx_tokens": 120 },
+    { "kind": "segment", "role": "history", "t": 200, "approx_tokens": 400, "source": "session_memory" },
+    { "kind": "segment", "role": "kb_context", "t": 300, "approx_tokens": 300, "source": "kb_retrieval", "content_hash": "kb-h" },
+    { "kind": "segment", "role": "user_turn", "t": 400, "approx_tokens": 110, "source": "caller", "sensitive_tokens": 3, "content_hash": "user-pii-h" },
+    { "kind": "assemble", "t": 500 },
+    { "kind": "end", "t": 600, "reason": "normal" }
+  ]
+}
