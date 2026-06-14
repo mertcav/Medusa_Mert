@@ -1,0 +1,17 @@
+{
+  "name": "telephony-outbound-dial",
+  "$comment": "Outbound çağrı (adapter #1, tel-managed-A): dial(DialRequest{from,to,callerIdPool}) → E.164 (P2) + caller-ID havuzu referansı (FR-TEL-005) → media_ready (kurulum/post-dial ≤ bütçe — P7) → AMD(human) → agent çözüm → hangup (goal fulfilled, containment). UsageRecord SECONDS (P8). Geçer.",
+  "provider": "tel-managed-A",
+  "expect": "pass",
+  "expected": {
+    "outbound_total": 1,
+    "missing_caller_id_pool": 0,
+    "invalid_e164": 0
+  },
+  "events": [
+    { "kind": "dial", "call_id": "out-1", "t": 0, "direction": "outbound", "from": "caller-id-pool-ref", "to": "e164-callee-ref", "caller_id_pool": "pool-local-presence", "e164_valid": true, "secure_transport": true, "sample_rate_hz": 8000, "region_pinned": true },
+    { "kind": "media_ready", "call_id": "out-1", "t": 740 },
+    { "kind": "amd", "call_id": "out-1", "t": 1200, "result": "human" },
+    { "kind": "hangup", "call_id": "out-1", "t": 42000, "reason_code": "completed_goal_fulfilled", "reason": "normal" }
+  ]
+}

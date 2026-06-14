@@ -1,0 +1,144 @@
+{
+  "$comment": "WBS 4.2.5 — Telephony adapter #1 + #2 (SIP trunk + BYOC). Sağlayıcı Soyutlama Katmanı'nda (Adapters, BRD §16/SAD §8) iki SOMUT TelephonyAdapter implementasyonunu (≥2/kategori — ADR-002, FR-TEL-002) ortak SPI (SAD §8.1 / API §11.5 TelephonyAdapter) arkasına bağlar. Orchestrator (Çekirdek IP, SAD §6; ADR-001) YALNIZ bu SPI'ye bağımlıdır — taşıma modu (managed CPaaS Media Streams / BYOC ham SIP trunk) değişse de orchestrator AYNI normalize sözleşmeyi görür. İKİ somut adapter: (#1) managed CPaaS adapter (SAD §7.2 M1 / 2.1.3 — Media Streams WebSocket) + (#2) BYOC SIP trunk adapter (SAD §7.2 M2 / 2.1.4 — ham SIP+RTP, BYOC). FR-TEL-002: 'SIP trunk ve BYOC (Bring Your Own Carrier) bağlantısı desteklenmelidir' — bu iki taşıma modu tek SPI arkasında değiştirilebilir; ≥2 sağlayıcı + fallback (BRD §19). SPI yüzeyi (API §11.5): dial(req) outbound (FR-TEL-001/002), answer(callId) inbound, transfer(callId, target, mode∈{COLD,WARM,WHISPER}) SIP REFER (FR-TEL-007), sendDtmf(callId, digits) RFC 2833 / SIP INFO (FR-TEL-006), hangup(callId, reasonCode) standart neden kodu (FR-TEL-012, taksonomi 2.1.7), mediaStream(callId) duplex RTP/SRTP 8kHz (FR-RES-008, NFR 10.6), on(event∈{ANSWERED,HANGUP,DTMF,AMD}, handler) (FR-TEL-010 AMD). DialRequest{from,to,callerIdPool?,trunk?} E.164 (FR-TEL-004/005); TransferTarget{type∈{QUEUE,SKILL,AGENT,NUMBER},ref} (FR-HND-003). On invariant: (P1) iki taşıma modu (managed/BYOC) tek normalize SPI sözleşmesine indirgenir — orchestrator taşımayı görmez (contract_divergence=0); (P2) E.164 numara biçimi + caller-ID havuzu (invalid_e164=0, outbound missing_caller_id_pool=0 — FR-TEL-004/005); (P3) cold/warm/whisper transfer + hedef tipi (unsupported_transfer=0 — FR-TEL-007); (P4) DTMF + AMD olayları yüzeye çıkar (dropped_event=0 — FR-TEL-006/010); (P5) ≥2 SPI-uyumlu sağlayıcı/trunk + fallback (min_providers=2 — FR-TEL-002/ADR-002); (P6) hangup standart neden kodu (missing_reason_code=0 — FR-TEL-012); (P7) medya yolu 8kHz native + güvenli taşıma (SRTP/TLS) + çağrı kurulum gecikmesi bütçesi (insecure_media=0, non_8khz=0, setup_p95 ≤ bütçe — FR-RES-008/NFR 10.6); (P8) metering (UsageRecord unit=SECONDS çağrı süresi) + residency (home-region pin) + ortak hata taksonomisi (FR-BIL-002/NFR 10.7/FR-TOOL-008); (P9) komşu SEAM tüketimi; (P10) ErrorTaxonomy + sır/ham-PII (numara DEĞERİ) yok. KAPSAM AYRIMI: SBC kurulumu (SIP güvenlik/topoloji gizleme/DDoS) → 2.1.1; managed CPaaS medya çerçeve sözleşmesi → 2.1.3 (bu adapter TÜKETİR); BYOC SIP/SDP/RTP sözleşmesi → 2.1.4 (TÜKETİR); E.164 normalize + caller-ID havuz MOTORU → 2.1.5 (bu adapter ≥2 SPI-uyum + biçim UYGUNLUĞUNU doğrular, normalize MOTORUNU değil); DTMF detect/generate MOTORU → 2.1.6; çağrı neden kodu TAKSONOMİSİ → 2.1.7 (hangup neden kodu BURADAN gelir; bu adapter eşlemeyi TÜKETİR); kontrollü retry/geri-arama → 2.1.8 (FR-TEL-009); AMD MOTORU → 2.1.9 (bu adapter AMD OLAYINI yüzeye çıkarır, sınıflandırma motorunu değil); RTP medya termination/jitter → 2.2.1; codec/8kHz → 2.2.2; edge VAD/endpointing/barge-in → 2.2.3 (ADR-005); insan aktarımı/handoff akışı → 8.x (FR-HND); outbound consent/arama-saati/DNC → 10.2 (FR-TEL-013/014, FR-OUT-*); TELEFONI FALLBACK ANAHTARLAMA → 4.3.x (bu adapter ≥2 SPI-uyum + ErrorTaxonomy VARLIĞINI doğrular, fallback ANAHTARLAMA mantığını DEĞİL); ortak adapter yetenekleri (timeout/retry/breaker/health/connection pool) → 4.1.2/4.1.6 (TÜKETİR); usage metering/cost MOTORU → 4.1.3 (UsageRecord ÜRETİMİNİ doğrular); residency/retention motoru → 4.1.4; sağlayıcı/telekom SEÇİMİ → 0.2.1/0.2.6/0.3.x (vendor-neutral, ADR-002). Burada YALNIZ iki somut adapter'ın SPI-uyum DAVRANIŞI (taşıma-nötr çağrı kontrolü: dial/answer/transfer/dtmf/amd/hangup/mediaStream + normalize) + deterministik referans adapter. KAYNAK DOĞRULUK; çelişkide BRD/SAD/API esastır. Vendor-neutral (ADR-002): çekirdek minimal+deterministik (olay-tetikli, sanal saat, random YOK; gerçek SIP/RTP yığını YOK — sağlayıcı kurulum gecikme profili + çağrı kontrol MODELİ); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3) + gerçek TelephonyAdapter + SBC/trunk. Spec/config/örneklerde sır/credential, ham TELEFON NUMARASI DEĞERİ veya PII YOK — yalnız sağlayıcı/trunk kimliği + gecikme/çağrı SAYILARI + mod/yön/transfer/neden-kodu kimlikleri + biçim UYGUNLUK bayrakları (boolean) + sanal zaman.",
+  "version": "1.0",
+  "wbs": "4.2.5",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-TEL-001", "FR-TEL-002", "FR-TEL-004", "FR-TEL-005", "FR-TEL-006", "FR-TEL-007", "FR-TEL-010", "FR-TEL-012", "FR-RES-008", "FR-BIL-002", "FR-TOOL-008", "FR-HND-003", "FR-TEN-002"],
+    "nfr": ["NFR 10.1", "NFR 10.6", "NFR 10.7"],
+    "sad": ["§6", "§6.1", "§6.3", "§7.1", "§7.2", "§8.1", "§8.2", "§8.3", "§11.5", "§12.1", "§13.3", "§20"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003", "ADR-005", "ADR-009"],
+    "api": ["§11.1 Capabilities/UsageRecord/AdapterConfig", "§11.5 TelephonyAdapter", "§11.6 ErrorTaxonomy", "§12.1 medya WS/RTP", "§12.2 TurnEvent"],
+    "srs": ["SR-RTC-001", "SR-TEL-002", "SR-TEL-004", "SR-TEL-006", "SR-TEL-007", "SR-TEL-012"],
+    "rtm": ["TC-TEL-002", "TC-TEL-004", "TC-TEL-006", "TC-TEL-007", "TC-TEL-012"],
+    "vendor_eval": ["0.2.1 telephony-media-latency.md (M1 managed-WS / M2 ham-SIP-RTP entegrasyon modları + medya bütçesi)"],
+    "consumes": ["2.1.1 SBC", "2.1.3 managed CPaaS medya çerçevesi", "2.1.4 BYOC SIP/SDP/RTP", "2.1.5 E.164/caller-ID havuz motoru", "2.1.6 DTMF detect/generate motoru", "2.1.7 çağrı neden kodu taksonomisi", "2.1.8 retry/geri-arama", "2.1.9 AMD motoru", "2.2.1 RTP termination/jitter", "2.2.2 codec/8kHz", "2.2.3 edge VAD/barge-in", "4.1.2 ortak yetenekler", "4.1.6 connection pool", "4.1.3 usage metering/cost motoru", "4.1.4 residency/retention", "4.3.x telefoni fallback anahtarlama (FR-TEL-002)"],
+    "observability": ["telephony_call_setup_ms / telephony_active_calls / telephony_transfer_total / telephony_dtmf_total / telephony_amd_total / telephony_call_seconds_total / telephony_hangup_total{reason_code} (BRD §15 → 0.4.7; call_setup_ms ile eşlenir)"]
+  },
+
+  "placement": {
+    "$comment": "TelephonyAdapter çağrı yaşam döngüsünün TAMAMINI kapsar (turn state machine içinde DEĞİL, onun ALTINDA telefoni edge): inbound answer → mediaStream (RTP/SRTP 8kHz) ↔ Media Gateway → Orchestrator turn state machine (SAD §6.1 LISTEN→CAPTURE→THINK→ACT→SPEAK); outbound dial; transfer (SIP REFER); sendDtmf; hangup (neden kodu). Orchestrator YALNIZ TelephonyAdapter SPI'ye bağımlıdır (ADR-001); somut taşıma modu (managed CPaaS M1 / BYOC SIP trunk M2) arkada değişir (ADR-002) ve orchestrator AYNI normalize sözleşmeyi görür. Medya işleme konumu (edge/merkez) deployment'ı belirler ama SPI'yi DEĞİŞTİRMEZ (ADR-009 hibrit). Olay-tetikli + bloklamayan; deterministik (sanal saat, random YOK).",
+    "behind_spi": true,
+    "orchestrator_depends_on_spi_only": true,
+    "scope": "call_lifecycle",
+    "transport_neutral": true,
+    "transport_modes": ["managed_cpaas", "byoc_sip_trunk"],
+    "event_driven": true,
+    "non_blocking": true,
+    "media_placement_owned_by": "ADR-009 (hibrit) deployment; SPI değişmez",
+    "trace": "SAD §6.1, SAD §7.2, SAD §8.1, SAD §11.5, ADR-001, ADR-009, API §11.5"
+  },
+
+  "spi": {
+    "$comment": "Ölçülen SPI yüzeyi (SAD §8.1 / API §11.5 TelephonyAdapter). Metotlar: dial(DialRequest)→CallHandle (outbound), answer(callId)→MediaSession (inbound), transfer(callId, TransferTarget, mode∈{COLD,WARM,WHISPER}) (SIP REFER — FR-TEL-007), sendDtmf(callId, digits) (RFC 2833 / SIP INFO — FR-TEL-006), hangup(callId, reasonCode) (FR-TEL-012), mediaStream(callId)→DuplexStream<AudioChunk> (RTP/SRTP — NFR 10.6), on(event∈{ANSWERED,HANGUP,DTMF,AMD}, handler) (FR-TEL-010). DialRequest{from,to,callerIdPool?,trunk?} E.164 (FR-TEL-004/005); TransferTarget{type∈{QUEUE,SKILL,AGENT,NUMBER},ref} (FR-HND-003). Ortak Adapter: capabilities()/health()/meter()/configure() (API §11.1 — yetenekler 4.1.x'te). capabilities(): features ⊇ {dtmf, amd, transfer}, transfer_modes ⊇ {COLD,WARM,WHISPER}, sample_rates ∋ 8000, secure_transport=true, directions ⊇ {inbound,outbound}. Bir sağlayıcının/trunk'ın portföye girmesi için bu sözleşmeyi karşılaması gerekir (P5).",
+    "methods": ["dial", "answer", "transfer", "sendDtmf", "hangup", "mediaStream", "on", "capabilities", "health", "meter", "configure"],
+    "dial_request_fields": ["from", "to", "callerIdPool", "trunk"],
+    "transfer_modes": ["COLD", "WARM", "WHISPER"],
+    "transfer_target_types": ["QUEUE", "SKILL", "AGENT", "NUMBER"],
+    "events": ["ANSWERED", "HANGUP", "DTMF", "AMD"],
+    "dtmf_transports": ["rfc2833", "sip_info"],
+    "required_features": ["dtmf", "amd", "transfer"],
+    "required_sample_rate_hz": 8000,
+    "trace": "SAD §8.1, API §11.1/§11.5, FR-TEL-001/002/004/005/006/007/010/012, FR-RES-008"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar. (P1) max_contract_divergence=0: managed/BYOC iki taşıma modu tek normalize SPI sözleşmesine indirgenir; orchestrator taşımayı görmez (SAD §8.1/§11.5, ADR-001). (P2) max_invalid_e164=0 + max_missing_caller_id_pool=0: dial/answer numaraları E.164 (FR-TEL-004); outbound caller-ID havuzu referansı taşır (FR-TEL-005). (P3) max_unsupported_transfer=0: transfer cold/warm/whisper + hedef tipi (QUEUE/SKILL/AGENT/NUMBER) desteklenir (FR-TEL-007). (P4) max_dropped_event=0: DTMF + AMD olayları on(...) ile yüzeye çıkar (FR-TEL-006/010). (P6) max_missing_reason_code=0: hangup standart neden kodu taşır (FR-TEL-012, taksonomi 2.1.7). (P7) setup_p95_ms ≤ 2000 (çağrı kurulum/post-dial gecikme bütçesi — MÜHENDİSLİK varsayılanı; yeşil 1000) + max_insecure_media=0 (SRTP/TLS — NFR 10.6) + max_non_8khz=0 (8kHz native — FR-RES-008). (P8) require_metering (UsageRecord unit=SECONDS, çağrı süresi — FR-BIL-002) + max_region_violation=0 (home-region pin — NFR 10.7) + require_error_normalized (FR-TOOL-008). min_providers=2 (P5, ADR-002 — managed + BYOC). max_cross_tenant=0 (FR-TEN-002). Setup gecikmesi SAD §20 MEDYA bütçesinden (tek-yön ≤100ms) AYRIDIR — o ayrı medya transport kalemi (0.2.1); burada çağrı-kontrol KURULUM (PDD) bütçesi. Eşikler MÜHENDİSLİK varsayılanı (0.2.1 telephony-media-latency çerçevesi); gerçek değerler 0.3.x canlı PoC + gerçek trunk'ta doğrulanır.",
+    "setup_p95_ms": 2000,
+    "setup_green_ms": 1000,
+    "max_contract_divergence": 0,
+    "max_invalid_e164": 0,
+    "max_missing_caller_id_pool": 0,
+    "max_unsupported_transfer": 0,
+    "max_dropped_event": 0,
+    "max_missing_reason_code": 0,
+    "max_insecure_media": 0,
+    "max_non_8khz": 0,
+    "max_region_violation": 0,
+    "max_cross_tenant": 0,
+    "min_providers": 2,
+    "require_metering": true,
+    "require_error_normalized": true,
+    "required_features": ["dtmf", "amd", "transfer"],
+    "required_transfer_modes": ["COLD", "WARM", "WHISPER"],
+    "required_sample_rate_hz": 8000,
+    "trace": "FR-TEL-002/004/005/006/007/010/012, FR-RES-008, FR-BIL-002, FR-TEN-002, NFR 10.1, NFR 10.6, NFR 10.7, SAD §20"
+  },
+
+  "fallback": {
+    "$comment": "Telefoni fallback (P9 sınır): birincil telekom/trunk düşerse ikincil trunk/sağlayıcıya geçilir (FR-TEL-002, ≥2 sağlayıcı — BRD §19). Bu görev fallback ANAHTARLAMA mantığını UYGULAMAZ (→ 4.3.x) ama (a) ≥2 SPI-uyumlu sağlayıcının/trunk'ın VARLIĞINI (P5) — managed CPaaS + BYOC SIP trunk — ve (b) ortak ErrorTaxonomy (API §11.6) eşlemesinin varlığını doğrular; routing kararı TIMEOUT/UNAVAILABLE/RATE_LIMITED → secondary trunk, AUTH → alarm + secondary. Telefoni neden kodu (2.1.7) → error_taxonomy → fallback kararı.",
+    "min_providers": 2,
+    "secondary_trunk_on_failure": true,
+    "switching_owned_by": "4.3.x",
+    "trace": "FR-TEL-002, SAD §8.3, API §11.6, 2.1.7"
+  },
+
+  "metrics": {
+    "$comment": "TelephonyAdapter her çağrı/olay için BRD §15 + adapter metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. telephony_call_setup_ms → çağrı kurulum/post-dial gecikme (observability call_setup_ms ile eşlenir); telephony_active_calls → eş zamanlı çağrı; telephony_transfer_total → transfer (mode label düşük-kard); telephony_dtmf_total / telephony_amd_total → DTMF/AMD olayları; telephony_call_seconds_total → çağrı süresi (FR-BIL-002 metering); telephony_hangup_total{reason_code} → neden kodu dağılımı (2.1.7 taksonomi). provider_id + trunk + mode + reason_code DÜŞÜK kardinalite (label uygun); call_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy, 3.1.5 producer). Ham TELEFON NUMARASI, çağrı içeriği veya PII metriklerde yok.",
+    "emitted": [
+      "telephony_call_setup_ms", "telephony_active_calls", "telephony_transfer_total",
+      "telephony_dtmf_total", "telephony_amd_total", "telephony_call_seconds_total", "telephony_hangup_total"
+    ],
+    "maps_to_observability": {
+      "telephony_call_setup_ms": "call_setup_ms",
+      "telephony_call_seconds_total": "call_seconds_total"
+    },
+    "proposed_observability_additions": [
+      "telephony_call_setup_ms", "telephony_transfer_total", "telephony_amd_total"
+    ],
+    "trace": "BRD §15, SAD §17.1, observability 0.4.7, 3.1.5 context-propagation, 2.1.7 reason_code"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Telekom/SIP hataları (ve çağrı neden kodları, 2.1.7) API §11.6 ortak ErrorTaxonomy'ye çevrilir (FR-TOOL-008, SAD §8.2) — routing yalnız bu enum'a göre fallback (4.3.x) kararı verir; ham SIP/Q.850 kodu yalnız audit/log'da kalır, müşteriye sızmaz. SIP 408 / sinyalleşme zaman aşımı → TIMEOUT (retry → secondary trunk); SIP 429 → RATE_LIMITED; SIP 503/5xx / trunk kullanılamıyor → UNAVAILABLE (circuit-open → secondary); SIP 401/403-auth / trunk kimlik reddi → AUTH; SIP 404/484 / no-route → INVALID_REQUEST; SDP 488 / medya kurulum başarısız → UNAVAILABLE; DNC/consent/time-window engeli → INVALID_REQUEST; kapasite/kota red → QUOTA_EXCEEDED; bölge uyumsuzluğu → REGION_VIOLATION (NFR 10.7).",
+    "mapping": {
+      "sip_408_timeout": "TIMEOUT",
+      "sip_429": "RATE_LIMITED",
+      "sip_503_5xx": "UNAVAILABLE",
+      "trunk_auth_failure": "AUTH",
+      "sip_404_no_route": "INVALID_REQUEST",
+      "sdp_488_media_failure": "UNAVAILABLE",
+      "compliance_blocked": "INVALID_REQUEST",
+      "capacity_exceeded": "QUOTA_EXCEEDED",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "reason_code_taxonomy_source": "2.1.7 (telephony/reason-codes)",
+    "failure_reason_codes": [
+      "no_answer", "busy", "rejected", "network_failure", "provider_unavailable",
+      "timeout", "no_route", "media_failure", "auth_failure", "rate_limited",
+      "dropped_mid_call", "blocked_dnc", "blocked_consent_missing", "blocked_capacity"
+    ],
+    "trace": "API §11.6, FR-TOOL-008, SAD §8.2, NFR 10.7, 2.1.7"
+  },
+
+  "residency": {
+    "$comment": "Çağrı home-region trunk/sağlayıcı endpoint'inde kurulur (bölgesel pin) + UsageRecord (CDR) home-region'da kaydedilir (FR-BIL-002, NFR 10.7). Hassas içerik (numara/çağrı medyası) sağlayıcı loglarına yazılmaz: data_retention NONE/EPHEMERAL. Bölge uyumsuzluğu REGION_VIOLATION. Çağrı medyası/numara tenant sınırını terk etmez. SRTP/TLS zorunlu (NFR 10.6) — düz-metin SIP/RTP reddedilir (insecure_media).",
+    "region_pin_required": true,
+    "no_log_required": true,
+    "secure_transport_required": true,
+    "allowed_retention": ["NONE", "EPHEMERAL"],
+    "trace": "NFR 10.6, NFR 10.7, FR-BIL-002, API §11.1 AdapterConfig.dataRetention/region"
+  },
+
+  "pii": {
+    "$comment": "Bu SPEC/config/örnekler ham TELEFON NUMARASI DEĞERİ, çağrı medyası/transkript veya PII DEĞERİ TUTMAZ — yalnız sağlayıcı/trunk kimliği + gecikme/çağrı SAYILARI (setup_ms/süre SANİYE) + mod/yön/transfer-mode/hedef-tipi/neden-kodu kimlikleri + biçim UYGUNLUK bayrakları (e164_valid boolean, caller-ID havuz REFERANSI/varlığı boolean, içerik DEĞİL) + sanal zaman. Örneklerde numara gerekiyorsa yalnız rezerve/test bloğu (ITU 1632 / 555-01xx) yapısal biçim için; gerçek müşteri numarası YOK. Telefon numarası PII'dir (BRD §16 Contact); durable kayıt redaction/şifreleme orchestrator+DB katmanında (FR-REC-004, DB.md §9), adapter'da ham numara saklanmaz.",
+    "raw_phone_number_in_spec_forbidden": true,
+    "call_media_in_spec_forbidden": true,
+    "pii_value_in_spec_forbidden": true,
+    "durable_redaction_state": "pending",
+    "trace": "FR-REC-004, NFR 10.7, BRD §14, BRD §16 Contact, BRD §17.7"
+  },
+
+  "invariants": [
+    { "id": "P1", "desc": "TAŞIMA-NÖTR NORMALİZE: iki taşıma modu (managed CPaaS Media Streams M1 / BYOC ham SIP trunk M2) tek normalize TelephonyAdapter SPI sözleşmesine indirgenir; orchestrator YALNIZ SPI'ye bağımlıdır (ADR-001) ve taşıma modunu görmez (contract_divergence=0). Sağlayıcıya özel SIP/SDP/medya biçimi adapter'da normalize edilir.", "trace": "SAD §8.1, SAD §11.5, ADR-001, ADR-002, API §11.5" },
+    { "id": "P2", "desc": "E.164 + CALLER-ID HAVUZU: dial/answer numaraları E.164 biçiminde (invalid_e164=0 — FR-TEL-004); outbound dial caller-ID havuzu referansı taşır (missing_caller_id_pool=0 — FR-TEL-005). Normalize MOTORU 2.1.5; bu adapter biçim UYGUNLUĞUNU + havuz referansını doğrular.", "trace": "FR-TEL-004, FR-TEL-005, API §11.5 DialRequest, 2.1.5" },
+    { "id": "P3", "desc": "TRANSFER cold/warm/whisper: transfer(callId, target, mode∈{COLD,WARM,WHISPER}) SIP REFER ile; hedef tipi QUEUE/SKILL/AGENT/NUMBER (unsupported_transfer=0 — FR-TEL-007/FR-HND-003). Aktarım akışı (özet/bağlam aktarımı) 8.x; bu adapter transfer SPI çağrısını uygular.", "trace": "FR-TEL-007, FR-HND-003, API §11.5" },
+    { "id": "P4", "desc": "DTMF + AMD OLAYLARI: sendDtmf (RFC 2833 / SIP INFO — FR-TEL-006) + on(DTMF/AMD) olayları yüzeye çıkar (dropped_event=0 — FR-TEL-010). DTMF detect/generate MOTORU 2.1.6; AMD sınıflandırma MOTORU 2.1.9; bu adapter olayı orchestrator'a normalize/yüzeye çıkarır.", "trace": "FR-TEL-006, FR-TEL-010, API §11.5 on(...), 2.1.6, 2.1.9" },
+    { "id": "P5", "desc": "≥2 SPI-uyumlu sağlayıcı/trunk (ADR-002/FR-TEL-002): managed CPaaS adapter + BYOC SIP trunk adapter; her biri required_features {dtmf, amd, transfer} + transfer_modes {COLD,WARM,WHISPER} + 8kHz + SRTP + inbound/outbound yeteneklerini capabilities()'te beyan eder; karşılamayan portföye giremez. SIP trunk + BYOC zorunlu (FR-TEL-002).", "trace": "FR-TEL-002, ADR-002, SAD §8.1, API §11.1/§11.5" },
+    { "id": "P6", "desc": "HANGUP NEDEN KODU: hangup(callId, reasonCode) standart neden kodu taşır (missing_reason_code=0 — FR-TEL-012); neden kodu taksonomisi 2.1.7'den (append-only); başlangıç+bitiş nedenleri standart kodlarla kaydedilir.", "trace": "FR-TEL-012, API §11.5 hangup, 2.1.7" },
+    { "id": "P7", "desc": "MEDYA + KURULUM: mediaStream 8kHz native (non_8khz=0 — FR-RES-008) + SRTP/TLS güvenli taşıma (insecure_media=0 — NFR 10.6; düz-metin SIP/RTP reddedilir) + çağrı kurulum/post-dial gecikme bütçe içinde (setup_p95 ≤ 2000 ms; yeşil 1000). Codec/8kHz 2.2.2, RTP termination 2.2.1; bu adapter medya yolu kurulumunu + güvenliğini doğrular.", "trace": "FR-RES-008, NFR 10.6, SAD §7.2, SAD §20, 2.2.1, 2.2.2" },
+    { "id": "P8", "desc": "METERING + RESIDENCY + HATA NORMALİZASYONU: her tamamlanan çağrı UsageRecord (unit=SECONDS, çağrı süresi — FR-BIL-002) üretir + home-region pin (region_violation=0 — NFR 10.7) + telekom/SIP hataları ortak ErrorTaxonomy'ye çevrilir (FR-TOOL-008). Metering MOTORU 4.1.3; bu adapter UsageRecord ÜRETİMİNİ + taksonomi eşlemesini doğrular.", "trace": "FR-BIL-002, NFR 10.7, FR-TOOL-008, API §11.1 UsageRecord" },
+    { "id": "P9", "desc": "4.2.5 komşu SEAM'leri TÜKETİR/SINIRDA durur: SBC 2.1.1, managed çerçeve 2.1.3, BYOC SIP/RTP 2.1.4, E.164/caller-ID motoru 2.1.5, DTMF motoru 2.1.6, neden kodu taksonomisi 2.1.7, retry 2.1.8, AMD motoru 2.1.9, RTP/jitter 2.2.1, codec 2.2.2, edge VAD/barge-in 2.2.3, handoff 8.x, outbound consent 10.2, ortak yetenekler 4.1.2/4.1.6, metering motoru 4.1.3, residency/retention 4.1.4, fallback ANAHTARLAMA 4.3.x, telekom SEÇİMİ 0.2.1/0.2.6/0.3.x — bunları UYGULAMAZ; SPI-uyum davranışını (taşıma-nötr çağrı kontrolü) üretir.", "trace": "2.1.1, 2.1.3, 2.1.4, 2.1.5, 2.1.6, 2.1.7, 2.1.8, 2.1.9, 2.2.1, 2.2.2, 2.2.3, 4.1.2, 4.1.3, 4.1.6, 4.3.x, 0.2.1" },
+    { "id": "P10", "desc": "Hatalar ortak ErrorTaxonomy'ye (API §11.6) eşlenir (ham SIP/Q.850 kodu yalnız audit/log, müşteriye sızmaz); spec/config/örneklerde literal sır/credential, ham TELEFON NUMARASI DEĞERİ, çağrı medyası/transkript veya PII DEĞERİ yok (yalnız sağlayıcı/trunk kimliği + sayılar + mod/yön/transfer/neden-kodu kimlikleri + uygunluk bayrakları + sanal zaman).", "trace": "API §11.6, NFR 10.7, BRD §14, BRD §16" }
+  ]
+}

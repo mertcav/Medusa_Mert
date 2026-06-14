@@ -1,0 +1,22 @@
+{
+  "name": "telephony-dtmf-amd",
+  "$comment": "DTMF + AMD olay yüzeye çıkışı (FR-TEL-006/010 — P4). Çağrı-1 inbound: kullanıcı IVR'da DTMF (SIP INFO) basar → on(DTMF). Çağrı-2 outbound: AMD telesekreter algılar (machine) → on(AMD) → voicemail bırakılır → hangup voicemail_left. DTMF iki taşıma (rfc2833 + sip_info). dropped_event=0. Geçer.",
+  "provider": "tel-managed-A",
+  "expect": "pass",
+  "expected": {
+    "dtmf_events": 2,
+    "amd_events": 1,
+    "dropped_event": 0
+  },
+  "events": [
+    { "kind": "answer", "call_id": "d-1", "t": 0, "direction": "inbound" },
+    { "kind": "media_ready", "call_id": "d-1", "t": 700 },
+    { "kind": "dtmf", "call_id": "d-1", "t": 3000, "transport": "rfc2833" },
+    { "kind": "dtmf", "call_id": "d-1", "t": 3500, "transport": "sip_info" },
+    { "kind": "hangup", "call_id": "d-1", "t": 20000, "reason_code": "completed_caller_hangup", "reason": "normal" },
+    { "kind": "dial", "call_id": "d-2", "t": 21000, "direction": "outbound", "caller_id_pool": "pool-campaign" },
+    { "kind": "media_ready", "call_id": "d-2", "t": 21740 },
+    { "kind": "amd", "call_id": "d-2", "t": 24000, "result": "machine" },
+    { "kind": "hangup", "call_id": "d-2", "t": 50000, "reason_code": "voicemail_left", "reason": "normal" }
+  ]
+}

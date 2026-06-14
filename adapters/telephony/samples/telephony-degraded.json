@@ -1,0 +1,19 @@
+{
+  "name": "telephony-degraded",
+  "$comment": "BİLİNÇLİ BOZUK (FR-TST-008 negatif kanıt): beş politika/koşul aynı anda devre dışı → SPI-uyum boyutları eler. normalize_contract=false → managed/BYOC biçimi orchestrator'a sızar (contract_divergence>0 — P1 eler/ADR-001). surface_events=false → DTMF/AMD olayı yutulur (dropped_event>0 — P4 eler/FR-TEL-006/010). fast_setup=false → kurulum 2600ms > 2000 bütçe (setup_p95 eler — P7/SAD §20). secure_transport=false → düz-metin SIP/RTP (insecure_media>0 — P7 eler/NFR 10.6). hangup neden kodu yok (missing_reason_code>0 — P6 eler/FR-TEL-012). Beklenen: ELENİR.",
+  "provider": "tel-managed-A",
+  "expect": "fail",
+  "policy": {
+    "normalize_contract": false,
+    "surface_events": false,
+    "fast_setup": false,
+    "require_secure_transport": true
+  },
+  "events": [
+    { "kind": "answer", "call_id": "deg-1", "t": 0, "direction": "inbound", "secure_transport": false },
+    { "kind": "media_ready", "call_id": "deg-1", "t": 2600 },
+    { "kind": "dtmf", "call_id": "deg-1", "t": 3000, "transport": "rfc2833" },
+    { "kind": "amd", "call_id": "deg-1", "t": 3200, "result": "human" },
+    { "kind": "hangup", "call_id": "deg-1", "t": 10000, "reason": "normal" }
+  ]
+}

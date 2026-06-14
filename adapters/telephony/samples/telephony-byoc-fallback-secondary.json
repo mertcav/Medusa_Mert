@@ -1,0 +1,18 @@
+{
+  "name": "telephony-byoc-fallback-secondary",
+  "$comment": "İkincil adapter / BYOC SIP trunk yolu (FR-TEL-002 — ≥2 sağlayıcı + fallback). Çağrı-1 birincil trunk'ta SIP 503 (provider_unavailable) → error_taxonomy UNAVAILABLE'a normalize (P8/FR-TOOL-008); routing ikincil trunk'a geçer (anahtarlama 4.3.x — burada normalize VARLIĞI doğrulanır). Çağrı-2 BYOC SIP trunk (tel-byoc-B, byoc mod) ile başarılı tamamlanır; taşıma-nötr normalize (P1). Geçer (hata düzgün normalize edildi + ikincil tamamlandı).",
+  "provider": "tel-byoc-B",
+  "expect": "pass",
+  "expected": {
+    "mode": "byoc",
+    "errors_seen": 1,
+    "errors_normalized": 1
+  },
+  "events": [
+    { "kind": "dial", "call_id": "fb-1", "t": 0, "direction": "outbound", "caller_id_pool": "pool-1" },
+    { "kind": "hangup", "call_id": "fb-1", "t": 800, "reason_code": "provider_unavailable", "reason": "error", "error_taxonomy": "UNAVAILABLE" },
+    { "kind": "dial", "call_id": "fb-2", "t": 1000, "direction": "outbound", "caller_id_pool": "pool-1" },
+    { "kind": "media_ready", "call_id": "fb-2", "t": 1540 },
+    { "kind": "hangup", "call_id": "fb-2", "t": 38000, "reason_code": "completed_goal_fulfilled", "reason": "normal" }
+  ]
+}

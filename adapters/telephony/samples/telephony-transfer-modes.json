@@ -1,0 +1,25 @@
+{
+  "name": "telephony-transfer-modes",
+  "$comment": "Üç ardışık inbound çağrı, üç transfer modu (FR-TEL-007 — SIP REFER): cold (kuyruğa), warm (skill grubuna), whisper (temsilciye). Hepsi desteklenen mode + geçerli hedef tipi → unsupported_transfer=0 (P3). hangup transfer_to_human neden kodu (P6). Hedef tipleri QUEUE/SKILL/AGENT (FR-HND-003). Geçer.",
+  "provider": "tel-byoc-B",
+  "expect": "pass",
+  "expected": {
+    "transfer_total": 3,
+    "transfers_ok": 3,
+    "unsupported_transfer": 0
+  },
+  "events": [
+    { "kind": "answer", "call_id": "x-cold", "t": 0, "direction": "inbound" },
+    { "kind": "media_ready", "call_id": "x-cold", "t": 540 },
+    { "kind": "transfer", "call_id": "x-cold", "t": 5000, "mode": "COLD", "target_type": "QUEUE", "ref": "queue-support" },
+    { "kind": "hangup", "call_id": "x-cold", "t": 5200, "reason_code": "transfer_to_human", "reason": "normal" },
+    { "kind": "answer", "call_id": "x-warm", "t": 6000, "direction": "inbound" },
+    { "kind": "media_ready", "call_id": "x-warm", "t": 6540 },
+    { "kind": "transfer", "call_id": "x-warm", "t": 12000, "mode": "WARM", "target_type": "SKILL", "ref": "skill-billing" },
+    { "kind": "hangup", "call_id": "x-warm", "t": 12300, "reason_code": "transfer_to_human", "reason": "normal" },
+    { "kind": "answer", "call_id": "x-whisper", "t": 13000, "direction": "inbound" },
+    { "kind": "media_ready", "call_id": "x-whisper", "t": 13540 },
+    { "kind": "transfer", "call_id": "x-whisper", "t": 20000, "mode": "WHISPER", "target_type": "AGENT", "ref": "agent-7" },
+    { "kind": "hangup", "call_id": "x-whisper", "t": 20400, "reason_code": "transfer_to_human", "reason": "normal" }
+  ]
+}

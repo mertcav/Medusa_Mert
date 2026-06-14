@@ -1,0 +1,78 @@
+{
+  "$comment": "WBS 4.2.5 Telephony adapter sağlayıcı + çalıştırma profilleri (İLLÜSTRATİF, sağlayıcı-nötr — ADR-002; sır YOK). 'providers' = iki SOMUT TelephonyAdapter implementasyonu (≥2/kategori — FR-TEL-002): (#1) managed CPaaS (Media Streams WebSocket, SAD §7.2 M1 / 2.1.3) + (#2) BYOC SIP trunk (ham SIP+RTP, BYOC — SAD §7.2 M2 / 2.1.4). GERÇEK sağlayıcı/telekom DEĞİL, isimler vendor-neutral placeholder. Her sağlayıcı: capabilities() beyanı (directions⊇{inbound,outbound}, features⊇{dtmf,amd,transfer}, transfer_modes⊇{COLD,WARM,WHISPER}, regions, sample_rates∋8000, secure_transport=true [SRTP/TLS], dtmf_transports, no_train/data_retention) + DETERMİNİSTİK çağrı kurulum gecikme PROFİLİ (media_setup_ms[normal], media_setup_ms_degraded — random YOK). Gecikme değerleri MÜHENDİSLİK varsayılanı (0.2.1 telephony-media-latency çerçevesine uyumlu post-dial/kurulum); GERÇEK değerler 0.3.x canlı PoC + gerçek trunk'ta ölçülür. 'profiles' = dağıtım/tenant-sınıfı çalıştırma profilleri (primary+fallback sağlayıcı + bölge). Bölge pini NFR 10.7; UsageRecord (CDR) home-region (FR-BIL-002). Config GÖVDE/credential TAŞIMAZ; ham TELEFON NUMARASI / çağrı içeriği yok.",
+  "version": "1.0",
+  "default_profile": "pilot-default",
+
+  "providers": [
+    {
+      "provider_id": "tel-managed-A",
+      "$comment": "Adapter #1 — managed CPaaS (Media Streams WebSocket, M1 / 2.1.3). Sağlayıcı SIP/medya yığınını yönetir; medya WS çerçevesi adapter'da normalize edilir. inbound+outbound, DTMF (RFC 2833 + SIP INFO), AMD olayı, cold/warm/whisper transfer (SIP REFER), 8kHz μ-law, SRTP/TLS, no-log (NONE). EU/TR residency.",
+      "kind": "managed-cpaas",
+      "mode": "managed",
+      "directions": ["inbound", "outbound"],
+      "features": ["dtmf", "amd", "transfer", "srtp", "caller_id_pool"],
+      "transfer_modes": ["COLD", "WARM", "WHISPER"],
+      "transfer_target_types": ["QUEUE", "SKILL", "AGENT", "NUMBER"],
+      "dtmf_transports": ["rfc2833", "sip_info"],
+      "regions": ["EU", "TR"],
+      "sample_rates": [8000],
+      "secure_transport": true,
+      "no_train": true,
+      "data_retention": "NONE",
+      "media_setup_ms": 720,
+      "media_setup_ms_degraded": 2600,
+      "cost_per_minute_minor": 9,
+      "currency": "EUR"
+    },
+    {
+      "provider_id": "tel-byoc-B",
+      "$comment": "Adapter #2 — BYOC SIP trunk (ham SIP+RTP, M2 / 2.1.4 — Bring Your Own Carrier). Tenant kendi taşıyıcısını getirir; SBC (2.1.1) önde. SIP/SDP/RTP biçimi adapter'da AYNI normalize sözleşmeye indirgenir (orchestrator M1/M2 farkını görmez). inbound+outbound, DTMF, AMD, transfer (SIP REFER), 8kHz μ-law/A-law, SIPS/SRTP, ephemeral retention. TR residency. ≥2/kategori + fallback (FR-TEL-002).",
+      "kind": "byoc-sip-trunk",
+      "mode": "byoc",
+      "directions": ["inbound", "outbound"],
+      "features": ["dtmf", "amd", "transfer", "srtp", "caller_id_pool"],
+      "transfer_modes": ["COLD", "WARM", "WHISPER"],
+      "transfer_target_types": ["QUEUE", "SKILL", "AGENT", "NUMBER"],
+      "dtmf_transports": ["rfc2833", "sip_info"],
+      "regions": ["TR"],
+      "sample_rates": [8000],
+      "secure_transport": true,
+      "no_train": true,
+      "data_retention": "EPHEMERAL",
+      "media_setup_ms": 540,
+      "media_setup_ms_degraded": 2400,
+      "cost_per_minute_minor": 4,
+      "currency": "TRY"
+    }
+  ],
+
+  "profiles": [
+    {
+      "name": "pilot-default",
+      "deployment": "F1-pilot-shared",
+      "$comment": "Pilot (F1) paylaşımlı varsayılan: primary=tel-managed-A (managed CPaaS hızlı onboarding), fallback=tel-byoc-B (BYOC SIP trunk). Bölge ortam değişkeninden (NFR 10.7). Kurulum hedefi post-dial bütçesi üst (2000 ms).",
+      "primary_provider": "tel-managed-A",
+      "fallback_provider": "tel-byoc-B",
+      "setup_target_ms": 2000,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "byoc-regional",
+      "deployment": "F2-regional-byoc",
+      "$comment": "Bölgesel BYOC (F2): primary=tel-byoc-B (tenant taşıyıcısı, yerel düşük kurulum), fallback=tel-managed-A. Regüle/residency tenant için home-region trunk (NFR 10.7). Agresif kurulum hedefi (yeşil bant 1000 ms).",
+      "primary_provider": "tel-byoc-B",
+      "fallback_provider": "tel-managed-A",
+      "setup_target_ms": 1000,
+      "region": "${RUNTIME_REGION}"
+    },
+    {
+      "name": "enterprise-cc",
+      "deployment": "F2-enterprise",
+      "$comment": "Enterprise contact centre (F2): primary=tel-byoc-B (mevcut trunk/CC entegrasyonu), fallback=tel-managed-A; cold/warm/whisper transfer ağırlıklı (FR-TEL-007 — handoff 8.x). Kurulum hedefi 1500 ms.",
+      "primary_provider": "tel-byoc-B",
+      "fallback_provider": "tel-managed-A",
+      "setup_target_ms": 1500,
+      "region": "${RUNTIME_REGION}"
+    }
+  ]
+}

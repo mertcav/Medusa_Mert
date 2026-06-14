@@ -1,0 +1,21 @@
+{
+  "name": "telephony-inbound-happy-path",
+  "$comment": "Tipik inbound çağrı (adapter #1, tel-managed-A): answer(callId) → mediaStream kuruldu (media_ready, kurulum ≤ bütçe — P7, 8kHz+SRTP) → DTMF (RFC 2833) + AMD(human) olayları on(...) ile yüzeye çıkar (P4) → konuşma sonrası caller kapatır → hangup standart neden kodu (P6). Taşıma-nötr normalize (P1). Her çağrı UsageRecord/CDR (SECONDS) + home-region (P8). E.164 (P2). Geçer.",
+  "provider": "tel-managed-A",
+  "expect": "pass",
+  "expected": {
+    "contract_divergence": 0,
+    "invalid_e164": 0,
+    "dropped_event": 0,
+    "missing_reason_code": 0,
+    "insecure_media": 0,
+    "region_violation": 0
+  },
+  "events": [
+    { "kind": "answer", "call_id": "in-1", "t": 0, "direction": "inbound", "e164_valid": true, "secure_transport": true, "sample_rate_hz": 8000, "region_pinned": true },
+    { "kind": "media_ready", "call_id": "in-1", "t": 720 },
+    { "kind": "dtmf", "call_id": "in-1", "t": 4200, "transport": "rfc2833" },
+    { "kind": "amd", "call_id": "in-1", "t": 4400, "result": "human" },
+    { "kind": "hangup", "call_id": "in-1", "t": 58000, "reason_code": "completed_caller_hangup", "reason": "normal" }
+  ]
+}
