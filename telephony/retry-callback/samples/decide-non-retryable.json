@@ -1,0 +1,10 @@
+{
+  "$comment": "C1/G3 (2.1.7 R8): rejected retryable=false → no_action (non_retryable). Normal kapanış/transfer/kalıcı red retry üretmez. Geçer.",
+  "now": "2026-06-15T10:00:00Z",
+  "tenant_id": "11111111-1111-1111-1111-111111111111",
+  "policy_ref": "campaign-default",
+  "end": { "reason_code": "rejected", "retryable": false },
+  "contact": { "contact_id": "aaaaaaaa-0000-0000-0000-000000000008", "attempts": 0, "do_not_call": false, "consent_state": "granted", "utc_offset_minutes": 0 },
+  "capacity": { "available": true },
+  "expect": { "action": "no_action", "decision_reason": "non_retryable", "scheduled_at": null }
+}

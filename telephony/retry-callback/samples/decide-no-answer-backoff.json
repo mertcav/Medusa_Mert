@@ -1,0 +1,10 @@
+{
+  "$comment": "Outbound cevapsız (no_answer). 2. deneme (attempts=1) → exponential backoff 1200s, no_contact_retry. Geçer.",
+  "now": "2026-06-15T10:00:00Z",
+  "tenant_id": "11111111-1111-1111-1111-111111111111",
+  "policy_ref": "campaign-default",
+  "end": { "reason_code": "no_answer", "retryable": true },
+  "contact": { "contact_id": "aaaaaaaa-0000-0000-0000-000000000002", "attempts": 1, "do_not_call": false, "consent_state": "granted", "utc_offset_minutes": 0 },
+  "capacity": { "available": true },
+  "expect": { "action": "retry", "decision_reason": "no_contact_retry", "attempt_number": 2, "backoff_seconds": 1200, "start_reason": "outbound_callback" }
+}

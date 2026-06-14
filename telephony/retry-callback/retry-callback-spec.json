@@ -1,0 +1,124 @@
+{
+  "$schema": "internal://chanteur/telephony/retry-callback/spec",
+  "$comment": "WBS 2.1.8 — Çağrı düşmesinde kontrollü retry / geri arama. FR-TEL-009. Kaynak doğruluk: makine-okunur retry/callback POLİTİKA modeli + düşmüş/temassız çağrı → kontrollü retry/callback KARAR sözleşmesi. Medya/numaralandırma/taksonomi düzlemi DEĞİL — çağrı yaşam-döngüsü 'sonra ne olacak' karar düzlemi. 2.1.7 (reason-codes) retryable bayrağını + outbound_callback start kodunu TÜKETİR; FR-OUT-005 (maks. deneme + aralık), FR-OUT-003 (consent), FR-TEL-013/FR-OUT-004 (arama saatleri), FR-TEL-014/FR-OUT-006 (DNC/opt-out), FR-RES-014/FR-OUT-007 (kapasite/backpressure) kapılarını uygular. db/ + cache/ + objstore/ + eventstream/ + telephony/{managed-cpaas,byoc-sip,numbering,dtmf,reason-codes} disipliniyle aynı: vendor-neutral (ADR-002), credential-free, stdlib-only, deterministik (sanal saat + tohumlu jitter). DB.md §5.4 campaign.max_attempts/retry_interval_minutes + contact.attempts/last_call_at/do_not_call + consent esas; SAD §15 backpressure/§18 graceful drop+callback; SR-TOOL-003 'kontrolsüz retry yok' ruhu.",
+  "policy_version": "1.0",
+
+  "purpose": {
+    "$comment": "FR-TEL-009 çağrı düşmesinde KONTROLLÜ retry veya geri arama üretir. 'Kontrollü' = sınırlı (maks. deneme), uyumlu (DNC/consent/saat yeniden kontrol), idempotent (çift zamanlama yok), backoff+jitter (retry fırtınası yok). Bu dilim KARAR motorudur: bir çağrı bittiğinde (2.1.7 kanonik kodu + nitelikleri) + politika + contact/uyum durumu → deterministik bir EYLEM (retry/callback/suppress/no_action) + zamanlama üretir.",
+    "consumes": ["reason-codes (2.1.7) end_reason.retryable", "reason-codes (2.1.7) start_reason outbound_callback"],
+    "produces": ["retry/callback schedule decision", "outbound_callback dial isteği girdisi"],
+    "trace": "FR-TEL-009, SR-TEL-009, FR-OUT-005, DB.md §5.4 (campaign/contact/consent), SAD §15/§18"
+  },
+
+  "enums": {
+    "$comment": "Kapalı kümeler. action = motorun ürettiği karar; decision_reason = makine-okunur gerekçe; backoff_strategy = aralık üretimi.",
+    "action": ["retry", "callback", "suppress", "no_action"],
+    "decision_reason": [
+      "dropped_retry", "no_contact_retry", "capacity_deferred",
+      "max_attempts_exhausted", "non_retryable", "dnc_suppressed",
+      "consent_withdrawn", "rescheduled_calling_hours", "no_eligible_window"
+    ],
+    "backoff_strategy": ["fixed", "exponential"],
+    "start_reason": ["outbound_callback"]
+  },
+
+  "decision_contract": {
+    "$comment": "decide isteği → karar. now sanal saattir (deterministik; Date.now() yok). end 2.1.7 classify çıktısıdır (reason_code + retryable; opsiyonel diğer nitelikler). contact uyum/sayaç durumudur (PII YOK — contact_id referansı; e164/transkript gömülmez, C11). capacity backpressure sinyalidir (FR-RES-014).",
+    "request": {
+      "now": "ISO8601 UTC (sanal saat)",
+      "tenant_id": "uuid (idempotency + residency anahtarı)",
+      "policy_ref": "config/retry-policies.json profili adı VEYA inline policy nesnesi",
+      "end": { "reason_code": "2.1.7 kanonik bitiş kodu", "retryable": "bool (2.1.7 ile çapraz-doğrulanır, C12)" },
+      "contact": {
+        "contact_id": "uuid (PII referansı; numara DEĞİL)",
+        "attempts": "int (şimdiye dek yapılan deneme sayısı)",
+        "last_call_at": "ISO8601 | null",
+        "do_not_call": "bool (FR-TEL-014/FR-OUT-006)",
+        "consent_state": "granted | withdrawn | none (FR-OUT-003)",
+        "utc_offset_minutes": "int (yerel saat hesaplaması; tam tz canlı adaptörde)"
+      },
+      "capacity": { "available": "bool (FR-RES-014/FR-OUT-007 backpressure)" }
+    },
+    "response": {
+      "action": "enums.action",
+      "decision_reason": "enums.decision_reason",
+      "attempt_number": "int (bu kararın temsil ettiği deneme, 1-tabanlı) | null",
+      "scheduled_at": "ISO8601 | null (retry/callback için zorunlu; suppress/no_action için null)",
+      "backoff_seconds": "int | null",
+      "jitter_seconds": "int | null (deterministik, idempotency_key'den türetilir)",
+      "start_reason": "outbound_callback | null (zamanlanan eylemlerde 2.1.7 linki, C9)",
+      "idempotency_key": "str (deterministik; (tenant,contact,attempt,reason) → tek anahtar, C10)",
+      "compliance_recheck_required": "bool (fire anında DNC/consent/saat tekrar değerlendirilmeli)"
+    },
+    "trace": "FR-TEL-009, API §11.5 dial (outbound_callback)"
+  },
+
+  "policy_model": {
+    "$comment": "Bir retry/callback politikası. max_attempts FR-OUT-005 sert tavanıdır (≥1, sonlu). base_interval_seconds + strategy + multiplier + max_interval_seconds backoff'u üretir (monotonik, sınırlı; C3). jitter_cap_seconds desenkronizasyon içindir (>0; C4). calling_hours yerel saat penceresidir (FR-TEL-013/FR-OUT-004). mode retry vs callback kuyruğu eğilimini belirler. drop_immediate_callback: bağlı çağrı düşmesinde (dropped_mid_call) ilk denemeyi backoff yerine kısa sabit gecikmeyle 'callback' kuyruğuna alma seçeneği.",
+    "fields": {
+      "name": "str",
+      "max_attempts": "int ≥1 (FR-OUT-005; toplam deneme tavanı — sert sınır)",
+      "backoff_strategy": "fixed | exponential",
+      "base_interval_seconds": "int >0",
+      "multiplier": "number ≥1 (exponential için; fixed'de yok sayılır)",
+      "max_interval_seconds": "int ≥ base (backoff tavanı; C3)",
+      "jitter_cap_seconds": "int >0 (C4)",
+      "mode": "retry | callback (retry = doğrudan yeniden çevir; callback = kuyruğa al)",
+      "calling_hours": { "start_hour": "0..23 yerel", "end_hour": "1..24 yerel (start<end)" },
+      "drop_grace_seconds": "int ≥0 (dropped_mid_call için ilk denemenin kısa lütuf gecikmesi)"
+    },
+    "defaults_trace": "DB.md §5.4 campaign.max_attempts(=3)/retry_interval_minutes"
+  },
+
+  "eligibility": {
+    "$comment": "Hangi 2.1.7 bitiş kodları retry/callback üretebilir. Kaynak doğruluk 2.1.7 taksonomisidir: retryable=true olanlar uygundur (C1). Burada ayrıca SINIF eşlemesi yapılır: 'dropped' (bağlı çağrı düşmesi — FR-TEL-009 çekirdek), 'no_contact' (cevapsız/meşgul/AMD), 'capacity' (silent/abandoned, backpressure). retryable=false (rejected/no_route/auth/blocked_dnc/blocked_consent/completed_*/transfer) → no_action.",
+    "classes": {
+      "dropped":  { "codes": ["dropped_mid_call"], "decision_reason": "dropped_retry", "desc": "Bağlı çağrı beklenmedik düştü — FR-TEL-009 çekirdek senaryosu; drop_grace ile hızlı kontrollü yeniden bağlanma." },
+      "no_contact": { "codes": ["no_answer", "busy", "voicemail_machine_detected", "timeout", "network_failure", "provider_unavailable", "media_failure", "rate_limited", "agent_error"], "decision_reason": "no_contact_retry", "desc": "Temas kurulamadı / geçici teknik hata — backoff ile yeniden dene." },
+      "capacity": { "codes": ["abandoned_no_capacity", "blocked_capacity", "blocked_time_window"], "decision_reason": "capacity_deferred", "desc": "Kapasite/pencere nedeniyle ertelendi — callback kuyruğuna / sonraki pencereye." }
+    },
+    "trace": "FR-TEL-009, 2.1.7 R8 (retryable), FR-TEL-015 (abandoned), FR-RES-014"
+  },
+
+  "compliance_gates": {
+    "$comment": "Zamanlamadan ÖNCE değerlendirilir (compliance-by-design; C5/C6). Sıra: DNC → consent → (uygunluk) → maks. deneme → arama saati. DNC ve consent kalıcı engeldir → suppress, asla yeniden zamanlama. Bu kapılar fire anında da tekrar kontrol edilir (compliance_recheck_required=true).",
+    "gates": [
+      { "id": "G1", "check": "contact.do_not_call == true", "action": "suppress", "decision_reason": "dnc_suppressed", "trace": "FR-TEL-014, FR-OUT-006" },
+      { "id": "G2", "check": "contact.consent_state != 'granted'", "action": "suppress", "decision_reason": "consent_withdrawn", "trace": "FR-OUT-003, BRD §14" },
+      { "id": "G3", "check": "end.retryable != true", "action": "no_action", "decision_reason": "non_retryable", "trace": "2.1.7 R8, FR-TEL-009" },
+      { "id": "G4", "check": "contact.attempts >= policy.max_attempts", "action": "suppress", "decision_reason": "max_attempts_exhausted", "trace": "FR-OUT-005" },
+      { "id": "G5", "check": "capacity.available == false", "action": "callback", "decision_reason": "capacity_deferred", "trace": "FR-RES-014, FR-OUT-007" }
+    ]
+  },
+
+  "residency": {
+    "$comment": "Karar tenant home-region'da verilir; zamanlanan callback aynı bölgeye pinlenir. Karar verisi bölge-bağımsız etiketlerdir; yine de tenant_id residency anahtarıdır.",
+    "region_pin_required": true,
+    "trace": "NFR 10.7"
+  },
+
+  "pii": {
+    "$comment": "Karar/zamanlama kaydı PII İÇERMEZ — telefon numarası (e164), transkript, müşteri adı koda/karara/loga gömülmez. contact yalnız contact_id (UUID) ile referanslanır; idempotency_key türetiminde de ham numara kullanılmaz. Analitikte (OLAP A4) none/low sınıfı.",
+    "decision_pii_class": "none",
+    "phone_number_in_decision_forbidden": true,
+    "raw_pii_in_idempotency_key_forbidden": true,
+    "trace": "FR-REC-004/005, OLAP 1.1.9 A4, THREAT_MODEL TM-I"
+  },
+
+  "invariants": [
+    { "id": "C1",  "desc": "Yalnız 2.1.7 taksonomisinde retryable=true olan bitiş kodları action∈{retry,callback} üretebilir; retryable=false → no_action (non_retryable).", "trace": "FR-TEL-009, 2.1.7 R8" },
+    { "id": "C2",  "desc": "attempt_number asla policy.max_attempts'i aşmaz; attempts>=max_attempts → suppress (max_attempts_exhausted). Sert tavan, runaway yok.", "trace": "FR-OUT-005" },
+    { "id": "C3",  "desc": "backoff aralıkları monotonik artmayan değil — deneme arttıkça >= önceki, max_interval_seconds ile sınırlı; strategy∈{fixed,exponential}. Kontrolsüz/sınırsız retry yok.", "trace": "SR-TOOL-003, FR-OUT-005" },
+    { "id": "C4",  "desc": "jitter deterministiktir (idempotency_key'den türetilir), [0, jitter_cap_seconds] aralığında ve jitter_cap>0 (desenkronizasyon). Cüzdan-saati rastlantısı yok.", "trace": "SR-TOOL-003 (backoff+jitter)" },
+    { "id": "C5",  "desc": "do_not_call=true → derhal suppress (dnc_suppressed), HER zaman zamanlamadan önce; asla callback/retry zamanlanmaz.", "trace": "FR-TEL-014, FR-OUT-006" },
+    { "id": "C6",  "desc": "consent_state != granted → suppress (consent_withdrawn); yalnız granted consent yeniden aranabilir.", "trace": "FR-OUT-003" },
+    { "id": "C7",  "desc": "scheduled_at izinli arama saatleri içindedir; pencere dışı aday sonraki pencereye ileri-sarılır (rescheduled_calling_hours), düşürülmez. Pencere bulunamazsa no_eligible_window.", "trace": "FR-TEL-013, FR-OUT-004" },
+    { "id": "C8",  "desc": "capacity.available=false → kontrollü callback ertelemesi (capacity_deferred), retry fırtınası değil; graceful degrade.", "trace": "FR-RES-014, FR-OUT-007" },
+    { "id": "C9",  "desc": "Tüm zamanlanan eylemler (retry+callback) start_reason='outbound_callback' taşır → ortaya çıkan çağrı 2.1.7 ile sınıflanabilir.", "trace": "2.1.7 start_reasons, API §11.5" },
+    { "id": "C10", "desc": "idempotency_key deterministiktir ((tenant,contact,attempt,reason)); aynı istek aynı kararı/anahtarı üretir → çift zamanlama yok.", "trace": "FR-TOOL-003 (idempotency)" },
+    { "id": "C11", "desc": "Karar/log PII içermez (e164/transkript/ad yok); contact contact_id ile referanslanır; idempotency_key'de ham numara yok; residency region pin.", "trace": "FR-REC-004/005, NFR 10.7" },
+    { "id": "C12", "desc": "request.end.reason_code 2.1.7 taksonomisinde bulunur ve retryable bayrağı taksonomiyle eşleşir (çapraz-tutarlılık; uyuşmazlık → kapı eler).", "trace": "2.1.7 FR-TEL-012" },
+    { "id": "C13", "desc": "dropped_mid_call (FR-TEL-009 çekirdek bağlı-çağrı düşmesi) retry-uygundur ve abandoned sınıfı olarak no_contact'tan ayrılır; ikisi de aynı tavanlarla sınırlıdır.", "trace": "FR-TEL-009, 2.1.7 (dropped_mid_call)" },
+    { "id": "C14", "desc": "config ≥2 politika (kullanım-senaryosu-nötr); her biri max_attempts≥1 sonlu + sonlu aralıklar + jitter_cap>0; spec/config'te literal sır yok.", "trace": "ADR-002, NFR 10.6" }
+  ]
+}

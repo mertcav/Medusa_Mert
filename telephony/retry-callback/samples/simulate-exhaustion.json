@@ -1,0 +1,9 @@
+{
+  "$comment": "C2 çoklu-deneme: no_answer her seferinde tekrar düşer; motor max_attempts(3) tavanında durur (suppress). Sonsuz retry yok. Geçer.",
+  "now": "2026-06-15T09:30:00Z",
+  "tenant_id": "11111111-1111-1111-1111-111111111111",
+  "policy_ref": "campaign-default",
+  "end": { "reason_code": "no_answer", "retryable": true },
+  "contact": { "contact_id": "aaaaaaaa-0000-0000-0000-00000000000a", "attempts": 0, "do_not_call": false, "consent_state": "granted", "utc_offset_minutes": 0 },
+  "capacity": { "available": true }
+}

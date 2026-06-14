@@ -1,0 +1,9 @@
+{
+  "$comment": "DEGRADED (bilinçli eler): no_answer 2.1.7'de retryable=true ama istek retryable=false beyan ediyor → C12 çapraz-tutarlılık ihlali. allow_error YOK → decide kapısı eler.",
+  "now": "2026-06-15T10:00:00Z",
+  "tenant_id": "11111111-1111-1111-1111-111111111111",
+  "policy_ref": "campaign-default",
+  "end": { "reason_code": "no_answer", "retryable": false },
+  "contact": { "contact_id": "aaaaaaaa-0000-0000-0000-000000000009", "attempts": 0, "do_not_call": false, "consent_state": "granted", "utc_offset_minutes": 0 },
+  "capacity": { "available": true }
+}

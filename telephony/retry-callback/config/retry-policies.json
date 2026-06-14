@@ -1,0 +1,43 @@
+{
+  "$comment": "WBS 2.1.8 — İllüstratif retry/callback politikaları (vendor/senaryo-nötr, ADR-002). spec.policy_model alanlarını doldurur; probe doğrular (C2/C3/C4/C7/C14). max_attempts FR-OUT-005 sert tavanı; aralıklar sonlu + backoff max_interval ile sınırlı; jitter_cap>0 (retry fırtınası önleme). calling_hours yerel saat (FR-TEL-013/FR-OUT-004); tam tz canlı adaptörde. Sır/endpoint YOK — yalnız politika verisi. DB.md §5.4 campaign.max_attempts(=3)/retry_interval_minutes varsayılanlarıyla hizalı.",
+  "policies": [
+    {
+      "name": "campaign-default",
+      "$comment": "Genel outbound kampanya: 3 deneme, exponential backoff (10dk→40dk, 2sa tavan), iş saatleri 09-18. DB.md §5.4 varsayılanı.",
+      "max_attempts": 3,
+      "backoff_strategy": "exponential",
+      "base_interval_seconds": 600,
+      "multiplier": 2,
+      "max_interval_seconds": 7200,
+      "jitter_cap_seconds": 120,
+      "mode": "retry",
+      "calling_hours": { "start_hour": 9, "end_hour": 18 },
+      "drop_grace_seconds": 30
+    },
+    {
+      "name": "transactional-callback",
+      "$comment": "İşlem/teyit araması: callback kuyruğu eğilimli, sabit 5dk aralık, daha geniş pencere 08-21, 2 deneme. Bağlı çağrı düşmesinde hızlı geri arama.",
+      "max_attempts": 2,
+      "backoff_strategy": "fixed",
+      "base_interval_seconds": 300,
+      "multiplier": 1,
+      "max_interval_seconds": 300,
+      "jitter_cap_seconds": 60,
+      "mode": "callback",
+      "calling_hours": { "start_hour": 8, "end_hour": 21 },
+      "drop_grace_seconds": 15
+    },
+    {
+      "name": "high-priority-reconnect",
+      "$comment": "Yüksek öncelik: bağlı çağrı düşmesinde agresif ama yine SINIRLI yeniden bağlanma. 4 deneme, exponential (60sn→8dk, 15dk tavan), saat penceresi yok (7/24 — kritik/transactional bağlam; consent yine zorunlu).",
+      "max_attempts": 4,
+      "backoff_strategy": "exponential",
+      "base_interval_seconds": 60,
+      "multiplier": 2,
+      "max_interval_seconds": 900,
+      "jitter_cap_seconds": 30,
+      "mode": "retry",
+      "drop_grace_seconds": 10
+    }
+  ]
+}
