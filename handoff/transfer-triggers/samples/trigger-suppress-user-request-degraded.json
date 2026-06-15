@@ -1,0 +1,14 @@
+{
+  "name": "trigger-suppress-user-request-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Müşteri açıkça temsilci istiyor ama motor isteği BASTIRIYOR (inject suppress_user_request) — örn. agent kendine aşırı güvenip handoff'u reddeder. T2 ihlali (user_request_ignored>0): FR-HND-001 kullanıcı isteği daima onurlandırılmalı, bastırılamaz. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-trig-007",
+  "call_id": "call-trig-007",
+  "inject": ["suppress_user_request"],
+  "signals": [
+    {"kind": "user_request", "t": 1500, "turn": 2},
+    {"kind": "end", "t": 5000}
+  ],
+  "expected": {"triggered": false}
+}

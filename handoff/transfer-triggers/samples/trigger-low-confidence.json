@@ -1,0 +1,15 @@
+{
+  "name": "trigger-low-confidence",
+  "$comment": "Düşük confidence sürdürülen (FR-HND-002). Füzyon ASR/NLU confidence turn 2 ve 3'te eşiğin (0.5) altında ardışık (0.42, 0.38) → low_conf_sustain_turns=2 karşılanır → TRIGGERED LOW_CONFIDENCE (turn 3). Turn 1 tek başına düşük değil; debounce (T3) sağlanır. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-trig-002",
+  "call_id": "call-trig-002",
+  "signals": [
+    {"kind": "confidence", "t": 1000, "turn": 1, "score": 0.88},
+    {"kind": "confidence", "t": 2000, "turn": 2, "score": 0.42},
+    {"kind": "confidence", "t": 3000, "turn": 3, "score": 0.38},
+    {"kind": "end", "t": 7000}
+  ],
+  "expected": {"terminal": "TRIGGERED", "triggered": true, "primary_reason": "LOW_CONFIDENCE"}
+}

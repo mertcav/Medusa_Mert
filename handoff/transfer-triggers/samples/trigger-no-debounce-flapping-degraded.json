@@ -1,0 +1,15 @@
+{
+  "name": "trigger-no-debounce-flapping-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Tek geçici düşük-confidence turu (turn 1: 0.3) — turn 2 normale dönüyor (0.95). Debounce'suz motor (inject no_debounce, sürdürme=1) bunu ANINDA tetikliyor → spurious/flapping handoff. T3 ihlali (false_trigger>0): FR-HND-002 düşük confidence sürdürülen ihlal gerektirir; tek geçici düşüş tetiklememeli. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-trig-008",
+  "call_id": "call-trig-008",
+  "inject": ["no_debounce"],
+  "signals": [
+    {"kind": "confidence", "t": 1000, "turn": 1, "score": 0.3},
+    {"kind": "confidence", "t": 2000, "turn": 2, "score": 0.95},
+    {"kind": "end", "t": 5000}
+  ],
+  "expected": {"triggered": true}
+}

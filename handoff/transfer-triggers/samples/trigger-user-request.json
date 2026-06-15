@@ -1,0 +1,14 @@
+{
+  "name": "trigger-user-request",
+  "$comment": "Mutlu yol (FR-HND-001). Müşteri açıkça temsilci ister (NLU intent=handoff_request, turn 2). USER_REQUEST mandatory → ANINDA TRIGGERED (sürdürme gerekmez, T2). Confidence yüksek olsa bile bastırılmaz. Karar 9.1/9.2/9.3'e iletilir. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-trig-001",
+  "call_id": "call-trig-001",
+  "signals": [
+    {"kind": "confidence", "t": 1000, "turn": 1, "score": 0.92},
+    {"kind": "user_request", "t": 2000, "turn": 2},
+    {"kind": "end", "t": 6000}
+  ],
+  "expected": {"terminal": "TRIGGERED", "triggered": true, "primary_reason": "USER_REQUEST"}
+}

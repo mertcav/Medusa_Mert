@@ -1,0 +1,17 @@
+{
+  "name": "trigger-healthy-no-handoff",
+  "$comment": "Sağlıklı konuşma (T7). Tüm turlarda confidence yüksek (≥0.85), öfke düşük (≤0.2), kullanıcı isteği yok, politika yok → hiçbir kural nitelemiyor → MONITORING → çağrı sonu → NO_HANDOFF. Uydurma handoff üretilmez. Geçer (triggered=false beklenen davranış).",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-trig-005",
+  "call_id": "call-trig-005",
+  "signals": [
+    {"kind": "confidence", "t": 1000, "turn": 1, "score": 0.95},
+    {"kind": "sentiment", "t": 1000, "turn": 1, "anger": 0.1},
+    {"kind": "confidence", "t": 2000, "turn": 2, "score": 0.91},
+    {"kind": "sentiment", "t": 2000, "turn": 2, "anger": 0.15},
+    {"kind": "confidence", "t": 3000, "turn": 3, "score": 0.89},
+    {"kind": "end", "t": 5000}
+  ],
+  "expected": {"terminal": "NO_HANDOFF", "triggered": false, "primary_reason": null}
+}

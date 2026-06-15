@@ -1,0 +1,16 @@
+{
+  "name": "trigger-wrong-precedence-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Turn 2'de hem kullanıcı isteği (USER_REQUEST, öncelik 1) hem sürdürülen düşük-conf (LOW_CONFIDENCE, öncelik 4) nitelik kazanıyor. Bozuk motor (inject wrong_precedence) primary'yi en DÜŞÜK öncelikten (LOW_CONFIDENCE) seçiyor → yanlış reason raporlanır, kullanıcı isteği gölgelenir. T6 ihlali (wrong_precedence>0): deterministik öncelik USER_REQUEST primary olmalı. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-trig-010",
+  "call_id": "call-trig-010",
+  "inject": ["wrong_precedence"],
+  "signals": [
+    {"kind": "confidence", "t": 1000, "turn": 1, "score": 0.3},
+    {"kind": "confidence", "t": 2000, "turn": 2, "score": 0.3},
+    {"kind": "user_request", "t": 2000, "turn": 2},
+    {"kind": "end", "t": 5000}
+  ],
+  "expected": {"triggered": true, "primary_reason": "LOW_CONFIDENCE"}
+}

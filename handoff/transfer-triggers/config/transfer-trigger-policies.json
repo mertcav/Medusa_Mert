@@ -1,0 +1,30 @@
+{
+  "$comment": "WBS 9.4 transfer tetikleyici politika konfigürasyonu (vendor-neutral, credential-free). Confidence/sentiment/intent ÜRETİMİ STT/NLU/duygu modüllerinde; bu config tetik motorunun eşik/histerezis/öncelik parametrelerini tutar. Sır/credential ve ham transkript/müşteri sözleri YOK — yalnız eşikler + sürdürme pencereleri + mandatory reason listesi + emit hedefleri + politika kural KİMLİKLERİ (metin değil). Tenant override yalnız sıkılaştırır (eşik düşürmeden sürdürme pencereyi büyütebilir / heuristic tetiği kapatabilir; USER_REQUEST/POLICY mandatory kapatılamaz). Eşikler MÜHENDİSLİK varsayılanı; pilot tenant verisiyle kalibre edilir (BRD §22 açık karar).",
+  "version": "1.0",
+  "wbs": "9.4",
+  "thresholds": {
+    "$comment": "Skorlar [0,1]: confidence yüksek=iyi, anger yüksek=öfkeli. LOW_CONFIDENCE debounce için sürdürme ≥2 (T3 tek geçici tur tetiklemesin).",
+    "low_conf_threshold": 0.5,
+    "low_conf_sustain_turns": 2,
+    "anger_threshold": 0.7,
+    "anger_sustain_turns": 2
+  },
+  "mandatory_reasons": ["USER_REQUEST", "POLICY"],
+  "heuristic_reasons": ["ANGER", "LOW_CONFIDENCE"],
+  "precedence": ["USER_REQUEST", "POLICY", "ANGER", "LOW_CONFIDENCE"],
+  "policy_rules": {
+    "$comment": "Politika-zorunlu handoff kural KİMLİKLERİ (FR-HND-002). Gerçek kural mantığı politika motorunda; burada yalnız tetik referansı. Örnek: uyumluluk gerektiren işlem, agent kapsam-dışı niyet, maks-deneme aşımı, kısıtlı/regüle konu.",
+    "ids": ["rule-compliance-required", "rule-out-of-scope", "rule-max-retries", "rule-restricted-topic"]
+  },
+  "emit_to": ["9.1", "9.2", "9.3"],
+  "fallback_on_no_agent": {
+    "$comment": "Tetik kararı handoff'u BAŞLATIR; temsilci yoksa fallback motoru 9.7'dedir. Bu config yalnız hedef işaretçiyi taşır.",
+    "to": "9.7",
+    "options": ["callback", "voicemail", "ticket"]
+  },
+  "observability": {
+    "metric_prefix": "handoff_trigger_",
+    "alarm_on_low_confidence_trigger_rate": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

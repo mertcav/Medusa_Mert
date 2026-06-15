@@ -1,0 +1,16 @@
+{
+  "name": "trigger-retrigger-storm-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Öfke turn 2'de tetikleniyor (LATCH olmalı). Bozuk motor (inject retrigger) cooldown'a rağmen sonraki turlarda ikinci/yinelenen karar yayıyor → aynı çağrı için handoff storm, 9.1/9.2/9.3'e çift karar. T8 ihlali (duplicate_decision>0): ilk-niteleyen-tur LATCH'lemeli, tek karar. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-trig-011",
+  "call_id": "call-trig-011",
+  "inject": ["retrigger"],
+  "signals": [
+    {"kind": "sentiment", "t": 1000, "turn": 1, "anger": 0.82},
+    {"kind": "sentiment", "t": 2000, "turn": 2, "anger": 0.9},
+    {"kind": "sentiment", "t": 3000, "turn": 3, "anger": 0.88},
+    {"kind": "end", "t": 6000}
+  ],
+  "expected": {"triggered": true, "primary_reason": "ANGER"}
+}

@@ -1,0 +1,15 @@
+{
+  "name": "trigger-precedence-multi",
+  "$comment": "Çoklu tetik aynı turda (T6 öncelik). Turn 2'de hem sürdürülen düşük-confidence (turn1+turn2 ardışık 0.3/0.3) hem de açık kullanıcı isteği nitelik kazanıyor. Öncelik USER_REQUEST(1) > LOW_CONFIDENCE(4) → primary_reason=USER_REQUEST; contributing=[USER_REQUEST, LOW_CONFIDENCE]. Deterministik tek primary. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-trig-006",
+  "call_id": "call-trig-006",
+  "signals": [
+    {"kind": "confidence", "t": 1000, "turn": 1, "score": 0.3},
+    {"kind": "confidence", "t": 2000, "turn": 2, "score": 0.3},
+    {"kind": "user_request", "t": 2000, "turn": 2},
+    {"kind": "end", "t": 5000}
+  ],
+  "expected": {"terminal": "TRIGGERED", "triggered": true, "primary_reason": "USER_REQUEST"}
+}

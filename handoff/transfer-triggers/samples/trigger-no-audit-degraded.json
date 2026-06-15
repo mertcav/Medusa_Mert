@@ -1,0 +1,14 @@
+{
+  "name": "trigger-no-audit-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Politika tetiği geçerli ama motor karar audit kaydını ÜRETMİYOR (inject no_audit) — handoff kararı izsiz kalır, inkâr edilemezlik (TM-R-*) kırılır. T10 ihlali (missing_audit>0): her karar (tetik veya değil) reason+kanıt+correlation+tenant ile audit'e yazılmalı (FR-IAM-006). Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-trig-012",
+  "call_id": "call-trig-012",
+  "inject": ["no_audit"],
+  "signals": [
+    {"kind": "policy", "t": 1500, "turn": 2, "rule": "rule-max-retries"},
+    {"kind": "end", "t": 5000}
+  ],
+  "expected": {"triggered": true, "primary_reason": "POLICY"}
+}

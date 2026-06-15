@@ -1,0 +1,141 @@
+{
+  "$comment": "WBS 9.4 — Transfer tetikleyiciler (kullanıcı isteği · düşük confidence · öfke · politika) (BRD §9.12 İnsan Temsilciye Aktarım / SAD §7.3 Human Handoff Akışı). 9. workstream'in (İnsan Temsilciye Aktarım) DÖRDÜNCÜ modülü ve F1-Must aktarım çekirdeği. FR-HND-001 ('Müşteri istediğinde insan temsilciye aktarım yapılmalıdır') + FR-HND-002 ('Düşük confidence, müşteri öfkesi veya politika ihlali aktarım tetikleyebilmelidir') tetikleme kararını SAHİPLENİR. 9.1 (cold) / 9.2 (warm) / 9.3 (whisper) modüllerinin tümü 'tetikleyici→9.4 (kararı TÜKETİR)' der: bu modül transfer KARARINI ÜRETİR, mekanizma modülleri (9.1/9.2/9.3) bu kararı TÜKETİR. Modül bir SİNYAL DEĞERLENDİRME MOTORU (deterministik): konuşma sürerken her tur sinyalleri (NLU kullanıcı-isteği niyeti, füzyon ASR/NLU confidence skoru, sentiment/öfke skoru, politika kuralı) akışını izler ve TransferDecision üretir. Dört tetikleyici sınıfı: USER_REQUEST (FR-HND-001 — açık 'temsilciye bağla' niyeti, BASTIRILMAZ), POLICY (FR-HND-002 — uyumluluk/kapsam-dışı/maks-deneme kuralı zorunlu handoff, BASTIRILMAZ), ANGER (FR-HND-002 — öfke eşiği sürdürülen), LOW_CONFIDENCE (FR-HND-002 — düşük confidence sürdürülen, debounce/histerezis). ÇEKİRDEK INVARIANT: kullanıcı isteği daima onurlandırılır (T2 user_request_ignored=0), düşük-confidence tek geçici turda TETİKLEMEZ (T3 debounce — false_trigger=0), öfke eşik+sürdürme gerektirir (T4), politika handoff'u confidence ile bastırılamaz (T5 policy_ignored=0), çoklu tetikte deterministik öncelik tek primary üretir (T6 wrong_precedence=0), sağlıklı konuşma uydurma handoff üretmez (T7), ilk-niteleyen-tur LATCH'ler + cooldown (T8 duplicate_decision=0), her tetik kanıt taşır (T9), her karar audit'e yazılır (T10). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): aktarım MEKANİZMASI (cold SIP REFER → 9.1; warm köprüleme+whisper → 9.2; whisper konferans → 9.3 — bu modül kararı/reason'ı ÜRETİR, taşımayı DEĞİL); kuyruk/skill/departman HEDEF SEÇİMİ → 9.5 (FR-TEL-008/FR-HND-003; bu modül NE ZAMAN+NEDEN, NEREYE değil); bağlam paketi (özet+intent+alanlar+auth) + screen-pop → 9.6 (FR-HND-004/005); temsilci-yok callback/voicemail/ticket → 9.7 (FR-HND-007); aktarım başarısı+bekleme raporlama → 9.8 (FR-HND-008); STT confidence ÜRETİMİ → 4.x/STT adapter (FR-STT-006/007; bu modül confidence'i TÜKETİR); sentiment/öfke ÜRETİMİ → NLU/duygu analizi modülü (bu modül skoru TÜKETİR); intent/niyet sınıflandırması → 3.x diyalog/NLU (bu modül handoff_request niyetini TÜKETİR); audit STORE → 7.1.6/12.1.8; gözlemlenebilirlik omurgası → 0.4.7 (bu modül metrik ÜRETİR, omurgayı DEĞİL). Spec/config/sample'larda sır/credential ve gerçek PII (ham transkript metni / müşteri sözleri / telefon numarası) YOK — yalnız skorlar (0..1) + eşikler + politika kuralı KİMLİKLERİ + tur indeksleri + sanal zaman + tetik sınıfı/reason kodu + uygunluk bayrakları. KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS esastır.",
+  "version": "1.0",
+  "wbs": "9.4",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-HND-001", "FR-HND-002", "FR-HND-008", "FR-TEN-002", "FR-IAM-006", "FR-STT-006", "FR-STT-007", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-HND-001", "SR-HND-002"],
+    "rtm": ["TC-HND-001", "TC-HND-002"],
+    "brd": [
+      "§9.12 (İnsan Temsilciye Aktarım — FR-HND-001 müşteri istediğinde aktarım; FR-HND-002 düşük confidence/öfke/politika tetikleyebilmeli; FR-HND-008 aktarım başarısı+bekleme süresi raporlama)",
+      "§14.2 (No deceptive impersonation — tetik kararı handoff'u BAŞLATIR, anonsu 9.1/9.2/9.3 yapar; nazik handoff)",
+      "§16/§24 (Call / Call Leg / Audit Log varlıkları — tetik kararı outcome/audit kaydı)"
+    ],
+    "sad": [
+      "§7.3 (Human Handoff Akışı — 'Orchestrator (transfer kararı)' → Handoff Manager; bu modül transfer KARARI noktasıdır)",
+      "§6.1 (turn state machine — tetik değerlendirme tur sinyallerinden beslenir; karar turn-üstü oturum durumu)",
+      "§8.1 (SttAdapter Transcript{ confidence } — düşük-confidence sinyali STT füzyonundan gelir)",
+      "§13.3 (correlation/tenant context propagation — tetik kararı correlation_id+tenant taşır)",
+      "§14 (güvenlik tasarımı — fail-safe: tetik motoru handoff'u BAŞLATIR, oturumu DÜŞÜRMEZ)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — handoff tetik kararı orkestratörde; STT/LLM/TTS'e doğrudan bağlanmaz, confidence/sentiment sinyallerini TÜKETİR)",
+      "ADR-002 (vendor-neutral — confidence/sentiment kaynağı sağlayıcı bağımsız; eşik/debounce mantığı aynı kalır)"
+    ],
+    "threat_model": [
+      "TM-D-* (DoS — tetik motoru oturumu düşürmez; handoff başlatır, fail-safe)",
+      "TM-I-* (bilgi sızıntısı — skorlar/eşikler/kural kimlikleri; ham transkript/müşteri sözleri metrik/log'ta yok)",
+      "TM-R-* (inkâr — her tetik kararı + reason + kanıt audit'e yazılır)",
+      "TM-T-* (tenant izolasyonu — eşik/politika tenant-scoped; karar tenant context'inde)"
+    ],
+    "consumes": [
+      "STT füzyon confidence (FR-STT-006/007) — per-tur skor TÜKETİR (ÜRETMEZ)",
+      "NLU/duygu analizi sentiment/öfke skoru — per-tur skor TÜKETİR (ÜRETMEZ)",
+      "Diyalog/NLU intent (handoff_request niyeti) — kullanıcı-isteği sinyalini TÜKETİR",
+      "Politika motoru kuralları (uyumluluk/kapsam-dışı/maks-deneme) — policy handoff sinyalini TÜKETİR"
+    ],
+    "consumed_by": [
+      "9.1 cold transfer (FR-TEL-007) — TransferDecision'ı (triggered+reason) TÜKETİR",
+      "9.2 warm transfer (FR-TEL-007/FR-HND-006) — TransferDecision'ı TÜKETİR",
+      "9.3 whisper transfer (FR-TEL-007) — TransferDecision'ı TÜKETİR",
+      "9.5 hedef seçimi (FR-TEL-008/FR-HND-003) — tetik reason'ını (öfke→öncelik kuyruğu vb.) yönlendirme ipucu olarak TÜKETİR",
+      "9.8 aktarım raporlama (FR-HND-008) — tetik reason dağılımını TÜKETİR",
+      "7.1.6 + 12.1.8 audit store (FR-IAM-006) — tetik karar kaydını kalıcılaştırır",
+      "0.4.7 gözlemlenebilirlik — handoff_trigger_total / handoff_trigger_* metriklerini tüketir"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Tetik motoru orkestratör turn döngüsünün YANINDA bir oturum-durumu değerlendiricisidir (SAD §7.3 'Orchestrator (transfer kararı)' noktası): her tur tamamlandığında üretilen sinyaller (confidence/sentiment/intent/policy) motora beslenir; motor histerezis/eşik/öncelik kurallarıyla MONITORING durumunda kalır veya bir kural niteleyince TRIGGERED'e LATCH'ler ve TransferDecision yayar. Karar mekanizma modülüne (9.1/9.2/9.3) iletilir; motor taşımayı YAPMAZ. Motor hot-path turn'ünü BLOKLAMAZ — değerlendirme O(1) sinyal başına, sanal zaman deterministik. Vendor-neutral (ADR-001/002): sinyal kaynakları (STT/sentiment/NLU/policy) SPI arkasında; referans deterministik değerlendirici; canlıda gerçek skorlar AYNI karar sözleşmesi arkasına.",
+    "plane": "voice-runtime orchestrator (handoff manager — tetik değerlendirme motoru)",
+    "owns": "SAD §7.3 transfer KARARI noktası: tur sinyalleri → eşik/histerezis/öncelik → TransferDecision (triggered + primary_reason + kanıt) + karar audit",
+    "delegates": "aktarım taşıması → 9.1/9.2/9.3; hedef seçimi → 9.5; bağlam paketi → 9.6; fallback → 9.7; raporlama → 9.8; audit store → 7.1.6/12.1.8; confidence/sentiment/intent ÜRETİMİ → STT/NLU/policy modülleri",
+    "deterministic": true,
+    "trace": "SAD §7.3, SAD §6.1, ADR-001, ADR-002"
+  },
+
+  "states": {
+    "$comment": "Tetik değerlendirme durum makinesi (T1). MONITORING→{TRIGGERED|NO_HANDOFF}. MONITORING: her tur sinyal akışı değerlendiriliyor (öfke/düşük-confidence sürdürme sayaçları biriktiriliyor). TRIGGERED (terminal): bir kural niteledi → handoff kararı LATCH'lendi, mekanizma modülüne (9.1/9.2/9.3) iletildi; cooldown ek karar üretmez (T8). NO_HANDOFF (terminal): konuşma tetik olmadan sona erdi (sağlıklı yol). Terminal durumlar IMMUTABLE.",
+    "flow": ["MONITORING", "TRIGGERED", "NO_HANDOFF"],
+    "non_terminal": ["MONITORING"],
+    "terminal": ["TRIGGERED", "NO_HANDOFF"],
+    "terminal_trigger": ["TRIGGERED"],
+    "terminal_no_handoff": ["NO_HANDOFF"]
+  },
+
+  "transitions": {
+    "$comment": "İzinli geçişler + kapı koşulu. Tetik motoru fail-safe: niteleyen kural yoksa MONITORING'de kalır, çağrı sonunda NO_HANDOFF'a gider (uydurma handoff yok, T7); niteleyen kural varsa ilk niteleyen turda TRIGGERED'e LATCH'ler (T8). Sıra: sinyal-değerlendir → (nitele?) → öncelik-çöz → karar.",
+    "edges": [
+      {"from": "MONITORING", "to": "MONITORING", "gate": "E1", "cond": "tur sinyali niteleyen eşiği aşmadı (düşük-conf run < sustain / öfke run < sustain / kullanıcı-isteği yok / politika yok) → biriktir, devam"},
+      {"from": "MONITORING", "to": "TRIGGERED", "gate": "E2", "cond": "bir kural niteledi: USER_REQUEST (açık niyet) | POLICY (kural) | ANGER (öfke≥eşik sürdürülen) | LOW_CONFIDENCE (conf≤eşik sürdürülen) → öncelikle primary_reason çözülür, LATCH"},
+      {"from": "MONITORING", "to": "NO_HANDOFF", "gate": "E3", "cond": "çağrı sona erdi (end sinyali) ve hiçbir kural nitelemedi → uydurma handoff yok (T7)"}
+    ],
+    "on_triggered": "EMIT eylemi: TransferDecision{triggered=true, primary_reason, contributing[], trigger_turn, evidence} → mekanizma modülüne (9.1/9.2/9.3) iletilir; cooldown LATCH (T8); karar audit'e yazılır (T10)",
+    "on_no_handoff": "CLOSE eylemi: TransferDecision{triggered=false} → handoff yok; değerlendirme audit'e yazılır (T10)"
+  },
+
+  "trigger_classes": {
+    "$comment": "Dört tetikleyici sınıfı + öncelik (precedence). Öncelik DÜŞÜK sayı = YÜKSEK öncelik; aynı turda çoklu nitelikte primary = en yüksek öncelik (T6). USER_REQUEST ve POLICY 'mandatory' (config ile devre dışı bırakılamaz, T2/T5); ANGER ve LOW_CONFIDENCE 'heuristic' (eşik+sürdürme, tenant config'inde ayarlanabilir/kapatılabilir). LOW_CONFIDENCE histerezis (debounce) ile tek geçici turda tetiklemez (T3).",
+    "classes": [
+      {"reason": "USER_REQUEST", "priority": 1, "fr": "FR-HND-001", "kind": "mandatory", "trigger": "açık handoff niyeti (NLU intent=handoff_request) → ANINDA, sürdürme gerekmez", "suppressible": false},
+      {"reason": "POLICY", "priority": 2, "fr": "FR-HND-002", "kind": "mandatory", "trigger": "politika kuralı zorunlu handoff (uyumluluk / kapsam-dışı intent / maks-deneme aşımı / kısıtlı konu) → ANINDA", "suppressible": false},
+      {"reason": "ANGER", "priority": 3, "fr": "FR-HND-002", "kind": "heuristic", "trigger": "öfke/frustrasyon skoru ≥ anger_threshold, ardışık ≥ anger_sustain_turns tur sürdürülen", "suppressible": true},
+      {"reason": "LOW_CONFIDENCE", "priority": 4, "fr": "FR-HND-002", "kind": "heuristic", "trigger": "füzyon ASR/NLU confidence ≤ low_conf_threshold, ardışık ≥ low_conf_sustain_turns tur sürdürülen (debounce/histerezis)", "suppressible": true}
+    ],
+    "precedence": ["USER_REQUEST", "POLICY", "ANGER", "LOW_CONFIDENCE"]
+  },
+
+  "thresholds": {
+    "$comment": "MÜHENDİSLİK varsayılanı eşikler (canlı PoC + pilot tenant verisiyle kalibre edilir; BRD §22 açık karar). Tenant config (config/transfer-trigger-policies.json + per-tenant override) içinde ayarlanabilir; USER_REQUEST/POLICY mandatory (kapatılamaz, T2/T5). Skorlar [0,1]: confidence yüksek=iyi, anger yüksek=öfkeli. Sürdürme (sustain) tur sayısı ≥1; LOW_CONFIDENCE debounce için ≥2 önerilir (tek geçici düşüş tetiklemesin, T3).",
+    "low_conf_threshold": 0.5,
+    "low_conf_sustain_turns": 2,
+    "anger_threshold": 0.7,
+    "anger_sustain_turns": 2,
+    "bounds": {"score_min": 0.0, "score_max": 1.0, "sustain_min": 1}
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli; bir senaryoda ihlal varsa kapı eler. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1 canlı PoC + pilot tenant verisinde doğrulanır.",
+    "max_user_request_ignored": 0,
+    "max_policy_ignored": 0,
+    "max_false_trigger": 0,
+    "max_wrong_precedence": 0,
+    "max_duplicate_decision": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "Tetik motoru her karar için BRD §15 + handoff metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. handoff_trigger_total{tenant,reason,triggered} → karar sayımı (reason+triggered DÜŞÜK kardinalite, label uygun); handoff_trigger_eval_total → değerlendirme sayımı; handoff_trigger_confidence_breach_total → düşük-confidence sürdürme tetiği (STT degradasyon erken-uyarı); handoff_trigger_anger_total → öfke tetiği. tenant_id+reason+trigger_class+triggered DÜŞÜK kardinalite (label uygun); call_id/correlation_id/turn_index YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Ham transkript/müşteri sözleri/skor-üreten metin metriklerde YOK. Düşük-confidence tetik oranı ani artışı (STT degradasyonu) → alarm ≤2dk (SAD §17.2, NFR 10.1).",
+    "metrics": ["handoff_trigger_total", "handoff_trigger_eval_total", "handoff_trigger_confidence_breach_total", "handoff_trigger_anger_total"],
+    "low_cardinality_labels": ["tenant_id", "reason", "trigger_class", "triggered"],
+    "high_cardinality_trace_only": ["call_id", "correlation_id", "turn_index"],
+    "alarm": "düşük-confidence/öfke tetik oranı ani artışı → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "T1", "desc": "Karar tamlığı/determinizm: her değerlendirme tanımlı kenarlar boyunca ilerler ve bir terminal karara {TRIGGERED|NO_HANDOFF} ulaşır; aynı girdi → aynı çıktı; stuck/tanımsız durum yok. stuck_state=0.", "trace": "SAD §7.3, SR-HND-002"},
+    {"id": "T2", "desc": "Kullanıcı isteği daima onurlandırılır (FR-HND-001): açık handoff niyeti (intent=handoff_request) → TRIGGERED, primary_reason=USER_REQUEST; hiçbir config/agent-confidence ile bastırılamaz/geçersizleştirilemez. user_request_ignored=0.", "trace": "FR-HND-001, SR-HND-001"},
+    {"id": "T3", "desc": "Düşük-confidence debounce (FR-HND-002): tek geçici düşük-confidence turu TETİKLEMEZ; ardışık ≥ low_conf_sustain_turns sürdürülen ihlal gerekir (anti-flapping histerezis). Spurious handoff önlenir. false_trigger=0.", "trace": "FR-HND-002, SR-HND-002"},
+    {"id": "T4", "desc": "Öfke eşik+sürdürme (FR-HND-002): negatif sentiment anger_threshold'u ardışık ≥ anger_sustain_turns aşmalı; tek hafif negatif tetiklemez. false_trigger=0.", "trace": "FR-HND-002, SR-HND-002"},
+    {"id": "T5", "desc": "Politika zorunlu (FR-HND-002): politika-zorunlu handoff (uyumluluk/kapsam-dışı/maks-deneme) tetikler ve agent confidence ile bastırılamaz. policy_ignored=0.", "trace": "FR-HND-002, SR-HND-002"},
+    {"id": "T6", "desc": "Deterministik öncelik + tek primary: aynı turda çoklu tetik niteliğinde öncelik USER_REQUEST>POLICY>ANGER>LOW_CONFIDENCE tam bir primary_reason verir; tüm niteleyenler contributing[] olarak kaydedilir. wrong_precedence=0.", "trace": "SAD §7.3, FR-HND-001/002"},
+    {"id": "T7", "desc": "Sağlıklıda spurious tetik yok: normal konuşma (eşik ihlali yok) → NO_HANDOFF; uydurma handoff üretilmez. false_trigger=0.", "trace": "FR-HND-002, SR-HND-002"},
+    {"id": "T8", "desc": "İlk-niteleyen-tur LATCH + cooldown: herhangi bir kuralın niteldiği İLK tur TRIGGERED üretir ve LATCH'ler; aynı çağrı için ikinci/yinelenen karar üretilmez. duplicate_decision=0.", "trace": "SAD §6.1, FR-HND-008"},
+    {"id": "T9", "desc": "Kanıt + reason kaydı: her TRIGGERED primary_reason + trigger_turn + kanıt (skor/pencere/kural) taşır; reason'sız tetik yok. missing_evidence=0.", "trace": "FR-HND-008, FR-IAM-006"},
+    {"id": "T10", "desc": "Audit + gözlemlenebilirlik: her karar (tetik veya değil) → audit {reason, kanıt, correlation_id, tenant_id} (FR-IAM-006); metrikler düşük-kardinalite (reason/tenant), transkript/PII metrikte yok. missing_audit=0.", "trace": "FR-IAM-006, 0.4.7 label_policy"},
+    {"id": "T11", "desc": "Sır/PII yok: spec/config/sample ham transkript metni/müşteri sözleri/PII/credential tutmaz; yalnız skorlar [0,1]/eşikler/kural kimlikleri/tur indeksleri. secret_or_pii=0.", "trace": "BRD §14, BRD §16, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar ham TRANSKRİPT METNİ, müşteri SÖZLERİ, PII DEĞERİ veya credential TUTMAZ — yalnız skorlar (0..1) + eşikler + politika kuralı KİMLİKLERİ (metin değil) + tur indeksleri + sanal zaman + tetik sınıfı/reason kodu + uygunluk bayrakları (boolean). Skor üreten metin (müşteri ne dedi) bu modülün dışında (STT/NLU/sentiment); bu modül yalnız SAYISAL sinyali tüketir. Confidence/sentiment skoru PII değildir; kural kimliği (policy.rule) yapısal referanstır.",
+    "forbids": ["transcript_text", "customer_utterance", "raw_phone_number_value", "credential", "secret", "pii_value"]
+  }
+}

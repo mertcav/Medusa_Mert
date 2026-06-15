@@ -1,0 +1,15 @@
+{
+  "name": "trigger-ignore-policy-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Politika motoru uyumluluk için zorunlu handoff istiyor (rule-restricted-topic) ama motor politikayı YOK SAYIYOR (inject ignore_policy) — agent confidence yüksek diye handoff'u atlar. T5 ihlali (policy_ignored>0): FR-HND-002 politika handoff'u agent confidence ile bastırılamaz (mandatory). Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-trig-009",
+  "call_id": "call-trig-009",
+  "inject": ["ignore_policy"],
+  "signals": [
+    {"kind": "confidence", "t": 1000, "turn": 1, "score": 0.93},
+    {"kind": "policy", "t": 2000, "turn": 2, "rule": "rule-restricted-topic"},
+    {"kind": "end", "t": 5000}
+  ],
+  "expected": {"triggered": false}
+}

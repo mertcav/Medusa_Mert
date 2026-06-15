@@ -1,0 +1,14 @@
+{
+  "name": "trigger-anger",
+  "$comment": "Öfke sürdürülen (FR-HND-002). Sentiment/öfke skoru turn 1 ve 2'de eşiğin (0.7) üzerinde ardışık (0.78, 0.86) → anger_sustain_turns=2 karşılanır → TRIGGERED ANGER (turn 2). Müşteri öfkesi insan temsilciye aktarımı tetikler. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-trig-003",
+  "call_id": "call-trig-003",
+  "signals": [
+    {"kind": "sentiment", "t": 1000, "turn": 1, "anger": 0.78},
+    {"kind": "sentiment", "t": 2000, "turn": 2, "anger": 0.86},
+    {"kind": "end", "t": 6000}
+  ],
+  "expected": {"terminal": "TRIGGERED", "triggered": true, "primary_reason": "ANGER"}
+}

@@ -1,0 +1,15 @@
+{
+  "name": "trigger-policy",
+  "$comment": "Politika-zorunlu handoff (FR-HND-002). Politika motoru turn 3'te uyumluluk gerektiren işlem için zorunlu handoff sinyali verir (rule-compliance-required). POLICY mandatory → ANINDA TRIGGERED, agent confidence yüksek olsa bile bastırılamaz (T5). Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-trig-004",
+  "call_id": "call-trig-004",
+  "signals": [
+    {"kind": "confidence", "t": 1000, "turn": 1, "score": 0.9},
+    {"kind": "confidence", "t": 2000, "turn": 2, "score": 0.88},
+    {"kind": "policy", "t": 3000, "turn": 3, "rule": "rule-compliance-required"},
+    {"kind": "end", "t": 6000}
+  ],
+  "expected": {"terminal": "TRIGGERED", "triggered": true, "primary_reason": "POLICY"}
+}
