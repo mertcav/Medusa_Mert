@@ -1,0 +1,13 @@
+{
+  "name": "rest-404-terminal — 404 → NOT_FOUND (terminal; 7.1.4 retry ETMEZ)",
+  "$comment": "404 → NOT_FOUND, terminal (retryable=false). 7.1.4 terminal fault'u yeniden DENEMEZ (R4). Müşteriye dönen metin 7.1.5'te (CANNOT_COMPLETE/NOT_FOUND). Sentetik (FR-TST-008).",
+  "profile": "crm-rest-bearer",
+  "invocations": [
+    {"call_id": "n1", "correlation_id": "corr-ddd", "tenant_id": "t-1", "operation": "get_customer",
+     "path_params": {"customer_id": "C-9999"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 404, "latency_ms": 25}]}
+  ],
+  "expect": {
+    "n1": {"result": "fault", "fault_class": "NOT_FOUND", "status_code": 404, "retryable": false}
+  }
+}

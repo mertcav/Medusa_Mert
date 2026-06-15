@@ -1,0 +1,117 @@
+{
+  "$comment": "WBS 7.2.1 — REST connector (SAD §11.2 Integration Gateway + FR-TOOL-001). Tool Yürütme Hattının (SAD §11.1) UPSTREAM TRANSPORT katmanı. 7.1.4 (integration-gw) dayanıklılık motoru bir SPI noktası ilan etti: 'upstream_call(req) → AttemptOutcome; referans deterministik attempts_script; canlıda gerçek REST/SOAP/GraphQL transport + connection pool (FR-RES-006) AYNI imza arkasına'. Bu modül o seam'in REST/HTTP dilimini (FR-TOOL-001 'REST … entegrasyonları desteklenmelidir') uygular: bildirimsel (declarative) bir RestConnectorSpec + RestInvocation alır, kanonik bir HTTP isteği KURAR (method/url/header/query/body — template binding), vendor-neutral bir WIRE SPI üzerinden yürütür (referans: deterministik wire_script — gerçek ağ/credential YOK; canlı: gerçek HTTP client + connection pool AYNI imza), ve HTTP yanıtını → 7.1.4'ün TÜKETTİĞİ AttemptOutcome'a EŞLER (HTTP status → fault_class; HTTP method → operation_class). INVARIANT (SR-TOOL-001 kabul ölçütü): 'REST connector başarılı çağrı yapar' — kanonik istek deterministik kurulur (C1), HTTP status → fault_class eşlemesi TOPLAM ve 7.1.4 taksonomisiyle hizalı (C2; 2xx→ok, 5xx/429/408→RETRYABLE, 4xx→TERMINAL), method → operation_class read/write (C3; 7.1.4 write-retry/idempotency köprüsü FR-TOOL-009). Connector RETRY/BREAKER ORKESTRE ETMEZ (C4 — o 7.1.4); yalnız TEK denemenin sonucunu (AttemptOutcome) üretir. Sırlar yalnız REFERANS ile (C5 — auth `${ENV}`/secret_ref; literal sır spec'te REDDEDİLİR; çözülen değer asla loglanmaz/audit'lenmez). Audit no-log (C6 — correlation_id+endpoint+method+status_code+fault_class+pooled; query değeri/body/header değeri/PII YOK). Connection pooling (C7 — FR-RES-006; havuz scheme+host+port ile anahtarlanır; referans warm-reuse vs cold-connect gecikmesini MODELLER). Bağlam taşıma (C8 — correlation_id + idempotency_key VARSA header olarak iletilir; connector ÜRETMEZ → 7.1.6/7.1.3). Determinizm (C9 — tohumlu; sanal saat; Date.now/gerçek-rastgele YOK). Enjeksiyon güvenli (C10 — bağlanan path/query/header değerinde CRLF/kontrol karakteri → INJECTION_REJECTED, istek GÖNDERİLMEZ). Kanonik endpoint kimliği (C11 — emitted endpoint interpolesiz path TEMPLATE; düşük-kardinalite breaker anahtarı + gözlemlenebilirlik label politikası 0.4.7 ile hizalı). Vendor-neutral transport SPI (C12 — ADR-001/002; wire bir seam, mantık transport'tan bağımsız). KAPSAM DIŞI (bilinçli): timeout/retry/circuit breaker ORKESTRASYONU → 7.1.4 (FR-TOOL-003; bu connector'ın AttemptOutcome'unu tüketir); allowlist (onaysız endpoint engelleme) → 7.2.3 (FR-TOOL-012; connector kanonik endpoint ÜRETİR, gate KARAR verir); SOAP/GraphQL/webhook connector'lar → 7.2.2 (AYNI SPI, farklı protokol mapper); input/output JSON schema doğrulama → 7.1.1 (FR-TOOL-002); tool authz/scope → 7.1.2 (FR-TOOL-004/005); idempotency key ÜRETİMİ/store → 7.1.3 (FR-TOOL-009; connector key'i VARSA iletir, üretmez); MÜŞTERİYE dönen hata metni normalizasyonu → 7.1.5 (FR-TOOL-008; connector yalnız yapısal fault_class üretir); correlation_id audit/trace zenginleştirme → 7.1.6 (FR-TOOL-010); asenkron uzun-işlem (callback/polling) → 7.2.4 (FR-TOOL-011). Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (fixture'lar sentetik — FR-TST-008; host'lar example.com). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "7.2.1",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TOOL-001", "FR-RES-006", "FR-TOOL-009", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-TOOL-001"],
+    "rtm": ["TC-TOOL-001"],
+    "sad": [
+      "§11.2 (Integration Gateway: REST/SOAP/GraphQL/webhook FR-TOOL-001; connection pooling + kalıcı oturum FR-RES-006; bu modülün REST dilimi)",
+      "§11.1 adım [5]/[6] (Tool Yürütme Hattı — bu connector adım [5]'in ALTINDAKI gerçek upstream transport'tur; 7.1.4 sarar)",
+      "§6.1 (turn state machine ACT durumu — schema-validated tool çağrısı bu transport'a iner)",
+      "§8.1/§8.2 (Adapter SPI — connector ortak yetenek deseni; transport değiştirilebilir)",
+      "§20 (tool overhead bütçe kalemi — connect/transfer gecikme katkısı; HARD kapı 0.3.2'de, burada SOFT)"
+    ],
+    "brd": ["§9.10 (Tool ve İş Süreci Yönetimi — FR-TOOL-001)", "§6.1 (CRM/Ticketing/ERP REST entegrasyonu — pilot)", "§8.1 (lean runtime — connection pooling/kaynak israfı azaltma)"],
+    "adr": [
+      "ADR-001 (orchestrator/Tool Executor bağımsızlığı — connector SPI arkasında)",
+      "ADR-002 (vendor-neutral — HTTP transport/client değiştirilebilir; eşleme mantığı bağımsız)",
+      "ADR-003 (hot-path runtime — non-blocking I/O; connection pool kalıcı oturum)"
+    ],
+    "api": ["§ Adapter SPI ortak yetenekler (timeout/error normalization/connection)", "§11.6 ErrorTaxonomy (fault_class ortak hata taksonomisi hizalama)"],
+    "consumes": [
+      "7.1.1 schema-validated tool input (FR-TOOL-002) — connector doğrulanmış argümanları template'e bağlar",
+      "7.1.2 tool authz kararı (FR-TOOL-004/005) — connector çağrıyı yetkilendirilmiş varsayar",
+      "7.1.3 idempotency key (FR-TOOL-009) — VARSA write çağrısında header olarak iletir (üretmez)"
+    ],
+    "consumed_by": [
+      "7.1.4 timeout/retry/circuit breaker (FR-TOOL-003) — bu connector'ın AttemptOutcome'unu SPI seam'inde tüketir; retry/breaker ORKESTRE eder",
+      "7.2.3 endpoint allowlist (FR-TOOL-012) — connector'ın kanonik endpoint'ini onaylı liste ile karşılaştırır",
+      "7.1.5 hata normalizasyonu (FR-TOOL-008) — fault_class → müşteriye teknik-detaysız mesaj",
+      "7.1.6 correlation_id audit (FR-TOOL-010) — connector'ın yapısal audit kaydını zenginleştirir"
+    ]
+  },
+
+  "placement": {
+    "$comment": "REST connector Tool Yürütme Hattının (SAD §11.1) adım [5] dayanıklılık motorunun (7.1.4) SARDIĞI gerçek upstream transport'tur: '… [4] idempotency ──► [5] Integration GW {timeout+retry+breaker SARAR → upstream_call(req)} ──► [6] output schema + error normalization …'. Yani çağrı zinciri: 7.1.4 gateway → (her deneme) → REST connector.upstream_call(req) → AttemptOutcome → 7.1.4 kararı (retry/breaker). Voice-runtime hot-path (orchestrator ACT, SAD §6.1) ama araç çağrısı çoğu turda yok. Non-blocking I/O + connection pool (ADR-003/FR-RES-006): kalıcı keep-alive oturumları cold-connect (TLS handshake) gecikmesini ve kaynak israfını azaltır. SAD §20 tool overhead bütçe kalemi (connect+transfer gecikmesi) — HARD latency kapısı 0.3.2'de (tool overhead P95 ≤100ms); bu connector SOFT not. Vendor-neutral (ADR-001/002): gerçek HTTP client (ör. keep-alive pool'lu) bir SPI noktası; referans deterministik wire_script ile modeller (gerçek ağ/credential YOK).",
+    "plane": "voice-runtime (orchestrator Tool Executor / Integration GW — upstream REST transport)",
+    "hot_path": true,
+    "behind_spi": true,
+    "wired_by": "7.1.4 integration-gw (timeout/retry/circuit breaker bu connector'ı SPI seam'inde sarar)",
+    "endpoint_identity": "kanonik 'METHOD scheme://host[:port]/path-template' (interpolesiz — düşük kardinalite; breaker anahtarı 7.1.4 + observability label 0.4.7)",
+    "operation_class_map": "GET/HEAD/OPTIONS → read; POST/PUT/PATCH/DELETE → write (7.1.4 write-retry/idempotency köprüsü FR-TOOL-009)",
+    "latency_budget_soft": "cold-connect (TLS) + transfer gecikmesine katkı; HARD kapı DEĞİL. Tool overhead P95 ≤100ms kapısı SAD §20 / 0.3.2 latency-budget'te.",
+    "trace": "SAD §11.1, SAD §11.2, SAD §20, ADR-001, ADR-002, ADR-003, FR-RES-006"
+  },
+
+  "spi": {
+    "$comment": "Upstream transport SPI noktası (vendor-neutral, ADR-001/002) — 7.1.4'ün ilan ettiği seam'in REST gerçeklemesi. upstream_call(req) → AttemptOutcome: referans probe deterministik 'wire_script' okur (gerçek ağ YOK); canlıda gerçek HTTP client + keep-alive connection pool (FR-RES-006) AYNI imza arkasına. RestConnectorSpec girdi: {connector_id, base_url, auth{type,ref,header?,scheme?}, default_headers?, pool{max_per_host,keepalive_ms,connect_overhead_ms}, operations{<op>:{method,path,query?,body_template?,success_codes?,timeout_ms?,content_type?,accept?}}}. RestInvocation girdi: {call_id, correlation_id, tenant_id, operation, path_params?, query_params?, body?, idempotency_key?, wire_script[]}. AttemptOutcome çıktı (7.1.4 TÜKETİR): {result: ok|timeout|fault, latency_ms, fault_class?, status_code?, operation_class, endpoint, retryable, pooled, request_meta{method, header_names[], idempotency_forwarded}}. WireResponse (referans): {result: ok|status|timeout|conn_reset|conn_refused, status_code?, latency_ms?, headers?}.",
+    "transport_method": "upstream_call(req) -> AttemptOutcome (referans: deterministik wire_script; canlıda gerçek HTTP client + keep-alive pool AYNI imza)",
+    "attempt_outcome_fields": ["result", "latency_ms", "fault_class", "status_code", "operation_class", "endpoint", "retryable", "pooled", "request_meta"],
+    "connector_spec_fields": ["connector_id", "base_url", "auth", "default_headers", "pool", "operations"],
+    "invocation_fields": ["call_id", "correlation_id", "tenant_id", "operation", "path_params", "query_params", "body", "idempotency_key", "wire_script"],
+    "wire_response_results": ["ok", "status", "timeout", "conn_reset", "conn_refused"],
+    "trace": "ADR-001, ADR-002, FR-RES-006, SAD §11.2, 7.1.4 SPI seam"
+  },
+
+  "status_to_fault": {
+    "$comment": "HTTP status → fault_class TOPLAM eşleme (C2). fault_class 7.1.4 fault_taxonomy ile BİREBİR hizalı: 2xx (∨ success_codes) → result=ok; 408 → TIMEOUT (retryable); 429 → RATE_LIMITED (retryable); 401/403 → AUTH_FAILED (terminal); 404 → NOT_FOUND (terminal); 422 → SCHEMA_INVALID (terminal — sunucu-taraflı doğrulama reddi; istemci-taraflı 7.1.1); diğer 4xx → UPSTREAM_4XX (terminal); 5xx → UPSTREAM_5XX (retryable). Wire seviyesi (HTTP'siz): timeout → TIMEOUT; conn_reset → CONN_RESET; conn_refused → CONN_REFUSED (hepsi retryable). MÜŞTERİYE dönen METİN burada DEĞİL (7.1.5); yalnız yapısal sınıf.",
+    "success_default": "200-299",
+    "map": {
+      "408": "TIMEOUT",
+      "429": "RATE_LIMITED",
+      "401": "AUTH_FAILED",
+      "403": "AUTH_FAILED",
+      "404": "NOT_FOUND",
+      "422": "SCHEMA_INVALID",
+      "4xx": "UPSTREAM_4XX",
+      "5xx": "UPSTREAM_5XX"
+    },
+    "wire_map": {
+      "timeout": "TIMEOUT",
+      "conn_reset": "CONN_RESET",
+      "conn_refused": "CONN_REFUSED"
+    },
+    "trace": "FR-TOOL-001, FR-TOOL-003, 7.1.4 fault_taxonomy, API §11.6"
+  },
+
+  "fault_taxonomy_alignment": {
+    "$comment": "7.1.4 (integration-gw) fault_taxonomy ile hizalama kapısı (C2). Connector ürettiği her fault_class retryable∪terminal kümesinde olmalı; gateway-üretimi sınıflar (CIRCUIT_OPEN/RETRY_EXHAUSTED) connector tarafından ÜRETİLMEZ (onlar 7.1.4'e ait).",
+    "retryable": ["TIMEOUT", "UPSTREAM_5XX", "CONN_RESET", "CONN_REFUSED", "RATE_LIMITED", "DEADLINE_EXCEEDED"],
+    "terminal": ["UPSTREAM_4XX", "SCHEMA_INVALID", "AUTH_FAILED", "NOT_FOUND"],
+    "connector_never_emits": ["CIRCUIT_OPEN", "RETRY_EXHAUSTED"],
+    "trace": "7.1.4 fault_taxonomy, FR-TOOL-003"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Connector'ın girdi/yapılandırma/güvenlik bütünlüğü hataları (fault_class'tan AYRI — bunlar isteğin WIRE'a gitmeden reddini doğurur; AttemptOutcome üretilmez, error_class döner).",
+    "classes": ["MISSING_CONNECTOR_CONFIG", "INVALID_CONNECTOR_SPEC", "UNKNOWN_OPERATION", "MISSING_PATH_PARAM", "LITERAL_SECRET_IN_SPEC", "INJECTION_REJECTED", "INVALID_INVOCATION", "NON_MONOTONIC_CLOCK", "INTERNAL_ERROR"],
+    "trace": "FR-TST-008, FR-TOOL-001"
+  },
+
+  "invariants": [
+    {"id": "C1", "desc": "Bildirimsel deterministik istek kurulumu: aynı spec+invocation → birebir aynı kanonik istek (method, url, sıralı header adları, query, body). Date.now/gerçek-rastgele YOK."},
+    {"id": "C2", "desc": "HTTP status → fault_class TOPLAM eşleme, 7.1.4 fault_taxonomy ile hizalı: 2xx∨success_codes → ok; 408/429/5xx → retryable; 401/403/404/422/diğer-4xx → terminal. Her emitted fault_class ∈ retryable∪terminal."},
+    {"id": "C3", "desc": "HTTP method → operation_class (read/write): GET/HEAD/OPTIONS → read; POST/PUT/PATCH/DELETE → write (7.1.4 write-retry/idempotency köprüsü FR-TOOL-009)."},
+    {"id": "C4", "desc": "AttemptOutcome SPI sözleşmesi: connector 7.1.4'ün tükettiği seam şeklini döner; RETRY/BREAKER ORKESTRE ETMEZ — yalnız TEK denemenin sonucu (kapsam: 7.1.4)."},
+    {"id": "C5", "desc": "Sır yalnız referansla: auth/header sırrı `${ENV}`/secret_ref ile; literal sır spec'te → LITERAL_SECRET_IN_SPEC (validate + build kapısı); çözülen değer ASLA loglanmaz/audit'lenmez."},
+    {"id": "C6", "desc": "Audit no-log: yapısal audit yalnız correlation_id+endpoint+method+operation_class+status_code+fault_class+pooled+no_log; query değeri/body/header değeri/PII YOK."},
+    {"id": "C7", "desc": "Connection pooling (FR-RES-006): havuz scheme+host+port ile anahtarlanır; keepalive içinde reuse → pooled=true (connect overhead YOK); cold → pooled=false (+connect_overhead_ms); max_per_host kapasitesi."},
+    {"id": "C8", "desc": "Bağlam taşıma: correlation_id daima header; idempotency_key VARSA write'ta header olarak iletilir; connector bunları ÜRETMEZ (7.1.6/7.1.3)."},
+    {"id": "C9", "desc": "Determinizm: aynı seed+girdi → birebir aynı AttemptOutcome (sanal saat; Date.now/gerçek-rastgele YOK)."},
+    {"id": "C10", "desc": "Enjeksiyon güvenli: bağlanan path/query/header değerinde CRLF (\\r/\\n) veya kontrol karakteri → INJECTION_REJECTED; istek WIRE'a GÖNDERİLMEZ."},
+    {"id": "C11", "desc": "Kanonik endpoint kimliği: emitted endpoint interpolesiz path TEMPLATE (ör. 'GET https://crm.example.com/v1/customers/{id}') — düşük kardinalite breaker anahtarı (7.1.4) + observability label (0.4.7); interpole değer endpoint'e SIZMAZ."},
+    {"id": "C12", "desc": "Vendor-neutral transport SPI: wire bir seam; referans deterministik wire_script; canlı gerçek HTTP client AYNI imza; status→fault eşleme transport'tan bağımsız (ADR-001/002)."}
+  ],
+
+  "audit": {
+    "$comment": "Çağrı başına yapısal audit kaydı (7.1.6 correlation_id audit'e köprü; FR-TOOL-010). no_log: ham URL query/body/header değeri/secret/PII içermez — yalnız correlation_id, kanonik endpoint (template), method, operation_class, status_code, fault_class, pooled.",
+    "no_log": true,
+    "fields": ["correlation_id", "endpoint", "method", "operation_class", "status_code", "fault_class", "pooled", "no_log"],
+    "trace": "FR-TOOL-010, →7.1.6, BRD §17.7, NFR 10.7"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "rest-post-created — POST 201 write + idempotency header iletimi (C3/C8)",
+  "$comment": "Write operasyonu (POST → operation_class=write). idempotency_key VARSA header olarak iletilir (connector ÜRETMEZ — 7.1.3 üretir; FR-TOOL-009 köprüsü). 201 success_codes içinde → result=ok. Sentetik (FR-TST-008).",
+  "profile": "ticketing-rest-apikey",
+  "invocations": [
+    {"call_id": "p1", "correlation_id": "corr-bbb", "tenant_id": "t-2", "operation": "create_ticket",
+     "idempotency_key": "idem-7f3a", "body": {"subject": "voice-call-followup"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 201, "latency_ms": 60}]}
+  ],
+  "expect": {
+    "p1": {"result": "ok", "fault_class": null, "status_code": 201, "operation_class": "write", "pooled": false,
+           "request_meta": {"idempotency_forwarded": true, "method": "POST"}}
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "rest-timeout — wire gecikmesi timeout_ms aşar → TIMEOUT, deadline kesimi (C9)",
+  "$comment": "Transfer gecikmesi (5000ms) operasyon timeout_ms'ini (1500) aşar → per-attempt TIMEOUT; etkin gecikme deadline'da KESİLİR (latency_ms=1500, hung YOK). TIMEOUT retryable. Sentetik (FR-TST-008).",
+  "profile": "crm-rest-bearer",
+  "invocations": [
+    {"call_id": "t1", "correlation_id": "corr-ggg", "tenant_id": "t-1", "operation": "get_customer",
+     "path_params": {"customer_id": "C-4004"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 200, "latency_ms": 5000}]}
+  ],
+  "expect": {
+    "t1": {"result": "fault", "fault_class": "TIMEOUT", "retryable": true, "timed_out": true, "latency_ms": 1500.0}
+  }
+}

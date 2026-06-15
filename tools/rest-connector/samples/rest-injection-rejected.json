@@ -1,0 +1,11 @@
+{
+  "name": "rest-injection-rejected — CRLF path param → INJECTION_REJECTED, istek gönderilmez (C10)",
+  "$comment": "path_param değeri CRLF içerir (header injection denemesi) → istek WIRE'a GÖNDERİLMEDEN reddedilir (INJECTION_REJECTED). Beklenen güvenli sonuç. Sentetik (FR-TST-008).",
+  "profile": "crm-rest-bearer",
+  "expect_error_class": "INJECTION_REJECTED",
+  "invocations": [
+    {"call_id": "i1", "correlation_id": "corr-iii", "tenant_id": "t-1", "operation": "get_customer",
+     "path_params": {"customer_id": "C-1\r\nX-Admin: true"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 200, "latency_ms": 30}]}
+  ]
+}

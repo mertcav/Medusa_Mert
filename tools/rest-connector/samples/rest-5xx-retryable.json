@@ -1,0 +1,13 @@
+{
+  "name": "rest-5xx-retryable — 503 → UPSTREAM_5XX (retryable; 7.1.4 retry eder)",
+  "$comment": "Sunucu hatası 503 → UPSTREAM_5XX, retryable=true. Connector RETRY ETMEZ (C4) — yalnız tek deneme sonucunu üretir; 7.1.4 (FR-TOOL-003) bu retryable outcome'u alıp backoff ile yeniden dener. Sentetik (FR-TST-008).",
+  "profile": "crm-rest-bearer",
+  "invocations": [
+    {"call_id": "s1", "correlation_id": "corr-ccc", "tenant_id": "t-1", "operation": "get_customer",
+     "path_params": {"customer_id": "C-2002"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 503, "latency_ms": 80}]}
+  ],
+  "expect": {
+    "s1": {"result": "fault", "fault_class": "UPSTREAM_5XX", "status_code": 503, "retryable": true, "operation_class": "read"}
+  }
+}

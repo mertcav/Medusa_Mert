@@ -1,0 +1,13 @@
+{
+  "name": "rest-401-auth — 401 → AUTH_FAILED (terminal); auth header referansla (C5)",
+  "$comment": "401 → AUTH_FAILED, terminal. auth.ref=${CRM_API_TOKEN} placeholder — gerçek token repoda YOK (C5); çözülen değer audit'e SIZMAZ (C6). Müşteriye 'neden' sızmaz, 7.1.5 jenerik NOT_PERMITTED üretir. Sentetik (FR-TST-008).",
+  "profile": "crm-rest-bearer",
+  "invocations": [
+    {"call_id": "a1", "correlation_id": "corr-eee", "tenant_id": "t-1", "operation": "get_customer",
+     "path_params": {"customer_id": "C-3003"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 401, "latency_ms": 20}]}
+  ],
+  "expect": {
+    "a1": {"result": "fault", "fault_class": "AUTH_FAILED", "status_code": 401, "retryable": false, "operation_class": "read"}
+  }
+}

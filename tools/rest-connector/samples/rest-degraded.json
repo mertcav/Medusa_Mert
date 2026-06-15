@@ -1,0 +1,12 @@
+{
+  "name": "rest-degraded — redaksiyon KAPALI → ham URL/query audit'e sızar (C6 gate KASITLI eler)",
+  "$comment": "DEGRADE/anti-örnek: redact_audit=false (varsayılan true) → connector ham istek URL'ini (query string dahil) audit kaydına yazar. C6 no-log gate'i ham '?'/query sızıntısını YAKALAR → KIRMIZI. Bu, no-log tarayıcısının GERÇEK bir kapı olduğunu kanıtlar (7.1.5 failsafe deseni). Beklenen eleme (expect_degraded). Sentetik (FR-TST-008).",
+  "profile": "crm-rest-bearer",
+  "redact_audit": false,
+  "expect_degraded": true,
+  "invocations": [
+    {"call_id": "d1", "correlation_id": "corr-jjj", "tenant_id": "t-1", "operation": "list_orders",
+     "path_params": {"customer_id": "C-5005"}, "query_params": {"since": "2026-01-01", "ref": "lookup-token-abc"},
+     "at_ms": 0, "wire_script": [{"result": "status", "status_code": 200, "latency_ms": 40}]}
+  ]
+}

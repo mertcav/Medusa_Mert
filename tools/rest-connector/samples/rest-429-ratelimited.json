@@ -1,0 +1,13 @@
+{
+  "name": "rest-429-ratelimited — 429 → RATE_LIMITED (retryable)",
+  "$comment": "429 Too Many Requests → RATE_LIMITED, retryable=true. 7.1.4 backoff ile yeniden dener (Retry-After yorumlama canlıda transport'ta; burada yapısal sınıf). Sentetik (FR-TST-008).",
+  "profile": "ticketing-rest-apikey",
+  "invocations": [
+    {"call_id": "r1", "correlation_id": "corr-fff", "tenant_id": "t-2", "operation": "get_ticket",
+     "path_params": {"ticket_id": "T-555"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 429, "latency_ms": 15}]}
+  ],
+  "expect": {
+    "r1": {"result": "fault", "fault_class": "RATE_LIMITED", "status_code": 429, "retryable": true}
+  }
+}

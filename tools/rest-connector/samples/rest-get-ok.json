@@ -1,0 +1,15 @@
+{
+  "name": "rest-get-ok — GET 200 happy path + connection pool reuse (C1/C2/C3/C7)",
+  "$comment": "İki ardışık GET aynı host'a: ilki cold (pooled=false, +40ms connect), ikincisi warm (pooled=true, 0ms connect) — FR-RES-006. SR-TOOL-001 kabul ölçütü: 'REST connector başarılı çağrı yapar'. Sentetik (FR-TST-008).",
+  "profile": "crm-rest-bearer",
+  "invocations": [
+    {"call_id": "g1", "correlation_id": "corr-aaa", "tenant_id": "t-1", "operation": "get_customer",
+     "path_params": {"customer_id": "C-1001"}, "at_ms": 0, "wire_script": [{"result": "status", "status_code": 200, "latency_ms": 35}]},
+    {"call_id": "g2", "correlation_id": "corr-aaa", "tenant_id": "t-1", "operation": "list_orders",
+     "path_params": {"customer_id": "C-1001"}, "at_ms": 120, "wire_script": [{"result": "status", "status_code": 200, "latency_ms": 40}]}
+  ],
+  "expect": {
+    "g1": {"result": "ok", "fault_class": null, "status_code": 200, "operation_class": "read", "pooled": false, "latency_ms": 75.0},
+    "g2": {"result": "ok", "status_code": 200, "pooled": true, "latency_ms": 40.0}
+  }
+}
