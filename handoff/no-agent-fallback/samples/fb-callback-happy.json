@@ -1,0 +1,17 @@
+{
+  "name": "fb-callback-happy",
+  "$comment": "Mutlu yol (FR-HND-007). Temsilci yok (no_agent_available); üç seçenek (callback/voicemail/ticket) sunulur; müşteri callback seçer; onaylı geri-arama numarası + sabah penceresi var. FULFILLED type=callback (planlanır; outbound dialer 10.x çevirir). İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-fb-001",
+  "call_id": "call-fb-001",
+  "reason": "no_agent_available",
+  "consent": {"callback": true, "recording": true},
+  "ai_disclosure": true,
+  "business_hours": true,
+  "channel_availability": {"callback": true, "voicemail": true, "ticket": true},
+  "callback_window": "window-morning",
+  "context_ref": "ctx-call-fb-001",
+  "customer_choice": "callback",
+  "expected": {"terminal": "FULFILLED", "resolved": true, "outcome_type": "callback", "offered_count": 3, "eligible_count": 3, "failsafe": false}
+}

@@ -1,0 +1,14 @@
+{
+  "name": "cs-stop-running-happy",
+  "$comment": "Mutlu yol — FR-OUT-010/SR-OUT-010 ÇEKİRDEK. Operasyon yöneticisi (campaign:manage) çalışan kampanyaya 'stop' verir. APPLIED running→stopped; dialer admission kapısı KAPANIR (new_calls_admitted_after=0 — durdurma sonrası yeni çağrı başlatılmaz); 3 in-flight çağrı graceful DRAIN. İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-001",
+  "campaign_id": "camp-cs-001",
+  "actor_role": "operations_manager",
+  "command": "stop",
+  "current_status": "running",
+  "in_flight_calls": 3,
+  "idempotency_key": "idem-cs-001",
+  "expected": {"terminal": "APPLIED", "to_status": "stopped", "dialer_gate": "closed", "new_calls_admitted_after": 0, "inflight_disposition": "drain", "applied": true}
+}

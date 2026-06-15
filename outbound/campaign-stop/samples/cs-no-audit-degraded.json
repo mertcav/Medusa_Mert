@@ -1,0 +1,15 @@
+{
+  "name": "cs-no-audit-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). running+stop, inject no_audit → kontrol uygulanır ama audit kaydı yazılmaz. C10 ihlali (FR-IAM-006): her kontrol aksiyonu (APPLIED/NOOP/DENIED) audit'lenmeli. Gate ELER (require_decision_record).",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-107",
+  "campaign_id": "camp-cs-107",
+  "actor_role": "operations_manager",
+  "command": "stop",
+  "current_status": "running",
+  "in_flight_calls": 0,
+  "idempotency_key": "idem-cs-107",
+  "inject": ["no_audit"],
+  "expected": {}
+}

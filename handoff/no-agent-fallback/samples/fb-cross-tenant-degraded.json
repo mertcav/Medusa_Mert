@@ -1,0 +1,18 @@
+{
+  "name": "fb-cross-tenant-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). inject cross_tenant → motor fallback'i BAŞKA tenant'ın kuyruğu/ticket projesine bağlar (res-foreigntenant). K7 ihlali (cross_tenant>0): fallback yalnız bu tenant'ın callback listesi/voicemail kutusu/ticket projesine bağlanmalı (FR-TEN-002; TM-T-*). Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-fb-107",
+  "call_id": "call-fb-107",
+  "reason": "transfer_failed",
+  "consent": {"callback": true, "recording": true},
+  "ai_disclosure": true,
+  "business_hours": true,
+  "channel_availability": {"callback": true, "voicemail": true, "ticket": true},
+  "callback_window": "window-morning",
+  "context_ref": "ctx-call-fb-107",
+  "customer_choice": "ticket",
+  "inject": ["cross_tenant"],
+  "expected": {}
+}

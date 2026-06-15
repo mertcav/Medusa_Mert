@@ -1,0 +1,14 @@
+{
+  "name": "cs-resume-stopped-denied",
+  "$comment": "Geçerli geçiş (C3/C8). Durdurulmuş (stopped TERMİNAL) kampanyaya 'resume' → DENIED (stop terminal, resume edilemez; yeniden çalıştırma kampanya klonu gerektirir). Durum DEĞİŞMEZ. Doğru reddetme — ihlal DEĞİL. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-007",
+  "campaign_id": "camp-cs-007",
+  "actor_role": "operations_manager",
+  "command": "resume",
+  "current_status": "stopped",
+  "in_flight_calls": 0,
+  "idempotency_key": "idem-cs-007",
+  "expected": {"terminal": "DENIED", "to_status": "stopped", "dialer_gate": "unchanged", "applied": false}
+}

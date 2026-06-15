@@ -1,0 +1,18 @@
+{
+  "name": "fb-invalid-trigger-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). inject invalid_trigger → temsilci ASLINDA müsait (agent_available) olduğu halde motor fallback sunar. K6 ihlali (invalid_trigger>0): fallback yalnız gerçek no-agent nedeniyle tetiklenmeli; temsilci varken aktarım sürmeli, fallback sunulmamalı. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-fb-105",
+  "call_id": "call-fb-105",
+  "reason": "no_agent_available",
+  "consent": {"callback": true, "recording": true},
+  "ai_disclosure": true,
+  "business_hours": true,
+  "channel_availability": {"callback": true, "voicemail": true, "ticket": true},
+  "callback_window": "window-morning",
+  "context_ref": "ctx-call-fb-105",
+  "customer_choice": "ticket",
+  "inject": ["invalid_trigger"],
+  "expected": {}
+}

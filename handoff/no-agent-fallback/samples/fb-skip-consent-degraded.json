@@ -1,0 +1,18 @@
+{
+  "name": "fb-skip-consent-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Müşteri voicemail seçer; inject skip_consent → motor kayıt onayını + AI ifşasını ONURLANDIRMADAN/KAYDETMEDEN voicemail kaydı yakalar. K5 ihlali (missing_consent>0 + no_disclosure>0): voicemail kaydı yalnız kayıt onayı + AI ifşasıyla yapılabilir (BRD §14.2/§14; TM-I-*). Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-fb-104",
+  "call_id": "call-fb-104",
+  "reason": "no_agent_available",
+  "consent": {"callback": true, "recording": true},
+  "ai_disclosure": true,
+  "business_hours": true,
+  "channel_availability": {"callback": true, "voicemail": true, "ticket": true},
+  "callback_window": "window-morning",
+  "context_ref": "ctx-call-fb-104",
+  "customer_choice": "voicemail",
+  "inject": ["skip_consent"],
+  "expected": {}
+}

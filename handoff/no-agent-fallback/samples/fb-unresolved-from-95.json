@@ -1,0 +1,17 @@
+{
+  "name": "fb-unresolved-from-95",
+  "$comment": "9.5 hedef seçimi UNRESOLVED (R10) → 9.7'ye yükseltti (unresolved_target). callback/voicemail kanalları kapalı; yalnız ticket uygun (DAİMA-mevcut son çare, K3). Müşteri ticket seçer. FULFILLED type=ticket. geçerli no-agent tetiği (K6 invalid_trigger=0). İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-fb-007",
+  "call_id": "call-fb-007",
+  "reason": "unresolved_target",
+  "consent": {"callback": true, "recording": true},
+  "ai_disclosure": true,
+  "business_hours": true,
+  "channel_availability": {"callback": false, "voicemail": false, "ticket": true},
+  "callback_window": "window-morning",
+  "context_ref": "ctx-call-fb-007",
+  "customer_choice": "ticket",
+  "expected": {"terminal": "FULFILLED", "resolved": true, "outcome_type": "ticket", "offered_count": 1, "eligible_count": 1, "failsafe": false}
+}

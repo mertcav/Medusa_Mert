@@ -1,0 +1,17 @@
+{
+  "name": "fb-after-hours-ticket",
+  "$comment": "Mesai dışı (after_hours): callback kanalı kapalı (ertesi gün), voicemail+ticket uygun. Müşteriye uygun seçenekler sunulur (callback hariç — uygunluk daralması ihlal DEĞİL, K3 son çare yine var); müşteri ticket seçer. FULFILLED type=ticket. İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-fb-004",
+  "call_id": "call-fb-004",
+  "reason": "after_hours",
+  "consent": {"callback": true, "recording": true},
+  "ai_disclosure": true,
+  "business_hours": false,
+  "channel_availability": {"callback": false, "voicemail": true, "ticket": true},
+  "callback_window": "window-next-day",
+  "context_ref": "ctx-call-fb-004",
+  "customer_choice": "ticket",
+  "expected": {"terminal": "FULFILLED", "resolved": true, "outcome_type": "ticket", "offered_count": 2, "eligible_count": 2, "failsafe": false}
+}

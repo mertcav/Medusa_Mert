@@ -1,0 +1,167 @@
+{
+  "$comment": "WBS 10.1.7 — Kampanya durdurma düğmesi (BRD §9.13 Outbound Kampanya Yönetimi / SAD §15 Backpressure & admission / API §A-10 'POST /campaigns/{id}:stop'). 10. workstream'in (Outbound) Kampanya Yönetimi alt-bloğunun DURDURMA KONTROLÜ modülü ve F2-Must outbound çekirdeği. FR-OUT-010 ('Kampanya durdurma düğmesi bulunmalıdır') + SR-OUT-010 (yöntem D — 'Kampanya durdurma düğmesi çağrıları derhal durdurur'; kabul: 'Durdurma sonrası yeni çağrı başlatılmaz') KAMPANYA KONTROL DURUM MAKİNESİNİ + DIALER ADMISSION KAPISINI sahiplenir. DB.md campaign.status CHECK IN ('draft','running','paused','stopped','completed') (FR-OUT-010) yaşam döngüsünün sahibidir; API §A-10 'POST /campaigns/{id}:stop' (campaign:manage, FR-OUT-001/010) kontrol yüzeyinin arkasıdır. Modül bir DETERMİNİSTİK KAMPANYA KONTROL MOTORUdur: CampaignControlRequest{command[start|pause|resume|stop|complete], current_status, actor_role, in_flight_calls, idempotency_key, tenant_id, campaign_id, correlation_id} alır → komutun YETKİLİ (campaign:manage) ve yaşam döngüsünde GEÇERLİ bir geçiş olduğunu doğrular → uygularsa kampanya durumunu geçirir ve DIALER ADMISSION KAPISINI ayarlar (stop/pause → KAPALI: yeni çağrı başlatılmaz; start/resume → AÇIK) → in-flight (devam eden) çağrıları graceful DRAIN eder (asla abruptly düşürmez, SAD §6) → bir terminal sonuç {APPLIED (durum geçti + kapı ayarlandı) | NOOP (idempotent tekrar — zaten hedef durumda) | DENIED (yetkisiz / geçersiz geçiş / cross-tenant → durum değişmez)} üretir. ÇEKİRDEK INVARIANT (SR-OUT-010): stop/pause sonrası DIALER ADMISSION KAPISI DERHAL KAPANIR ve yeni çağrı başlatılmaz (C4 new_call_after_stop=0, FR-OUT-010); kontrol yalnız campaign:manage yetkisiyle yapılır (C2 unauthorized=0, FR-IAM-011); yalnız yaşam döngüsünde geçerli geçişler uygulanır — stop TERMİNAL (stopped'dan resume yok), pause RESUMABLE (C3 invalid_transition=0, DB.md status CHECK); in-flight çağrılar graceful DRAIN edilir, abruptly düşürülmez (C5 hard_drop_inflight=0, SAD §6 never-drop); aynı idempotency_key ile tekrarlanan komut yan-etkisiz NOOP (C6 not_idempotent=0); kontrol yalnız bu tenant'ın kampanyasını etkiler (C7 cross_tenant=0, FR-TEN-002); her kontrol kanıt (C9) + audit (C10, FR-IAM-006) taşır; metrikler düşük-kardinalite + PII metrikte yok (C11); spec/config/sample ham PII/sır tutmaz (C12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): outbound dialer ÇEVİRME/zamanlama yürütmesi → outbound dialer çekirdeği (10.1.x; bu modül kapıyı AYARLAR, çevirmez); kampanya OLUŞTURMA + liste yükleme → 10.1.1 (FR-OUT-001); CRM dinamik liste → 10.1.2 (FR-OUT-002); max deneme/yeniden-arama → 10.1.3 (FR-OUT-005); disposition → 10.1.5 (FR-OUT-008/011); script/teklif versiyonu → 10.1.6 (FR-OUT-009); A/B test → 10.1.8 (FR-OUT-012); KAPASİTE backpressure (admission rate) → FR-RES-014/FR-OUT-007 (bu modül STOP/PAUSE admission kapısını sahiplenir, kapasite-bazlı rate-limit'i DEĞİL); consent ön-kontrol → 10.2/§19.1 (FR-OUT-003); gerçek audit STORE → 7.1.6/12.1.8; gözlemlenebilirlik omurgası → 0.4.7 (metrik ÜRETİR); panel UI 'durdur düğmesi' render → L2 paneli (A-10). Spec/config/sample'larda sır/credential ve gerçek PII (müşteri adı/telefon numarası/hesap no/ham transkript) YOK — yalnız yapısal KİMLİKLER (komut/durum/rol/kampanya/tenant/idempotency/correlation kimlikleri) + sayaçlar (in-flight adedi) + bayraklar + sanal zaman. KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS/DB/API esastır.",
+  "version": "1.0",
+  "wbs": "10.1.7",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-OUT-010", "FR-OUT-007", "FR-OUT-005", "FR-RES-014", "FR-IAM-011", "FR-IAM-006", "FR-TEN-002", "FR-REC-004", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-OUT-010"],
+    "rtm": ["TC-OUT-010"],
+    "brd": [
+      "§9.13 (Outbound Kampanya Yönetimi — FR-OUT-010 kampanya durdurma düğmesi bulunmalıdır)",
+      "§8.2 / §10 (Outbound senaryo — kampanya yürütme, durdurma, kapasite)",
+      "§16 (Campaign / Audit Log varlıkları — campaign.status yaşam döngüsü; kontrol audit'lenir)",
+      "Risk tablosu ('Outbound izin ihlali / aşırı arama → durdurma + suppression')"
+    ],
+    "sad": [
+      "§15 (Backpressure & admission — 'kabul kontrolü (admission); aşırı yükte yeni çağrı reddi/kuyruk'; stop/pause yeni-çağrı admission kapısını KAPATIR — bu modül o kapının kontrol yüzeyidir, FR-RES-014/FR-OUT-007)",
+      "§6 (Fail soft, never drop the call — stop/pause in-flight çağrıları abruptly düşürmez, graceful DRAIN eder; yalnız yeni-çağrı admission'ı durur)",
+      "§13.3 (correlation/tenant context propagation — kontrol correlation_id+tenant taşır)",
+      "§14.4 (panel — L2 A-10 kampanya ekranı 'durdur' kontrol yüzeyi)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — kontrol motoru kampanya/dialer kontrol düzleminde; gerçek dialer çevirme motoruna doğrudan bağlanmaz, admission kapısı sözleşmesi üretir)",
+      "ADR-002 (vendor-neutral — telephony/dialer sağlayıcı bağımsız; aynı stop/pause admission sözleşmesi arkasına gerçek dialer)",
+      "ADR-012 (RBAC — campaign:manage immutable bundle; kontrol yetkisi backend'de doğrulanır)"
+    ],
+    "threat_model": [
+      "TM-E-* (yetki yükseltme — kontrol yalnız campaign:manage yetkisiyle; yetkisiz stop/start reddedilir, C2)",
+      "TM-T-* (tenant izolasyonu — kontrol yalnız bu tenant kampanyasını etkiler; cross-tenant red, FR-TEN-002, C7)",
+      "TM-R-* (inkâr — her kontrol aksiyonu [APPLIED/NOOP/DENIED] who/what/from→to ile audit'e yazılır, C10)",
+      "TM-D-* (dayanıklılık — stop in-flight çağrıyı abruptly düşürmez, graceful drain; yeni-çağrı admission durur, C5)"
+    ],
+    "consumes": [
+      "10.1.1 kampanya oluşturma (FR-OUT-001) — campaign_id + başlangıç durumunu (draft) TÜKETİR",
+      "Panel L2 A-10 (campaign:manage) — durdur/duraklat/sürdür komutunu (actor_role + idempotency_key ile) TÜKETİR",
+      "Dialer çekirdeği (10.1.x) — anlık in_flight_calls sayımını TÜKETİR (drain muhasebesi için)"
+    ],
+    "consumed_by": [
+      "Outbound dialer çekirdeği (10.1.x, FR-OUT-005) — DIALER ADMISSION KAPISINI (closed/open) TÜKETİR: kapalıyken yeni çağrı başlatmaz (SR-OUT-010)",
+      "7.1.6 + 12.1.8 audit store (FR-IAM-006) — kontrol kaydını kalıcılaştırır",
+      "0.4.7 gözlemlenebilirlik — campaign_control_* metriklerini tüketir",
+      "Analitik/raporlama (FR-ANA-*) — kampanya durum değişimlerini TÜKETİR"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Kontrol motoru kampanya/dialer kontrol düzleminde bir DURUM-GEÇİŞ + ADMISSION-KAPI fonksiyonudur (API §A-10 'POST /campaigns/{id}:stop'): operasyon yöneticisi (campaign:manage) durdur/duraklat/sürdür komutunu verince, bu motor yetkiyi + geçiş geçerliliğini doğrular, kampanya durumunu geçirir, dialer admission kapısını ayarlar (stop/pause → KAPALI = yeni çağrı yok), in-flight çağrıları graceful drain eder ve kontrol kaydını audit'ler. Çağrılar ASLA abruptly düşmez — yalnız yeni-çağrı admission'ı durur (SAD §6). Motor hot-path medya işlemez; deterministik kontrol düzlemi. Vendor-neutral (ADR-001/002): admission kapısı sözleşmesi sağlayıcı bağımsız; canlı entegrasyonda (10.1.x dialer) aynı sözleşme arkasına gerçek dialer çevirme/zamanlama motoru.",
+    "plane": "outbound campaign control plane (campaign control state machine — durdurma/duraklatma/sürdürme + dialer admission kapısı)",
+    "owns": "DB.md campaign.status yaşam döngüsü (draft/running/paused/stopped/completed) + API §A-10 'POST /campaigns/{id}:stop': CampaignControlRequest → yetki (campaign:manage) + geçiş geçerliliği doğrulama + durum geçişi + dialer admission kapısı ayarı (stop/pause=closed) + in-flight graceful drain + kontrol audit",
+    "delegates": "dialer ÇEVİRME/zamanlama → 10.1.x dialer çekirdeği (kapıyı AYARLAR, çevirmez); kampanya OLUŞTURMA → 10.1.1; CRM liste → 10.1.2; max deneme → 10.1.3; disposition → 10.1.5; script versiyon → 10.1.6; A/B → 10.1.8; kapasite rate-limit → FR-RES-014/FR-OUT-007; consent ön-kontrol → 10.2/§19.1; audit store → 7.1.6/12.1.8; panel UI render → L2 A-10",
+    "deterministic": true,
+    "trace": "API §A-10, DB.md campaign, SAD §15, SAD §6, ADR-001, ADR-002, ADR-012"
+  },
+
+  "lifecycle": {
+    "$comment": "Kampanya yaşam döngüsü durumları (DB.md campaign.status CHECK, FR-OUT-010). draft = oluşturuldu, henüz çalışmıyor; running = aktif dialing; paused = duraklatıldı (RESUMABLE, yeni çağrı yok); stopped = durduruldu (TERMİNAL, yeni çağrı yok, resume YOK); completed = doğal bitiş (tüm kontaklar arandı). stop ve pause İKİSİ DE yeni-çağrı admission'ını kapatır; fark: pause→running mümkün, stopped TERMİNAL (yeniden çalıştırmak için kampanya klonlanır).",
+    "statuses": ["draft", "running", "paused", "stopped", "completed"],
+    "halt_statuses": ["stopped", "paused", "completed"],
+    "open_statuses": ["running"],
+    "terminal_statuses": ["stopped", "completed"],
+    "resumable_statuses": ["paused"]
+  },
+
+  "commands": {
+    "$comment": "Kontrol komutları. stop = kampanyayı DURDUR (TERMİNAL; FR-OUT-010 çekirdek düğmesi); pause = DURAKLAT (resumable); resume = SÜRDÜR; start = çalıştır (draft→running); complete = doğal bitiş. stop/pause/complete → admission KAPALI; start/resume → admission AÇIK. Tümü campaign:manage yetkisi ister.",
+    "list": ["start", "pause", "resume", "stop", "complete"],
+    "halt_commands": ["pause", "stop", "complete"],
+    "open_commands": ["start", "resume"],
+    "stop_command": "stop"
+  },
+
+  "transitions": {
+    "$comment": "İzinli durum-geçişleri (DB.md status CHECK ile uyumlu). apply = durum değişir; noop = zaten hedef durumda (idempotent tekrar). Listelenmeyen (current,command) çifti GEÇERSİZ geçiş → DENIED (correct davranış; inject invalid_transition ile force-apply edilirse C3 ihlali). Önemli geçersizler: stopped'dan resume/pause/start (stop TERMİNAL); completed'dan herhangi bir komut.",
+    "apply": [
+      {"from": "draft", "command": "start", "to": "running"},
+      {"from": "running", "command": "pause", "to": "paused"},
+      {"from": "paused", "command": "resume", "to": "running"},
+      {"from": "running", "command": "stop", "to": "stopped"},
+      {"from": "paused", "command": "stop", "to": "stopped"},
+      {"from": "running", "command": "complete", "to": "completed"}
+    ],
+    "noop": [
+      {"from": "stopped", "command": "stop", "to": "stopped"},
+      {"from": "paused", "command": "pause", "to": "paused"},
+      {"from": "running", "command": "resume", "to": "running"},
+      {"from": "running", "command": "start", "to": "running"}
+    ],
+    "on_applied": "EMIT eylemi: ControlOutcome{command, from_status, to_status, dialer_gate[open|closed], new_calls_admitted_after, inflight_disposition[drain|none], idempotency_key, actor_role, resource, evidence} → dialer çekirdeği (admission kapısı) + 0.4.7 metrik; sonuç audit'e yazılır (C10)",
+    "on_noop": "NOOP eylemi: idempotent tekrar — durum zaten hedef; yan-etki YOK (kapı yeniden tetiklenmez); sonuç audit'e yazılır (C10)",
+    "on_denied": "DENY eylemi: yetkisiz / geçersiz geçiş / cross-tenant → durum DEĞİŞMEZ; deny_reason ile audit'e yazılır (C10); kampanya etkilenmez"
+  },
+
+  "dialer_gate": {
+    "$comment": "SR-OUT-010 ÇEKİRDEK (yöntem D — 'durdurma sonrası yeni çağrı başlatılmaz'). stop/pause/complete uygulandığında dialer admission kapısı DERHAL KAPANIR (closed): kontrol sonrası new_calls_admitted_after=0 olmalı; dialer kapı kapalıyken yeni çağrı başlatmaz. start/resume → kapı AÇILIR (open). Kapı kapalıyken yeni çağrı admit edilirse SR-OUT-010 ihlali (C4 new_call_after_stop). Bu modül kapıyı AYARLAR; gerçek dialer çevirme 10.1.x'te kapıya UYAR.",
+    "closed_on": ["stop", "pause", "complete"],
+    "open_on": ["start", "resume"],
+    "new_calls_admitted_after_halt": 0,
+    "trace": "SR-OUT-010, FR-OUT-010, SAD §15, FR-RES-014"
+  },
+
+  "inflight": {
+    "$comment": "SAD §6 never-drop: stop/pause yeni-çağrı admission'ını kapatır AMA devam eden (in-flight) çağrıları abruptly DÜŞÜRMEZ — graceful DRAIN (aktif konuşma doğal biter/sonlanır). in-flight'ı zorla düşürmek (force_drop) müşteri deneyimini bozar → C5 hard_drop_inflight ihlali. Acil/operasyonel hard-stop ayrı bir yetki/komut gerektirir (kapsam dışı; v1 stop = graceful).",
+    "default_disposition": "drain",
+    "forbidden_disposition": "force_drop",
+    "trace": "SAD §6, FR-OUT-010"
+  },
+
+  "authorization": {
+    "$comment": "FR-IAM-011/ADR-012: kontrol komutu campaign:manage yetkisi ister; yetki kararı her zaman backend'de. Yetkili roller (immutable bundle): operations_manager (L2 supervisor seti), tenant_admin, tenant_owner. Yetkisiz aktör (ör. human_agent, qa_analyst) komutu → DENIED (durum değişmez, ihlal değil; doğru reddetme). inject skip_auth ile yetkisiz komut uygulanırsa C2 unauthorized ihlali.",
+    "permission": "campaign:manage",
+    "authorized_roles": ["operations_manager", "tenant_admin", "tenant_owner"],
+    "decision_at": "backend",
+    "trace": "FR-IAM-011, ADR-012, API §A-10 (campaign:manage), SAD §27 RBAC"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal kontrol sonuçları. APPLIED = komut uygulandı (durum geçti + kapı ayarlandı). NOOP = idempotent tekrar (zaten hedef durumda; yan-etkisiz). DENIED = yetkisiz/geçersiz-geçiş/cross-tenant (durum değişmez). Üçü de geçerli terminal sonuç — DENIED ihlal DEĞİL, doğru reddetmedir. Terminal sonuçlar audit üretir.",
+    "list": ["APPLIED", "NOOP", "DENIED"],
+    "terminal": ["APPLIED", "NOOP", "DENIED"]
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli; bir senaryoda ihlal varsa kapı eler. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F2 canlı dialer entegrasyonu + pilot tenant verisinde doğrulanır (BRD §22 açık karar).",
+    "max_unauthorized": 0,
+    "max_invalid_transition": 0,
+    "max_new_call_after_stop": 0,
+    "max_hard_drop_inflight": 0,
+    "max_not_idempotent": 0,
+    "max_cross_tenant": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "Kontrol motoru her sonuç için BRD §15 + kampanya kontrol metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. campaign_control_total{tenant,command,result} → kontrol sayımı (command/result DÜŞÜK kardinalite); campaign_status_gauge{tenant,status} → kampanya durum dağılımı; campaign_control_denied_total{tenant,reason} → reddedilen kontrol (güvenlik/yetki erken-uyarı); campaign_new_call_after_stop_total → kapı kapalıyken admit edilen yeni çağrı (SR-OUT-010 ihlal alarmı, 0 olmalı). tenant_id+command+result+status+reason DÜŞÜK kardinalite (label uygun); campaign_id/call_id/correlation_id/actor_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Müşteri PII metrikte VE log'da YOK (FR-REC-004). new_call_after_stop>0 (SR-OUT-010 ihlali) → alarm ≤2dk (SAD §17.2, NFR 10.1).",
+    "metrics": ["campaign_control_total", "campaign_status_gauge", "campaign_control_denied_total", "campaign_new_call_after_stop_total"],
+    "low_cardinality_labels": ["tenant_id", "command", "result", "status", "reason"],
+    "high_cardinality_trace_only": ["campaign_id", "call_id", "correlation_id", "actor_id"],
+    "alarm": "new_call_after_stop>0 (kapı kapalıyken yeni çağrı — SR-OUT-010 ihlali) VEYA control_denied oranı ani artışı → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "C1", "desc": "FSM tamlığı/determinizm: her CampaignControlRequest tanımlı geçişler boyunca ilerler ve bir terminal sonuca {APPLIED|NOOP|DENIED} ulaşır; aynı girdi → aynı çıktı; stuck/tanımsız durum yok. stuck_state=0.", "trace": "DB.md campaign, SR-OUT-010"},
+    {"id": "C2", "desc": "Yetki (FR-IAM-011/ADR-012): kontrol komutu yalnız campaign:manage yetkili aktörle (operations_manager/tenant_admin/tenant_owner) uygulanır; yetkisiz aktör → DENIED (durum değişmez). unauthorized=0.", "trace": "FR-IAM-011, ADR-012, API §A-10"},
+    {"id": "C3", "desc": "Geçerli geçiş (DB.md status CHECK): yalnız yaşam döngüsünde geçerli (current,command) geçişleri uygulanır; stop TERMİNAL (stopped'dan resume/pause/start yok), pause RESUMABLE; geçersiz geçiş → DENIED. invalid_transition=0.", "trace": "DB.md campaign.status, FR-OUT-010"},
+    {"id": "C4", "desc": "Durdurma derhal yeni çağrıyı durdurur (SR-OUT-010 ÇEKİRDEK, yöntem D): stop/pause/complete sonrası dialer admission kapısı DERHAL KAPANIR ve yeni çağrı başlatılmaz; kapı kapalıyken yeni çağrı admit edilirse ihlal. new_call_after_stop=0.", "trace": "SR-OUT-010, FR-OUT-010, SAD §15"},
+    {"id": "C5", "desc": "In-flight graceful (SAD §6 never-drop): stop/pause yeni-çağrı admission'ını kapatır AMA devam eden çağrıları abruptly düşürmez — graceful DRAIN; in-flight'ı zorla düşürmek ihlal. hard_drop_inflight=0.", "trace": "SAD §6, FR-OUT-010"},
+    {"id": "C6", "desc": "Idempotency: aynı idempotency_key ile tekrarlanan komut (zaten hedef durumda) yan-etkisiz NOOP; dialer kapısı/durum yeniden tetiklenmez, çifte yan-etki yok. not_idempotent=0.", "trace": "FR-OUT-010, FR-TOOL-003 deseni"},
+    {"id": "C7", "desc": "Tenant izolasyonu (FR-TEN-002): kontrol yalnız bu tenant'ın kampanyasını etkiler; cross-tenant campaign_id/kaynak reddedilir. cross_tenant=0.", "trace": "FR-TEN-002, FR-OUT-010"},
+    {"id": "C8", "desc": "Stop terminal / pause resumable (DB.md): stop sonrası stopped IMMUTABLE — resume edilemez (yeniden çalıştırma kampanya klonu gerektirir); pause sonrası paused→running mümkün. (C3 invalid_transition sayacıyla zorlanır.)", "trace": "DB.md campaign.status"},
+    {"id": "C9", "desc": "Kanıt: her kontrol command + from_status + to_status + actor_role + dialer_gate + inflight_disposition + idempotency_key + kaynak taşır; kanıtsız sonuç yok. missing_evidence=0.", "trace": "FR-IAM-006"},
+    {"id": "C10", "desc": "Audit: her sonuç (APPLIED/NOOP/DENIED) → audit {command, from_status, to_status, actor_role, result, dialer_gate, idempotency_key, resource, correlation_id, tenant_id, campaign_id} (FR-IAM-006). missing_audit=0.", "trace": "FR-IAM-006, 0.4.7 label_policy"},
+    {"id": "C11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (command/result/status/reason); campaign_id/call_id/correlation_id/actor_id metrikte yok, yalnız trace; müşteri PII metrikte VE log'da yok. (0.4.7 label_policy, FR-REC-004).", "trace": "FR-REC-004, 0.4.7 label_policy"},
+    {"id": "C12", "desc": "Sır/PII yok: spec/config/sample müşteri adı/telefon numarası/hesap no/ham transkript/OTP/credential tutmaz; yalnız yapısal kimlikler (komut/durum/rol/kampanya/tenant/idempotency/correlation kimlikleri) + sayaçlar + bayraklar + sanal zaman. secret_or_pii=0.", "trace": "BRD §14, BRD §16, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar müşteri ADI, TELEFON numarası, HESAP numarası, ham TRANSKRİPT, OTP, PAROLA, PII DEĞERİ veya credential TUTMAZ — yalnız yapısal KİMLİKLER (komut adları [start/pause/resume/stop/complete], durum adları, rol adları, kampanya/tenant/idempotency/correlation kimlikleri, ör. camp-001 / t-acme / idem-001 / corr-001) + SAYAÇLAR (in-flight adedi) + BAYRAKLAR + sanal zaman. Kimlik/sayaç/bayrak PII DEĞİLDİR; tasarımca PII-olmayandır.",
+    "forbids": ["customer_name", "customer_phone_value", "account_number_value", "transcript_text", "otp_code_value", "password_value", "credential", "secret", "pii_value"]
+  }
+}

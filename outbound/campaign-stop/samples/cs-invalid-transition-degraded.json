@@ -1,0 +1,16 @@
+{
+  "name": "cs-invalid-transition-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). stopped+resume, inject invalid_transition → motor stop-terminal kuralını ihlal edip geçersiz geçişi force-apply eder. C3 ihlali (DB.md status CHECK): stopped TERMİNAL — resume edilemez; geçersiz geçiş DENIED olmalı. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-104",
+  "campaign_id": "camp-cs-104",
+  "actor_role": "operations_manager",
+  "command": "resume",
+  "current_status": "stopped",
+  "in_flight_calls": 0,
+  "idempotency_key": "idem-cs-104",
+  "forced_to_status": "running",
+  "inject": ["invalid_transition"],
+  "expected": {}
+}

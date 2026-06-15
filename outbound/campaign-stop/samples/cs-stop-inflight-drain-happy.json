@@ -1,0 +1,14 @@
+{
+  "name": "cs-stop-inflight-drain-happy",
+  "$comment": "In-flight graceful drain (C5, SAD §6 never-drop). Yoğun kampanya (12 in-flight çağrı) durdurulur; yeni-çağrı admission KAPANIR ama devam eden 12 çağrı abruptly DÜŞÜRÜLMEZ — graceful DRAIN (doğal biter). İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-009",
+  "campaign_id": "camp-cs-009",
+  "actor_role": "operations_manager",
+  "command": "stop",
+  "current_status": "running",
+  "in_flight_calls": 12,
+  "idempotency_key": "idem-cs-009",
+  "expected": {"terminal": "APPLIED", "to_status": "stopped", "dialer_gate": "closed", "new_calls_admitted_after": 0, "inflight_disposition": "drain", "applied": true}
+}

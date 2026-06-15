@@ -1,0 +1,17 @@
+{
+  "name": "fb-voicemail-happy",
+  "$comment": "Mutlu yol (FR-HND-007). Temsilci yok; müşteri voicemail seçer; kayıt onayı + AI ifşası verilmiş (BRD §14.2). FULFILLED type=voicemail (inbound mesaj; kayıt 12.x). İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-fb-002",
+  "call_id": "call-fb-002",
+  "reason": "queue_full",
+  "consent": {"callback": true, "recording": true},
+  "ai_disclosure": true,
+  "business_hours": true,
+  "channel_availability": {"callback": true, "voicemail": true, "ticket": true},
+  "callback_window": "window-afternoon",
+  "context_ref": "ctx-call-fb-002",
+  "customer_choice": "voicemail",
+  "expected": {"terminal": "FULFILLED", "resolved": true, "outcome_type": "voicemail", "offered_count": 3, "eligible_count": 3, "failsafe": false}
+}

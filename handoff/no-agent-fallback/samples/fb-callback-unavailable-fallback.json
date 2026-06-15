@@ -1,0 +1,17 @@
+{
+  "name": "fb-callback-unavailable-fallback",
+  "$comment": "Geri-arama onayı yok (consent.callback=false): callback uygun DEĞİL → uygun küme voicemail+ticket'a daralır (K3 son çare ticket yine var, uygunluk daralması ihlal değil). Müşteri voicemail seçer (kayıt onayı+ifşa var). FULFILLED type=voicemail. İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-globex",
+  "correlation_id": "corr-fb-006",
+  "call_id": "call-fb-006",
+  "reason": "no_agent_available",
+  "consent": {"callback": false, "recording": true},
+  "ai_disclosure": true,
+  "business_hours": true,
+  "channel_availability": {"callback": true, "voicemail": true, "ticket": true},
+  "callback_window": "window-morning",
+  "context_ref": "ctx-call-fb-006",
+  "customer_choice": "voicemail",
+  "expected": {"terminal": "FULFILLED", "resolved": true, "outcome_type": "voicemail", "offered_count": 2, "eligible_count": 2, "failsafe": false}
+}

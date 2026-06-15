@@ -1,0 +1,52 @@
+{
+  "$comment": "WBS 10.1.7 kampanya durdurma/duraklatma kontrol politika konfigürasyonu (vendor-neutral, credential-free). Kampanya yaşam döngüsü + izinli geçişler + dialer admission kapısı kuralları + yetkili roller + in-flight drain politikası burada parametrelenir. Gerçek dialer çevirme (10.1.x) / audit store (12.x) / panel render (A-10) BAŞKA modüllerde; bu config kontrol motorunun TÜKETTİĞİ geçiş+yetki+kapı kurallarını tutar. Sır/credential ve PII (müşteri adı/telefon/hesap no) YOK — yalnız durum/komut/rol adları + geçiş tablosu + kapı kuralları + bayraklar. Değerler MÜHENDİSLİK varsayılanı; pilot tenant + dialer entegrasyonu (10.1.x) verisiyle kalibre edilir (BRD §22 açık karar).",
+  "version": "1.0",
+  "wbs": "10.1.7",
+  "statuses": ["draft", "running", "paused", "stopped", "completed"],
+  "commands": ["start", "pause", "resume", "stop", "complete"],
+  "halt_commands": ["pause", "stop", "complete"],
+  "open_commands": ["start", "resume"],
+  "halt_statuses": ["stopped", "paused", "completed"],
+  "open_statuses": ["running"],
+  "terminal_statuses": ["stopped", "completed"],
+  "transitions": {
+    "$comment": "İzinli durum-geçişleri (DB.md campaign.status CHECK ile uyumlu). 'apply' durum değiştirir; 'noop' zaten hedef durumdadır (idempotent). Listelenmeyen çift GEÇERSİZ → DENIED.",
+    "apply": {
+      "draft|start": "running",
+      "running|pause": "paused",
+      "paused|resume": "running",
+      "running|stop": "stopped",
+      "paused|stop": "stopped",
+      "running|complete": "completed"
+    },
+    "noop": {
+      "stopped|stop": "stopped",
+      "paused|pause": "paused",
+      "running|resume": "running",
+      "running|start": "running"
+    }
+  },
+  "authorization": {
+    "$comment": "FR-IAM-011/ADR-012: kontrol komutu campaign:manage yetkisi ister. Yetkili roller immutable bundle; yetki kararı backend'de. Yetkisiz aktör → DENIED.",
+    "permission": "campaign:manage",
+    "authorized_roles": ["operations_manager", "tenant_admin", "tenant_owner"]
+  },
+  "dialer_gate": {
+    "$comment": "SR-OUT-010: stop/pause/complete → admission KAPALI (yeni çağrı başlatılmaz, new_calls_admitted_after=0); start/resume → AÇIK.",
+    "closed_on": ["stop", "pause", "complete"],
+    "open_on": ["start", "resume"],
+    "new_calls_admitted_after_halt": 0
+  },
+  "inflight": {
+    "$comment": "SAD §6: in-flight çağrılar graceful DRAIN; force_drop yasak (v1 stop = graceful).",
+    "default_disposition": "drain",
+    "forbidden_disposition": "force_drop"
+  },
+  "consume_from": ["10.1.1", "A-10", "10.1.x"],
+  "report_to": ["10.1.x-dialer", "0.4.7"],
+  "observability": {
+    "metric_prefix": "campaign_control_",
+    "alarm_on_new_call_after_stop": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

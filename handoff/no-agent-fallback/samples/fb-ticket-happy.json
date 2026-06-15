@@ -1,0 +1,17 @@
+{
+  "name": "fb-ticket-happy",
+  "$comment": "Mutlu yol (FR-HND-007). Transfer başarısız (9.1/9.2/9.3 fail-safe → 9.7); müşteri ticket (asenkron destek kaydı) seçer; bağlam 9.6 context_ref'ten gelir. FULFILLED type=ticket (oluşturma sözleşmesi; gerçek ticket API 11.x). İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-fb-003",
+  "call_id": "call-fb-003",
+  "reason": "transfer_failed",
+  "consent": {"callback": true, "recording": true},
+  "ai_disclosure": true,
+  "business_hours": true,
+  "channel_availability": {"callback": true, "voicemail": true, "ticket": true},
+  "callback_window": "window-morning",
+  "context_ref": "ctx-call-fb-003",
+  "customer_choice": "ticket",
+  "expected": {"terminal": "FULFILLED", "resolved": true, "outcome_type": "ticket", "offered_count": 3, "eligible_count": 3, "failsafe": false}
+}

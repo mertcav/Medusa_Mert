@@ -1,0 +1,14 @@
+{
+  "name": "cs-stop-unauthorized-denied",
+  "$comment": "Yetki (C2). human_agent (campaign:manage YOK) kampanyayı durdurmaya çalışır → DENIED; durum DEĞİŞMEZ (running kalır), kontrol uygulanmaz. Doğru reddetme — ihlal DEĞİL. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-006",
+  "campaign_id": "camp-cs-006",
+  "actor_role": "human_agent",
+  "command": "stop",
+  "current_status": "running",
+  "in_flight_calls": 3,
+  "idempotency_key": "idem-cs-006",
+  "expected": {"terminal": "DENIED", "to_status": "running", "dialer_gate": "unchanged", "applied": false}
+}

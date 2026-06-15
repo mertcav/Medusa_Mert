@@ -1,0 +1,15 @@
+{
+  "name": "cs-skip-auth-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). human_agent (campaign:manage YOK) + inject skip_auth → yetkisiz aktörün durdurma komutu UYGULANIR. C2 ihlali (FR-IAM-011/ADR-012): kontrol yalnız campaign:manage yetkisiyle; yetkisiz komut reddedilmeli (DENIED), uygulanmamalı. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-103",
+  "campaign_id": "camp-cs-103",
+  "actor_role": "human_agent",
+  "command": "stop",
+  "current_status": "running",
+  "in_flight_calls": 2,
+  "idempotency_key": "idem-cs-103",
+  "inject": ["skip_auth"],
+  "expected": {}
+}

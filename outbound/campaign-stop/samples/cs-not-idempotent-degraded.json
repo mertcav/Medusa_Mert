@@ -1,0 +1,15 @@
+{
+  "name": "cs-not-idempotent-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). stopped+stop aynı idempotency_key, inject not_idempotent → idempotent tekrar yan-etkisiz NOOP olmak yerine çifte yan-etki (kapı yeniden tetiklenir / durum tekrar geçirilir) üretir. C6 ihlali. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-105",
+  "campaign_id": "camp-cs-105",
+  "actor_role": "operations_manager",
+  "command": "stop",
+  "current_status": "stopped",
+  "in_flight_calls": 0,
+  "idempotency_key": "idem-cs-105",
+  "inject": ["not_idempotent"],
+  "expected": {}
+}

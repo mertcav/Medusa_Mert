@@ -1,0 +1,14 @@
+{
+  "name": "cs-stop-paused-happy",
+  "$comment": "Duraklatılmış kampanyayı durdurma. paused→stopped (TERMİNAL); admission KAPALI. İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-globex",
+  "correlation_id": "corr-cs-004",
+  "campaign_id": "camp-cs-004",
+  "actor_role": "tenant_owner",
+  "command": "stop",
+  "current_status": "paused",
+  "in_flight_calls": 0,
+  "idempotency_key": "idem-cs-004",
+  "expected": {"terminal": "APPLIED", "to_status": "stopped", "dialer_gate": "closed", "applied": true}
+}

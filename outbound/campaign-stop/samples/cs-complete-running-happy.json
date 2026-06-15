@@ -1,0 +1,14 @@
+{
+  "name": "cs-complete-running-happy",
+  "$comment": "Doğal bitiş. Tüm kontaklar arandı → running→completed (TERMİNAL); admission KAPALI. İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-globex",
+  "correlation_id": "corr-cs-008",
+  "campaign_id": "camp-cs-008",
+  "actor_role": "operations_manager",
+  "command": "complete",
+  "current_status": "running",
+  "in_flight_calls": 1,
+  "idempotency_key": "idem-cs-008",
+  "expected": {"terminal": "APPLIED", "to_status": "completed", "dialer_gate": "closed", "inflight_disposition": "drain", "applied": true}
+}

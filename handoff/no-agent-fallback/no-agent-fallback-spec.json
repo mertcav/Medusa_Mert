@@ -1,0 +1,156 @@
+{
+  "$comment": "WBS 9.7 — Temsilci yoksa callback/voicemail/ticket (BRD §9.12 İnsan Temsilciye Aktarım / SAD §7.3 Human Handoff Akışı). 9. workstream'in (İnsan Temsilciye Aktarım) YEDİNCİ modülü ve F1-Must aktarım çekirdeği. FR-HND-007 ('Temsilci bulunamazsa callback, voicemail veya ticket sunulmalıdır') temsilci-yok FALLBACK MOTORUNU SAHİPLENİR. SAD §7.3'teki Human Handoff diyagramının son dalı '└─ temsilci yoksa ──► callback / voicemail / ticket (FR-HND-007)' satırının SAHİBİDİR. 9.1 (cold) C4 fail-safe, 9.2 (warm) W5 fail-safe, 9.3 (whisper) H5 fail-safe ve 9.5 (hedef seçimi) R10 UNRESOLVED yükseltmesi bu modülü TETİKLER ('fallback motoru → 9.7' / 'temsilci-yok fallback → 9.7'); bu modül onların ÜRETTİĞİ no-agent durumunu (transfer başarısız / temsilci yok / kuyruk dolu / hedef çözülmedi / mesai dışı) TÜKETİR ve müşteriye ASLA çağrıyı düşürmeden ertelenmiş bir hizmet yolu (callback / voicemail / ticket) SUNAR. Modül bir FALLBACK SUNUM/SEÇİM MOTORUdur (deterministik): FallbackRequest{reason (9.1/9.2/9.3/9.5'ten), queue_state, consent{callback,recording}, ai_disclosure, business_hours, channel_availability{callback,voicemail,ticket}, customer_choice, context_ref (9.6 bağlam paketi)} alır → UYGUN seçenekleri (eligible) önceliğe göre hesaplar (ticket DAİMA-mevcut son çare) → müşteriye SUNAR (offer) → seçimi+gerekli veriyi YAKALAR (callback için onaylı geri-arama penceresi; voicemail için kayıt onayı+AI ifşası; ticket için 9.6 bağlam özeti) → bir terminal sonuç {FULFILLED (callback_id/voicemail_id/ticket_id) | SAFE_CLOSE (müşteri reddetti/yakalama başarısız → fail-safe oto-ticket, asla sessiz düşme)} üretir. ÇEKİRDEK INVARIANT: temsilci yokken DAİMA en az bir alternatif SUNULUR (K2 no_offer=0, FR-HND-007); uygun küme ASLA boş kalmaz — ticket daima-mevcut son çaredir (K3 empty_eligible=0); sunulan/karşılanan her seçeneğin önkoşulu sağlanır (K4 unmet_prerequisite=0); kayıt/geri-arama yalnız açık ONAY + AI İFŞASI ile (K5 missing_consent=0 + no_disclosure=0, BRD §14.2/§14); fallback yalnız GERÇEK no-agent nedeniyle tetiklenir, temsilci varken değil (K6 invalid_trigger=0); fallback bu tenant'ın kuyruğu/ticket projesine bağlanır (K7 cross_tenant=0, FR-TEN-002); müşteri reddetse/yakalama başarısız olsa bile FAIL-SAFE minimum (bağlamdan oto-ticket) garanti edilir, asla sessiz düşme (K8 silent_drop=0); her fallback kanıt taşır (K9); her sonuç audit'e yazılır (K10, FR-IAM-006); metrikler düşük-kardinalite + PII metrikte yok (K11); spec/config/sample ham PII/sır tutmaz (K12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): aktarım MEKANİZMASI (cold SIP REFER → 9.1; warm köprüleme → 9.2; whisper konferans → 9.3 — bu modül onların FAIL-SAFE dalını SAHİPLENİR, taşımayı DEĞİL); aktarım TETİKLEME kararı → 9.4 (TÜKETİLİR); hedef SEÇİMİ → 9.5 (UNRESOLVED'i TÜKETİR, hedef seçmez); bağlam paketi → 9.6 (ticket/voicemail bağlamı için context_ref'i TÜKETİR, ÜRETMEZ); aktarım başarısı+bekleme raporlama → 9.8 (FR-HND-008, fallback sonucunu TÜKETİR); OUTBOUND callback ÇEVİRME/yeniden-arama planlayıcı yürütme → outbound dialer (10.x; bu modül callback'i OLUŞTURUR/PLANLAR, çevirmeyi DEĞİL; FR-TEL-009 retry/geri-arama + FR-OUT-005 yeniden-arama ile bağlanır); OUTBOUND voicemail BIRAKMA (giden mesaj) → 10.1.5/FR-TEL-011 (bu modül INBOUND voicemail YAKALAR — müşteri mesajı, giden mesaj DEĞİL); gerçek TICKET sistemi entegrasyonu (CRM/ticketing API çağrısı) → tool/entegrasyon (FR-TOOL-*, 11.x; bu modül ticket OLUŞTURMA SÖZLEŞMESİNİ üretir); AI ifşa METNİ üretimi → diyalog (3.x; bu modül ifşa DURUMUNU TÜKETİR); kayıt depolama/saklama → kayıt yönetimi (FR-REC-*, 12.x); audit STORE → 7.1.6/12.1.8; gözlemlenebilirlik omurgası → 0.4.7 (metrik ÜRETİR). Spec/config/sample'larda sır/credential ve gerçek PII (müşteri adı/telefon numarası tam değeri / hesap no / ham transkript / voicemail ses içeriği / ticket gövde metni / OTP) YOK — yalnız yapısal KİMLİKLER (seçenek/kanal/kuyruk/neden/pencere/kaynak kimlikleri) + değer-sınıfı etiketleri + onay/ifşa bayrakları + referans tokenları (callback-id/voicemail-id/ticket-id) + sanal zaman. KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS esastır.",
+  "version": "1.0",
+  "wbs": "9.7",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-HND-007", "FR-HND-001", "FR-TEL-009", "FR-OUT-005", "FR-TEN-002", "FR-IAM-006", "FR-REC-004", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-HND-007"],
+    "rtm": ["TC-HND-007"],
+    "brd": [
+      "§9.12 (İnsan Temsilciye Aktarım — FR-HND-007 temsilci bulunamazsa callback/voicemail/ticket sunulur)",
+      "§8.3 / §10 (İnsan kuyrukları dolduğunda Voice AI agent işlemi tamamlar VEYA çağrıyı uygun geri arama listesine alır — bu modül o geri-arama/voicemail/ticket sunum yolunu sahiplenir)",
+      "§14.2 (AI ifşası — voicemail kaydı/geri-arama önce müşteri AI ile konuştuğunu bilir; onay alınır)",
+      "§14 (Mahremiyet & uyumluluk — kayıt/geri-arama yalnız onayla; PII minimizasyonu)",
+      "§16/§24 (Call / Callback / Ticket / Audit Log varlıkları — fallback sonucu kalıcılaştırılır, audit'lenir)",
+      "Risk tablosu ('İnsan aktarımının başarısız olması → Müşteri kaybı → Çoklu transfer yolu ve callback')"
+    ],
+    "sad": [
+      "§7.3 (Human Handoff Akışı — '└─ temsilci yoksa ──► callback / voicemail / ticket (FR-HND-007)' diyagram dalı — bu modül o noktadır)",
+      "§6 (Fail soft, never drop the call — 'Her bağımlılığın fallback'i ve degrade modu vardır; çökme yerine kontrollü kalite düşüşü' — temsilci-yok da bu ilkeye uyar: çağrı düşmez, ertelenmiş yol sunulur)",
+      "§13.3 (correlation/tenant context propagation — fallback correlation_id+tenant taşır)",
+      "§15 (backpressure — kapasite eşiğinde overflow çağrıları callback'e alınır; bu modül o callback sunumunu sağlar, FR-RES-014/FR-OUT-007)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — fallback motoru orkestratör/handoff manager'da; ticket/voicemail/callback sistemine doğrudan bağlanmaz, OLUŞTURMA SÖZLEŞMESİ üretir)",
+      "ADR-002 (vendor-neutral — ticketing/voicemail/callback sağlayıcı bağımsız; aynı fallback sözleşmesi arkasına gerçek entegrasyon)"
+    ],
+    "threat_model": [
+      "TM-D-* (DoS/dayanıklılık — temsilci yok/kuyruk dolu durumunda çağrı DÜŞMEZ; daima ertelenmiş yol + fail-safe oto-ticket)",
+      "TM-I-* (bilgi sızıntısı — voicemail/callback yalnız onay+AI ifşasıyla; ham içerik/numara repoda yok)",
+      "TM-T-* (tenant izolasyonu — fallback yalnız bu tenant kuyruğu/ticket projesine bağlanır; cross-tenant red, FR-TEN-002)",
+      "TM-R-* (inkâr — her fallback sunumu+sonucu+onay durumu audit'e yazılır)"
+    ],
+    "consumes": [
+      "9.1 cold transfer (C4 fail-safe FR-HND-007) — transfer_failed nedenini TÜKETİR ve fallback sunar",
+      "9.2 warm transfer (W5 fail-safe FR-HND-007) — danışma başarısız/temsilci yok nedenini TÜKETİR",
+      "9.3 whisper transfer (H5 fail-safe FR-HND-007) — katılım başarısız nedenini TÜKETİR",
+      "9.5 hedef seçimi (R10 UNRESOLVED → 9.7) — unresolved_target nedenini TÜKETİR (hedef çözülemedi → fallback)",
+      "9.6 bağlam paketi (FR-HND-004/005) — ticket/voicemail bağlamı için context_ref'i TÜKETİR (özet/intent/toplanan alanlar)",
+      "Diyalog (AI ifşası, onay yakalama) — ai_disclosure + consent DURUMUNU TÜKETİR (üretmez)"
+    ],
+    "consumed_by": [
+      "9.8 aktarım raporlama (FR-HND-008) — fallback outcome (FULFILLED/SAFE_CLOSE, type) + bekleme süresini TÜKETİR",
+      "Outbound dialer (10.x, FR-TEL-009/FR-OUT-005) — oluşturulan callback'i çevirme/yeniden-arama için TÜKETİR (bu modül callback'i PLANLAR)",
+      "Ticketing/CRM entegrasyonu (11.x, FR-TOOL-*) — ticket oluşturma sözleşmesini gerçek ticket API'sine bağlar",
+      "Kayıt yönetimi (12.x, FR-REC-*) — voicemail kayıt referansını saklama/retention'a iletir",
+      "7.1.6 + 12.1.8 audit store (FR-IAM-006) — fallback kaydını kalıcılaştırır",
+      "0.4.7 gözlemlenebilirlik — handoff_fallback_* metriklerini tüketir"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Fallback motoru orkestratör/handoff manager içinde bir SUNUM/SEÇİM fonksiyonudur (SAD §7.3 'temsilci yoksa ──► callback / voicemail / ticket' dalı): 9.1/9.2/9.3 fail-safe veya 9.5 UNRESOLVED no-agent durumu üretince, bu motor uygun seçenekleri hesaplar (ticket daima-mevcut son çare), müşteriye sunar, seçimi+gerekli veriyi (onay/ifşa ile) yakalar ve ertelenmiş hizmet kaydı (callback/voicemail/ticket) oluşturur. Çağrı ASLA düşmez — müşteri reddetse bile bağlamdan oto-ticket (SAFE_CLOSE). Motor hot-path'i BLOKLAMAZ; deterministik. Vendor-neutral (ADR-001/002): callback/voicemail/ticket OLUŞTURMA sözleşmesi sağlayıcı bağımsız; canlı entegrasyonda (10.x/11.x/12.x) aynı sözleşme arkasına gerçek dialer/ticketing/kayıt motoru.",
+    "plane": "voice-runtime orchestrator (handoff manager — temsilci-yok fallback sunum/seçim motoru)",
+    "owns": "SAD §7.3 'temsilci yoksa callback/voicemail/ticket' dalı: FallbackRequest → uygun seçenek hesaplama (eligibility, ticket son çare) + müşteriye sunum (offer) + seçim+veri yakalama (onay/AI ifşası ile) + ertelenmiş hizmet kaydı oluşturma (callback/voicemail/ticket) + fail-safe oto-ticket + fallback audit",
+    "delegates": "aktarım taşıması → 9.1/9.2/9.3 (fail-safe dalını SAHİPLENİR); tetikleme → 9.4; hedef seçimi → 9.5; bağlam paketi → 9.6 (context_ref TÜKETİR); raporlama → 9.8; callback ÇEVİRME → outbound dialer (10.x); giden voicemail BIRAKMA → 10.1.5/FR-TEL-011; gerçek ticket API → tool/entegrasyon (11.x); AI ifşa METNİ → diyalog (3.x); kayıt depolama → 12.x; audit store → 7.1.6/12.1.8",
+    "deterministic": true,
+    "trace": "SAD §7.3, SAD §6, ADR-001, ADR-002"
+  },
+
+  "states": {
+    "$comment": "Fallback durum makinesi (K1). EVALUATING→OFFERING→CAPTURING→{FULFILLED|SAFE_CLOSE}. EVALUATING: no-agent nedeni+bağlamdan uygun seçenekler (eligible) önceliğe göre hesaplanır; ticket DAİMA-mevcut son çaredir (uygun küme boş kalmaz). OFFERING: uygun seçenekler müşteriye sunulur (en az bir alternatif, K2). CAPTURING: müşteri seçimi+gerekli veri (callback için onaylı pencere; voicemail için kayıt onayı+AI ifşası; ticket için 9.6 bağlam özeti) yakalanır. FULFILLED (terminal): müşterinin seçtiği seçenek oluşturuldu (callback_id/voicemail_id/ticket_id). SAFE_CLOSE (terminal): müşteri tüm seçenekleri reddetti VEYA yakalama başarısız → fail-safe bağlamdan oto-ticket oluşturuldu (asla sessiz düşme, K8); çağrı kontrollü kapanır. Her iki terminal de geçerli sonuç — SAFE_CLOSE ihlal değil, fail-safe sonuçtur (oto-ticket ile bir hizmet yolu yine garanti edilir). Terminal durumlar IMMUTABLE.",
+    "flow": ["EVALUATING", "OFFERING", "CAPTURING", "FULFILLED", "SAFE_CLOSE"],
+    "non_terminal": ["EVALUATING", "OFFERING", "CAPTURING"],
+    "terminal": ["FULFILLED", "SAFE_CLOSE"],
+    "terminal_fulfilled": ["FULFILLED"],
+    "terminal_safe_close": ["SAFE_CLOSE"]
+  },
+
+  "transitions": {
+    "$comment": "İzinli geçişler + kapı koşulu. Motor fail-safe: müşteri bir seçenek seçer ve önkoşul (onay/ifşa) sağlanırsa FULFILLED; reddeder/yakalama başarısızsa bağlamdan oto-ticket ile SAFE_CLOSE (çağrı düşmez). Sıra: uygunluk-hesapla → sun → seçim+veri-yakala → kayıt-oluştur. Her iki terminal de kayıt + audit üretir (çağrı düşmez).",
+    "edges": [
+      {"from": "EVALUATING", "to": "OFFERING", "gate": "E1", "cond": "uygun seçenekler (eligible) hesaplandı; ticket son çare olarak daima mevcut → uygun küme boş değil (K3)"},
+      {"from": "OFFERING", "to": "CAPTURING", "gate": "E2", "cond": "en az bir alternatif müşteriye sunuldu (callback/voicemail/ticket); müşteri yanıtı bekleniyor (K2)"},
+      {"from": "CAPTURING", "to": "FULFILLED", "gate": "E3", "cond": "müşteri sunulan bir seçeneği seçti + önkoşul (onay/AI ifşası) sağlandı → ertelenmiş hizmet kaydı (callback_id/voicemail_id/ticket_id) oluşturuldu → kayıt + audit"},
+      {"from": "CAPTURING", "to": "SAFE_CLOSE", "gate": "E4", "cond": "müşteri tüm seçenekleri reddetti / yanıt vermedi / yakalama başarısız → fail-safe bağlamdan oto-ticket oluşturuldu (asla sessiz düşme) → kayıt + audit"}
+    ],
+    "on_fulfilled": "EMIT eylemi: FallbackOutcome{type[callback|voicemail|ticket], reference_id, offered_options[], reason, consent, ai_disclosure, resource, evidence} → 9.8 raporlama + ilgili sistem (dialer/ticketing/kayıt); sonuç audit'e yazılır (K10)",
+    "on_safe_close": "FAILSAFE eylemi: FallbackOutcome{type=ticket(auto), failsafe=true, reference_id, reason, context_ref, evidence} → bağlamdan oto-ticket; çağrı kontrollü kapanır, ASLA sessiz düşmez; sonuç audit'e yazılır (K10)"
+  },
+
+  "fallback_options": {
+    "$comment": "FR-HND-007 üç fallback türü. callback = müşteriye geri-arama planlanır (onaylı numara + tercih edilen pencere; çevirme outbound dialer 10.x'te, bu modül PLANLAR — FR-TEL-009/FR-OUT-005); voicemail = müşteri mesaj bırakır (kayıt onayı + AI ifşası zorunlu — INBOUND, giden voicemail DEĞİL); ticket = asenkron destek kaydı (9.6 bağlam özetinden; DAİMA-mevcut son çare — temsilci/kayıt altyapısı gerektirmez). Uygunluk (eligibility) kanal+onay+kapasiteye bağlıdır; ticket son çaredir (K3 uygun küme boş kalmaz). Sunum sırası policy-driven.",
+    "options": ["callback", "voicemail", "ticket"],
+    "last_resort": "ticket",
+    "prerequisites": {
+      "callback": ["consent.callback", "callback_window", "channel_availability.callback"],
+      "voicemail": ["consent.recording", "ai_disclosure", "channel_availability.voicemail"],
+      "ticket": ["channel_availability.ticket"]
+    },
+    "trace": "FR-HND-007, FR-TEL-009, FR-OUT-005, BRD §14.2"
+  },
+
+  "trigger_reasons": {
+    "$comment": "Fallback yalnız GERÇEK no-agent nedeniyle tetiklenir (K6). Geçerli nedenler 9.1/9.2/9.3/9.5'ten gelir. reason 'agent_available' ise fallback yanlış çağrılmıştır (temsilci var → aktarım sürmeli) → invalid_trigger ihlali.",
+    "valid": ["no_agent_available", "queue_full", "transfer_failed", "unresolved_target", "after_hours"],
+    "invalid": ["agent_available"],
+    "trace": "FR-HND-007, 9.1 C4, 9.2 W5, 9.3 H5, 9.5 R10"
+  },
+
+  "consent": {
+    "$comment": "Onay + AI ifşası (K5; BRD §14.2/§14). callback = onaylı geri-arama numarası gerektirir (consent.callback). voicemail = kayıt onayı (consent.recording) + AI ifşası (ai_disclosure) gerektirir — müşteri AI ile konuştuğunu bilmeli ve kayda onay vermeli. ticket = müşteri PII'si 9.6 bağlamından (maskeli) gelir; ek kayıt onayı gerektirmez. Onaysız kayıt/geri-arama = ihlal.",
+    "callback_requires_consent": true,
+    "voicemail_requires_recording_consent": true,
+    "voicemail_requires_ai_disclosure": true,
+    "trace": "FR-HND-001, BRD §14.2, BRD §14, FR-REC-004"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli; bir senaryoda ihlal varsa kapı eler. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1/F2 canlı dialer/ticketing/kayıt entegrasyonu + pilot tenant verisinde doğrulanır.",
+    "max_no_offer": 0,
+    "max_empty_eligible": 0,
+    "max_unmet_prerequisite": 0,
+    "max_missing_consent": 0,
+    "max_no_disclosure": 0,
+    "max_invalid_trigger": 0,
+    "max_cross_tenant": 0,
+    "max_silent_drop": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "Fallback motoru her sonuç için BRD §15 + handoff metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. handoff_fallback_offered_total{tenant,reason,option} → sunum sayımı (reason/option DÜŞÜK kardinalite); handoff_fallback_fulfilled_total{tenant,type,reason} → karşılanan fallback sayımı (callback/voicemail/ticket dağılımı); handoff_fallback_safe_close_total{tenant,reason} → fail-safe oto-ticket sayımı (müşteri-kaybı erken-uyarı); handoff_fallback_cross_tenant_blocked_total → engellenen cross-tenant bağlama (güvenlik). tenant_id+reason+option+type DÜŞÜK kardinalite (label uygun); call_id/correlation_id/callback_id/voicemail_id/ticket_id/telefon-numarası YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Müşteri adı/telefon/voicemail içeriği/ticket gövdesi metriklerde VE log'da YOK (FR-REC-004). safe_close (müşteri-kaybı riski) oranı ani artışı → alarm ≤2dk (SAD §17.2, NFR 10.1).",
+    "metrics": ["handoff_fallback_offered_total", "handoff_fallback_fulfilled_total", "handoff_fallback_safe_close_total", "handoff_fallback_cross_tenant_blocked_total"],
+    "low_cardinality_labels": ["tenant_id", "reason", "option", "type"],
+    "high_cardinality_trace_only": ["call_id", "correlation_id", "callback_id", "voicemail_id", "ticket_id", "phone_number"],
+    "alarm": "safe_close (fail-safe oto-ticket, müşteri-kaybı riski) oranı ani artışı → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "K1", "desc": "FSM tamlığı/determinizm: her FallbackRequest tanımlı kenarlar boyunca ilerler ve bir terminal sonuca {FULFILLED|SAFE_CLOSE} ulaşır; aynı girdi → aynı çıktı; stuck/tanımsız durum yok. stuck_state=0.", "trace": "SAD §7.3, SR-HND-007"},
+    {"id": "K2", "desc": "Daima alternatif sunulur (FR-HND-007 çekirdek): temsilci yokken müşteriye en az bir fallback seçeneği (callback/voicemail/ticket) sunulur; müşteri sunum yapılmadan düşürülmez. no_offer=0.", "trace": "FR-HND-007, SR-HND-007"},
+    {"id": "K3", "desc": "Son çare daima mevcut: uygun seçenek kümesi asla boş kalmaz; callback/voicemail kullanılamasa bile ticket daima-mevcut asenkron son çaredir. empty_eligible=0.", "trace": "FR-HND-007, SAD §6"},
+    {"id": "K4", "desc": "Önkoşul sağlanır: karşılanan (FULFILLED) seçenek uygun (eligible) olmalı — uygun-olmayan bir seçenek karşılanamaz (ör. kanal kapalı callback). unmet_prerequisite=0.", "trace": "FR-HND-007"},
+    {"id": "K5", "desc": "Onay + AI ifşası (BRD §14.2/§14): geri-arama yalnız onaylı numarayla; voicemail kaydı yalnız kayıt onayı + AI ifşasıyla yakalanır; onaysız/ifşasız kayıt yok. missing_consent=0 + no_disclosure=0.", "trace": "BRD §14.2, BRD §14, FR-HND-001, FR-REC-004"},
+    {"id": "K6", "desc": "Geçerli tetik: fallback yalnız gerçek no-agent nedeniyle (no_agent_available/queue_full/transfer_failed/unresolved_target/after_hours) tetiklenir; temsilci varken (agent_available) fallback sunulmaz. invalid_trigger=0.", "trace": "FR-HND-007, 9.1/9.2/9.3/9.5"},
+    {"id": "K7", "desc": "Tenant izolasyonu (FR-TEN-002): fallback yalnız bu tenant'ın kuyruğu/callback listesi/voicemail kutusu/ticket projesine bağlanır; cross-tenant kaynak/hedef reddedilir. cross_tenant=0.", "trace": "FR-TEN-002, FR-HND-007"},
+    {"id": "K8", "desc": "Fail-safe minimum: müşteri tüm seçenekleri reddetse/yanıt vermese/yakalama başarısız olsa bile bağlamdan oto-ticket (SAFE_CLOSE) garanti edilir; çağrı ASLA sessiz düşmez. silent_drop=0.", "trace": "SAD §6, FR-HND-007"},
+    {"id": "K9", "desc": "Kanıt: her fallback no-agent nedeni + sunulan seçenekler + seçilen seçenek + referans id + kaynak oturum taşır; kanıtsız sonuç yok. missing_evidence=0.", "trace": "FR-HND-008, FR-IAM-006"},
+    {"id": "K10", "desc": "Audit: her sonuç (FULFILLED veya SAFE_CLOSE) → audit {type, reference_id, reason, offered_options, consent, ai_disclosure, failsafe, correlation_id, tenant_id} (FR-IAM-006). missing_audit=0.", "trace": "FR-IAM-006, 0.4.7 label_policy"},
+    {"id": "K11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (reason/option/type); müşteri adı/telefon/voicemail içeriği/ticket gövdesi/referans id'leri metrikte VE log'da yok; call_id/correlation_id/callback_id/voicemail_id/ticket_id yalnız trace. (0.4.7 label_policy, FR-REC-004).", "trace": "FR-REC-004, 0.4.7 label_policy"},
+    {"id": "K12", "desc": "Sır/PII yok: spec/config/sample müşteri adı/telefon numarası tam değeri/hesap no/ham transkript/voicemail ses içeriği/ticket gövde metni/OTP/credential tutmaz; yalnız yapısal kimlikler (seçenek/kanal/kuyruk/neden/pencere/kaynak kimlikleri) + değer-sınıfı etiketleri + onay/ifşa bayrakları + referans tokenları (callback-id/voicemail-id/ticket-id) + sanal zaman. secret_or_pii=0.", "trace": "BRD §14, BRD §16, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar müşteri ADI, TELEFON numarası tam değeri, HESAP numarası tam değeri, ham TRANSKRİPT, VOICEMAIL ses/metin İÇERİĞİ, TICKET gövde METNİ, OTP, PAROLA, PII DEĞERİ veya credential TUTMAZ — yalnız yapısal KİMLİKLER (seçenek adları [callback/voicemail/ticket], kanal/kuyruk/neden/pencere/kaynak/proje kimlikleri) + değer-SINIFI etiketleri + onay/ifşa BAYRAKLARI (consent: true/false) + REFERANS tokenları (callback-id/voicemail-id/ticket-id, ör. cb-001 / vm-001 / tkt-001) + sanal zaman. Kimlik/bayrak/referans-token PII DEĞİLDİR; tasarımca PII-olmayandır.",
+    "forbids": ["customer_name", "customer_phone_value", "account_number_value", "transcript_text", "voicemail_audio", "voicemail_text", "ticket_body_text", "otp_code_value", "password_value", "credential", "secret", "pii_value"]
+  }
+}

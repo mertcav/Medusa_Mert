@@ -1,0 +1,14 @@
+{
+  "name": "cs-stop-idempotent-noop",
+  "$comment": "Idempotency (C6). Zaten durdurulmuş kampanyaya aynı idempotency_key ile tekrar 'stop' → NOOP; yan-etki YOK (kapı yeniden tetiklenmez, durum stopped kalır). İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-005",
+  "campaign_id": "camp-cs-005",
+  "actor_role": "operations_manager",
+  "command": "stop",
+  "current_status": "stopped",
+  "in_flight_calls": 0,
+  "idempotency_key": "idem-cs-005",
+  "expected": {"terminal": "NOOP", "to_status": "stopped", "dialer_gate": "closed", "applied": false}
+}

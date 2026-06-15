@@ -1,0 +1,18 @@
+{
+  "name": "fb-drop-last-resort-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). callback/voicemail kanalları kapalı (yalnız ticket uygun olmalı); inject drop_last_resort → motor DAİMA-mevcut son çareyi (ticket) uygun kümeden çıkarır → uygun küme BOŞ kalır. K3 ihlali (empty_eligible>0): son çare ticket asla kaldırılamaz; uygun küme boş kalamaz (SAD §6 fail-soft). Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-fb-102",
+  "call_id": "call-fb-102",
+  "reason": "queue_full",
+  "consent": {"callback": true, "recording": true},
+  "ai_disclosure": true,
+  "business_hours": true,
+  "channel_availability": {"callback": false, "voicemail": false, "ticket": true},
+  "callback_window": "window-morning",
+  "context_ref": "ctx-call-fb-102",
+  "customer_choice": "ticket",
+  "inject": ["drop_last_resort"],
+  "expected": {}
+}

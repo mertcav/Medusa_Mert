@@ -1,0 +1,15 @@
+{
+  "name": "cs-hard-drop-inflight-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). running+stop in-flight=4, inject hard_drop_inflight → devam eden 4 çağrı graceful drain yerine abruptly DÜŞÜRÜLÜR (force_drop). C5 ihlali (SAD §6 never-drop): stop yeni-çağrı admission'ını kapatmalı ama aktif çağrıları abruptly düşürmemeli. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-102",
+  "campaign_id": "camp-cs-102",
+  "actor_role": "operations_manager",
+  "command": "stop",
+  "current_status": "running",
+  "in_flight_calls": 4,
+  "idempotency_key": "idem-cs-102",
+  "inject": ["hard_drop_inflight"],
+  "expected": {}
+}

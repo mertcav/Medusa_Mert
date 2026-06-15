@@ -1,0 +1,15 @@
+{
+  "name": "cs-cross-tenant-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). running+stop, inject cross_tenant → kontrol bu tenant yerine BAŞKA tenant'ın kampanya kaynağına bağlanır. C7 ihlali (FR-TEN-002): kontrol yalnız bu tenant'ın kampanyasını etkilemeli; cross-tenant reddedilmeli. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-106",
+  "campaign_id": "camp-cs-106",
+  "actor_role": "operations_manager",
+  "command": "stop",
+  "current_status": "running",
+  "in_flight_calls": 1,
+  "idempotency_key": "idem-cs-106",
+  "inject": ["cross_tenant"],
+  "expected": {}
+}

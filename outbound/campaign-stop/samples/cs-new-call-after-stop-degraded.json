@@ -1,0 +1,15 @@
+{
+  "name": "cs-new-call-after-stop-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). running+stop, inject new_call_after_stop → kampanya durdurulduktan SONRA dialer yine de yeni bir çağrı admit eder (new_calls_admitted_after=1). SR-OUT-010 ÇEKİRDEK ihlali (C4 new_call_after_stop>0): 'durdurma sonrası yeni çağrı başlatılmaz' kabul ölçütü kırılır. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-101",
+  "campaign_id": "camp-cs-101",
+  "actor_role": "operations_manager",
+  "command": "stop",
+  "current_status": "running",
+  "in_flight_calls": 3,
+  "idempotency_key": "idem-cs-101",
+  "inject": ["new_call_after_stop"],
+  "expected": {}
+}

@@ -1,0 +1,17 @@
+{
+  "name": "fb-decline-safe-close",
+  "$comment": "Müşteri tüm seçenekleri reddeder (decline). Fail-safe (K8): çağrı ASLA sessiz düşmez → bağlamdan (9.6 context_ref) oto-ticket oluşturulur, çağrı kontrollü kapanır. SAFE_CLOSE, failsafe=true, type=ticket. İhlal yok — fail-safe sonuç geçerlidir. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-fb-005",
+  "call_id": "call-fb-005",
+  "reason": "no_agent_available",
+  "consent": {"callback": true, "recording": true},
+  "ai_disclosure": true,
+  "business_hours": true,
+  "channel_availability": {"callback": true, "voicemail": true, "ticket": true},
+  "callback_window": "window-morning",
+  "context_ref": "ctx-call-fb-005",
+  "customer_choice": "decline",
+  "expected": {"terminal": "SAFE_CLOSE", "resolved": true, "outcome_type": "ticket", "offered_count": 3, "eligible_count": 3, "failsafe": true}
+}

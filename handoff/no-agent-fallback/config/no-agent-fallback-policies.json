@@ -1,0 +1,33 @@
+{
+  "$comment": "WBS 9.7 temsilci-yok fallback (callback/voicemail/ticket) sunum/seçim politika konfigürasyonu (vendor-neutral, credential-free). Üç fallback türü + uygunluk/önkoşul + onay/AI ifşası + sunum sırası + fail-safe son çare burada parametrelenir. AI ifşa METNİ / gerçek dialer / ticketing API / kayıt depolama BAŞKA modüllerde (diyalog 3.x / outbound 10.x / tool 11.x / kayıt 12.x); bu config fallback motorunun TÜKETTİĞİ sunum+önkoşul+onay kurallarını tutar. Sır/credential ve PII (müşteri adı/telefon numarası tam değeri/voicemail içeriği/ticket gövdesi/OTP) YOK — yalnız seçenek adları + uygunluk/önkoşul + onay bayrak gereksinimleri + sunum sırası + son çare kimliği. Değerler MÜHENDİSLİK varsayılanı; pilot tenant + dialer/ticketing/kayıt entegrasyonu (10.x/11.x/12.x) verisiyle kalibre edilir (BRD §22 açık karar).",
+  "version": "1.0",
+  "wbs": "9.7",
+  "options": ["callback", "voicemail", "ticket"],
+  "offer_order": ["callback", "voicemail", "ticket"],
+  "last_resort": "ticket",
+  "trigger_reasons": ["no_agent_available", "queue_full", "transfer_failed", "unresolved_target", "after_hours"],
+  "prerequisites": {
+    "$comment": "Bir seçeneğin SUNULABİLMESİ/KARŞILANABİLMESİ için sağlanması gereken önkoşullar. ticket son çare olduğundan yalnız kanal mevcudiyeti ister (temsilci/kayıt altyapısı gerektirmez). Bunlar bayrak ADLARIdır, PII değildir.",
+    "callback": ["consent.callback", "callback_window", "channel_availability.callback"],
+    "voicemail": ["consent.recording", "ai_disclosure", "channel_availability.voicemail"],
+    "ticket": ["channel_availability.ticket"]
+  },
+  "consent": {
+    "$comment": "Onay + AI ifşası gereksinimleri (BRD §14.2/§14). Onaysız geri-arama numarası yakalanmaz; ifşasız/onaysız voicemail kaydı yapılmaz.",
+    "callback_requires_consent": true,
+    "voicemail_requires_recording_consent": true,
+    "voicemail_requires_ai_disclosure": true
+  },
+  "failsafe": {
+    "$comment": "Müşteri tüm seçenekleri reddeder / yanıt vermez / yakalama başarısız olursa: bağlamdan (9.6 context_ref) oto-ticket oluşturulur ve çağrı kontrollü kapanır (SAFE_CLOSE). ASLA sessiz düşme (K8).",
+    "action": "auto_ticket",
+    "from_context_ref": true
+  },
+  "consume_from": ["9.1", "9.2", "9.3", "9.5", "9.6"],
+  "report_to": "9.8",
+  "observability": {
+    "metric_prefix": "handoff_fallback_",
+    "alarm_on_safe_close_rate": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

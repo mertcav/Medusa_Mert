@@ -1,0 +1,14 @@
+{
+  "name": "cs-pause-running-happy",
+  "$comment": "Duraklatma (resumable). running→paused; admission KAPALI (yeni çağrı yok) ama RESUMABLE. in-flight drain. İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-002",
+  "campaign_id": "camp-cs-002",
+  "actor_role": "operations_manager",
+  "command": "pause",
+  "current_status": "running",
+  "in_flight_calls": 2,
+  "idempotency_key": "idem-cs-002",
+  "expected": {"terminal": "APPLIED", "to_status": "paused", "dialer_gate": "closed", "inflight_disposition": "drain", "applied": true}
+}

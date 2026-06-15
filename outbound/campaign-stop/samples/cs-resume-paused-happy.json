@@ -1,0 +1,14 @@
+{
+  "name": "cs-resume-paused-happy",
+  "$comment": "Sürdürme. paused→running; admission AÇILIR (dialer yeni çağrı başlatabilir). İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cs-003",
+  "campaign_id": "camp-cs-003",
+  "actor_role": "tenant_admin",
+  "command": "resume",
+  "current_status": "paused",
+  "in_flight_calls": 0,
+  "idempotency_key": "idem-cs-003",
+  "expected": {"terminal": "APPLIED", "to_status": "running", "dialer_gate": "open", "applied": true}
+}
