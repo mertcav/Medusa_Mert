@@ -1,0 +1,9 @@
+{
+  "name": "regprofile-uk-override-tighten-model",
+  "$comment": "P11: UK consent_model soft_opt_in→opt_in (rank yukarı = daha sıkı). Tenant kendi rejimini sıkılaştırabilir → COMPLIANT. Geçer.",
+  "expect": "pass",
+  "request_id": "req-uk-ov1", "tenant_id": "t-britco", "correlation_id": "corr-uk-ov1",
+  "profile_id": "PROFILE-UK",
+  "tenant_override": {"consent_model": "opt_in"},
+  "expected": {"terminal": "COMPLIANT", "compliant": true}
+}

@@ -1,0 +1,8 @@
+{
+  "name": "regprofile-eu-baseline",
+  "$comment": "EU baseline/illüstratif: regime-özgü named yükümlülük yok; yalnız tamlık (P1) + provenance (P9) değerlendirilir → COMPLIANT. Geçer.",
+  "expect": "pass",
+  "request_id": "req-eu-001", "tenant_id": "t-euco", "correlation_id": "corr-eu-001",
+  "profile_id": "PROFILE-EU",
+  "expected": {"terminal": "COMPLIANT", "compliant": true, "resolved_profile": "PROFILE-EU"}
+}

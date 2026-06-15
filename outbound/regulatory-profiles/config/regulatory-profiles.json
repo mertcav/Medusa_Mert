@@ -1,0 +1,165 @@
+{
+  "$comment": "WBS 10.2.5 İYS/ETK (TR) + PECR/Ofcom (UK) profil parametreleri — outbound compliance profil parametre KAYNAK DOĞRULUĞU (cp.outbound.* + obligations; vendor-neutral, credential-free). Bu config, BRD §14.3'te adı geçen iki rejim için (TR: İYS izin kaydı + ETK; UK: PECR + Ofcom) outbound uyumluluk parametrelerinin TAM/BİRLEŞİK setini tutar — 10.2.1 consent / 10.2.2 DNC / 10.2.3 arama saati / 10.2.4 kapasite modüllerinin TÜKETTİĞİ değerlerin TEK kaynağı. Her modül kendi alt-kümesini ayrı config'inde taşır; bu modül o değerlerin AUTHORITATIVE master'ı + sürüklenme (drift) denetçisidir (crosscheck: tüketici config'leri master ile eşleşmeli, P10). Profile ÇÖZÜMLEME (most-restrictive-wins, tenant override) motoru DPIA §5/SAD §19.3'tedir; bu config çözülecek DEĞERLERİ + sıkılaştırma yönünü (override yalnız-sıkılaştırır, P11) tutar. data_protection_regime (KVKK/UK_GDPR) ile marketing_regime (ETK/PECR_OFCOM) AYRI iki katman etiketidir — tüketici config'lerinin 'regime' alanı ikisinden BİRİ ile eşleşmeli. Değerler DPIA §5.3 cp.outbound.* türevi, MÜHENDİSLİK varsayılanı, counsel doğrulamasına tabi; pilot tenant + İYS/TPS-CTPS entegrasyonu (F2) ile kalibre edilir. Sır/credential ve PII (ham telefon/MSISDN/ad) YOK — yalnız enum/parametre/oran/saat/bayrak + düzenleyici köken referansı.",
+  "version": "1.0",
+  "wbs": "10.2.5",
+  "channel": "voice",
+  "default_profile": "PROFILE-TR",
+  "named_regimes": ["PROFILE-TR", "PROFILE-UK"],
+  "consumer_modules": {
+    "$comment": "crosscheck (P10) bu tüketici config'lerini master ile karşılaştırır. path repo köküne göredir.",
+    "consent": "outbound/consent-precheck/config/consent-precheck-profiles.json",
+    "dnc": "outbound/dnc-suppression/config/dnc-suppression-policies.json",
+    "calling_hours": "outbound/calling-hours/config/calling-hours-policies.json",
+    "capacity": "outbound/capacity-control/config/capacity-policies.json"
+  },
+  "profiles": {
+    "PROFILE-TR": {
+      "$comment": "TR — KVKK (6698 sayılı Kanun, veri koruma) + ETK (6563 sayılı Elektronik Ticaret Kanunu, ticari elektronik ileti) + İYS (İleti Yönetim Sistemi izin kaydı, BRD §14.3). ETK ticari aramalar için açık ÖN-İZİN (opt_in) + İYS kaydı ister; ETK B2B ayırt etmez → b2b_exemption=false (kurumsal da kapsamda). Değerler MÜHENDİSLİK varsayılanı, counsel'a tabi.",
+      "country": "TR",
+      "data_protection_regime": "KVKK",
+      "marketing_regime": "ETK",
+      "consent": {
+        "consent_model": "opt_in",
+        "consent_registry": "IYS",
+        "b2b_exemption": false,
+        "soft_basis_allowed": false,
+        "consent_validity_days": 1095,
+        "recognized_sources": ["IYS", "explicit_web_optin", "explicit_app_optin", "contract", "call_center_optin"]
+      },
+      "suppression": {
+        "registry": "IYS",
+        "realtime_required": true,
+        "required_sources": ["national_registry"]
+      },
+      "calling_hours": {
+        "timezone": "Europe/Istanbul",
+        "utc_offset_minutes": 180,
+        "allowed_window": {"start": "09:00", "end": "18:00"},
+        "allowed_weekdays": [0, 1, 2, 3, 4, 5]
+      },
+      "capacity": {
+        "silent_call_threshold": 0.03,
+        "max_overdial_ratio": 3.0,
+        "reserve_min": 1
+      },
+      "obligations": {
+        "ai_disclosure_required": true,
+        "cli_presentation_required": true,
+        "abandoned_info_message_required": false,
+        "info_message_within_seconds": null
+      },
+      "provenance": {
+        "consent_model": "ETK md.6 ticari elektronik ileti için alıcının ÖN onayı (opt_in)",
+        "consent_registry": "İYS — Ticaret Bakanlığı İleti Yönetim Sistemi izin/ret kaydı (BRD §14.3)",
+        "b2b_exemption": "ETK kurumsal/bireysel ayrımı yapmaz → muafiyet uygulanmaz",
+        "silent_call_threshold": "TR'de açık sayısal Ofcom-tipi limit yok → mühendislik %3 muhafazakâr varsayılan",
+        "calling_hours": "Mühendislik varsayılanı 09:00–18:00 (counsel teyidine tabi)"
+      }
+    },
+    "PROFILE-UK": {
+      "$comment": "UK — UK_GDPR (+ Data Protection Act 2018, veri koruma) + PECR (Privacy and Electronic Communications Regulations 2003, pazarlama) + Ofcom (dialler/silent-call/CLI kuralları, BRD §14.3). PECR bireyler için soft opt-in (mevcut müşteri istisnası + benzer ürün/hizmet) tanır → soft_opt_in + soft_basis. PECR B2B'yi farklı ele alır → kurumsal muafiyet (B2B) açık; kurumsal suppression CTPS. Ofcom 'persistent misuse' rehberi: kampanya başına 24 saatte abandoned-call ≤%3 + cevaptan ≤2sn içinde bilgilendirme mesajı + geçerli CLI sunumu. Değerler MÜHENDİSLİK varsayılanı, counsel'a tabi.",
+      "country": "UK",
+      "data_protection_regime": "UK_GDPR",
+      "marketing_regime": "PECR_OFCOM",
+      "consent": {
+        "consent_model": "soft_opt_in",
+        "consent_registry": "TPS_CTPS",
+        "b2b_exemption": true,
+        "soft_basis_allowed": true,
+        "consent_validity_days": 730,
+        "recognized_sources": ["explicit_web_optin", "explicit_app_optin", "contract", "call_center_optin", "existing_customer"]
+      },
+      "suppression": {
+        "registry": "TPS_CTPS",
+        "b2b_registry": "CTPS",
+        "realtime_required": true,
+        "required_sources": ["national_registry"]
+      },
+      "calling_hours": {
+        "timezone": "Europe/London",
+        "utc_offset_minutes": 0,
+        "allowed_window": {"start": "08:00", "end": "20:00"},
+        "allowed_weekdays": [0, 1, 2, 3, 4, 5]
+      },
+      "capacity": {
+        "silent_call_threshold": 0.03,
+        "max_overdial_ratio": 2.5,
+        "reserve_min": 1
+      },
+      "obligations": {
+        "ai_disclosure_required": true,
+        "cli_presentation_required": true,
+        "abandoned_info_message_required": true,
+        "info_message_within_seconds": 2
+      },
+      "provenance": {
+        "consent_model": "PECR reg.21 — bireyler için soft opt-in (mevcut müşteri + benzer ürün/hizmet istisnası)",
+        "consent_registry": "TPS (Telephone Preference Service) bireysel + CTPS (Corporate TPS) kurumsal tarama (BRD §14.3)",
+        "b2b_exemption": "PECR kurumsal aramaları farklı ele alır → B2B muafiyeti açık (CTPS suppression geçerli)",
+        "silent_call_threshold": "Ofcom 'persistent misuse' rehberi — kampanya başına 24 saatte abandoned ≤%3",
+        "abandoned_info_message": "Ofcom — cevaptan ≤2sn içinde bilgilendirme mesajı (kimlik + sebep + çıkış)",
+        "cli_presentation_required": "Ofcom — geçerli/aranabilir CLI sunumu zorunlu"
+      }
+    },
+    "PROFILE-EU": {
+      "$comment": "İLLÜSTRATİF/BASELINE referans — EU_GDPR + ePrivacy Directive; pan-AB merkezi DNC registry yok (üye-devlet bazlı). En kısıtlayıcı muhafazakâr varsayılan (opt_in, daha düşük abandoned eşiği). BRD §14.3 'TR + UK' adlı rejimler DEĞİL; karşılaştırma/baseline için. Üye-devlet overlay'i (PROFILE-EU-<kod>) ile daraltılır.",
+      "country": "EU",
+      "data_protection_regime": "EU_GDPR",
+      "marketing_regime": "EPRIVACY",
+      "consent": {
+        "consent_model": "opt_in",
+        "consent_registry": "none",
+        "b2b_exemption": false,
+        "soft_basis_allowed": false,
+        "consent_validity_days": 730,
+        "recognized_sources": ["explicit_web_optin", "explicit_app_optin", "contract"]
+      },
+      "suppression": {
+        "registry": "none",
+        "realtime_required": false,
+        "required_sources": []
+      },
+      "calling_hours": {
+        "timezone": "Europe/Brussels",
+        "utc_offset_minutes": 60,
+        "allowed_window": {"start": "09:00", "end": "20:00"},
+        "allowed_weekdays": [0, 1, 2, 3, 4]
+      },
+      "capacity": {
+        "silent_call_threshold": 0.02,
+        "max_overdial_ratio": 2.0,
+        "reserve_min": 1
+      },
+      "obligations": {
+        "ai_disclosure_required": true,
+        "cli_presentation_required": true,
+        "abandoned_info_message_required": false,
+        "info_message_within_seconds": null
+      },
+      "provenance": {
+        "consent_model": "ePrivacy/üye-devlet — muhafazakâr opt_in baseline",
+        "consent_registry": "Pan-AB merkezi registry yok; üye-devlet overlay'i ekler"
+      }
+    }
+  },
+  "tightening_direction": {
+    "$comment": "P11 — tenant override yalnız-sıkılaştırır (DPIA §5/SAD §19.3 monotonluk). Her parametre için override'ın hangi yönde gidebileceği. 'lower'=küçük değer daha sıkı (override ≤ master); 'higher'=büyük daha sıkı; 'false_strict'=false daha sıkı (override true→false serbest, false→true gevşetir); 'true_strict'=true daha sıkı; 'model_rank'=opt_in>soft_opt_in>opt_out (override rank ≥ master); 'window_narrow'=pencere yalnız daralabilir; 'weekday_subset'=günler yalnız alt-küme olabilir.",
+    "silent_call_threshold": "lower",
+    "max_overdial_ratio": "lower",
+    "consent_validity_days": "lower",
+    "b2b_exemption": "false_strict",
+    "cli_presentation_required": "true_strict",
+    "abandoned_info_message_required": "true_strict",
+    "consent_model": "model_rank",
+    "allowed_window": "window_narrow",
+    "allowed_weekdays": "weekday_subset"
+  },
+  "consume_from": ["DPIA §5.3 cp.outbound.* + §6 ülke profilleri PROFILE-TR/UK", "SAD §19 compliance by design + §19.3 profile çözümleme", "BRD §14.3 outbound uyumluluğu"],
+  "report_to": ["10.2.1-consent", "10.2.2-dnc", "10.2.3-calling-hours", "10.2.4-capacity", "10.2.6-capacity-backpressure", "DPIA §5", "0.4.7"],
+  "observability": {
+    "metric_prefix": "regprofile_",
+    "alarm_on_drift": true,
+    "alarm_on_override_loosen": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

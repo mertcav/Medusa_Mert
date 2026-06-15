@@ -1,0 +1,8 @@
+{
+  "name": "regprofile-tr-complete",
+  "$comment": "TR (İYS/ETK): tam profil — consent_registry=IYS + realtime (P2), consent_model=opt_in + b2b_exemption=false (P3), tüm alt-objeler + provenance. Yükümlülükler karşılanır → COMPLIANT. Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-001", "tenant_id": "t-acme", "correlation_id": "corr-tr-001",
+  "profile_id": "PROFILE-TR",
+  "expected": {"terminal": "COMPLIANT", "compliant": true, "resolved_profile": "PROFILE-TR"}
+}

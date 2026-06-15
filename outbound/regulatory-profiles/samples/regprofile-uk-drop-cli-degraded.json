@@ -1,0 +1,8 @@
+{
+  "name": "regprofile-uk-drop-cli-degraded",
+  "$comment": "DEGRADE P7: UK cli_presentation_required false (drop_cli) → Ofcom CLI sunumu yok → ofcom_cli_missing → kapı eler. fail.",
+  "expect": "fail",
+  "request_id": "req-uk-d4", "tenant_id": "t-britco", "correlation_id": "corr-uk-d4",
+  "profile_id": "PROFILE-UK", "inject": ["drop_cli"],
+  "expected": {"terminal": "VIOLATION"}
+}

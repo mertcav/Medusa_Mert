@@ -1,0 +1,8 @@
+{
+  "name": "regprofile-uk-complete",
+  "$comment": "UK (PECR/Ofcom): tam profil — soft_opt_in + soft_basis + existing_customer (P4), TPS_CTPS + realtime (P5), abandoned ≤%3 (P6), CLI (P7), ≤2sn bilgilendirme (P8). Yükümlülükler karşılanır → COMPLIANT. Geçer.",
+  "expect": "pass",
+  "request_id": "req-uk-001", "tenant_id": "t-britco", "correlation_id": "corr-uk-001",
+  "profile_id": "PROFILE-UK",
+  "expected": {"terminal": "COMPLIANT", "compliant": true, "resolved_profile": "PROFILE-UK"}
+}

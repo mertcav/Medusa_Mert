@@ -1,0 +1,176 @@
+{
+  "$comment": "WBS 10.2.5 — İYS/ETK (TR) + PECR/Ofcom (UK) profil parametreleri (BRD §14.3 Outbound Uyumluluğu: 'Türkiye için İYS izin kaydı ve ETK; UK için ilgili PECR/Ofcom kuralları dikkate alınmalıdır'). 10. workstream'in (Outbound) Consent & uyumluluk motoru alt-bloğunun PROFİL PARAMETRE modülü; 10.2.1 consent / 10.2.2 DNC / 10.2.3 arama saati / 10.2.4 kapasite kardeş modüllerinin TÜKETTİĞİ cp.outbound.* değerlerinin AUTHORITATIVE TEK kaynağı + sürüklenme (drift) denetçisi. Modül per-call KARAR vermez (o 10.2.1–10.2.4'ün işi) ve profile ÇÖZÜMLEME yapmaz (most-restrictive-wins/tenant-override = DPIA §5/SAD §19.3); BRD §14.3'te ADI GEÇEN iki rejim için (TR İYS+ETK, UK PECR/Ofcom) outbound uyumluluk parametrelerinin TAM/BİRLEŞİK setini SAHİPLENİR ve şu üç şeyi GARANTİ eder: (1) named-regime profilleri TAM + düzenleyici köken (provenance) taşır + her regime-özgü yükümlülük (İYS zorunlu, ETK B2B-dahil/opt_in, PECR soft-opt-in/TPS-CTPS, Ofcom ≤%3 abandoned + ≤2sn bilgilendirme + CLI) parametre değerleriyle KARŞILANIR; (2) tüketici modül config'leri (10.2.1–10.2.4) master ile SÜRÜKLENMEZ (crosscheck — P10); (3) tenant override yalnız-SIKILAŞTIRIR (monotonluk — P11; DPIA §5). Deterministik (config çözümü + parametre karşılaştırması; Date.now/random YOK), stdlib-only, credential-free. Spec/config/sample sır/credential ve gerçek PII (müşteri adı/telefon/MSISDN/hesap) TUTMAZ — yalnız yapısal kimlik + enum (country/regime/consent_model/registry/source) + oran/saat/sayı + bayrak + düzenleyici köken referansı. KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS/DPIA esastır.",
+  "version": "1.0",
+  "wbs": "10.2.5",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-OUT-003", "FR-OUT-004", "FR-OUT-006", "FR-TEL-013", "FR-TEL-014", "FR-TEL-015", "FR-IAM-006", "FR-TEN-002", "FR-REC-004", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-OUT-003", "SR-OUT-004", "SR-OUT-006", "SR-TEL-013", "SR-TEL-014", "SR-TEL-015"],
+    "rtm": ["TC-OUT-003", "TC-OUT-004", "TC-OUT-006", "TC-TEL-013", "TC-TEL-014", "TC-TEL-015"],
+    "brd": [
+      "§14.3 (Outbound Uyumluluğu — 'Türkiye için İYS izin kaydı ve ETK; UK için ilgili PECR/Ofcom kuralları dikkate alınmalıdır'; bu modül ADI GEÇEN iki rejim parametrelerini sahiplenir)",
+      "§8.2 (Outbound senaryosu — TR İYS izin kaydı / UK PECR onayı / Ofcom silent-call beklentisi)",
+      "§14.2 (şeffaflık — AI disclosure + Ofcom cevaptan ≤2sn bilgilendirme mesajı yükümlülüğü)",
+      "§15 (kritik alarm — uyumluluk parametre sürüklenmesi / override gevşetme drift alarmı)",
+      "§19 (1)+(14) (kabul kriteri — country compliance profile parametrelenir + outbound consent/opt-out)"
+    ],
+    "sad": [
+      "§19 (Compliance by design — 'Country compliance profiles' ile parametrelenir; bu modül TR İYS+ETK / UK PECR/Ofcom parametre setini somutlaştırır)",
+      "§19.1 (Consent Engine — bu parametreler 10.2.1–10.2.4 motorlarının girdisidir)",
+      "§19.3 (profile çözümleme — most-restrictive-wins + tenant override yalnız-sıkılaştırır; bu modül DEĞERLERİ + sıkılaştırma yönünü sağlar, çözümlemeyi YAPMAZ)",
+      "§12.3 (residency — UK_GDPR UK-region / KVKK yurt dışı aktarım; NFR 10.7)",
+      "§17.2 (drift/override-loosen → kritik alarm ≤2dk)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — profil parametreleri uyumluluk kontrol düzleminde veri; STT/LLM/TTS'e bağlanmaz)",
+      "ADR-002 (vendor-neutral — İYS/TPS-CTPS registry + dialer sağlayıcı bağımsız; parametre seti sağlayıcıdan bağımsız)",
+      "ADR-012 (RBAC — profil parametre yönetimi consent:manage/compliance; per-call check otomatik gate)"
+    ],
+    "threat_model": [
+      "TM-T-* (tahrifat — uyumluluk parametresi gizlice gevşetilemez; tüketici drift veya tenant override gevşetme = P10/P11 ihlali = BRD §15 kritik alarm)",
+      "TM-I-* (bilgi ifşası — parametre seti/karar ham PII taşımaz; yalnız enum+oran+bayrak+köken, P12)",
+      "TM-R-* (inkâr — her parametre düzenleyici köken [provenance] + her karar audit taşır, P9/P12)"
+    ],
+    "consumes": [
+      "DPIA §5.3 cp.outbound.* + §6 ülke profilleri (PROFILE-TR/UK) — düzenleyici varsayılan değerleri",
+      "SAD §19 country compliance profiles — parametre modeli",
+      "BRD §14.3 — adı geçen rejimler (İYS/ETK, PECR/Ofcom) ve yükümlülükler"
+    ],
+    "consumed_by": [
+      "10.2.1 consent-precheck — consent_model/consent_registry/b2b_exemption/recognized_sources/consent_validity_days",
+      "10.2.2 dnc-suppression — suppression.registry/required_sources/realtime_required",
+      "10.2.3 calling-hours — calling_hours.timezone/utc_offset_minutes/allowed_window/allowed_weekdays",
+      "10.2.4 capacity-control — capacity.silent_call_threshold/max_overdial_ratio/reserve_min",
+      "DPIA §5 / SAD §19.3 profile çözümleme — çözülecek DEĞERLER + sıkılaştırma yönü",
+      "0.4.7 gözlemlenebilirlik — regprofile_* metrikleri (drift/override-loosen alarmı dahil)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Profil parametreleri outbound uyumluluk kontrol düzleminde bir VERİ/DENETÇİ katmanıdır: BRD §14.3'te adı geçen iki rejim için (TR İYS+ETK, UK PECR/Ofcom) parametre setinin TEK kaynağıdır. Per-call dial kararını 10.2.1–10.2.4 verir (bu setten okur); profile çözümlemeyi (most-restrictive-wins/tenant override) DPIA §5/SAD §19.3 yapar (bu setin DEĞERLERİNİ + sıkılaştırma yönünü tüketir). Bu modül hot-path medya işlemez; deterministik config/denetim düzlemi.",
+    "plane": "outbound compliance control plane (regulatory profile parameters — TR İYS/ETK + UK PECR/Ofcom parametre seti + drift/monotonluk denetimi)",
+    "owns": "BRD §14.3 adı geçen iki rejim parametre seti: TAM cp.outbound.* (consent/suppression/calling_hours/capacity) + regime-özgü obligations (İYS zorunlu / ETK B2B-dahil+opt_in / PECR soft-opt-in+TPS-CTPS / Ofcom ≤%3+≤2sn+CLI) + düzenleyici köken (provenance) + sıkılaştırma yönü + tüketici sürüklenme (drift) denetimi (crosscheck) + tenant override monotonluk denetimi",
+    "delegates": "per-call dial kararı → 10.2.1 (consent)/10.2.2 (DNC)/10.2.3 (saat)/10.2.4 (kapasite); profile ÇÖZÜMLEME (most-restrictive-wins + tenant override uygulama) → DPIA §5/SAD §19.3 (değerleri+yönü TÜKETİR); registry SENKRON (İYS/TPS-CTPS gerçek sorgu) → registry adapter (ADR-002); consent KAYDI → consent:manage panel; residency/KMS → DB.md; audit store → 7.1.6/12.x; panel UI → L1 T-06 (compliance & retention)",
+    "deterministic": true,
+    "data_authority": true,
+    "trace": "DPIA §5/§6, SAD §19/§19.3, ADR-001/002/012"
+  },
+
+  "named_regimes": {
+    "$comment": "BRD §14.3 ADI GEÇEN iki rejim. data_protection_regime (veri koruma katmanı) ile marketing_regime (ticari ileti/pazarlama katmanı) AYRI etiketlerdir; tüketici config'in 'regime' alanı ikisinden BİRİ ile eşleşmeli (crosscheck regime tutarlılığı, P10).",
+    "PROFILE-TR": {"data_protection_regime": "KVKK", "marketing_regime": "ETK", "registry": "IYS"},
+    "PROFILE-UK": {"data_protection_regime": "UK_GDPR", "marketing_regime": "PECR_OFCOM", "registry": "TPS_CTPS"}
+  },
+
+  "obligations": {
+    "$comment": "Regime-özgü, parametre değerleriyle KARŞILANMASI gereken düzenleyici yükümlülükler. Her biri bir invariant'a (P2–P8) ve bir ihlal sayacına eşlenir. Değerler MÜHENDİSLİK varsayılanı; counsel'a tabi.",
+    "list": [
+      {"id": "iys_registry", "regime": "PROFILE-TR", "invariant": "P2", "violation": "iys_registry_missing",
+       "rule": "TR: consent_registry=IYS ∧ suppression.realtime_required=true (İYS izin/ret gerçek-zamanlı zorunlu)"},
+      {"id": "etk_optin_b2b", "regime": "PROFILE-TR", "invariant": "P3", "violation": "etk_b2b_loosened",
+       "rule": "TR: consent_model=opt_in ∧ b2b_exemption=false (ETK ön-izin + kurumsal/bireysel ayırt etmez)"},
+      {"id": "pecr_soft_optin", "regime": "PROFILE-UK", "invariant": "P4", "violation": "pecr_model_violated",
+       "rule": "UK: consent_model=soft_opt_in ∧ soft_basis_allowed=true ∧ existing_customer ∈ recognized_sources (PECR mevcut müşteri istisnası)"},
+      {"id": "pecr_tps_ctps", "regime": "PROFILE-UK", "invariant": "P5", "violation": "pecr_registry_missing",
+       "rule": "UK: consent_registry=TPS_CTPS ∧ suppression.realtime_required=true (TPS bireysel + CTPS kurumsal tarama)"},
+      {"id": "ofcom_abandon", "regime": "PROFILE-UK", "invariant": "P6", "violation": "ofcom_abandon_exceeded",
+       "rule": "UK: capacity.silent_call_threshold ≤ 0.03 (Ofcom persistent misuse — kampanya başına 24s abandoned ≤%3)"},
+      {"id": "ofcom_cli", "regime": "PROFILE-UK", "invariant": "P7", "violation": "ofcom_cli_missing",
+       "rule": "UK: obligations.cli_presentation_required=true (Ofcom geçerli CLI sunumu)"},
+      {"id": "ofcom_info_message", "regime": "PROFILE-UK", "invariant": "P8", "violation": "ofcom_info_message_missing",
+       "rule": "UK: obligations.abandoned_info_message_required=true ∧ info_message_within_seconds ≤ 2 (Ofcom cevaptan ≤2sn bilgilendirme mesajı)"}
+    ],
+    "ofcom_abandon_max": 0.03,
+    "ofcom_info_message_max_seconds": 2
+  },
+
+  "consumer_fields": {
+    "$comment": "crosscheck (P10) eşlemesi: master profil alanı → tüketici config'inde karşılığı. Tüketici config'in named-regime (TR/UK) profili master ile birebir eşleşmeli; eşleşmezse drift_detected. EU/illüstratif profiller ADVISORY (drift sayılmaz). registry adı modüller arası iki ad taşır (consent: consent_registry; dnc: registry) — ikisi de master.<alan> ile eşlenir.",
+    "consent": {
+      "module": "10.2.1", "config_profiles_key": "profiles",
+      "fields": {
+        "consent_model": "consent.consent_model", "consent_registry": "consent.consent_registry",
+        "b2b_exemption": "consent.b2b_exemption", "consent_validity_days": "consent.consent_validity_days",
+        "recognized_sources": "consent.recognized_sources"
+      }
+    },
+    "dnc": {
+      "module": "10.2.2", "config_profiles_key": "profiles",
+      "fields": {"registry": "suppression.registry", "required_sources": "suppression.required_sources"}
+    },
+    "calling_hours": {
+      "module": "10.2.3", "config_profiles_key": "profiles",
+      "fields": {
+        "timezone": "calling_hours.timezone", "utc_offset_minutes": "calling_hours.utc_offset_minutes",
+        "allowed_window": "calling_hours.allowed_window", "allowed_weekdays": "calling_hours.allowed_weekdays"
+      }
+    },
+    "capacity": {
+      "module": "10.2.4", "config_profiles_key": "profiles",
+      "fields": {
+        "silent_call_threshold": "capacity.silent_call_threshold",
+        "max_overdial_ratio": "capacity.max_overdial_ratio", "reserve_min": "capacity.reserve_min"
+      }
+    }
+  },
+
+  "authorization": {
+    "$comment": "Profil parametre YÖNETİMİ (değer/override değiştirme) consent:manage / compliance yetkisi ister (security_compliance_officer/tenant_admin/tenant_owner); tenant override yalnız-sıkılaştırabilir + audit'lidir (DPIA §5). Tüketim (10.2.1–10.2.4 okuma) ve crosscheck OTOMATİK — yetki sormaz. Karar/değer her zaman backend'de.",
+    "policy_permission": "consent:manage",
+    "policy_roles": ["security_compliance_officer", "tenant_admin", "tenant_owner"],
+    "tenant_override": "tighten_only (DPIA §5; audit'li — gevşetme YASAK, P11)",
+    "decision_at": "backend",
+    "trace": "FR-IAM-011, ADR-012, DPIA §5, SAD §27 RBAC"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. drift_detected (P10) = BRD §15 'uyumluluk parametre sürüklenmesi' kritik alarmı; override_loosened (P11) = tenant override regülatör parametresini gevşetti (DPIA §5 monotonluk ihlali). Eşikler MÜHENDİSLİK varsayılanı; F2 İYS/TPS-CTPS entegrasyonu + counsel ile doğrulanır.",
+    "max_incomplete_profile": 0,
+    "max_iys_registry_missing": 0,
+    "max_etk_b2b_loosened": 0,
+    "max_pecr_model_violated": 0,
+    "max_pecr_registry_missing": 0,
+    "max_ofcom_abandon_exceeded": 0,
+    "max_ofcom_cli_missing": 0,
+    "max_ofcom_info_message_missing": 0,
+    "max_missing_provenance": 0,
+    "max_drift_detected": 0,
+    "max_override_loosened": 0,
+    "max_missing_audit": 0,
+    "max_cross_tenant": 0,
+    "max_secret_or_pii": 0,
+    "max_stuck_state": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "regprofile_check_total{regime,result} → parametre denetim sayımı; regprofile_drift_total{module,regime,field} → tüketici sürüklenmesi (P10 alarm, 0 olmalı); regprofile_override_loosen_total{regime,param} → tenant override gevşetme (P11 alarm, 0 olmalı). regime/module/field/param DÜŞÜK kardinalite (label uygun); tenant_id/correlation_id/parametre ham değerleri YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Müşteri PII metrikte VE log'da YOK (FR-REC-004). drift_detected>0 VEYA override_loosened>0 → kritik alarm ≤2dk (SAD §17.2, NFR 10.1, BRD §15).",
+    "metrics": ["regprofile_check_total", "regprofile_drift_total", "regprofile_override_loosen_total"],
+    "low_cardinality_labels": ["regime", "module", "field", "param", "result", "violation"],
+    "high_cardinality_trace_only": ["tenant_id", "correlation_id", "override_value"],
+    "alarm": "drift_detected>0 (tüketici uyumluluk parametre sürüklenmesi — P10) VEYA override_loosened>0 (tenant override regülatör parametresini gevşetti — P11) → alarm ≤2dk (BRD §15, SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "P1", "desc": "Determinizm/tamlık: her profil çözümü deterministik (config; Date.now/random YOK) + her named-regime profili (PROFILE-TR/UK) TAM cp.outbound.* setini (consent/suppression/calling_hours/capacity/obligations) taşır; eksik/çözülemez parametre → stuck. Aynı girdi → aynı çıktı. incomplete_profile=0 ∧ stuck_state=0.", "trace": "DPIA §5.3, SAD §19"},
+    {"id": "P2", "desc": "İYS zorunlu (TR, BRD §14.3): PROFILE-TR consent_registry=IYS ∧ suppression.realtime_required=true (İYS izin/ret gerçek-zamanlı zorunlu). İYS düşürülürse/değiştirilirse ihlal. iys_registry_missing=0.", "trace": "BRD §14.3, DPIA §6 PROFILE-TR"},
+    {"id": "P3", "desc": "ETK B2B-dahil + opt_in (TR, BRD §14.3): PROFILE-TR consent_model=opt_in ∧ b2b_exemption=false (ETK ön-izin ister + kurumsal/bireysel ayırt etmez). opt_out'a gevşetme veya B2B muafiyet açma → ihlal. etk_b2b_loosened=0.", "trace": "BRD §14.3, DPIA §6 PROFILE-TR"},
+    {"id": "P4", "desc": "PECR soft-opt-in (UK, BRD §14.3): PROFILE-UK consent_model=soft_opt_in ∧ soft_basis_allowed=true ∧ existing_customer ∈ recognized_sources (PECR mevcut müşteri istisnası). Model/soft-basis bozulursa ihlal. pecr_model_violated=0.", "trace": "BRD §14.3, DPIA §6 PROFILE-UK"},
+    {"id": "P5", "desc": "PECR/Ofcom TPS-CTPS (UK, BRD §14.3): PROFILE-UK consent_registry=TPS_CTPS ∧ suppression.realtime_required=true (TPS bireysel + CTPS kurumsal tarama gerçek-zamanlı zorunlu). Registry düşerse ihlal. pecr_registry_missing=0.", "trace": "BRD §14.3, DPIA §6 PROFILE-UK"},
+    {"id": "P6", "desc": "Ofcom abandoned-call ≤%3 (UK, BRD §14.3): PROFILE-UK capacity.silent_call_threshold ≤ 0.03 (Ofcom persistent misuse — kampanya başına 24s abandoned ≤%3). Eşik aşılırsa ihlal. ofcom_abandon_exceeded=0.", "trace": "BRD §14.3, FR-TEL-015, DPIA §6 PROFILE-UK"},
+    {"id": "P7", "desc": "Ofcom CLI zorunlu (UK, BRD §14.3): PROFILE-UK obligations.cli_presentation_required=true (Ofcom geçerli/aranabilir CLI sunumu). false ise ihlal. ofcom_cli_missing=0.", "trace": "BRD §14.3, FR-TEL-004/005"},
+    {"id": "P8", "desc": "Ofcom bilgilendirme mesajı ≤2sn (UK, BRD §14.2/§14.3): PROFILE-UK obligations.abandoned_info_message_required=true ∧ info_message_within_seconds ≤ 2 (cevaptan ≤2sn kimlik+sebep+çıkış mesajı). Yükümlülük kapalı/aşılı ise ihlal. ofcom_info_message_missing=0.", "trace": "BRD §14.2, BRD §14.3, FR-TEL-010"},
+    {"id": "P9", "desc": "Düzenleyici köken/kanıt: her named-regime profili her kritik parametre için provenance (düzenleyici referans) taşır + her denetim request_id+regime+resolved_profile+obligation sonuçları taşır (kanıtsız parametre/karar yok). missing_provenance=0.", "trace": "FR-IAM-006, BRD §14.3"},
+    {"id": "P10", "desc": "Tüketici tutarlılığı (sürüklenme yok): 10.2.1–10.2.4 tüketici config'lerinin named-regime (TR/UK) profil değerleri master ile birebir eşleşmeli (consumer_fields eşlemesi); regime etiketi data_protection VEYA marketing rejiminden biriyle eşleşmeli; eşleşmezse drift_detected (BRD §15 kritik alarm). EU/illüstratif profiller advisory. drift_detected=0.", "trace": "BRD §14.3, BRD §15, SAD §17.2"},
+    {"id": "P11", "desc": "Tenant override yalnız-sıkılaştırır (DPIA §5/SAD §19.3 monotonluk): tenant override bir regülatör parametresini yalnız tightening_direction yönünde değiştirebilir (eşik düşür, model sıkılaştır, muafiyet kapat, pencere daralt); gevşetme YASAK + audit'li. Gevşeten override → override_loosened (BRD §15 alarm). override_loosened=0.", "trace": "DPIA §5, SAD §19.3, BRD §15"},
+    {"id": "P12", "desc": "Sır/PII yok + audit + tenant izolasyonu: spec/config/sample müşteri adı/telefon/MSISDN/hesap/credential TUTMAZ (yalnız enum+oran+saat+bayrak+köken); her karar audit {result, request_id, regime, resolved_profile, correlation_id, tenant_id} üretir (ham PII yok); override/parametre yalnız bağlı tenant'a (cross-tenant → cross_tenant). secret_or_pii=0 ∧ missing_audit=0 ∧ cross_tenant=0.", "trace": "BRD §14, FR-TEN-002, FR-REC-004, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar müşteri ADI, TELEFON/MSISDN, HESAP numarası, ham TRANSKRİPT, OTP, PAROLA, PII DEĞERİ veya credential TUTMAZ — yalnız yapısal KİMLİKLER (request/tenant/correlation kimlikleri ör. req-001 / t-acme / corr-001) + ENUM'lar (country TR/UK/EU; regime KVKK/ETK/UK_GDPR/PECR_OFCOM; consent_model opt_in/soft_opt_in/opt_out; registry IYS/TPS_CTPS; source IYS/explicit_web_optin/contract/existing_customer) + ORAN/SAAT/SAYI (silent_call_threshold/utc_offset/validity_days) + BAYRAKLAR + DÜZENLEYİCİ KÖKEN referansı. Kimlik/enum/oran/saat/bayrak PII DEĞİLDİR; tasarımca PII-olmayandır. Telefon/MSISDN HİÇBİR alanda tutulmaz.",
+    "forbids": ["customer_name", "customer_phone_value", "msisdn_value", "account_number_value", "transcript_text", "otp_code_value", "password_value", "credential", "secret", "pii_value"]
+  }
+}

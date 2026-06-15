@@ -1,0 +1,8 @@
+{
+  "name": "regprofile-uk-raise-abandon-degraded",
+  "$comment": "DEGRADE P6: UK abandoned eşik 0.03→0.05 (raise_abandon) → Ofcom ≤%3 aşılır → ofcom_abandon_exceeded → kapı eler. fail.",
+  "expect": "fail",
+  "request_id": "req-uk-d3", "tenant_id": "t-britco", "correlation_id": "corr-uk-d3",
+  "profile_id": "PROFILE-UK", "inject": ["raise_abandon"],
+  "expected": {"terminal": "VIOLATION"}
+}

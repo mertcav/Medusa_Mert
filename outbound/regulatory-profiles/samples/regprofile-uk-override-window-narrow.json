@@ -1,0 +1,9 @@
+{
+  "name": "regprofile-uk-override-window-narrow",
+  "$comment": "P11: UK arama penceresi 08:00–20:00 → 09:00–19:00 (daralma = daha sıkı). → COMPLIANT. Geçer.",
+  "expect": "pass",
+  "request_id": "req-uk-ov2", "tenant_id": "t-britco", "correlation_id": "corr-uk-ov2",
+  "profile_id": "PROFILE-UK",
+  "tenant_override": {"allowed_window": {"start": "09:00", "end": "19:00"}},
+  "expected": {"terminal": "COMPLIANT", "compliant": true}
+}

@@ -1,0 +1,9 @@
+{
+  "name": "regprofile-tr-override-tighten-threshold",
+  "$comment": "P11 tenant override yalnız-sıkılaştırır: TR abandoned eşiği 0.03→0.02 (daha sıkı, lower). Gevşetmez → COMPLIANT. Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-ov1", "tenant_id": "t-acme", "correlation_id": "corr-tr-ov1",
+  "profile_id": "PROFILE-TR",
+  "tenant_override": {"silent_call_threshold": 0.02},
+  "expected": {"terminal": "COMPLIANT", "compliant": true}
+}

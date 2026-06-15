@@ -1,0 +1,8 @@
+{
+  "name": "regprofile-unknown-regime-degraded",
+  "$comment": "DEGRADE P1: bilinmeyen ülke (ZZ) → profil çözülemez → incomplete_profile → kapı eler. fail.",
+  "expect": "fail",
+  "request_id": "req-zz1", "tenant_id": "t-acme", "correlation_id": "corr-zz1",
+  "country": "ZZ",
+  "expected": {"terminal": "VIOLATION"}
+}

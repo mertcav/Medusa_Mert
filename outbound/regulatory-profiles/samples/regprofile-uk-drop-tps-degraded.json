@@ -1,0 +1,8 @@
+{
+  "name": "regprofile-uk-drop-tps-degraded",
+  "$comment": "DEGRADE P5: UK TPS_CTPS registry düşürülür (drop_tps_ctps) → TPS/CTPS taraması yok → pecr_registry_missing → kapı eler. fail.",
+  "expect": "fail",
+  "request_id": "req-uk-d2", "tenant_id": "t-britco", "correlation_id": "corr-uk-d2",
+  "profile_id": "PROFILE-UK", "inject": ["drop_tps_ctps"],
+  "expected": {"terminal": "VIOLATION"}
+}

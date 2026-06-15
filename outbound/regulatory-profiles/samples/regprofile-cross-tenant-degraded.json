@@ -1,0 +1,13 @@
+{
+  "name": "regprofile-cross-tenant-degraded",
+  "$comment": "DEGRADE P12: bağlı tenant uyuşmazlığı (bind_tenant≠tenant_id) → cross_tenant → kapı eler. fail.",
+  "expect": "fail",
+  "request_id": "req-x1",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-x1",
+  "profile_id": "PROFILE-TR",
+  "bind_tenant": "t-other",
+  "expected": {
+    "terminal": "VIOLATION"
+  }
+}

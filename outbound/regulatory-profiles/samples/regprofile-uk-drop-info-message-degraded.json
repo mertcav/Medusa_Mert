@@ -1,0 +1,8 @@
+{
+  "name": "regprofile-uk-drop-info-message-degraded",
+  "$comment": "DEGRADE P8: UK abandoned_info_message_required false (drop_info_message) → Ofcom ≤2sn bilgilendirme mesajı yükümlülüğü kapatılır → ofcom_info_message_missing → kapı eler. fail.",
+  "expect": "fail",
+  "request_id": "req-uk-d5", "tenant_id": "t-britco", "correlation_id": "corr-uk-d5",
+  "profile_id": "PROFILE-UK", "inject": ["drop_info_message"],
+  "expected": {"terminal": "VIOLATION"}
+}

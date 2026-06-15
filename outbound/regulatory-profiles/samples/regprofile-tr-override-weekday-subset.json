@@ -1,0 +1,9 @@
+{
+  "name": "regprofile-tr-override-weekday-subset",
+  "$comment": "P11: TR günler [0–5] → [0–4] (Cmt çıkar = alt-küme = daha sıkı). → COMPLIANT. Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-ov2", "tenant_id": "t-acme", "correlation_id": "corr-tr-ov2",
+  "profile_id": "PROFILE-TR",
+  "tenant_override": {"allowed_weekdays": [0, 1, 2, 3, 4]},
+  "expected": {"terminal": "COMPLIANT", "compliant": true}
+}

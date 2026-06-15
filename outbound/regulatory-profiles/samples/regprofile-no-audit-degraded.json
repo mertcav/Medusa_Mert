@@ -1,0 +1,8 @@
+{
+  "name": "regprofile-no-audit-degraded",
+  "$comment": "DEGRADE P12: audit kaydı bastırılır (no_audit) → missing_audit + require_decision_record eler → kapı eler. fail.",
+  "expect": "fail",
+  "request_id": "req-na1", "tenant_id": "t-acme", "correlation_id": "corr-na1",
+  "profile_id": "PROFILE-TR", "inject": ["no_audit"],
+  "expected": {"terminal": "COMPLIANT"}
+}

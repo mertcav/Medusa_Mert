@@ -1,0 +1,8 @@
+{
+  "name": "regprofile-uk-override-loosen-window-degraded",
+  "$comment": "DEGRADE P11: tenant override UK pencere 08:00–20:00 → 07:00–22:00 (genişletme = gevşetme) → override_loosened → kapı eler. fail.",
+  "expect": "fail",
+  "request_id": "req-uk-d7", "tenant_id": "t-britco", "correlation_id": "corr-uk-d7",
+  "profile_id": "PROFILE-UK", "tenant_override": {"allowed_window": {"start": "07:00", "end": "22:00"}},
+  "expected": {"terminal": "VIOLATION"}
+}
