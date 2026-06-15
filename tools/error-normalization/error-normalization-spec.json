@@ -1,0 +1,154 @@
+{
+  "$comment": "WBS 7.1.5 — Hata normalizasyonu (müşteriye teknik detay yok) (SAD §11.1 adım [6] error normalization + API §4.3/§11.6 + FR-TOOL-008). Tool Yürütme Hattının (SAD §11.1) SON sunum aşaması: 'LLM tool call ──► [1] input schema ──► [2] authz ──► [3] policy gate ──► [4] idempotency ──► [5] Integration GW: timeout+retry+circuit breaker (7.1.4) ──► [6] output schema + ERROR NORMALIZATION ──► [7] correlation_id audit'. Bu motor adım [6]'nın hata-normalizasyon yarısını uygular: 7.1.4'ün ürettiği yapısal fault_class'ı (ya da bir adapter §11.6 ErrorTaxonomy hatasını) alır ve İKİ ayrı yüzeye böler: (a) MÜŞTERİYE/arayana dönen güvenli, teknik-detaysız mesaj (voice: doğal konuşma; api: RFC 9457 Problem) ve (b) yalnız AUDIT/log'da kalan ham teknik detay (provider kodu, stack, endpoint, internal mesaj). INVARIANT (SR-TOOL-008 kabul ölçütü): 'Müşteriye dönen mesajda stack/teknik detay yok' (FR-TOOL-008). N1: müşteri-görünür metin (voice mesajı + RFC 9457 title/detail) provider adı / stack izi / SQL / dosya yolu / iç URL/host / IP / ham kod / PII İÇERMEZ — bağımsız sızıntı tarayıcısıyla DOĞRULANIR. N4: ham detay (provider_code/internal_message/endpoint/tenant_id) yalnız audit'te; müşteri/api yüzeyine ASLA enterpole edilmez. N7: müşteri mesajları STATİK katalog şablonları — istek girdisi (ham mesaj/PII) müşteri metnine enterpole EDİLMEZ (reflected-PII/injection önleme). Müşteriye dönen METİN normalizasyonunun TEK SAHİBİ bu motordur; 7.1.4 yalnız yapısal fault_class üretir. KAPSAM DIŞI (bilinçli): timeout/retry/breaker → 7.1.4 (FR-TOOL-003, fault_class'ı TÜKETİR, üretmez); output schema doğrulama → 7.1.1 (FR-TOOL-002 — adım [6]'nın diğer yarısı); authz → 7.1.2; idempotency → 7.1.3; correlation_id audit/trace zenginleştirme + audit deposunda PII redaction (FR-REC-004) → 7.1.6 (FR-TOOL-010 — bu motor audit kaydını ÜRETİR, kalıcılaştırmaz); insan aktarımı orkestrasyonu → FR-HND (bu motor yalnız suggest_handoff bayrağı ÖNERİR). Vendor-neutral (ADR-002): mesaj kataloğu sağlayıcıdan bağımsız; fault_class girdisi hem 7.1.4 fault_taxonomy hem API §11.6 ErrorTaxonomy enum'unu kabul eder. Determinizm (N9): saf eşleme; Date.now/gerçek-rastgele YOK; aynı girdi → aynı çıktı. Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (sentetik — FR-TST-008). KAYNAK DOĞRULUK; çelişkide BRD/SAD/API esastır.",
+  "version": "1.0",
+  "wbs": "7.1.5",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TOOL-008", "FR-REC-005", "FR-TST-008"],
+    "nfr": [],
+    "srs": ["SR-TOOL-008"],
+    "rtm": ["TC-TOOL-008"],
+    "sad": [
+      "§11.1 adım [6] (output schema + error normalization — FR-TOOL-008; bu motor error-normalization yarısı)",
+      "§11.2 (Integration Gateway — upstream hata kaynağı)",
+      "§8.3 (adapter fallback + hata taksonomisi — §11.6 ErrorTaxonomy girdi yüzeyi)",
+      "§6.1 (turn state machine ACT durumu — tool hatası → güvenli müşteri yanıtı)"
+    ],
+    "brd": [
+      "§9.10 (Tool ve İş Süreci Yönetimi — FR-TOOL-008 API hatası müşteriye teknik detay vermeden)",
+      "§14.x (gizlilik/sızıntı — teknik detay/PII müşteriye/sağlayıcıya sızmaz)",
+      "§17.7 (audit no-log — ham detay güvenli sink'te)"
+    ],
+    "api": [
+      "§4.3 Hata modeli (RFC 9457 application/problem+json; sağlayıcıya özel teknik detay sızdırılmaz — FR-TOOL-008)",
+      "§5 ortak Problem şeması",
+      "§11.6 ErrorTaxonomy (adapter hata enum'u — bu motorun ikinci girdi yüzeyi)",
+      "§ AdapterError (taxonomy/retriable/providerCode[yalnız log/audit]/message)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator/Tool Executor SPI — normalizasyon sunum katmanında, transport'tan bağımsız)",
+      "ADR-002 (vendor-neutral — katalog sağlayıcıdan bağımsız; fault_class enum köprülü)"
+    ],
+    "consumes": [
+      "7.1.4 terminal fault_class (FR-TOOL-003 — TIMEOUT/UPSTREAM_5XX/.../CIRCUIT_OPEN/RETRY_EXHAUSTED)",
+      "API §11.6 ErrorTaxonomy (adapter hatası — UNAVAILABLE/AUTH/INVALID_REQUEST/CONTENT_FILTERED/QUOTA_EXCEEDED/REGION_VIOLATION)"
+    ],
+    "consumed_by": [
+      "7.1.6 correlation_id audit (FR-TOOL-010 — bu motorun audit kaydı trace'e + audit deposunda FR-REC-004 PII redaction)",
+      "FR-HND insan aktarımı (suggest_handoff bayrağı → aktarım orkestrasyonu)",
+      "Orchestrator SPEAK (voice müşteri mesajı TTS'e) + Public API (RFC 9457 Problem)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Normalizasyon, Tool Yürütme Hattının (SAD §11.1) adım [6]'sında, [5] Integration GW (7.1.4) dayanıklılık motorundan SONRA çalışır: GW bir terminal fault_class döndürdüğünde (retry tükendi / breaker açık / terminal hata) bu motor o fault_class'ı müşteri-güvenli yüzeye çevirir. İki tüketici: (1) voice hot-path — orchestrator ACT→SPEAK, güvenli mesaj TTS'e (FR-HND aktarım önerisiyle); (2) Public Developer API — RFC 9457 Problem (API §4.3). Saf eşleme (CPU-ucuz, I/O yok); hot-path'te ihmal edilebilir. Vendor-neutral (ADR-002): mesaj kataloğu + fault eşlemesi sağlayıcıdan bağımsız.",
+    "plane": "voice-runtime (orchestrator ACT→SPEAK) + control-plane (Public API hata yanıtı)",
+    "hot_path": true,
+    "pure_mapping": true,
+    "two_surfaces": ["customer (voice doğal konuşma + api RFC 9457 Problem)", "audit (ham teknik detay — yalnız log/audit)"],
+    "enforcement_points": [
+      "fault_class → customer_category eşlemesi (toplam; bilinmeyen → güvenli UNKNOWN, N2)",
+      "category × locale → statik müşteri mesajı (katalog; enterpolasyon YOK, N3/N7)",
+      "müşteri-görünür metin sızıntı taraması (provider/stack/SQL/path/URL/IP/kod/PII = 0, N1)",
+      "ham detay ayrıştırma: provider_code/internal_message yalnız audit (N4)",
+      "tenant özel mesaj override → sızıntı taramasından GEÇMELİ; aksi reddet→güvenli katalog fallback (fail-safe)",
+      "RFC 9457 Problem üretimi (type/title/status/code/correlation_id; detail jenerik — API §4.3, N5)"
+    ],
+    "trace": "SAD §11.1, API §4.3, ADR-001, ADR-002"
+  },
+
+  "spi": {
+    "$comment": "Normalizasyon SPI (saf fonksiyon, vendor-neutral). normalize(req, policy)→NormalizedError. NormalizationRequest girdi: {fault_class, correlation_id, locale, channel(voice|api|panel), operation_class?, endpoint?(audit), tenant_id?(audit), provider_code?(audit ham), internal_message?(audit ham), handoff_available?, customer_message_override?(tenant özel — taranır)}. NormalizedError çıktı: {customer{code, category, message, retriable_hint, suggest_handoff, locale, override_rejected}, api_problem{type, title, status, detail, code, correlation_id}, audit{correlation_id, fault_class, category, severity, provider_code, internal_message, endpoint, tenant_id, operation_class, customer_safe:false}, leak_scan{clean, scanned_fields, hits}}. Determinizm: saf eşleme; Date.now/gerçek-rastgele YOK.",
+    "normalize_method": "normalize(req, policy) -> NormalizedError",
+    "request_fields": ["fault_class", "correlation_id", "locale", "channel", "operation_class", "endpoint", "tenant_id", "provider_code", "internal_message", "handoff_available", "customer_message_override"],
+    "customer_fields": ["code", "category", "message", "retriable_hint", "suggest_handoff", "locale", "override_rejected"],
+    "api_problem_fields": ["type", "title", "status", "detail", "code", "correlation_id"],
+    "audit_fields": ["correlation_id", "fault_class", "category", "severity", "provider_code", "internal_message", "endpoint", "tenant_id", "operation_class", "customer_safe"],
+    "trace": "ADR-001, ADR-002, API §4.3, API §5, API §11.6"
+  },
+
+  "customer_categories": {
+    "$comment": "Müşteriye-dönük güvenli kategoriler — onlarca ham fault_class'ı KÜÇÜK bir kümeye daraltır (teknik ayrım müşteriye gerekmez). Her kategori: stable customer code + RFC 9457 http_status + retriable_hint (N8) + suggest_handoff (FR-HND önerisi). Mesaj METNİ config kataloğunda (locale başına).",
+    "TEMPORARY":       {"customer_code": "TOOL_TEMPORARY",   "http_status": 503, "retriable_hint": true,  "suggest_handoff": true,  "severity": "warn"},
+    "BUSY":            {"customer_code": "TOOL_BUSY",        "http_status": 429, "retriable_hint": true,  "suggest_handoff": true,  "severity": "warn"},
+    "CANNOT_COMPLETE": {"customer_code": "TOOL_FAILED",      "http_status": 502, "retriable_hint": false, "suggest_handoff": true,  "severity": "warn"},
+    "NOT_FOUND":       {"customer_code": "RECORD_NOT_FOUND", "http_status": 404, "retriable_hint": false, "suggest_handoff": false, "severity": "info"},
+    "NOT_PERMITTED":   {"customer_code": "NOT_PERMITTED",    "http_status": 403, "retriable_hint": false, "suggest_handoff": true,  "severity": "high"},
+    "UNKNOWN":         {"customer_code": "UNEXPECTED",       "http_status": 500, "retriable_hint": false, "suggest_handoff": true,  "severity": "high"}
+  },
+
+  "fault_map": {
+    "$comment": "fault_class → customer_category (toplam eşleme — N2). İki girdi yüzeyi: (1) 7.1.4 fault_taxonomy (retryable∪terminal∪gateway); (2) API §11.6 ErrorTaxonomy (adapter). GÜVENLİK: AUTH/REGION_VIOLATION/CONTENT_FILTERED → JENERİK kategori (NEDEN müşteriye AÇILMAZ — kimlik/residency/içerik-filtre sızıntısı yok). Bilinmeyen fault → UNKNOWN (asla ham passthrough).",
+    "TIMEOUT": "TEMPORARY",
+    "UPSTREAM_5XX": "TEMPORARY",
+    "CONN_RESET": "TEMPORARY",
+    "CONN_REFUSED": "TEMPORARY",
+    "DEADLINE_EXCEEDED": "TEMPORARY",
+    "CIRCUIT_OPEN": "TEMPORARY",
+    "RETRY_EXHAUSTED": "TEMPORARY",
+    "UNAVAILABLE": "TEMPORARY",
+    "RATE_LIMITED": "BUSY",
+    "QUOTA_EXCEEDED": "BUSY",
+    "UPSTREAM_4XX": "CANNOT_COMPLETE",
+    "SCHEMA_INVALID": "CANNOT_COMPLETE",
+    "INVALID_REQUEST": "CANNOT_COMPLETE",
+    "CONTENT_FILTERED": "CANNOT_COMPLETE",
+    "INTERNAL_ERROR": "CANNOT_COMPLETE",
+    "NOT_FOUND": "NOT_FOUND",
+    "AUTH_FAILED": "NOT_PERMITTED",
+    "AUTH": "NOT_PERMITTED",
+    "REGION_VIOLATION": "NOT_PERMITTED"
+  },
+
+  "fault_input_surfaces": {
+    "$comment": "Kabul edilen fault_class girdi enum'ları (her ikisi de FR-TOOL-008'e normalize edilir).",
+    "gw_fault_taxonomy_7_1_4": ["TIMEOUT", "UPSTREAM_5XX", "CONN_RESET", "CONN_REFUSED", "RATE_LIMITED", "DEADLINE_EXCEEDED", "UPSTREAM_4XX", "SCHEMA_INVALID", "AUTH_FAILED", "NOT_FOUND", "CIRCUIT_OPEN", "RETRY_EXHAUSTED", "INTERNAL_ERROR"],
+    "api_error_taxonomy_11_6": ["TIMEOUT", "RATE_LIMITED", "UNAVAILABLE", "AUTH", "INVALID_REQUEST", "CONTENT_FILTERED", "QUOTA_EXCEEDED", "REGION_VIOLATION"]
+  },
+
+  "leak_taxonomy": {
+    "$comment": "Müşteri-görünür metinde YASAK desen sınıfları (N1). Sızıntı tarayıcısı bu sınıfları arar; müşteri mesajı + RFC 9457 title/detail için hit=0 zorunlu. RFC 9457 'type' alanı (dokümantasyon URI'si — kendi errors.rmcvoice.io alanımız) ve 'correlation_id' (yapısal alan) YASAK metin DEĞİL (taranmaz). N10 yalnız VOICE müşteri mesajına ek: iç yapı sızıntısı (retry/attempt sayısı, breaker durumu, HTTP statü rakamı, pipeline adımı) yasak.",
+    "forbidden_classes": ["vendor_name", "stack_trace", "exception_class", "sql_fragment", "file_path", "internal_url_host", "ip_address", "raw_code_hex_uuid", "pii_email", "pii_card", "pii_phone"],
+    "voice_extra_forbidden": ["internal_structure_term", "digit"],
+    "internal_structure_terms": ["circuit", "breaker", "upstream", "downstream", "endpoint", "attempt", "retries", "retried", "stack", "traceback", "provider", "adapter", "gateway", "timeout", "exception", "null", "5xx", "4xx", "http", "socket", "dns"],
+    "trace": "FR-TOOL-008, SR-TOOL-008, API §4.3"
+  },
+
+  "rfc9457": {
+    "$comment": "API §4.3 RFC 9457 Problem Details. type=base+slug (jenerik dokümantasyon URI); title/detail JENERİK (provider detayı yok); status customer_categories.http_status; code=customer_code; correlation_id zorunlu (7.1.6 trace köprüsü). media type application/problem+json.",
+    "media_type": "application/problem+json",
+    "type_base": "https://errors.rmcvoice.io/",
+    "required_fields": ["type", "title", "status", "code", "correlation_id"],
+    "detail_is_generic": true,
+    "trace": "API §4.3, API §5, FR-TOOL-008"
+  },
+
+  "pii_removal": {
+    "$comment": "FR-REC-005: kart/parola/OTP bilgileri MUTLAK çıkarılır — yalnız müşteri yüzeyinden değil AUDIT internal_message'tan da maskelenir (defense-in-depth; kayıt/transkriptten çıkarma kuralıyla hizalı). Diğer PII (e-posta/ad) audit deposunda FR-REC-004 redaction katmanında (→7.1.6). Müşteri yüzeyi zaten statik şablon (enterpolasyon yok, N7) → PII ulaşmaz.",
+    "card_otp_masked_in_audit": true,
+    "trace": "FR-REC-005, FR-REC-004, →7.1.6"
+  },
+
+  "invariants": [
+    {"id": "N1", "desc": "Müşteriye dönen mesajda teknik detay yok (SR-TOOL-008): müşteri-görünür metin (voice mesajı + RFC 9457 title/detail) provider adı/stack/SQL/dosya yolu/iç URL-host/IP/ham kod/PII İÇERMEZ — sızıntı taraması hit=0."},
+    {"id": "N2", "desc": "Toplam fault eşlemesi: her fault_class (7.1.4 ∪ API §11.6) bilinen bir customer_category'ye eşlenir; bilinmeyen fault → güvenli UNKNOWN (asla ham passthrough)."},
+    {"id": "N3", "desc": "Toplam yerelleştirme: her (category × desteklenen locale) için boş-olmayan mesaj; eksik locale → default_locale fallback; müşteri mesajı asla boş."},
+    {"id": "N4", "desc": "Ham izolasyon: provider_code/internal_message/endpoint/tenant_id yalnız audit kaydında; müşteri veya api_problem (title/detail) yüzeyine ASLA görünmez."},
+    {"id": "N5", "desc": "RFC 9457 uyumu: api_problem type/title/status/code/correlation_id taşır; status geçerli HTTP (categories'ten); detail jenerik (provider detayı yok)."},
+    {"id": "N6", "desc": "correlation_id köprüsü: hem audit hem api_problem'de correlation_id var (7.1.6 trace); voice müşteri serbest-metnine gömülmez."},
+    {"id": "N7", "desc": "Enterpolasyon yok: müşteri mesajları statik katalog şablonları; istek girdi değeri (ham mesaj/PII/provider) müşteri metnine substitüsyon EDİLMEZ (reflected-PII/injection önleme)."},
+    {"id": "N8", "desc": "Retriability tutarlılığı: retriable_hint = (kategori TEMPORARY|BUSY) ↔ fault retryable-sınıf (7.1.4 retryable ∪ gateway-temporary); terminal/auth/region → retriable_hint=false."},
+    {"id": "N9", "desc": "Determinizm: aynı istek → birebir aynı çıktı (saf eşleme; Date.now/gerçek-rastgele YOK)."},
+    {"id": "N10", "desc": "İç yapı sızıntısı yok (VOICE): müşteri voice mesajı retry/attempt sayısı, breaker durumu, HTTP statü rakamı, pipeline adımı, rakam veya iç-yapı terimi açığa vurmaz."},
+    {"id": "N11", "desc": "Sır/PII literal yok: spec/config/sample dosyalarında gerçek credential/secret veya gerçek PII değeri yok (sentetik — FR-TST-008); kart/OTP audit'te de maskelenir (FR-REC-005)."},
+    {"id": "N12", "desc": "Audit eksiksizliği: her normalizasyon fault_class+category+severity+correlation_id taşıyan, customer_safe=false işaretli bir audit kaydı üretir (7.1.6 trace girdisi, FR-TOOL-010)."}
+  ],
+
+  "audit": {
+    "$comment": "Normalizasyon başına yapısal audit kaydı (7.1.6 köprü; FR-TOOL-010). customer_safe=false (bu kayıt MÜŞTERİYE GİTMEZ — güvenli teknik sink). provider_code/internal_message ham (kart/OTP maskeli, FR-REC-005); audit deposunda FR-REC-004 ek redaction 7.1.6'da. Müşteriye dönen yüzey ile audit yüzeyi DİSJONKTTUR.",
+    "customer_safe": false,
+    "fields": ["correlation_id", "fault_class", "category", "severity", "provider_code", "internal_message", "endpoint", "tenant_id", "operation_class", "customer_safe"],
+    "trace": "FR-TOOL-010, FR-REC-004, FR-REC-005, →7.1.6, BRD §17.7"
+  }
+}

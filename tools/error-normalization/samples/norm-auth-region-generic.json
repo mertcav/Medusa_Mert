@@ -1,0 +1,10 @@
+{
+  "name": "auth-region-generic — kimlik/residency NEDENİ müşteriye açılmaz (jenerik NOT_PERMITTED)",
+  "$comment": "AUTH_FAILED + REGION_VIOLATION → NOT_PERMITTED jenerik; neden (auth/residency) sızmaz. severity=high audit'te.",
+  "requests": [
+    {"fault_class": "AUTH_FAILED", "correlation_id": "01JCORRDD000001", "locale": "en-US", "channel": "voice",
+     "operation_class": "write", "endpoint": "payments.refund", "provider_code": "AUTH-401", "handoff_available": true},
+    {"fault_class": "REGION_VIOLATION", "correlation_id": "01JCORRDD000002", "locale": "tr-TR", "channel": "api",
+     "operation_class": "read", "endpoint": "kb.query", "provider_code": "RESIDENCY-EU"}
+  ]
+}

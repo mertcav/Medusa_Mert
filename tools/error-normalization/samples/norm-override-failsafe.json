@@ -1,0 +1,11 @@
+{
+  "name": "override-failsafe — tenant özel mesaj sızıntı taramasından geçer; kirli override reddedilir",
+  "$comment": "Tenant/conversation-designer özel hata metni de TARANIR. Temiz override kabul; kirli override reddedilip güvenli kataloğa düşer (fail-safe). İkisi de müşteri-güvenli kalır.",
+  "requests": [
+    {"fault_class": "TIMEOUT", "correlation_id": "01JCORRGG000001", "locale": "en-US", "channel": "voice",
+     "customer_message_override": "We're having a brief hiccup completing that. Let's try once more in a moment.",
+     "handoff_available": true},
+    {"fault_class": "TIMEOUT", "correlation_id": "01JCORRGG000002", "locale": "en-US", "channel": "voice",
+     "customer_message_override": "Backend NullPointerException at svc.py:12 twilio failure", "handoff_available": true}
+  ]
+}

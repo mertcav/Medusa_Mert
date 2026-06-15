@@ -1,0 +1,8 @@
+{
+  "name": "circuit-open-api — breaker açık → TEMPORARY, RFC 9457 Problem (api yüzeyi)",
+  "$comment": "7.1.4 CIRCUIT_OPEN → TEMPORARY 503; developer API hata yanıtı jenerik (provider detayı yok). API §4.3.",
+  "requests": [
+    {"fault_class": "CIRCUIT_OPEN", "correlation_id": "01JCORRBB000001", "locale": "en-US", "channel": "api",
+     "operation_class": "read", "endpoint": "billing.charge", "provider_code": "BREAKER-OPEN", "tenant_id": "t-001"}
+  ]
+}

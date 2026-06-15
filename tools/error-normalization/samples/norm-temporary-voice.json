@@ -1,0 +1,10 @@
+{
+  "name": "temporary-voice — GW retry tükendi/timeout → geçici, müşteri-güvenli (tr-TR + en-US voice)",
+  "$comment": "7.1.4 RETRY_EXHAUSTED/TIMEOUT → TEMPORARY; arayana doğal mesaj + aktarım önerisi. FR-TST-008 sentetik.",
+  "requests": [
+    {"fault_class": "RETRY_EXHAUSTED", "correlation_id": "01JCORRAA000001", "locale": "tr-TR", "channel": "voice",
+     "operation_class": "read", "endpoint": "crm.getCustomer", "provider_code": "GW-EXHAUSTED", "handoff_available": true},
+    {"fault_class": "TIMEOUT", "correlation_id": "01JCORRAA000002", "locale": "en-US", "channel": "voice",
+     "operation_class": "read", "endpoint": "crm.getCustomer", "provider_code": "PRV-TMO-001", "handoff_available": true}
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "nasty-internal-redacted — kirli internal_message (stack+vendor+IP+PII) audit'te kalır, müşteri temiz",
+  "$comment": "N4/N1 kanıtı: ham teknik detay + kart/OTP yalnız audit'te (kart/OTP maskeli FR-REC-005); müşteri/api yüzeyi sızıntısız. Sentetik (FR-TST-008).",
+  "requests": [
+    {"fault_class": "UPSTREAM_5XX", "correlation_id": "01JCORREE000001", "locale": "en-US", "channel": "voice",
+     "operation_class": "read", "endpoint": "https://api.internal.svc/crm/v2", "tenant_id": "t-xyz",
+     "provider_code": "TWILIO-50031",
+     "internal_message": "Traceback: ConnectionError at crm_client.py:88 telnyx upstream 503 from 10.20.30.40 pan 4111 1111 1111 1111",
+     "handoff_available": true}
+  ]
+}

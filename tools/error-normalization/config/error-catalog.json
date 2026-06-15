@@ -1,0 +1,88 @@
+{
+  "$comment": "WBS 7.1.5 — Müşteri hata mesaj kataloğu + sızıntı tarayıcı denylist'leri (config; spec=kaynak doğruluk). Mesajlar STATİK şablon (enterpolasyon yok — N7): istek girdisi metne enterpole edilmez. voice = arayana TTS ile okunan doğal cümle (rakam/iç-yapı terimi yok — N10); title/detail = RFC 9457 Problem (developer API yüzeyi, jenerik — provider detayı yok — N1/N5). Vendor-neutral (ADR-002): mesajlar sağlayıcıdan bağımsız. Sır/PII literal YOK (N11).",
+  "version": "1.0",
+  "default_locale": "en-US",
+  "supported_locales": ["tr-TR", "en-US"],
+
+  "rfc9457_type_slugs": {
+    "TEMPORARY": "service-temporarily-unavailable",
+    "BUSY": "rate-limited",
+    "CANNOT_COMPLETE": "request-failed",
+    "NOT_FOUND": "not-found",
+    "NOT_PERMITTED": "not-permitted",
+    "UNKNOWN": "unexpected-error"
+  },
+
+  "messages": {
+    "tr-TR": {
+      "TEMPORARY": {
+        "voice": "Şu anda bu işlemi gerçekleştiremiyorum, kısa bir süre sonra tekrar deneyebiliriz. Dilerseniz sizi bir temsilciye aktarabilirim.",
+        "title": "Hizmete geçici olarak ulaşılamıyor",
+        "detail": "İstek geçici bir sorun nedeniyle tamamlanamadı; tekrar denenebilir."
+      },
+      "BUSY": {
+        "voice": "Sistem şu anda yoğun, birazdan tekrar deneyelim. İsterseniz sizi bir temsilciye bağlayabilirim.",
+        "title": "Çok fazla istek",
+        "detail": "Hizmet şu anda yoğun; kısa bir gecikmeyle tekrar deneyin."
+      },
+      "CANNOT_COMPLETE": {
+        "voice": "Maalesef bu isteğinizi tamamlayamadım. Dilerseniz sizi bir temsilciye aktarabilirim.",
+        "title": "İstek tamamlanamadı",
+        "detail": "İstek tamamlanamadı."
+      },
+      "NOT_FOUND": {
+        "voice": "Eşleşen bir kayıt bulamadım. Bilgileri birlikte tekrar kontrol edebiliriz.",
+        "title": "Kayıt bulunamadı",
+        "detail": "Eşleşen kayıt bulunamadı."
+      },
+      "NOT_PERMITTED": {
+        "voice": "Bu işlemi şu anda sizin adınıza gerçekleştiremiyorum. Dilerseniz sizi yetkili bir temsilciye aktarabilirim.",
+        "title": "İşleme izin verilmedi",
+        "detail": "Bu isteğe izin verilmedi."
+      },
+      "UNKNOWN": {
+        "voice": "Beklenmeyen bir durum oluştu. Dilerseniz sizi bir temsilciye aktarabilirim.",
+        "title": "Beklenmeyen hata",
+        "detail": "Beklenmeyen bir hata oluştu."
+      }
+    },
+    "en-US": {
+      "TEMPORARY": {
+        "voice": "I'm not able to do that right now. We can try again in a moment, or I can connect you with an agent.",
+        "title": "Service temporarily unavailable",
+        "detail": "A temporary problem prevented this request from completing. It can be retried."
+      },
+      "BUSY": {
+        "voice": "Our systems are busy at the moment. Let's try again shortly, or I can connect you with an agent.",
+        "title": "Too many requests",
+        "detail": "The service is currently busy. Please retry after a short delay."
+      },
+      "CANNOT_COMPLETE": {
+        "voice": "I'm sorry, I wasn't able to complete that request. I can connect you with an agent if you'd like.",
+        "title": "Request could not be completed",
+        "detail": "The request could not be completed."
+      },
+      "NOT_FOUND": {
+        "voice": "I couldn't find a matching record. We can go over the details again together.",
+        "title": "Resource not found",
+        "detail": "No matching resource was found."
+      },
+      "NOT_PERMITTED": {
+        "voice": "I'm not able to carry out that request for you right now. I can connect you with an agent who can help.",
+        "title": "Request not permitted",
+        "detail": "This request is not permitted."
+      },
+      "UNKNOWN": {
+        "voice": "Something unexpected happened. I can connect you with an agent if you'd like.",
+        "title": "Unexpected error",
+        "detail": "An unexpected error occurred."
+      }
+    }
+  },
+
+  "leak_scanner": {
+    "$comment": "Sızıntı tarayıcı denylist'leri (N1). vendor_names: bilinen sağlayıcı/teknoloji jetonları (kelime-sınırı, büyük/küçük harf duyarsız). SQL anahtar kelimeleri BÜYÜK harf duyarlı (lowercase İngilizce 'from/where/update' yanlış-pozitifini önler). internal_structure_terms voice mesajına ek (N10).",
+    "vendor_names": ["twilio", "telnyx", "openai", "anthropic", "deepgram", "elevenlabs", "azure", "aws", "gcp", "postgres", "postgresql", "pgvector", "redis", "kafka", "opensearch", "clickhouse", "nginx", "envoy", "kubernetes", "sqlstate", "grpc"],
+    "internal_structure_terms": ["circuit", "breaker", "upstream", "downstream", "endpoint", "attempt", "retries", "retried", "stack", "traceback", "provider", "adapter", "gateway", "timeout", "exception", "null", "5xx", "4xx", "http", "socket", "dns"]
+  }
+}

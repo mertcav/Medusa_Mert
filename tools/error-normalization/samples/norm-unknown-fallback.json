@@ -1,0 +1,8 @@
+{
+  "name": "unknown-fallback — bilinmeyen/yeni fault → güvenli UNKNOWN (asla ham passthrough, N2)",
+  "$comment": "Gelecekte eklenebilecek bilinmeyen fault_class güvenli jenerik mesaja düşer.",
+  "requests": [
+    {"fault_class": "SOME_FUTURE_FAULT_2099", "correlation_id": "01JCORRFF000001", "locale": "tr-TR", "channel": "voice",
+     "provider_code": "RAW-PROVIDER-BLOB-xyz", "handoff_available": true}
+  ]
+}

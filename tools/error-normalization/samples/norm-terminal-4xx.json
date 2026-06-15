@@ -1,0 +1,10 @@
+{
+  "name": "terminal-4xx — kalıcı hata → CANNOT_COMPLETE (retry önerisi yok)",
+  "$comment": "7.1.4 UPSTREAM_4XX / SCHEMA_INVALID → CANNOT_COMPLETE; retriable_hint=false.",
+  "requests": [
+    {"fault_class": "UPSTREAM_4XX", "correlation_id": "01JCORRCC000001", "locale": "tr-TR", "channel": "voice",
+     "operation_class": "write", "endpoint": "erp.createOrder", "provider_code": "HTTP-422", "handoff_available": true},
+    {"fault_class": "SCHEMA_INVALID", "correlation_id": "01JCORRCC000002", "locale": "en-US", "channel": "api",
+     "operation_class": "write", "endpoint": "erp.createOrder", "provider_code": "SCHEMA-X"}
+  ]
+}

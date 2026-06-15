@@ -1,0 +1,11 @@
+{
+  "name": "degraded — fail-safe KAPALI + kirli override → müşteri yüzeyi sızdırır (BEKLENEN ELEME)",
+  "$comment": "Kasıtlı kötü yapılandırma (failsafe=false): kirli tenant override müşteri metnine geçer → N1 sızıntı kapısı ELER. Tarayıcının gerçek bir kapı olduğunu kanıtlar. expect_fail=true.",
+  "expect_fail": true,
+  "requests": [
+    {"fault_class": "TIMEOUT", "correlation_id": "01JCORRHH000001", "locale": "en-US", "channel": "voice",
+     "failsafe": false,
+     "customer_message_override": "Sorry, the twilio gateway threw a NullPointerException at api.py:42 see https://logs.internal/abc",
+     "handoff_available": true}
+  ]
+}
