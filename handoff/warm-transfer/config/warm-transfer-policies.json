@@ -1,0 +1,40 @@
+{
+  "$comment": "WBS 9.2 warm transfer politika konfigürasyonu (vendor-neutral, credential-free). Gerçek danışma INVITE/hold/köprü taşıması 4.2.5 TelephonyAdapter'da; bu config handoff-manager FSM davranış parametrelerini tutar. Sır/credential ve ham telefon numarası/whisper brifing METNİ YOK — yalnız deadline/policy parametreleri + hedef tip listesi + anons/whisper şablon KİMLİĞİ (metin değil) + fallback yönlendirme. Tenant override yalnız sıkılaştırır (deadline düşürebilir).",
+  "version": "1.0",
+  "wbs": "9.2",
+  "consult_deadline_ms": 30000,
+  "announce_to_consult_budget_ms": 3000,
+  "whisper_to_bridge_budget_ms": 2000,
+  "target_types": ["QUEUE", "SKILL", "AGENT", "NUMBER"],
+  "announce": {
+    "$comment": "AI aktarım anonsu + müşteri hold (BRD §14.2). Metin değil, şablon KİMLİĞİ — gerçek TTS metni Prompt Manager (3.2.3) + tenant locale'inde. Anons iletilip müşteri hold'a alınmadan danışma çağrısı kurulmaz (W2).",
+    "template_id": "handoff.warm.announce",
+    "required": true,
+    "ai_disclosure": true,
+    "place_customer_on_hold": true
+  },
+  "whisper": {
+    "$comment": "Temsilciye whisper brifing (FR-HND-006 / SAD §7.3 'yalnız temsilciye duyulan'). Brifing İÇERİĞİ 9.6 bağlam paketi özet referansıdır (özet+intent+toplanan alanlar+auth durumu) — ham metin/PII config'te YOK. Müşteri hold'da, brifingi DUYMAZ (W3 privacy). Köprü öncesi zorunlu (W6).",
+    "required": true,
+    "audience": "agent_only",
+    "context_package_source": "9.6",
+    "summary_template_id": "handoff.warm.whisper.summary"
+  },
+  "bridge": {
+    "$comment": "A+B köprüleme + AI çıkış (RFC 5589 attended / REFER+Replaces). Sıra: köprü ÖNCE kurulur, sonra AI medya yolundan çıkar (W4 — köprüsüz-çıkış yok). Başarıda A-leg KAPANMAZ (köprülü, müşteri↔temsilci).",
+    "ai_exit_after_bridge": true,
+    "preserve_bridge_on_ai_exit": true
+  },
+  "fallback": {
+    "$comment": "Başarısız warm transfer fail-safe yönlendirmesi (W5 / FR-HND-007). Motor 9.7'de; bu config tetik+öncelik sırasını taşır. Müşteri danışma başarısızlığında hold'dan geri alınır (preserve_a_leg).",
+    "to": "9.7",
+    "options": ["callback", "voicemail", "ticket"],
+    "preserve_a_leg": true,
+    "take_off_hold_on_failure": true
+  },
+  "observability": {
+    "metric_prefix": "handoff_",
+    "alarm_on_failure_rate": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

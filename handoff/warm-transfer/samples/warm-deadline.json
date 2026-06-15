@@ -1,0 +1,16 @@
+{
+  "name": "warm-deadline",
+  "$comment": "Deadline guard (W9). Danışma B-leg INVITE gönderildi (consult t=1300) ama temsilci hiç yanıtlamıyor — consult_ack hiç gelmiyor. FSM zaman aşımı uygular: consult_t + consult_deadline_ms (1300+30000=31300) → FAILED(DEADLINE), sonsuz hold/hang YOK (hung_transfer=0), müşteri süresiz beklemede bırakılmaz → fail-safe fallback, hold'dan geri alınır. Gate geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-warm-004",
+  "call_id": "call-warm-004",
+  "target": {"type": "QUEUE", "ref": "queue-support", "tenant_id": "t-acme"},
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "consult", "t": 1300}
+  ],
+  "expected": {"terminal": "FAILED", "outcome": "fail", "fallback": true}
+}

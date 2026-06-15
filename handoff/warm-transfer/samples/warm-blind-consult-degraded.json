@@ -1,0 +1,19 @@
+{
+  "name": "warm-blind-consult-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). AI aktarım anonsu YAPILMADAN + müşteri hold'a alınmadan (announce olayı yok) doğrudan danışma çağrısı kuruluyor — müşteri habersiz aktarılıyor. W2 ihlali (blind_consult>0): BRD §14.2 'no deceptive impersonation' + nazik handoff zorunlu. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-warm-005",
+  "call_id": "call-warm-005",
+  "target": {"type": "QUEUE", "ref": "queue-support", "tenant_id": "t-acme"},
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "consult", "t": 300},
+    {"kind": "consult_ack", "t": 2200, "code": 200},
+    {"kind": "whisper", "t": 2600, "to": "agent"},
+    {"kind": "bridge", "t": 3000},
+    {"kind": "ai_exit", "t": 3200}
+  ],
+  "expected": {"terminal": "TRANSFERRED"}
+}

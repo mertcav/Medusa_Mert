@@ -1,0 +1,17 @@
+{
+  "name": "warm-consult-no-answer",
+  "$comment": "Danışma yanıtsız (480 Temporarily Unavailable) — temsilci zili açmadı (RFC 5589). FSM DOĞRU davranır: FAILED → oturum DÜŞMEZ, müşteri hold'dan geri alınır + elde tutulur, 9.7 fallback (callback/voicemail/ticket) tetiklenir (W5 fail-safe / FR-HND-007). Bu bir degrade DEĞİL — başarısızlığın doğru yönetimi; gate geçer (ihlal yok).",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-warm-002",
+  "call_id": "call-warm-002",
+  "target": {"type": "SKILL", "ref": "skill-billing", "tenant_id": "t-acme"},
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "consult", "t": 1300},
+    {"kind": "consult_ack", "t": 9300, "code": 480}
+  ],
+  "expected": {"terminal": "FAILED", "outcome": "fail", "fallback": true, "a_leg_released": false}
+}

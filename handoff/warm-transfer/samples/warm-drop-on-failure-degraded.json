@@ -1,0 +1,18 @@
+{
+  "name": "warm-drop-on-failure-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Danışma reddedildi (603 Decline) ama hatalı/uyumsuz adapter davranışı (inject drop_on_failure) müşteri çağrısını DÜŞÜRÜYOR — müşteri hold'da bırakılıp düşürülüyor, fallback tetiklenmiyor. W5 ihlali (dropped_on_failure>0): başarısız warm transfer'de oturum DÜŞMEMELİ, müşteri hold'dan geri alınıp 9.7'ye (callback/voicemail/ticket) yönlendirilmeli (FR-HND-007, fail-safe). Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-warm-009",
+  "call_id": "call-warm-009",
+  "target": {"type": "AGENT", "ref": "agent-42", "tenant_id": "t-acme"},
+  "deadline_ms": 30000,
+  "inject": ["drop_on_failure"],
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "consult", "t": 1300},
+    {"kind": "consult_ack", "t": 3400, "code": 603}
+  ],
+  "expected": {"terminal": "FAILED", "fallback": false}
+}

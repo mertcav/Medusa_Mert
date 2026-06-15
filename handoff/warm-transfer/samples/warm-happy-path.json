@@ -1,0 +1,21 @@
+{
+  "name": "warm-happy-path",
+  "$comment": "Mutlu yol (FR-TEL-007 warm + FR-HND-006). Aktarım kararı (9.4) → AI anonsu + müşteri hold (BRD §14.2) → danışma B-leg INVITE (queue-support) → 200 OK (temsilci yanıt) → whisper brifing YALNIZ temsilciye (müşteri hold'da, duymaz) → A+B köprülenir → AI çıkar (köprü ÖNCE) → TRANSFERRED. Müşteri↔temsilci doğrudan konuşur, A-leg KAPANMAZ (köprülü), agent (AI) medyası durur. Whisper private, fallback yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-warm-001",
+  "call_id": "call-warm-001",
+  "target": {"type": "QUEUE", "ref": "queue-support", "tenant_id": "t-acme"},
+  "context_package_ref": "ctx-001",
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1100},
+    {"kind": "consult", "t": 1400},
+    {"kind": "consult_ack", "t": 4200, "code": 200},
+    {"kind": "whisper", "t": 5000, "to": "agent"},
+    {"kind": "bridge", "t": 6200},
+    {"kind": "ai_exit", "t": 6400}
+  ],
+  "expected": {"terminal": "TRANSFERRED", "outcome": "success", "bridge_established": true, "whisper_private": true, "a_leg_released": false, "fallback": false}
+}

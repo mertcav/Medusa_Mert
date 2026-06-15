@@ -1,0 +1,19 @@
+{
+  "name": "warm-exit-before-bridge-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). AI, A+B köprüsü kurulmadan medya yolundan çıkıyor (ai_exit, bridge'ten ÖNCE) — müşteri ortada bırakılıyor, temsilciyle köprülenmiyor. W4 ihlali (unbridged_exit>0): SAD §7.3 'agent köprülenir ... sonra çıkar' — AI yalnız köprü kurulduktan SONRA çıkmalı; köprüsüz çıkış müşteriyi sessizliğe/düşmeye bırakır. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-warm-008",
+  "call_id": "call-warm-008",
+  "target": {"type": "QUEUE", "ref": "queue-support", "tenant_id": "t-acme"},
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "consult", "t": 1300},
+    {"kind": "consult_ack", "t": 3200, "code": 200},
+    {"kind": "whisper", "t": 3600, "to": "agent"},
+    {"kind": "ai_exit", "t": 3900}
+  ],
+  "expected": {"terminal": "FAILED", "bridge_established": false}
+}

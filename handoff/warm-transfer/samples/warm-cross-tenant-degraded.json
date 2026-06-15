@@ -1,0 +1,20 @@
+{
+  "name": "warm-cross-tenant-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Danışma hedefi BAŞKA tenant'ın (t-evil) CC kaynağına işaret ediyor (target.tenant_id ≠ oturum tenant_id). W10 ihlali (cross_tenant_target>0): FR-TEN-002 tenant izolasyonu — bir tenant'ın çağrısı başka tenant'ın temsilcisine/kuyruğuna köprülenemez. FSM hedefi reddeder (danışma kurulmaz → FAILED → fallback) ama gate ihlali sayar. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-warm-006",
+  "call_id": "call-warm-006",
+  "target": {"type": "AGENT", "ref": "agent-7", "tenant_id": "t-evil"},
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "consult", "t": 1300},
+    {"kind": "consult_ack", "t": 3200, "code": 200},
+    {"kind": "whisper", "t": 3600, "to": "agent"},
+    {"kind": "bridge", "t": 4000},
+    {"kind": "ai_exit", "t": 4200}
+  ],
+  "expected": {"terminal": "FAILED"}
+}

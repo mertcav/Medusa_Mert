@@ -1,0 +1,17 @@
+{
+  "name": "warm-consult-busy",
+  "$comment": "Danışma çağrısı kabul ringing ama temsilci MEŞGUL — consult_ack 486 Busy Here. FSM DOĞRU davranır: FAILED → fail-safe fallback (W5), müşteri hold'dan geri alınır + korunur. Warm transfer'de AI çoktan anons yapmış + müşteri beklemede; başarısızlıkta müşteri agent'a döner ve 9.7'ye yönlendirilir. Gate geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-warm-003",
+  "call_id": "call-warm-003",
+  "target": {"type": "AGENT", "ref": "agent-42", "tenant_id": "t-acme"},
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 900},
+    {"kind": "consult", "t": 1200},
+    {"kind": "consult_ack", "t": 3400, "code": 486}
+  ],
+  "expected": {"terminal": "FAILED", "outcome": "fail", "fallback": true}
+}
