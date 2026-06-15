@@ -1,0 +1,12 @@
+{
+  "name": "cap-eu-strict-block-abandon",
+  "$comment": "EU daha sıkı: abandon 5/200=2.5% ≥ 2% EU eşiği → BLOCK abandon_rate_exceeded (aynı oran TR/UK %3 eşiğini geçerdi; EU profili daha kısıtlayıcı). Geçer.",
+  "expect": "pass",
+  "request_id": "req-eu-001", "tenant_id": "t-acme", "correlation_id": "corr-eu-001",
+  "campaign_id": "camp-eu-001", "contact_key": "ck-eu-001",
+  "country": "EU", "profile_id": "PROFILE-EU", "call_channel": "voice", "campaign_category": "sales",
+  "total_handlers": 8, "active_calls": 3, "in_flight_dials": 2,
+  "trunk_channels_active": 4, "trunk_capacity": 30,
+  "rolling_connected": 200, "rolling_abandoned": 5,
+  "expected": {"terminal": "BLOCK", "allow": false, "block_reason": "abandon_rate_exceeded", "capacity_ok": false}
+}

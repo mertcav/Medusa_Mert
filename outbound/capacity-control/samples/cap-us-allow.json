@@ -1,0 +1,12 @@
+{
+  "name": "cap-us-allow",
+  "$comment": "US (illüstratif TCPA): free=6, abandon 1%, over-dial içinde, trunk boş → ALLOW. Geçer.",
+  "expect": "pass",
+  "request_id": "req-us-001", "tenant_id": "t-acme", "correlation_id": "corr-us-001",
+  "campaign_id": "camp-us-001", "contact_key": "ck-us-001",
+  "country": "US", "profile_id": "PROFILE-US-CALL", "call_channel": "voice", "campaign_category": "sales",
+  "total_handlers": 10, "active_calls": 4, "in_flight_dials": 5,
+  "trunk_channels_active": 6, "trunk_capacity": 40,
+  "rolling_connected": 300, "rolling_abandoned": 3,
+  "expected": {"terminal": "ALLOW", "allow": true, "capacity_ok": true}
+}

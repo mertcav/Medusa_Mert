@@ -1,0 +1,158 @@
+{
+  "$comment": "WBS 10.2.4 — Silent/abandoned call önleme (KAPASİTE KONTROLÜ) (BRD §9.4 / FR-TEL-015 'Silent / abandoned call oluşumunu önleyici kapasite kontrolü bulunmalıdır' [Must] + BRD §14.3 Outbound Uyumluluğu 'silent/abandoned call önleme (kapasite kontrolü)' arama öncesi kural / SR-TEL-015 [yöntem T — 'Silent/abandoned call'u önleyici kapasite kontrolü uygulanır'; kabul: 'Kapasite < kampanya hızı iken abandoned oranı yapılandırılan eşik altında kalır (bkz. SR-OUT-007)'] / TC-TEL-015 / SAD §19.1 Consent Engine 'silent/abandoned call önleme (kapasite kontrolü) [FR-TEL-015]'). 10. workstream'in (Outbound) Consent & uyumluluk motoru alt-bloğunun KAPASİTE/ABANDONED-CALL (capacity-control) modülü ve F2-Must outbound yeteneği. FR-TEL-015 + SR-TEL-015 + SAD §19.1'in KAPASİTE/SILENT-CALL KARARINI sahiplenir: bir outbound çağrı BAŞLATILMADAN ÖNCE, çağrı cevaplanırsa müşterinin SESSİZLİKLE (silent/abandoned call) karşılaşmayacağını garanti eden ANLIK kapasite kararını verir — yanıtlayıcı kapasite (AI worker/agent handler) + over-dial pacing + yuvarlanan abandoned oranı + trunk kanalı DÖRT KONJONKTİF KURALda değerlendirilir: REZERVE HEADROOM (boşta ≥1 handler — tüm handler meşgulse çağrı = garanti silent call) ∧ ABANDONED ORANI (yuvarlanan abandoned/connected oranı yapılandırılan silent_call_threshold ALTINDA — Ofcom ≤%3 türü) ∧ OVER-DIAL CAP (predictive over-dial oranı max_overdial_ratio'yu aşmaz) ∧ TRUNK KANALI (boş giden kanal var). Modül 10.2.1 Consent + 10.2.2 DNC + 10.2.3 arama saati modüllerinin KARDEŞİdir ve onlarla AND'lenir: eligible = consent_ok AND dnc_ok AND hours_ok AND capacity_ok (bu modül capacity_ok BOYUTUNU sahiplenir). Modül bir DETERMİNİSTİK FAIL-CLOSED MOTORUdur: CapacityCheckRequest{request_id, tenant_id, correlation_id, campaign_id, contact_key, country, call_channel, campaign_category, total_handlers, active_calls, in_flight_dials, trunk_channels_active, trunk_capacity, rolling_connected, rolling_abandoned, predicted_abandon_rate?, profile_id?} alır → kapasite profilini çözer (silent_call_threshold + max_overdial_ratio + reserve_min) → kapasite durumunu hesaplar (free_handlers = total − active; over-dial muhasebesi in_flight'i sayar) → DÖRT KURALI konjonktif değerlendirir → bir terminal karar {ALLOW (tüm kurallar geçti → çağrı silent-call riski olmadan başlatılabilir) | BLOCK (en az bir kural ihlal / profil çözümlenemedi → çağrı BAŞLATILMAZ / pace düşürülür → 2.1.8 callback + 10.2.6 backpressure'a devredilir)} + block_reason taksonomisi üretir. ÇEKİRDEK INVARIANT (FR-TEL-015): doğru kapasite muhasebesi (K2 capacity_error=0) — meşgul handler free'den düşülür VE in_flight dial'lar over-dial bound'una sayılır; bunları atlamak (stale/yanlış snapshot) = over-dial = silent call; ÇEKİRDEK INVARIANT (SR-TEL-015): kapasite olmadan çağrı başlatılmaz / kapasite kontrolü ATLANAMAZ (K8 capacity_skip=0: bypass = sıfır kapasiteye çevirme = BRD §15/SAD §17.2 'silent call oluşması' kritik alarmı). Profil çözümlenemezse fail-closed BLOCK unknown_profile (K7, fail-open YASAK); boşta handler yok → BLOCK no_capacity (K3 — sıfır kapasiteye çevirme = silent call); abandoned oranı eşik üstü → BLOCK abandon_rate_exceeded (K4); over-dial cap aşıldı → BLOCK overdial_cap (K5); boş trunk yok → BLOCK trunk_exhausted (K6); her karar deterministik+terminal (K1); her karar kanıt (K9) + audit (K10); metrik düşük-kardinalite + PII metrikte/log'da yok (K11); spec/config/sample ham PII/sır tutmaz + tenant izolasyonu (K12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): arama öncesi CONSENT kararı → 10.2.1 (FR-OUT-003; AND'lenir); DNC/suppression → 10.2.2 (FR-TEL-014/FR-OUT-006; AND'lenir); arama saati → 10.2.3 (FR-TEL-013/FR-OUT-004; AND'lenir); KAMPANYA-DÜZEYİ kapasite planlaması (kampanya kapasitesi ≤ agent+trunk) + backpressure ENTEGRASYONU → 10.2.6 (FR-OUT-007/SR-OUT-007; bu modül PER-DIAL silent-call kapısı, 10.2.6 kampanya-düzeyi kapasite/backpressure — capacity_ok BLOCK'u 10.2.6'nın pace-down/red girdisidir); admission control + graceful degradation → FR-RES-014/SR-RES-014 (bu modül kararı verir, sistem-düzeyi yük yönetimi → 0.4.8 yük testi + runtime); answering machine detection (AMD) → FR-TEL-010 (insan/makine ayrımı ayrı; bu modül kapasite boyutu); voicemail → FR-TEL-011; çağrı düşmesi retry/callback → 2.1.8/FR-TEL-009 (BLOCK no_capacity/overdial_cap sonucu çağrıyı callback'e/pace-down'a alır; bu modül zamanlamaz, kararı verir); kampanya durdurma → 10.1.7; compliance profile ÇÖZÜMLEME motoru (most-restrictive-wins, tenant override) → DPIA §5/SAD §19.3 (bu modül çözülmüş silent_call_threshold/max_overdial_ratio DEĞERLERİNİ tüketir — cp.outbound.silent_call_threshold); canlı kapasite SNAPSHOT (handler/trunk/rolling sayımlar) → runtime telemetri/0.4.7 (OKUR, üretmez); gerçek audit STORE → 7.1.6/12.1.8; dialer ÇEVİRME/pace → 10.1.x (bu modül ALLOW/BLOCK döndürür, çevirmez/pace etmez); panel UI 'kapasite/abandoned' render → L2 A-10. Spec/config/sample'larda sır/credential ve gerçek PII (müşteri adı/TELEFON numarası/hesap no/ham transkript) YOK — yalnız yapısal KİMLİKLER (request/campaign/tenant/contact/correlation kimlikleri) + ENUM'lar (call_channel/country/campaign_category) + KAPASİTE SAYILARI (handler/trunk/rolling sayıları) + ORANLAR (abandon_rate/overdial_ratio) + BAYRAKLAR. KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS/DB/API esastır.",
+  "version": "1.0",
+  "wbs": "10.2.4",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TEL-015", "FR-OUT-007", "FR-RES-014", "FR-OUT-003", "FR-TEL-013", "FR-TEL-014", "FR-IAM-006", "FR-TEN-002", "FR-REC-004", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.3"],
+    "srs": ["SR-TEL-015", "SR-OUT-007", "SR-RES-014"],
+    "rtm": ["TC-TEL-015"],
+    "brd": [
+      "§9.4 (FR-TEL-015 — Silent / abandoned call oluşumunu önleyici kapasite kontrolü bulunmalıdır)",
+      "§14.3 (Outbound Uyumluluğu — 'silent/abandoned call önleme (kapasite kontrolü)' arama öncesi çalıştırılacak kurallardan biri)",
+      "§15 (kritik alarm — 'silent call oluşması')",
+      "§9.13 (Outbound Kampanya Yönetimi — FR-OUT-007 kampanya kapasitesi agent+trunk kapasitesini aşmamalı; 10.2.6 kampanya-düzeyi)",
+      "§10.3 (kapasite/ölçeklenme — eş zamanlı çağrı + CPS hedefleri; per-dial kapasite kapısı)",
+      "§19 (kabul kriteri — Outbound consent ve uyumluluk kontrolleri doğrulanmalıdır)"
+    ],
+    "sad": [
+      "§19.1 (Consent Engine — 'silent/abandoned call önleme (kapasite kontrolü) [FR-TEL-015]'; bu modül kapasite/silent-call boyutunu somutlaştırır)",
+      "§6 (Fail soft / backpressure — kapasite eşiğine yaklaşınca outbound dialer hızı düşürülür / overflow callback'e alınır; çökme yerine kontrollü degrade, FR-RES-014/FR-OUT-007)",
+      "§13.3 (correlation/tenant context propagation — karar correlation_id+tenant taşır)",
+      "§14.4 (panel — L2 A-10 'kapasite/abandoned' yüzeyi)",
+      "§17.2 (silent call oluşması → kritik alarm ≤2dk)",
+      "§20 (kapasite — Little yasası; per-dial admission, 0.4.8 yük testi ile hizalı)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — Kapasite kapısı outbound kontrol/uyumluluk düzleminde bir karar fonksiyonu; STT/LLM/TTS'e doğrudan bağlanmaz)",
+      "ADR-002 (vendor-neutral — kapasite snapshot/telemetri sağlayıcı bağımsız; aynı karar sözleşmesi arkasına gerçek runtime kapasite kaynağı)",
+      "ADR-012 (RBAC — kapasite POLİTİKA yönetimi consent:manage; per-call kapasite kontrolü otomatik gate)"
+    ],
+    "db": [
+      "DB §5.4 contact — contact bu motorun girdisi DEĞİL (kapasite snapshot runtime'dan gelir); karar yalnız opak contact_key taşır",
+      "DB §3 tenant — tenant residency/kapasite kotası (FR-TEN-004) profil çözümlemesini besler (tüketir)"
+    ],
+    "threat_model": [
+      "TM-T-* (tahrifat — kapasite kontrolü ATLANAMAZ; bypass=capacity_skip ihlali, K8 = BRD §15 kritik 'silent call' alarmı; sıfır kapasiteye çevirme engellenir)",
+      "TM-T-* (tenant izolasyonu — kapasite profili/snapshot yalnız aynı tenant'a ait okunur; cross-tenant okuma reddedilir, FR-TEN-002, K12)",
+      "TM-I-* (bilgi ifşası — karar/metrik/log ham PII [ad/telefon] taşımaz; yalnız yapısal kimlik+enum+kapasite sayısı+oran, K11/K12)",
+      "TM-R-* (inkâr — her karar [ALLOW/BLOCK] dört-kural değerlendirmesi + kapasite durumu + block_reason ile audit'e yazılır, K10)"
+    ],
+    "consumes": [
+      "DPIA §5 / SAD §19.3 compliance profile çözümleme — çözülmüş silent_call_threshold + max_overdial_ratio + reserve_min (cp.outbound.silent_call_threshold) DEĞERLERİNİ tüketir (most-restrictive-wins çözümlemeyi yeniden yapmaz)",
+      "Runtime kapasite telemetri (0.4.7/0.4.8) — total_handlers + active_calls + in_flight_dials + trunk_channels_active/capacity + rolling_connected/abandoned SNAPSHOT'ını TÜKETİR (kendisi üretmez; deterministik snapshot değerlendirir)",
+      "10.1.1 kampanya (FR-OUT-001) — campaign_id + campaign_category'yi TÜKETİR",
+      "Outbound dialer çekirdeği (10.1.x) — per-contact CapacityCheckRequest'i gönderir"
+    ],
+    "consumed_by": [
+      "10.2.1 Consent + 10.2.2 DNC + 10.2.3 arama saati — bu modülün capacity_ok sonucu consent_ok + dnc_ok + hours_ok ile AND'lenir (eligible = consent_ok AND dnc_ok AND hours_ok AND capacity_ok)",
+      "10.2.6 kampanya kapasitesi ≤ agent+trunk + backpressure (FR-OUT-007/SR-OUT-007) — bu modülün BLOCK (no_capacity/overdial_cap/trunk_exhausted) sonucu kampanya-düzeyi pace-down/backpressure girdisidir (per-dial kapı ⇒ kampanya-düzeyi yönetim)",
+      "Outbound dialer çekirdeği (10.1.x) — ALLOW ise (kapasite boyutu) çevirir, BLOCK ise çağrı BAŞLATMAZ (pace düşürür)",
+      "2.1.8 retry/geri-arama (FR-TEL-009) — BLOCK no_capacity/overdial_cap sonucu çağrıyı callback'e/pace-down'a alır; bu modül zamanlamaz, kararı verir",
+      "7.1.6 + 12.1.8 audit store (FR-IAM-006) — kapasite kararını kalıcılaştırır",
+      "0.4.7 gözlemlenebilirlik — capacity_* metriklerini tüketir (capacity_skip + silent_call alarmı dahil)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Kapasite kontrolü, outbound kontrol/uyumluluk düzleminde bir KARAR fonksiyonudur: dialer bir contact'ı çevirmeden ÖNCE (SAD §19.1) bu motora CapacityCheckRequest gönderir; motor kapasite profilini (silent_call_threshold + max_overdial_ratio + reserve_min) çözer, runtime kapasite snapshot'ından durumu hesaplar (free handler + over-dial + abandoned oranı + trunk), dört kuralı konjonktif değerlendirir (hepsi geçmeli → ALLOW) ve ALLOW|BLOCK döndürür. Motor hot-path medya işlemez; deterministik kontrol/uyumluluk düzlemi (medya bütçesi dışı). PER-DIAL kapı (silent/abandoned call önleme); KAMPANYA-DÜZEYİ kapasite planlaması + backpressure 10.2.6'dadır (bu modülün BLOCK çıktısı 10.2.6'ya pace girdisi). Vendor-neutral (ADR-001/002): kapasite snapshot kaynağı sağlayıcı bağımsız; aynı karar sözleşmesi arkasına gerçek runtime telemetri.",
+    "plane": "outbound compliance control plane (Kapasite/silent-call kapısı — deterministik fail-closed konjonktif dört-kural per-dial silent/abandoned-call önleme kararı)",
+    "owns": "FR-TEL-015/SR-TEL-015 kapasite/silent-call boyutu: CapacityCheckRequest → kapasite profil çözümü (silent_call_threshold + max_overdial_ratio + reserve_min) + kapasite durumu hesabı (free_handlers + over-dial muhasebesi + abandoned oranı + trunk) + DÖRT KURAL konjonktif değerlendirme (rezerve headroom/abandoned oranı/over-dial cap/trunk kanalı) + profil fail-closed + terminal karar {ALLOW|BLOCK} + block_reason taksonomisi + karar audit",
+    "delegates": "arama öncesi CONSENT → 10.2.1 (FR-OUT-003; AND'lenir); DNC/suppression → 10.2.2 (FR-TEL-014; AND'lenir); arama saati → 10.2.3 (FR-TEL-013/FR-OUT-004; AND'lenir); KAMPANYA-DÜZEYİ kapasite ≤ agent+trunk + backpressure → 10.2.6 (FR-OUT-007; BLOCK pace girdisi); admission/graceful degradation → FR-RES-014 + 0.4.8 (sistem-düzeyi); AMD → FR-TEL-010; voicemail → FR-TEL-011; retry/callback → 2.1.8 (BLOCK sonucu callback'e alır); profile ÇÖZÜMLEME → DPIA §5/SAD §19.3 (değerleri TÜKETİR); kapasite SNAPSHOT → runtime telemetri 0.4.7/0.4.8 (OKUR); audit store → 7.1.6/12.1.8; dialer ÇEVİRME/pace → 10.1.x (karar döndürür, çevirmez); panel UI → L2 A-10",
+    "deterministic": true,
+    "fail_closed": true,
+    "trace": "API §A-10, SAD §19.1, SAD §6, SAD §20, ADR-001, ADR-002, ADR-012"
+  },
+
+  "rules": {
+    "$comment": "SR-TEL-015 ÇEKİRDEK — DÖRT KONJONKTİF KAPASİTE KURALI (BRD §14.3, SAD §19.1). Önce kapasite durumu hesaplanır (free_handlers = total_handlers − active_calls; over-dial muhasebesi in_flight_dials'i sayar; abandoned oranı = rolling_abandoned/rolling_connected veya predicted_abandon_rate; K2 — meşgul handler ve in_flight ATLANAMAZ); sonra dört kural konjonktif (AND) değerlendirilir: HEPSİ geçerse ALLOW, en az biri ihlal ederse BLOCK. Sıra yalnız block_reason önceliğini belirler; karar (ALLOW/BLOCK) sıradan bağımsız. Her kural bir invariant'a (K3–K6) ve bir block_reason'a eşlenir; profil çözümlenemezse K7 fail-closed unknown_profile.",
+    "list": [
+      {"id": "reserved_headroom", "field": "free_handlers = total_handlers − active_calls; reserve_min", "invariant": "K3", "block_reason": "no_capacity",
+       "rule": "boşta yanıtlayıcı kapasite (free_handlers) ≥ reserve_min olmalı; değilse (tüm handler meşgul) BLOCK no_capacity — sıfır kapasiteye çevirme cevaplanırsa GARANTİ silent/abandoned call (SR-TEL-015 çekirdek; BRD §15 silent call alarmı)"},
+      {"id": "abandon_rate", "field": "rolling_abandoned/rolling_connected (veya predicted_abandon_rate); profile.silent_call_threshold", "invariant": "K4", "block_reason": "abandon_rate_exceeded",
+       "rule": "yuvarlanan abandoned oranı yapılandırılan silent_call_threshold ALTINDA olmalı (Ofcom ≤%3 türü); oran eşiğe ulaşır/aşarsa BLOCK abandon_rate_exceeded — yeni dial abandoned oranını eşik üstüne taşımaz (SR-TEL-015 kabul: 'abandoned oranı yapılandırılan eşik altında kalır')"},
+      {"id": "overdial_cap", "field": "in_flight_dials + 1 ≤ free_handlers × profile.max_overdial_ratio", "invariant": "K5", "block_reason": "overdial_cap",
+       "rule": "predictive over-dial oranı sınırlanmalı: bekleyen (in_flight) dial + yeni dial, boş handler × max_overdial_ratio'yu aşmamalı; aşarsa BLOCK overdial_cap — kontrolsüz over-dial = aynı anda çok cevap = abandonment (predictive pacing kapısı)"},
+      {"id": "trunk_channel", "field": "trunk_channels_active + 1 ≤ trunk_capacity", "invariant": "K6", "block_reason": "trunk_exhausted",
+       "rule": "boş giden trunk kanalı olmalı; trunk doluysa BLOCK trunk_exhausted — trunk tükenmesi de silent call/başarısız bağlantı riski (per-dial; FR-OUT-007 trunk kapasitesinin per-dial yansıması)"}
+    ],
+    "block_precedence": ["unknown_profile", "abandon_rate_exceeded", "no_capacity", "overdial_cap", "trunk_exhausted"],
+    "evaluation": "all_pass_fail_closed",
+    "trace": "BRD §14.3, SR-TEL-015, SAD §19.1, SAD §20"
+  },
+
+  "decision": {
+    "$comment": "Konjonktif (all-pass) fail-closed karar algoritması. Adımlar: (1) kapasite profilini çöz (silent_call_threshold + max_overdial_ratio + reserve_min). Çözümlenemezse (bilinmeyen ülke / eşik yok) fail-closed BLOCK unknown_profile (K7) — bilinen regülatör eşiği olmadan dial = regülasyon ihlali riski. (2) kapasite durumunu hesapla: free_handlers = total_handlers − active_calls; abandon_rate = predicted_abandon_rate veya rolling_abandoned/max(1,rolling_connected); over-dial muhasebesi in_flight_dials'i sayar (K2 — meşgul handler ve in_flight ATLANAMAZ; stale/yanlış snapshot = capacity_error). (3) dört kuralı konjonktif değerlendir: reserved_headroom (free ≥ reserve_min) ∧ abandon_rate (< eşik) ∧ overdial_cap (in_flight+1 ≤ free×ratio) ∧ trunk_channel (boş kanal). (4) HEPSİ geçerse → ALLOW; en az biri ihlal ederse → BLOCK (block_precedence sırasıyla block_reason ata). Belirsizlik/profil çözümlenemedi → BLOCK (fail-closed; ASLA fail-open).",
+    "algorithm": "resolve_profile(silent_call_threshold,max_overdial_ratio,reserve_min) | unresolved ⇒ BLOCK(unknown_profile) → state(free_handlers,abandon_rate,in_flight) → eval4(reserved_headroom,abandon_rate,overdial_cap,trunk_channel) → all_pass ⇒ ALLOW | any_fail ⇒ BLOCK(reason)",
+    "default": "BLOCK",
+    "trace": "SR-TEL-015, SAD §19.1, SAD §6, SAD §20"
+  },
+
+  "block_reasons": {
+    "$comment": "BLOCK karar taksonomisi (her kural + profil çözümlenememe + tenant izolasyonu). Düşük-kardinalite (metrik label uygun). 'capacity_skip' yalnız BYPASS injection'ında (K8 ihlali) görünür — normal akışta üretilmez.",
+    "list": ["no_capacity", "abandon_rate_exceeded", "overdial_cap", "trunk_exhausted", "unknown_profile", "cross_tenant"]
+  },
+
+  "outcomes": {
+    "$comment": "Terminal karar sonuçları. ALLOW = tüm kapasite kuralları geçti (boşta handler var, abandoned oranı eşik altında, over-dial cap içinde, boş trunk var) → çağrı silent-call riski olmadan başlatılabilir (consent/DNC/saat AYRI kapılar). BLOCK = en az bir kural ihlal / profil çözümlenemedi → çağrı BAŞLATILMAZ (pace düşürülür; 2.1.8 callback + 10.2.6 backpressure). İkisi de geçerli terminal — BLOCK ihlal DEĞİL, fail-closed doğru reddetmedir (silent call önleme). Her karar audit üretir.",
+    "list": ["ALLOW", "BLOCK"],
+    "terminal": ["ALLOW", "BLOCK"]
+  },
+
+  "authorization": {
+    "$comment": "Per-call kapasite kontrolü bir OTOMATİK gate'tir (dialer tetikler); RBAC kullanıcı-komutu değildir. Kapasite POLİTİKASI (silent_call_threshold, max_overdial_ratio, reserve_min) yönetimi consent:manage yetkisi ister (security_compliance_officer/tenant_admin/tenant_owner). Per-call check yetki sormaz, fail-closed çalışır. Karar her zaman backend'de.",
+    "policy_permission": "consent:manage",
+    "policy_roles": ["security_compliance_officer", "tenant_admin", "tenant_owner"],
+    "per_call_check": "automatic_gate (RBAC değil; fail-closed)",
+    "decision_at": "backend",
+    "trace": "FR-IAM-011, ADR-012, SAD §27 RBAC, DPIA §5"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli; bir senaryoda ihlal varsa kapı eler. capacity_skip (K8) ve no_capacity_leak (K3) = BRD §15 kritik 'silent call oluşması' alarmı; capacity_error (K2) = yanlış kapasite muhasebesi (meşgul handler/in_flight atlanması → over-dial → silent call). Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F2 canlı dialer + runtime kapasite telemetri + pilot tenant verisinde doğrulanır (BRD §22 açık karar).",
+    "max_capacity_skip": 0,
+    "max_capacity_error": 0,
+    "max_no_capacity_leak": 0,
+    "max_abandon_rate_leak": 0,
+    "max_overdial_leak": 0,
+    "max_trunk_leak": 0,
+    "max_failopen": 0,
+    "max_cross_tenant": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "Kapasite motoru her karar için BRD §15 + capacity metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. capacity_check_total{tenant,result} → karar sayımı; capacity_block_total{tenant,block_reason} → reddetme nedeni (düşük-kardinalite taksonomi); capacity_skip_total → kapasite kontrolünün ATLANMASI (K8 ihlal alarmı, 0 olmalı); silent_call_total → sıfır kapasiteye çevirme / abandoned call oluşması (no_capacity_leak veya capacity_skip; BRD §15 kritik 'silent call oluşması' alarmı, 0 olmalı). tenant_id+result+block_reason+country+campaign_category DÜŞÜK kardinalite (label uygun); request_id/contact_key/campaign_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Müşteri PII (ad/telefon/ham numara) metrikte VE log'da YOK (FR-REC-004, BRD §17.7). capacity_skip>0 VEYA silent_call>0 (K8/K3 ihlali) → kritik alarm ≤2dk (SAD §17.2, NFR 10.1, BRD §15); abandon_rate ani artışı → alarm.",
+    "metrics": ["capacity_check_total", "capacity_block_total", "capacity_skip_total", "silent_call_total"],
+    "low_cardinality_labels": ["tenant_id", "result", "block_reason", "country", "campaign_category"],
+    "high_cardinality_trace_only": ["request_id", "contact_key", "campaign_id", "correlation_id"],
+    "alarm": "capacity_skip>0 (kapasite kontrolü atlandı — K8) VEYA silent_call>0 (sıfır kapasiteye çevirme — K3, BRD §15 kritik 'silent call oluşması') VEYA abandon_rate ani artışı → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "K1", "desc": "Determinizm/tamlık: her CapacityCheckRequest tanımlı all-pass algoritması boyunca ilerler ve bir terminal karara {ALLOW|BLOCK} ulaşır; aynı girdi → aynı çıktı (deterministik profil çözümü + tamsayı/oran kapasite muhasebesi, sanal snapshot girdisi; Date.now/random YOK); stuck/tanımsız durum yok. stuck_state=0.", "trace": "SR-TEL-015, SAD §19.1"},
+    {"id": "K2", "desc": "Doğru kapasite muhasebesi ÇEKİRDEK (FR-TEL-015): meşgul handler free_handlers'tan düşülür (free = total_handlers − active_calls) VE in_flight_dials over-dial bound'una sayılır; bunları atlamak/eski (stale) snapshot kullanmak = under-reserve / over-dial = silent call (capacity_error). Yanlış/eski snapshot ile BLOCK olması gereken kararı ALLOW yapmak = ihlal. capacity_error=0.", "trace": "FR-TEL-015, SR-TEL-015, SAD §20"},
+    {"id": "K3", "desc": "Rezerve headroom (SR-TEL-015 çekirdek): boşta yanıtlayıcı kapasite (free_handlers) ≥ reserve_min olmalı; değilse BLOCK no_capacity — sıfır kapasiteye çevirme, çağrı cevaplanırsa GARANTİ silent/abandoned call (BRD §15 'silent call' alarmı). Sıfır kapasiteye ALLOW = silent call ihlali. no_capacity_leak=0.", "trace": "FR-TEL-015, SR-TEL-015, BRD §15, SAD §19.1"},
+    {"id": "K4", "desc": "Abandoned oranı eşiği (SR-TEL-015 kabul): yuvarlanan abandoned oranı yapılandırılan silent_call_threshold ALTINDA kalmalı (Ofcom ≤%3 türü, cp.outbound.silent_call_threshold); oran eşiğe ulaşır/aşarsa BLOCK abandon_rate_exceeded. Eşik üstü orana ALLOW = ihlal. abandon_rate_leak=0.", "trace": "FR-TEL-015, SR-TEL-015, DPIA §5.3 cp.outbound.silent_call_threshold"},
+    {"id": "K5", "desc": "Over-dial cap (predictive pacing): in_flight_dials + 1 ≤ free_handlers × max_overdial_ratio olmalı; aşarsa BLOCK overdial_cap — kontrolsüz over-dial = aynı anda çok cevap = abandonment. Cap üstüne ALLOW = ihlal. overdial_leak=0.", "trace": "FR-TEL-015, SAD §20, FR-OUT-007"},
+    {"id": "K6", "desc": "Trunk kanalı (per-dial): trunk_channels_active + 1 ≤ trunk_capacity olmalı; trunk doluysa BLOCK trunk_exhausted — trunk tükenmesi başarısız bağlantı/silent call riski (FR-OUT-007 trunk kapasitesinin per-dial yansıması). Dolu trunk'a ALLOW = ihlal. trunk_leak=0.", "trace": "FR-TEL-015, FR-OUT-007, SAD §20"},
+    {"id": "K7", "desc": "Fail-closed bilinmeyen profil (SAD §6): kapasite profili / silent_call_threshold çözümlenemezse fail-closed BLOCK unknown_profile — ASLA fail-open ALLOW (bilinen regülatör eşiği olmadan dial = regülasyon ihlali riski). Eşik belirlenemeden ALLOW = failopen ihlali. failopen=0.", "trace": "SAD §6, SR-TEL-015, SAD §19.1"},
+    {"id": "K8", "desc": "Fail-closed / ATLANAMAZ (SR-TEL-015 ÇEKİRDEK): kapasite olmadan (herhangi kural ihlal) bir çağrı ASLA başlatılmaz (BLOCK); kapasite kontrolü bypass edilemez — bypass ile kapasitesiz contact 'aranabilir' yapılırsa capacity_skip ihlali (BRD §15 kritik 'silent call oluşması' alarmı). capacity_skip=0.", "trace": "SR-TEL-015, BRD §14.3, BRD §15, SAD §17.2"},
+    {"id": "K9", "desc": "Kanıt: her karar request_id + resolved_profile + free_handlers + abandon_rate + overdial_ratio + trunk durumu + dört-kural sonuçları + block_reason + capacity_ok taşır; kanıtsız karar yok. missing_evidence=0.", "trace": "FR-IAM-006"},
+    {"id": "K10", "desc": "Audit: her karar (ALLOW/BLOCK) → audit {result, request_id, campaign_id, contact_key, country, campaign_category, free_handlers, abandon_rate, block_reason, correlation_id, tenant_id} (FR-IAM-006); ham PII YOK. missing_audit=0.", "trace": "FR-IAM-006, 0.4.7 label_policy"},
+    {"id": "K11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (result/block_reason/country/campaign_category); request_id/contact_key/campaign_id/correlation_id metrikte yok, yalnız trace; müşteri PII (ad/telefon/ham numara) metrikte VE log'da yok (0.4.7 label_policy, FR-REC-004, BRD §17.7).", "trace": "FR-REC-004, 0.4.7 label_policy"},
+    {"id": "K12", "desc": "Sır/PII yok + tenant izolasyonu: spec/config/sample müşteri adı/TELEFON numarası/hesap no/ham transkript/OTP/credential tutmaz (yalnız yapısal kimlikler + enum + kapasite sayısı + oran + bayrak); kapasite profili/snapshot yalnız aynı tenant'a ait okunur, cross-tenant okuma → cross_tenant ihlali (FR-TEN-002). secret_or_pii=0 ∧ cross_tenant=0.", "trace": "BRD §14, BRD §16, FR-TEN-002, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar müşteri ADI, TELEFON numarası, HESAP numarası, ham TRANSKRİPT, OTP, PAROLA, PII DEĞERİ veya credential TUTMAZ — yalnız yapısal KİMLİKLER (request/campaign/tenant/contact/correlation kimlikleri ör. req-001 / camp-001 / t-acme / ck-001 / corr-001) + ENUM'lar (call_channel ör. voice; country ör. TR/UK/EU/US; campaign_category ör. sales) + KAPASİTE SAYILARI (total_handlers/active_calls/in_flight_dials/trunk_* ör. 10/4/6 — kişiye bağlı değil) + ORANLAR (abandon_rate/overdial_ratio/silent_call_threshold ör. 0.03) + BAYRAKLAR. Kimlik/enum/sayı/oran/bayrak PII DEĞİLDİR; tasarımca PII-olmayandır. Telefon numarası HİÇBİR alanda tutulmaz (contact yalnız opak ck-<id>).",
+    "forbids": ["customer_name", "customer_phone_value", "account_number_value", "transcript_text", "otp_code_value", "password_value", "credential", "secret", "pii_value", "raw_msisdn"]
+  }
+}

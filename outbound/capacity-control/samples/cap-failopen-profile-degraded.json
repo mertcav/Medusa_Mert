@@ -1,0 +1,12 @@
+{
+  "name": "cap-failopen-profile-degraded",
+  "$comment": "DEGRADE (bilinçli): bilinmeyen ülke (ZZ) → profil çözülemez (BLOCK unknown_profile olmalı) ama failopen_profile ile fail-open → yanlış ALLOW (bilinen regülatör eşiği olmadan dial). K7 failopen ihlali. Kapı ELER.",
+  "expect": "fail",
+  "request_id": "req-deg-007", "tenant_id": "t-acme", "correlation_id": "corr-deg-007",
+  "campaign_id": "camp-zz-001", "contact_key": "ck-deg-007",
+  "country": "ZZ", "call_channel": "voice", "campaign_category": "sales",
+  "total_handlers": 10, "active_calls": 2, "in_flight_dials": 3,
+  "trunk_channels_active": 5, "trunk_capacity": 30,
+  "rolling_connected": 200, "rolling_abandoned": 1,
+  "inject": ["failopen_profile"]
+}

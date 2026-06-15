@@ -1,0 +1,12 @@
+{
+  "name": "cap-unknown-profile-block",
+  "$comment": "Bilinmeyen ülke (ZZ) → kapasite profili/silent_call_threshold çözülemez → fail-closed BLOCK unknown_profile (bilinen regülatör eşiği olmadan dial=ihlal riski). Geçer (fail-closed).",
+  "expect": "pass",
+  "request_id": "req-zz-001", "tenant_id": "t-acme", "correlation_id": "corr-zz-001",
+  "campaign_id": "camp-zz-001", "contact_key": "ck-zz-001",
+  "country": "ZZ", "call_channel": "voice", "campaign_category": "sales",
+  "total_handlers": 10, "active_calls": 2, "in_flight_dials": 3,
+  "trunk_channels_active": 5, "trunk_capacity": 30,
+  "rolling_connected": 200, "rolling_abandoned": 1,
+  "expected": {"terminal": "BLOCK", "allow": false, "block_reason": "unknown_profile", "capacity_ok": false}
+}

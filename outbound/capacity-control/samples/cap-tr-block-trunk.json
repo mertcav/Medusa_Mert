@@ -1,0 +1,12 @@
+{
+  "name": "cap-tr-block-trunk",
+  "$comment": "TR trunk tükendi: trunk_active=20, trunk_capacity=20 → 21>20 → BLOCK trunk_exhausted (boş giden kanal yok; FR-OUT-007 trunk kapasitesinin per-dial yansıması). Geçer (doğru reddetme).",
+  "expect": "pass",
+  "request_id": "req-tr-005", "tenant_id": "t-acme", "correlation_id": "corr-tr-005",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-005",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "total_handlers": 10, "active_calls": 2, "in_flight_dials": 4,
+  "trunk_channels_active": 20, "trunk_capacity": 20,
+  "rolling_connected": 200, "rolling_abandoned": 2,
+  "expected": {"terminal": "BLOCK", "allow": false, "block_reason": "trunk_exhausted", "capacity_ok": false}
+}

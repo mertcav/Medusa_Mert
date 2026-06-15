@@ -1,0 +1,12 @@
+{
+  "name": "cap-ignore-abandon-degraded",
+  "$comment": "DEGRADE (bilinçli): abandon 4/100=4% ≥ 3% (BLOCK abandon_rate_exceeded olmalı) ama ignore_abandon_rate ile eşik kuralı atlanıyor → yanlış ALLOW = abandoned oranı eşik üstüne taşınır. K4 abandon_rate_leak ihlali. Kapı ELER.",
+  "expect": "fail",
+  "request_id": "req-deg-004", "tenant_id": "t-acme", "correlation_id": "corr-deg-004",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-deg-004",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "total_handlers": 10, "active_calls": 2, "in_flight_dials": 4,
+  "trunk_channels_active": 5, "trunk_capacity": 30,
+  "rolling_connected": 100, "rolling_abandoned": 4,
+  "inject": ["ignore_abandon_rate"]
+}

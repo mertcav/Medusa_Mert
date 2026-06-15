@@ -1,0 +1,12 @@
+{
+  "name": "cap-tr-allow",
+  "$comment": "TR sağlıklı kapasite: free=6 (10−4), abandon=1% (2/200)<3%, over-dial 7≤18, trunk 8/30 boş → ALLOW (silent-call riski yok, çağrı başlatılabilir). Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-001", "tenant_id": "t-acme", "correlation_id": "corr-tr-001",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-001",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "total_handlers": 10, "active_calls": 4, "in_flight_dials": 6,
+  "trunk_channels_active": 8, "trunk_capacity": 30,
+  "rolling_connected": 200, "rolling_abandoned": 2,
+  "expected": {"terminal": "ALLOW", "allow": true, "capacity_ok": true}
+}

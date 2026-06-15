@@ -1,0 +1,49 @@
+{
+  "$comment": "WBS 10.2.4 Silent/abandoned call önleme (kapasite kontrolü) — ülke/regime kapasite profilleri (cp.outbound.silent_call_threshold türevi; vendor-neutral, credential-free). Bu config, DPIA §5.3 cp.outbound.* parametrelerinin bu motorun TÜKETTİĞİ alt kümesini (kapasite/silent-call boyutu) tutar: her ülke/regime için izin verilen MAKSİMUM abandoned-call oranı (silent_call_threshold — Ofcom tipi ≤%3 regülatör limiti) + predictive over-dial üst sınırı (max_overdial_ratio) + minimum boşta rezerve handler (reserve_min). Profile ÇÖZÜMLEME (most-restrictive-wins, tenant override) motoru DPIA §5/SAD §19.3'tedir; bu config çözülmüş DEĞERLERİ taşır. Canlı kapasite SNAPSHOT (handler/trunk/rolling sayımlar) runtime telemetri (0.4.7/0.4.8) tarafından sağlanır; bu config yalnız EŞİKLERİ taşır. consent → 10.2.1; DNC → 10.2.2; arama saati → 10.2.3 (bu modülde değil). Kampanya-düzeyi kapasite ≤ agent+trunk + backpressure → 10.2.6 (bu modül per-dial kapı). Değerler MÜHENDİSLİK varsayılanı, counsel doğrulamasına tabi (DPIA); pilot tenant + runtime telemetri (F2) ile kalibre edilir. Sır/credential ve PII (ham telefon/MSISDN) YOK — yalnız enum/sayı/oran/bayrak.",
+  "version": "1.0",
+  "wbs": "10.2.4",
+  "default_profile": "PROFILE-TR",
+  "channel": "voice",
+  "profiles": {
+    "PROFILE-TR": {
+      "$comment": "DPIA §5.3 PROFILE-TR: KVKK + ETK. Silent/abandoned-call üst sınırı MÜHENDİSLİK varsayılanı (counsel'a tabi; TR'de açık sayısal Ofcom-tipi limit yok → mühendislik tarafından %3 muhafazakar varsayılan). reserve_min=1 (her dial için en az 1 boşta handler); max_overdial_ratio=3.0 (predictive pacing tavanı).",
+      "country": "TR",
+      "regime": "ETK",
+      "silent_call_threshold": 0.03,
+      "max_overdial_ratio": 3.0,
+      "reserve_min": 1
+    },
+    "PROFILE-UK": {
+      "$comment": "DPIA §5.3 PROFILE-UK: UK_GDPR + PECR/Ofcom. Ofcom 'persistent misuse' rehberi: kampanya başına 24 saatte abandoned-call oranı %3'ü AŞMAMALI → silent_call_threshold=0.03 (regülatör türevi). Ofcom daha sıkı pacing → max_overdial_ratio=2.5. reserve_min=1. (Ofcom ayrıca cevaptan ≤2sn içinde bilgilendirme mesajı ister → AMD/açılış katmanı FR-TEL-010/§14.2; bu modül kapasite boyutu.)",
+      "country": "UK",
+      "regime": "PECR_OFCOM",
+      "silent_call_threshold": 0.03,
+      "max_overdial_ratio": 2.5,
+      "reserve_min": 1
+    },
+    "PROFILE-EU": {
+      "$comment": "DPIA §5.3 PROFILE-EU: EU_GDPR. Üye-devlet bazlı; merkezi tek Ofcom-tipi sayı yok → en kısıtlayıcı muhafazakar varsayılan silent_call_threshold=0.02 + max_overdial_ratio=2.0 (üye-devlet overlay'i daraltabilir). reserve_min=1.",
+      "country": "EU",
+      "regime": "EU_GDPR",
+      "silent_call_threshold": 0.02,
+      "max_overdial_ratio": 2.0,
+      "reserve_min": 1
+    },
+    "PROFILE-US-CALL": {
+      "$comment": "İLLÜSTRATİF ABD profili (TCPA/FCC demo): abandoned-call güvenli liman tipik %3 → silent_call_threshold=0.03; max_overdial_ratio=3.0; reserve_min=1. Gerçek değerler eyalet+counsel'a tabi (mühendislik varsayılanı).",
+      "country": "US",
+      "regime": "TCPA_DEMO",
+      "silent_call_threshold": 0.03,
+      "max_overdial_ratio": 3.0,
+      "reserve_min": 1
+    }
+  },
+  "consume_from": ["DPIA §5.3 cp.outbound.silent_call_threshold", "SAD §19.3 profile çözümleme", "Runtime kapasite telemetri 0.4.7/0.4.8", "DB §3 tenant residency/kapasite kotası"],
+  "report_to": ["10.2.1-consent", "10.2.2-dnc", "10.2.3-calling-hours", "10.2.6-capacity-backpressure", "10.1.x-dialer", "2.1.8-retry-callback", "0.4.7"],
+  "observability": {
+    "metric_prefix": "capacity_",
+    "alarm_on_capacity_skip": true,
+    "alarm_on_silent_call": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

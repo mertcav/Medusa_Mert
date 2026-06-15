@@ -1,0 +1,12 @@
+{
+  "name": "cap-tr-block-no-capacity",
+  "$comment": "TR tüm handler meşgul: free=0 (5−5), reserve_min=1 → BLOCK no_capacity — sıfır kapasiteye çevirme cevaplanırsa GARANTİ silent/abandoned call (BRD §15). Geçer (doğru reddetme).",
+  "expect": "pass",
+  "request_id": "req-tr-002", "tenant_id": "t-acme", "correlation_id": "corr-tr-002",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-002",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "total_handlers": 5, "active_calls": 5, "in_flight_dials": 0,
+  "trunk_channels_active": 2, "trunk_capacity": 30,
+  "rolling_connected": 200, "rolling_abandoned": 1,
+  "expected": {"terminal": "BLOCK", "allow": false, "block_reason": "no_capacity", "capacity_ok": false}
+}

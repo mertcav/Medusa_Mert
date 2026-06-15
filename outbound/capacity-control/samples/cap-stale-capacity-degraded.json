@@ -1,0 +1,12 @@
+{
+  "name": "cap-stale-capacity-degraded",
+  "$comment": "DEGRADE (bilinçli): in_flight=30 over-dial cap'i aşar (BLOCK overdial_cap olmalı) ama stale_capacity ile eski snapshot in_flight'i over-dial muhasebesinden DÜŞER → yanlış ALLOW. K2 capacity_error = under-count over-dial = silent call. Kapı ELER.",
+  "expect": "fail",
+  "request_id": "req-deg-002", "tenant_id": "t-acme", "correlation_id": "corr-deg-002",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-deg-002",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "total_handlers": 10, "active_calls": 0, "in_flight_dials": 30,
+  "trunk_channels_active": 5, "trunk_capacity": 60,
+  "rolling_connected": 200, "rolling_abandoned": 2,
+  "inject": ["stale_capacity"]
+}

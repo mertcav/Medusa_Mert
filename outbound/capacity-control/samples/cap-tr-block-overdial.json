@@ -1,0 +1,12 @@
+{
+  "name": "cap-tr-block-overdial",
+  "$comment": "TR over-dial cap aşımı: free=10 (10−0), ratio=3 → bound=30; in_flight=30 → 31>30 → BLOCK overdial_cap (predictive pacing; headroom var ama kontrolsüz over-dial=abandonment). Geçer (doğru reddetme).",
+  "expect": "pass",
+  "request_id": "req-tr-004", "tenant_id": "t-acme", "correlation_id": "corr-tr-004",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-004",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "total_handlers": 10, "active_calls": 0, "in_flight_dials": 30,
+  "trunk_channels_active": 5, "trunk_capacity": 60,
+  "rolling_connected": 200, "rolling_abandoned": 2,
+  "expected": {"terminal": "BLOCK", "allow": false, "block_reason": "overdial_cap", "capacity_ok": false}
+}

@@ -1,0 +1,12 @@
+{
+  "name": "cap-uk-ofcom-allow",
+  "$comment": "UK Ofcom: abandon 2/100=2% < 3% Ofcom limiti, free=5, over-dial 3≤12.5 (ratio 2.5), trunk boş → ALLOW. Geçer.",
+  "expect": "pass",
+  "request_id": "req-uk-001", "tenant_id": "t-acme", "correlation_id": "corr-uk-001",
+  "campaign_id": "camp-uk-001", "contact_key": "ck-uk-001",
+  "country": "UK", "profile_id": "PROFILE-UK", "call_channel": "voice", "campaign_category": "sales",
+  "total_handlers": 8, "active_calls": 3, "in_flight_dials": 2,
+  "trunk_channels_active": 4, "trunk_capacity": 30,
+  "rolling_connected": 100, "rolling_abandoned": 2,
+  "expected": {"terminal": "ALLOW", "allow": true, "capacity_ok": true}
+}
