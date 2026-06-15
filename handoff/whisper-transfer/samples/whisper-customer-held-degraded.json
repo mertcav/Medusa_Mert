@@ -1,0 +1,20 @@
+{
+  "name": "whisper-customer-held-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Müşteri whisper sırasında HOLD'a alınıyor (hold olayı). H4 ihlali (customer_held>0): whisper transfer WARM DEĞİLDİR — müşteri bekletilmez, canlı per-leg whisper kullanılır. Müşteriyi hold'a almak whisper'ı warm'a dönüştürür (yanlış mod) ve müşteri deneyimini bozar (sessiz bekleme). Gate ELER (require_live_customer).",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-whisper-008",
+  "call_id": "call-whisper-008",
+  "target": {"type": "QUEUE", "ref": "queue-support", "tenant_id": "t-acme"},
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "hold", "t": 1200},
+    {"kind": "agent_join", "t": 1400},
+    {"kind": "join_ack", "t": 2300, "code": 200},
+    {"kind": "whisper", "t": 2800, "to": "agent"},
+    {"kind": "ai_exit", "t": 3200}
+  ],
+  "expected": {"customer_live": false}
+}

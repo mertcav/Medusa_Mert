@@ -1,0 +1,17 @@
+{
+  "name": "whisper-drop-on-failure-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Temsilci red etti (603 Decline) ve sistem müşteri çağrısını DÜŞÜRDÜ (drop_on_failure) — fallback tetiklenmedi, müşteri oturumu korunmadı. H5 ihlali (dropped_on_failure>0): FR-HND-007 fail-safe — temsilci-katılım başarısızlığı çağrıyı düşürmemeli; müşteri canlı çağrıda kalmalı + 9.7 fallback. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-whisper-010",
+  "call_id": "call-whisper-010",
+  "target": {"type": "QUEUE", "ref": "queue-support", "tenant_id": "t-acme"},
+  "deadline_ms": 30000,
+  "inject": ["drop_on_failure"],
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "agent_join", "t": 1300},
+    {"kind": "join_ack", "t": 2100, "code": 603}
+  ]
+}

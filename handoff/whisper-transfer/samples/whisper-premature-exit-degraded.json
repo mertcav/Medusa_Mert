@@ -1,0 +1,16 @@
+{
+  "name": "whisper-premature-exit-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). AI, temsilci canlı konferansa KATILMADAN (join_ack 200 gelmeden) medya yolundan çıkıyor (ai_exit join öncesi). H7 ihlali (premature_exit>0): müşteri tek başına bırakılır — ne AI ne temsilci var. AI yalnız temsilci MEVCUTKEN + whisper iletildikten sonra çıkmalı. FAILED. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-whisper-009",
+  "call_id": "call-whisper-009",
+  "target": {"type": "AGENT", "ref": "agent-7", "tenant_id": "t-acme"},
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "agent_join", "t": 1400},
+    {"kind": "ai_exit", "t": 1900}
+  ]
+}

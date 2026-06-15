@@ -1,0 +1,19 @@
+{
+  "name": "whisper-leak-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Whisper brifing müşteriye de duyuluyor (whisper.to=customer) — per-leg seçici karışım yapılmamış, brifing medyası müşteri leg'ine de gidiyor. H3 ihlali (whisper_leaked>0): SAD §7.3 'yalnız temsilciye duyulan' + FR-HND-006 — brifing temsilciye özel olmalı. Whisper'da KESKİN: müşteri beklemede sessiz DEĞİL, canlı çağrıda AKTİF dinliyor → iç not/özet sızıntısı kesin duyulur (TM-I-*). Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-whisper-007",
+  "call_id": "call-whisper-007",
+  "target": {"type": "SKILL", "ref": "skill-billing", "tenant_id": "t-acme"},
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "agent_join", "t": 1300},
+    {"kind": "join_ack", "t": 2200, "code": 200},
+    {"kind": "whisper", "t": 2700, "to": "customer"},
+    {"kind": "ai_exit", "t": 3100}
+  ],
+  "expected": {"whisper_private": false}
+}

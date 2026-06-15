@@ -1,0 +1,16 @@
+{
+  "name": "whisper-deadline",
+  "$comment": "Temsilci join INVITE gönderildi ama hiçbir join_ack gelmedi (zil sonsuza dek). Deadline guard (H9) → FAILED(DEADLINE): sonsuz hang yok; müşteri CANLI çağrıda kalır (AI ile), 9.7 fallback. hung_transfer=0 (zorlandı). Geçer (beklenen deadline davranış).",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-whisper-004",
+  "call_id": "call-whisper-004",
+  "target": {"type": "QUEUE", "ref": "queue-tier2", "tenant_id": "t-acme"},
+  "deadline_ms": 20000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "agent_join", "t": 1300}
+  ],
+  "expected": {"terminal": "FAILED", "outcome": "fail", "fallback": true, "customer_live": true}
+}

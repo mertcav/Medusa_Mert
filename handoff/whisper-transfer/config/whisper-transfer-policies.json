@@ -1,0 +1,41 @@
+{
+  "$comment": "WBS 9.3 whisper transfer politika konfigürasyonu (vendor-neutral, credential-free). Gerçek konferans INVITE/per-leg whisper karışımı (whisper/coach mix) 4.2.5 TelephonyAdapter'da; bu config handoff-manager FSM davranış parametrelerini tutar. Sır/credential ve ham telefon numarası/whisper brifing METNİ YOK — yalnız deadline/policy parametreleri + hedef tip listesi + anons/whisper şablon KİMLİĞİ (metin değil) + fallback yönlendirme. Tenant override yalnız sıkılaştırır (deadline düşürebilir). WARM'dan FARK: place_customer_on_hold=false (whisper müşteriyi bekletmez, H4).",
+  "version": "1.0",
+  "wbs": "9.3",
+  "join_deadline_ms": 30000,
+  "announce_to_join_budget_ms": 3000,
+  "join_to_whisper_budget_ms": 2000,
+  "target_types": ["QUEUE", "SKILL", "AGENT", "NUMBER"],
+  "announce": {
+    "$comment": "AI katılım/aktarım anonsu (BRD §14.2). Metin değil, şablon KİMLİĞİ — gerçek TTS metni Prompt Manager (3.2.3) + tenant locale'inde. Anons iletilmeden temsilci canlı konferansa eklenmez (H2). WHISPER transfer müşteriyi HOLD'a ALMAZ — müşteri CANLI kalır (place_customer_on_hold=false; warm'dan ayrım, H4).",
+    "template_id": "handoff.whisper.announce",
+    "required": true,
+    "ai_disclosure": true,
+    "place_customer_on_hold": false
+  },
+  "whisper": {
+    "$comment": "Temsilciye per-leg whisper brifing (FR-HND-006 / SAD §7.3 'yalnız temsilciye duyulan'). Brifing İÇERİĞİ 9.6 bağlam paketi özet referansıdır (özet+intent+toplanan alanlar+auth durumu) — ham metin/PII config'te YOK. Müşteri CANLI çağrıda, per-leg karışım whisper medyasını müşteri leg'ine KARIŞTIRMAZ (H3 privacy; warm'dan keskin — müşteri aktif dinliyor). AI çıkışı öncesi zorunlu (H6).",
+    "required": true,
+    "audience": "agent_only",
+    "mix_model": "per_participant_selective",
+    "context_package_source": "9.6",
+    "summary_template_id": "handoff.whisper.summary"
+  },
+  "release": {
+    "$comment": "AI çıkışı (RFC 4579 konferanstan focus medya çekilmesi). AI yalnız temsilci canlı konferansa KATILDIKTAN + whisper iletildikten SONRA çıkar (H7 — temsilci-yokken-çıkış yok). Çıkışta müşteri↔temsilci konferansta kalır (müşteri leg'i KAPANMAZ).",
+    "ai_exit_after_agent_present": true,
+    "preserve_conference_on_ai_exit": true
+  },
+  "fallback": {
+    "$comment": "Başarısız whisper transfer fail-safe yönlendirmesi (H5 / FR-HND-007). Motor 9.7'de; bu config tetik+öncelik sırasını taşır. Müşteri temsilci-katılım başarısızlığında canlı çağrıda kalır (zaten beklemede değildi — preserve_customer_session).",
+    "to": "9.7",
+    "options": ["callback", "voicemail", "ticket"],
+    "preserve_customer_session": true,
+    "keep_customer_live_on_failure": true
+  },
+  "observability": {
+    "metric_prefix": "handoff_",
+    "alarm_on_failure_rate": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

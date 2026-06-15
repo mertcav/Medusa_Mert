@@ -1,0 +1,19 @@
+{
+  "name": "whisper-blind-join-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). AI katılım anonsu YOK (skip_announce) — temsilci müşteriye haber verilmeden canlı konferansa enjekte ediliyor. H2 ihlali (blind_join>0): BRD §14.2 no deceptive impersonation + nazik handoff — müşteri bir insan temsilcinin çağrıya katıldığını duyumsamalı. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-whisper-005",
+  "call_id": "call-whisper-005",
+  "target": {"type": "QUEUE", "ref": "queue-support", "tenant_id": "t-acme"},
+  "deadline_ms": 30000,
+  "inject": ["skip_announce"],
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "agent_join", "t": 1300},
+    {"kind": "join_ack", "t": 2100, "code": 200},
+    {"kind": "whisper", "t": 2600, "to": "agent"},
+    {"kind": "ai_exit", "t": 3000}
+  ]
+}

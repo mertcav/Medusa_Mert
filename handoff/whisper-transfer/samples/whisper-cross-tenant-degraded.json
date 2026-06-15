@@ -1,0 +1,18 @@
+{
+  "name": "whisper-cross-tenant-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Aktarım hedefi BAŞKA tenant'ın CC'sine (target.tenant_id=t-other ≠ çağrı tenant_id=t-acme). H10 ihlali (cross_tenant_target>0): FR-TEN-002 tenant izolasyonu — bir tenant'ın çağrısı başka tenant'ın temsilcisine/kuyruğuna aktarılamaz. Temsilci EKLENMEZ, FAILED→fallback. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-whisper-006",
+  "call_id": "call-whisper-006",
+  "target": {"type": "QUEUE", "ref": "queue-support", "tenant_id": "t-other"},
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "agent_join", "t": 1300},
+    {"kind": "join_ack", "t": 2100, "code": 200},
+    {"kind": "whisper", "t": 2600, "to": "agent"},
+    {"kind": "ai_exit", "t": 3000}
+  ]
+}

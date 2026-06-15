@@ -1,0 +1,17 @@
+{
+  "name": "whisper-join-busy",
+  "$comment": "Temsilci meşgul (486 Busy Here). FAILED → fail-safe: müşteri CANLI çağrıda kalır, 9.7 fallback. JOIN_BUSY sınıfı audit'e yazılır. Geçer (beklenen fail-safe).",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-whisper-003",
+  "call_id": "call-whisper-003",
+  "target": {"type": "AGENT", "ref": "agent-42", "tenant_id": "t-acme"},
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "agent_join", "t": 1300},
+    {"kind": "join_ack", "t": 2100, "code": 486}
+  ],
+  "expected": {"terminal": "FAILED", "outcome": "fail", "fallback": true, "customer_live": true}
+}

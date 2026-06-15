@@ -1,0 +1,20 @@
+{
+  "name": "whisper-happy-path",
+  "$comment": "Mutlu yol (FR-TEL-007 whisper). Aktarım kararı (9.4) → AI katılım anonsu (BRD §14.2; müşteri CANLI, hold YOK) → temsilci canlı konferansa eklenir (queue-support, RFC 4579) → 200 OK (temsilci katıldı) → per-leg whisper brifing YALNIZ temsilciye (müşteri canlı çağrıda, duymaz) → AI çıkar (temsilci MEVCUT) → HANDED_OFF. Müşteri↔temsilci canlı konferansta doğrudan konuşur, müşteri leg'i KAPANMAZ, AI medyası durur. Whisper private, müşteri canlı, fallback yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-whisper-001",
+  "call_id": "call-whisper-001",
+  "target": {"type": "QUEUE", "ref": "queue-support", "tenant_id": "t-acme"},
+  "context_package_ref": "ctx-001",
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1100},
+    {"kind": "agent_join", "t": 1400},
+    {"kind": "join_ack", "t": 4200, "code": 200},
+    {"kind": "whisper", "t": 5000, "to": "agent"},
+    {"kind": "ai_exit", "t": 5400}
+  ],
+  "expected": {"terminal": "HANDED_OFF", "outcome": "success", "agent_joined": true, "whisper_private": true, "customer_live": true, "fallback": false}
+}

@@ -1,0 +1,17 @@
+{
+  "name": "whisper-join-no-answer",
+  "$comment": "Temsilci canlı konferansa katılmaya yanıt vermiyor (480 — kimse yok). FAILED → fail-safe: oturum DÜŞMEZ, müşteri CANLI çağrıda kalır (AI ile, zaten beklemede değildi), 9.7 fallback (callback/voicemail/ticket) tetiklenir (FR-HND-007). dropped_on_failure=0, müşteri korunur. Geçer (beklenen fail-safe davranış).",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-whisper-002",
+  "call_id": "call-whisper-002",
+  "target": {"type": "SKILL", "ref": "skill-billing", "tenant_id": "t-acme"},
+  "deadline_ms": 30000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "agent_join", "t": 1300},
+    {"kind": "join_ack", "t": 9000, "code": 480}
+  ],
+  "expected": {"terminal": "FAILED", "outcome": "fail", "fallback": true, "customer_live": true}
+}

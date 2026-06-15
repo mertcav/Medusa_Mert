@@ -1,0 +1,144 @@
+{
+  "$comment": "WBS 9.3 — Whisper transfer (BRD §9.12 İnsan Temsilciye Aktarım / SAD §7.3 Human Handoff Akışı). 9. workstream'in (İnsan Temsilciye Aktarım) ÜÇÜNCÜ modülü ve F1... — DÜZELTME: F2-Must aktarım çekirdeği. FR-TEL-007 ('Cold, warm ve whisper transfer desteklenmelidir') üç transfer tipinden WHISPER transfer tipini SAHİPLENİR (COLD/blind→9.1, WARM/danışmalı köprüleme→9.2). SAD §7.3: 'WHISPER: yalnız temsilciye duyulan brifing'. WARM'dan (9.2) FARK: warm DANIŞMALI köprülemedir — müşteri HOLD'a alınır, AYRI bir danışma B-leg (consultation) kurulur, hedef yanıtlayınca whisper verilir, sonra A+B KÖPRÜLENİR ve AI çıkar; whisper warm'da geçici bir aşamadır. WHISPER transfer ise müşteriyi HOLD'a ALMAZ — temsilci CANLI çağrıya (konferans, RFC 4579 ad-hoc conferencing) eklenir, AI YALNIZ TEMSİLCİYE duyulan brifingi PER-LEG (katılımcı-başına) seçici medya karışımıyla iletir (müşteri leg'i whisper medyasını ALMAZ, görüşme canlı sürer), sonra AI medya yolundan çıkar → müşteri↔temsilci CANLI çağrıda doğrudan devam eder. WHISPER'ı diğer iki tipten ayıran ÇEKİRDEK MEKANİZMA: (a) müşteri ASLA bekletilmez (canlı per-leg whisper, hold+danışma DEĞİL — H4); (b) brifing per-leg karışımla YALNIZ temsilciye gider, müşteri CANLI çağrıda duymaz (H3 whisper-privacy — warm'dan daha keskin: müşteri beklemede sessiz değil, AKTİF dinliyor). Bu modül whisper transfer'i bir DETERMINISTIK DURUM MAKİNESİ olarak gerçekler: aktarım kararı geldiğinde (tetik 9.4 dışarıda) müşteriye AI aktarım/katılım anonsu (BRD §14.2 — müşteri CANLI, hold YOK), TelephonyAdapter.transfer(callId, target, WHISPER) (4.2.5 SPI / API §11.5) ile temsilci canlı konferansa eklenir (agent join INVITE, RFC 4579); 200 OK (temsilci katıldı) → WHISPERING (per-leg seçici karışım, yalnız temsilciye, FR-HND-006 ruhu) → AI çıkar (handoff complete — temsilci canlı çağrıda mevcut) → HANDED_OFF; temsilci yanıtsız/meşgul/red/deadline → FAILED (oturum DÜŞMEZ, müşteri canlı çağrıda kalır — zaten beklemede değil — AI ile veya 9.7 fallback'a devredilir — fail-safe). Her terminal sonuç raporlama (FR-HND-008→9.8) + audit'e (FR-IAM-006) yazılır. ÇEKİRDEK INVARIANT: anonssuz/sessiz temsilci enjeksiyonu yok (H2 blind-join, BRD §14.2); whisper YALNIZ temsilciye per-leg, müşteri (canlı) duymaz (H3 whisper-privacy, FR-HND-006/SAD §7.3 'yalnız temsilciye duyulan' + TM-I-*); müşteri bekletilmez — canlı per-leg (H4 no-hold, warm'dan ayrım); AI yalnız temsilci MEVCUTKEN çıkar (H7 premature-exit yok — müşteri tek başına bırakılmaz); başarısızlıkta oturum DÜŞMEZ + fallback (H5 fail-safe FR-HND-007); whisper transfer brifing İÇERİR (H6 missing-whisper yok — whisper brifingin yokluğu = whisper transfer değil); deadline aşımı→başarısızlık (H9 hang yok); hedef tenant-scoped (H10 cross-tenant yok). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): TelephonyAdapter.transfer() SPI + gerçek konferans INVITE/per-leg medya karışımı (whisper/coach mix) TAŞIMASI → 4.2.5 (bu modül transfer() SPI'sini ÇAĞIRIR + join/whisper-medya/transfer-result olaylarını TÜKETİR, ham SIP/medya yığını/mikser DEĞİL); COLD blind transfer (SIP REFER) → 9.1; WARM danışmalı köprüleme → 9.2; aktarım TETİKLEYİCİLERİ (kullanıcı isteği/düşük confidence/öfke/politika) → 9.4 (FR-HND-001/002; bu modül transfer KARARINI TÜKETİR, üretmez); kuyruk/skill/departman HEDEF SEÇİMİ → 9.5 (FR-TEL-008/FR-HND-003; bu modül ÇÖZÜLMÜŞ hedefi tüketir + biçim UYGUNLUĞUNU doğrular); bağlam paketi (özet+intent+alanlar+auth) + screen-pop → 9.6 (FR-HND-004/005; whisper brifing içeriği özet REFERANSIDIR, ham içerik değil); temsilci-yok callback/voicemail/ticket MOTORU → 9.7 (FR-HND-007; bu modül başarısızlıkta fallback'i TETİKLER, motoru DEĞİL); aktarım başarısı RAPORLAMA toplama → 9.8 (FR-HND-008; bu modül outcome KAYDINI üretir); audit STORE/correlation zenginleştirme → 7.1.6/12.1.8; E.164/caller-ID → 2.1.5. Spec/config/sample'larda sır/credential ve gerçek PII (ham telefon numarası DEĞERİ / çağrı içeriği / whisper brifing metni) YOK — yalnız hedef tip/referans kimlikleri + brifing özet REFERANSI + sanal zaman + sayılar + SIP kodu + uygunluk bayrakları. KAYNAK DOĞRULUK; çelişkide BRD/SAD/API esastır.",
+  "version": "1.0",
+  "wbs": "9.3",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TEL-007", "FR-HND-006", "FR-HND-007", "FR-HND-008", "FR-HND-004", "FR-TEN-002", "FR-IAM-006", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-TEL-007"],
+    "rtm": ["TC-TEL-007"],
+    "brd": [
+      "§9.12 (İnsan Temsilciye Aktarım — FR-TEL-007 cold/warm/whisper transfer; FR-HND-006 whisper brifing temsilciye; FR-HND-007 temsilci yoksa callback/voicemail/ticket; FR-HND-008 aktarım başarısı+bekleme süresi raporlama)",
+      "§14.2 (No deceptive impersonation — temsilci canlı çağrıya eklenmeden önce AI bildirimi / nazik katılım anonsu; müşteri HOLD'a alınmaz)",
+      "§19 (6) (Kabul kriteri: 'Warm ve cold transfer başarıyla çalışmalıdır' — whisper transfer FR-TEL-007 üçüncü tip, aynı handoff çekirdeği)",
+      "§16/§24 (Call / Call Leg / Audit Log varlıkları — temsilci konferans leg + transfer outcome kaydı)"
+    ],
+    "sad": [
+      "§7.3 (Human Handoff Akışı — WHISPER: yalnız temsilciye duyulan brifing)",
+      "§8.1/§11.5 (TelephonyAdapter SPI — transfer(callId, target, mode∈{COLD,WARM,WHISPER}))",
+      "§6.1 (turn state machine — aktarım turn'leri ACT/SPEAK'te ilerler; whisper-transfer FSM turn-üstü oturum durumu)",
+      "§13.3 (correlation/tenant context propagation — transfer outcome + temsilci konferans leg correlation_id+tenant taşır)",
+      "§14 (güvenlik tasarımı — fail-safe: başarısız aktarımda oturum düşmez; per-leg whisper privacy)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — handoff manager STT/LLM/TTS'e doğrudan bağlanmaz; transfer kararı orkestratörden, mekanizma TelephonyAdapter SPI'sinden)",
+      "ADR-002 (vendor-neutral — whisper/per-leg karışım mantığı sağlayıcı bağımsız; managed CPaaS conference-coach / BYOC media-server mix arkada değişir, FSM aynı)",
+      "ADR-005 (edge barge-in/medya — whisper per-leg karışım medya yolu; müşteri canlı medyası edge'de, whisper temsilci leg'ine seçici)",
+      "ADR-009 (hibrit medya — konferans/karışım medya konumu SPI'yi değiştirmez)"
+    ],
+    "threat_model": [
+      "TM-I-* (bilgi sızıntısı — whisper brifing YALNIZ temsilciye per-leg; müşteri CANLI çağrıda duymaz [warm'dan keskin: müşteri aktif dinliyor]; ham numara/içerik/brifing metni metriklerde/loglarda yok)",
+      "TM-D-* (DoS / oturum düşmesi — temsilci katılım başarısızlığında müşteri canlı çağrısı korunur, fail-safe)",
+      "TM-R-* (inkâr — her terminal outcome + temsilci konferans leg audit'e yazılır)",
+      "TM-T-* (tenant izolasyonu — temsilci hedefi tenant CC routing'i içinde, cross-tenant reddedilir)"
+    ],
+    "consumes": [
+      "9.4 transfer tetikleyici (FR-HND-001/002) — transfer KARARINI tüketir (üretmez)",
+      "9.5 hedef seçimi (FR-TEL-008/FR-HND-003) — ÇÖZÜLMÜŞ TransferTarget'i tüketir",
+      "9.6 bağlam paketi (FR-HND-004/005) — whisper brifing context_package_ref'i tüketir (özet referansı)",
+      "4.2.5 TelephonyAdapter.transfer() (FR-TEL-007) — transfer() SPI çağrısı + temsilci join/whisper-medya/transfer-result olaylarını tüketir"
+    ],
+    "consumed_by": [
+      "9.7 temsilci-yok fallback (FR-HND-007) — başarısız whisper transfer FALLBACK tetiğini tüketir",
+      "9.8 aktarım raporlama (FR-HND-008) — terminal outcome kaydını (success/fail + wait/join duration) tüketir",
+      "7.1.6 + 12.1.8 audit store (FR-IAM-006) — transfer + temsilci konferans leg audit kaydını kalıcılaştırır",
+      "0.4.7 gözlemlenebilirlik — handoff_transfer_total / handoff_wait_seconds / handoff_whisper_total metriklerini tüketir"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Whisper-transfer FSM'i orkestratör turn döngüsünün ÜSTÜNDE bir oturum-durumu makinesidir: aktarım kararı (9.4) algılanınca FSM başlatılır; agent katılım anonsu turn'ünü sürdürür (ANNOUNCE — müşteri CANLI, hold YOK), sonra TelephonyAdapter.transfer(...,WHISPER) ile temsilci canlı konferansa eklenir (AGENT_JOINING, RFC 4579), temsilci katılınca per-leg whisper brifing verilir (WHISPERING — müşteri canlı çağrıda, whisper medyasını ALMAZ) ve AI çıkar → HANDED_OFF. FSM hot-path turn'ünü BLOKLAMAZ — AGENT_JOINING/WHISPERING durumları deadline'lı (H9), join/whisper olayları asenkron gelir; müşteri canlı medyası edge'de, whisper per-leg karışım temsilci leg'ine seçici (ADR-005/009). Vendor-neutral (ADR-001/002): transfer() SPI + join/whisper-medya/transfer-result olay arayüzü politika noktası; referans deterministik FSM; canlıda gerçek konferans INVITE/per-leg whisper/coach karışımı AYNI olay sözleşmesi arkasına (managed CPaaS conference-coach / BYOC media-server selective-mix).",
+    "plane": "voice-runtime orchestrator (handoff manager — oturum-durumu FSM)",
+    "owns": "SAD §7.3 whisper transfer kompozisyonu: katılım anonsu (müşteri CANLI)→temsilci canlı konferansa ekleme→per-leg whisper brifing (yalnız temsilci)→AI çıkış / başarısızlıkta fail-safe fallback + outcome audit",
+    "delegates": "transfer() SPI + konferans INVITE/per-leg whisper karışım taşıması → 4.2.5; hedef seçimi → 9.5; bağlam paketi → 9.6; fallback motoru → 9.7; outcome toplama → 9.8; audit store → 7.1.6/12.1.8",
+    "deterministic": true,
+    "trace": "SAD §7.3, SAD §8.1/§11.5, SAD §6.1, ADR-001, ADR-002, ADR-005"
+  },
+
+  "states": {
+    "$comment": "Whisper transfer durum makinesi (H1). Ad-hoc conferencing (RFC 4579) + per-katılımcı seçici medya (whisper/coach mix) handoff-manager soyutlamasında: INIT→ANNOUNCE→AGENT_JOINING→WHISPERING→{HANDED_OFF|FAILED}. ANNOUNCE: AI müşteriye katılım/aktarım bildirimi (BRD §14.2); müşteri CANLI kalır — HOLD YOK (warm'dan ayrım, H4). AGENT_JOINING: transfer(...,WHISPER) çağrıldı, temsilci canlı konferansa eklendi (join INVITE gönderildi), 200 OK (temsilci katıldı) bekleniyor; müşteri canlı çağrıda devam eder. WHISPERING: temsilci katıldı, AI YALNIZ temsilciye per-leg whisper brifing iletir (müşteri canlı, whisper medyasını ALMAZ — H3; FR-HND-006). HANDED_OFF (terminal-başarı): whisper iletildi + temsilci MEVCUT + AI medya yolundan çıktı → müşteri↔temsilci canlı çağrıda doğrudan, müşteri leg'i KAPANMAZ, AI medyası durur. FAILED (terminal-başarısızlık): temsilci yanıtsız/meşgul/red / deadline / temsilci-mevcut-değilken-AI-çıkışı → oturum düşmez, müşteri canlı çağrıda kalır (AI ile), fallback (9.7). Terminal durumlar IMMUTABLE.",
+    "flow": ["INIT", "ANNOUNCE", "AGENT_JOINING", "WHISPERING", "HANDED_OFF", "FAILED"],
+    "non_terminal": ["INIT", "ANNOUNCE", "AGENT_JOINING", "WHISPERING"],
+    "terminal": ["HANDED_OFF", "FAILED"],
+    "terminal_success": ["HANDED_OFF"],
+    "terminal_failure": ["FAILED"]
+  },
+
+  "transitions": {
+    "$comment": "İzinli geçişler + kapı koşulu. Her geçiş fail-safe: başarısızlık daima FAILED'e (oturum düşmeden, müşteri canlı çağrıda kalarak) gider, asla tanımsız/stuck duruma değil (H1). Sıra: hedef-doğrula(G1)→katılım anonsu, müşteri CANLI(G2)→temsilci canlı konferansa ekle(G3)→per-leg whisper+AI-çıkış(G4).",
+    "edges": [
+      {"from": "INIT", "to": "ANNOUNCE", "gate": "G1", "cond": "TransferTarget çözülmüş + geçerli tip (QUEUE/SKILL/AGENT/NUMBER) + tenant-scoped (H8/H10)"},
+      {"from": "INIT", "to": "FAILED", "gate": "G1", "cond": "hedef çözülmemiş/cross-tenant → temsilci eklenmez, fallback (H8/H10)"},
+      {"from": "ANNOUNCE", "to": "AGENT_JOINING", "gate": "G2", "cond": "AI katılım anonsu iletildi + müşteri CANLI kalır (hold YOK, H4; anonssuz/sessiz katılım yok, H2) + transfer(...,WHISPER) çağrıldı (temsilci join INVITE)"},
+      {"from": "AGENT_JOINING", "to": "WHISPERING", "gate": "G3", "cond": "temsilci join 200 OK (canlı konferansa katıldı); müşteri canlı çağrıda (RFC 4579 ad-hoc conferencing)"},
+      {"from": "AGENT_JOINING", "to": "FAILED", "gate": "G3", "cond": "temsilci yanıtsız (480/408) / meşgul (486) / red (488/503/603) / deadline → müşteri canlı çağrıda kalır (AI ile), fallback (H5/H9)"},
+      {"from": "WHISPERING", "to": "HANDED_OFF", "gate": "G4", "cond": "per-leg whisper brifing temsilciye iletildi (müşteri canlı, duymaz — H3/H6) + AI çıktı (temsilci MEVCUT — H7) → müşteri↔temsilci canlı çağrıda doğrudan"},
+      {"from": "WHISPERING", "to": "FAILED", "gate": "G4", "cond": "temsilci handoff öncesi ayrıldı / whisper deadline / temsilci-mevcut-değilken-AI-çıkışı → müşteri canlı çağrıda kalır (AI ile), fallback (H5/H7)"}
+    ],
+    "on_handed_off": "RELEASE_AI eylemi: müşteri↔temsilci canlı çağrıda kalır + AI medya yolundan çıkar (ai_media_stopped) + AI oturumu sonlanır; müşteri leg'i KAPANMAZ (canlı, müşteri↔temsilci), temsilci MEVCUT (handoff tamamlandı, AI çıkıştan ÖNCE temsilci katıldı + whisper iletildi, H7)",
+    "on_failed": "FALLBACK eylemi: müşteri canlı çağrıda KORUNUR (zaten beklemede değil, AI ile devam) + temsilci konferans leg sonlandırılır + 9.7 retention'a (callback/voicemail/ticket) devredilir (fail-safe, H5)"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli; bir senaryoda ihlal varsa kapı eler. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1/F2 canlı PoC + gerçek trunk'ta doğrulanır. join_deadline_ms bir insan temsilcinin canlı konferansa katılmasını bekler (zil süresi); müşteri bu süre boyunca CANLI çağrıda (AI ile) — bekletilmez (H4 ayrımı).",
+    "max_blind_join": 0,
+    "max_whisper_leaked": 0,
+    "max_customer_held": 0,
+    "max_dropped_on_failure": 0,
+    "max_missing_whisper": 0,
+    "max_premature_exit": 0,
+    "max_unresolved_target": 0,
+    "max_cross_tenant_target": 0,
+    "max_hung_transfer": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "join_deadline_ms": 30000,
+    "announce_to_join_p95_ms": 3000,
+    "join_to_whisper_p95_ms": 2000,
+    "require_terminal": true,
+    "require_agent_present_on_success": true,
+    "require_live_customer": true,
+    "require_outcome_report": true
+  },
+
+  "conference_transfer": {
+    "$comment": "RFC 4579 (SIP Conferencing for User Agents — ad-hoc conference) + per-katılımcı seçici medya (whisper/coach mix) eşlemesi (handoff-manager soyutlamasında; ham SIP/medya mikseri 4.2.5/BYOC media-server'da). conference_focus=platform (mevcut çağrı focus'a yükseltilir), customer=canlı katılımcı (hold YOK), agent=eklenen katılımcı. Ad-hoc: mevcut müşteri↔AI çağrısı bir konferansa (focus) yükseltilir → temsilci INVITE ile konferansa eklenir → 200 OK (temsilci katıldı) → AI per-leg whisper brifing TEMSİLCİYE (mikser müşteri leg'ine whisper medyasını KARIŞTIRMAZ — H3 privacy; müşteri canlı görüşmeyi duymaya devam eder) → AI medya yolundan çıkar (müşteri↔temsilci konferansta kalır). Bu modül bu yaşam döngüsünü transfer-result/join/whisper olay sözleşmesi olarak modeller; SIP kodları yalnız audit/log'ta, müşteriye sızmaz (H12); whisper brifing içeriği özet referansıdır, ham metin/PII değil. WARM'dan FARK: warm re-INVITE-hold (müşteri sendonly/bekletme) + ayrı danışma B-leg; whisper hold YOK — canlı konferans + per-leg karışım.",
+    "model": "ad-hoc conference + per-participant selective mix (whisper/coach)",
+    "roles": {"conference_focus": "platform (handoff manager, AI)", "customer": "müşteri (canlı katılımcı, hold YOK)", "agent": "CC hedefi (QUEUE/SKILL/AGENT/NUMBER, eklenen katılımcı)"},
+    "lifecycle": ["focus yükselt (müşteri↔AI çağrısı → konferans, müşteri CANLI)", "INVITE (temsilci → konferansa ekle)", "200 OK (temsilci katıldı)", "per-leg whisper (AI→temsilci, müşteri leg'ine karışmaz)", "AI çıkış (focus medya çekil, müşteri↔temsilci konferansta kalır)"],
+    "join_answer_code": 200,
+    "join_fail_codes": [408, 480, 486, 488, 503, 600, 603],
+    "fail_code_class": {"408": "JOIN_NO_ANSWER", "480": "JOIN_NO_ANSWER", "486": "JOIN_BUSY", "488": "JOIN_REJECTED", "503": "JOIN_REJECTED", "600": "JOIN_DECLINED", "603": "JOIN_DECLINED"}
+  },
+
+  "observability": {
+    "$comment": "Whisper transfer her terminal için BRD §15 + handoff metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. handoff_transfer_total{mode=whisper,outcome} → transfer sayımı; handoff_wait_seconds → anons→terminal bekleme (FR-HND-008→9.8); handoff_join_duration_ms → temsilci join INVITE→200 OK süresi (temsilci zil); handoff_whisper_total{outcome} → whisper brifing sayımı (FR-HND-006); handoff_fallback_total → başarısızlıkta fallback (FR-HND-007). tenant_id+mode+outcome+target_type+failure_class DÜŞÜK kardinalite (label uygun); call_id/correlation_id/agent_leg_ref YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Ham telefon numarası, çağrı içeriği, whisper brifing metni veya PII metriklerde yok. Aktarım başarısızlığı alarmı (SAD §17.2 'handoff başarısızlığı') ≤2dk (NFR 10.1).",
+    "metrics": ["handoff_transfer_total", "handoff_wait_seconds", "handoff_join_duration_ms", "handoff_whisper_total", "handoff_fallback_total"],
+    "low_cardinality_labels": ["tenant_id", "mode", "outcome", "target_type", "failure_class"],
+    "high_cardinality_trace_only": ["call_id", "correlation_id", "agent_leg_ref", "context_package_ref"],
+    "alarm": "handoff başarısızlığı oranı artışı → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "H1", "desc": "FSM tamlığı: her senaryo tanımlı kenarlar boyunca ilerler ve bir terminal duruma {HANDED_OFF|FAILED} ulaşır; stuck/tanımsız durum yok. Başarısızlık daima FAILED'e gider (asla orphan/hang). stuck_state=0.", "trace": "SAD §7.3, SR-TEL-007"},
+    {"id": "H2", "desc": "Anons önce: ANNOUNCE (AI katılım/aktarım bildirimi, müşteri CANLI) geçilmeden AGENT_JOINING'e ulaşılamaz; anonssuz/sessiz temsilci enjeksiyonu yok (BRD §14.2 no deceptive impersonation + nazik handoff). blind_join=0.", "trace": "BRD §14.2, FR-TEL-007"},
+    {"id": "H3", "desc": "Whisper privacy: whisper brifing YALNIZ temsilciye (agent leg) per-leg karışımla iletilir; müşteri CANLI çağrıda, whisper medyasını ALMAZ. Brifing müşteriye sızarsa ihlal (SAD §7.3 'yalnız temsilciye duyulan' + FR-HND-006; warm'dan KESKİN: müşteri beklemede sessiz değil, AKTİF dinliyor — TM-I-*). whisper_leaked=0.", "trace": "SAD §7.3, FR-HND-006, TM-I-*"},
+    {"id": "H4", "desc": "Müşteri bekletilmez (no-hold): whisper transfer müşteriyi HOLD'a ALMAZ — canlı per-leg whisper (warm'ın hold+danışma modelinden AYRIM). Müşteri herhangi bir aşamada hold'a alınırsa ihlal. customer_held=0.", "trace": "SAD §7.3 (WHISPER ≠ WARM hold), FR-TEL-007"},
+    {"id": "H5", "desc": "Fail-safe: temsilci yanıtsız/meşgul/red / whisper hatası / deadline → oturum DÜŞMEZ; müşteri canlı çağrıda kalır (AI ile, zaten beklemede değil) + 9.7 fallback (callback/voicemail/ticket) tetiklenir. dropped_on_failure=0.", "trace": "FR-HND-007, SAD §14"},
+    {"id": "H6", "desc": "Whisper brifing dahil: whisper transfer, AI çıkışı öncesi temsilciye whisper brifing İÇERİR (whisper brifingin yokluğu = whisper transfer değil; FR-HND-006 ruhu — 'temsilciye kısa bilgi'). HANDED_OFF'a whisper'sız ulaşılırsa ihlal. missing_whisper=0.", "trace": "FR-HND-006, FR-HND-004, SAD §7.3"},
+    {"id": "H7", "desc": "Temsilci mevcutken çıkış (no premature exit): AI yalnız temsilci canlı çağrıya KATILDIKTAN + whisper iletildikten SONRA medya yolundan çıkar; temsilci mevcut değilken AI çıkışı müşteriyi tek başına bırakır → yasak. Başarıda agent_present zorunlu. premature_exit=0.", "trace": "SAD §7.3 (yalnız temsilciye brifing, sonra AI çıkar), FR-TEL-007"},
+    {"id": "H8", "desc": "Hedef çözülmüş + geçerli tip: TransferTarget boş/çözülmemiş veya geçersiz tip ise temsilci eklenmez (FAILED→fallback). unresolved_target=0.", "trace": "FR-HND-003, API §11.5 TransferTarget"},
+    {"id": "H9", "desc": "Deadline guard: temsilci join/whisper deadline (join_deadline_ms) aşılırsa → FAILED (sonsuz hang yok; müşteri süresiz bekletme YOK — zaten canlı, ama AI sonsuz yönetim de yok). hung_transfer=0.", "trace": "SAD §6.1, NFR 10.1"},
+    {"id": "H10", "desc": "Tenant izolasyonu: temsilci hedefi tenant'ın CC routing'i içinde; cross-tenant hedef reddedilir (FAILED). cross_tenant_target=0.", "trace": "FR-TEN-002, NFR 10.7"},
+    {"id": "H11", "desc": "Outcome raporlama + audit: her terminal outcome {success/fail} + wait_seconds + join_duration + correlation_id + tenant_id audit'e yazılır (FR-HND-008→9.8, FR-IAM-006). missing_audit=0.", "trace": "FR-HND-008, FR-IAM-006"},
+    {"id": "H12", "desc": "Sır/PII yok: hedef referansı kimlik; ham telefon numarası/çağrı içeriği/whisper brifing metni spec/config/sample/metrikte yok; SIP kodları yalnız audit/log; brifing özet REFERANSI (ham içerik değil). secret_or_pii=0.", "trace": "BRD §14, BRD §16, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar ham TELEFON NUMARASI DEĞERİ, çağrı medyası/transkript, whisper brifing METNİ veya PII DEĞERİ TUTMAZ — yalnız hedef tip/referans KİMLİKLERİ + brifing özet REFERANSI + sanal zaman + transfer SAYILARI + SIP kodu (yapısal) + uygunluk bayrakları (boolean). Hedef referansı (queue/skill/agent kimliği) PII değildir. Whisper brifing içeriği 9.6 bağlam paketi referansıdır; ham özet/PII orchestrator+DB katmanında redaction/şifreleme ile. Örnekte numara gerekiyorsa yalnız rezerve/test bloğu (ITU 1632 / 555-01xx) yapısal biçim için; gerçek müşteri numarası YOK.",
+    "forbids": ["raw_phone_number_value", "call_content", "transcript", "whisper_briefing_text", "credential", "secret", "pii_value"]
+  }
+}
