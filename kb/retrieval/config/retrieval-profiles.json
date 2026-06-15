@@ -1,0 +1,56 @@
+{
+  "$comment": "WBS 6.2.1 — Retrieval profilleri (vector search top-k + opsiyonel rerank). Sağlayıcı-nötr (ADR-002): embedding_model + rerank_model birer ETİKETtir, sağlayıcı adı değil — canlıda gerçek semantik model + cross-encoder AYNI EmbeddingAdapter/RerankAdapter SPI arkasına takılır. Sır/credential YOK (endpoint/anahtar yalnız ${ENV}; bu config yalnız davranış parametreleri). Eşikler MÜHENDİSLİK varsayılanı; gerçek top_k/min_score/recall tenant compliance profile (DPIA cp.*) + 0.2.5 vector-db-eval + üretim ölçümüyle ayarlanır. residency_region='home' = tenant home-region (NFR 10.7). no_train/no_log endpoint zorunlulukları FR-LLM-012/FR-KB-010. acl: 6.1.4 AccessGate parametreleri (enforce_acl=false yalnız NEGATİF profil).",
+  "clearance_lattice": ["public", "internal", "confidential", "restricted"],
+  "profiles": {
+    "pilot-default": {
+      "$comment": "Pilot varsayılan (F1). top_k=5, rerank AÇIK (cross-encoder stand-in), 20 aday → rerank → top_k; min_score alaka eşiği; no-train/no-log home-region; 6.1.4 ACL pre-filtre AÇIK.",
+      "top_k": 5,
+      "rerank": {"enabled": true, "model": "ref-rerank-v1", "candidates": 20},
+      "min_score": 0.10,
+      "embedding": {"model": "ref-embed-v1", "dim": 256, "endpoint_ref": "${KB_EMBED_ENDPOINT}", "no_train": true, "no_log": true},
+      "acl": {"enforce_acl": true, "require_acl_classifications": ["confidential", "restricted"], "redaction_mode": "redact", "default_acl_decision": "deny", "deny_wins": true},
+      "residency_region": "home",
+      "allowed_regions": ["home"]
+    },
+    "regulated-tr": {
+      "$comment": "Regüle TR (finans/sağlık). Küçük top_k=4 (hassas bağlam granülaritesi) + rerank AÇIK + daha yüksek min_score (alaka katı) + no-train ZORUNLU + yalnız tr-home.",
+      "top_k": 4,
+      "rerank": {"enabled": true, "model": "ref-rerank-v1", "candidates": 16},
+      "min_score": 0.15,
+      "embedding": {"model": "ref-embed-v1", "dim": 256, "endpoint_ref": "${KB_EMBED_ENDPOINT_TR}", "no_train": true, "no_log": true},
+      "acl": {"enforce_acl": true, "require_acl_classifications": ["internal", "confidential", "restricted"], "redaction_mode": "redact", "default_acl_decision": "deny", "deny_wins": true},
+      "residency_region": "home",
+      "allowed_regions": ["home"]
+    },
+    "enterprise-eu": {
+      "$comment": "Enterprise EU. Büyük top_k=8 (uzun politika bağlamı) + rerank AÇIK (40 aday) + eu-home.",
+      "top_k": 8,
+      "rerank": {"enabled": true, "model": "ref-rerank-v1", "candidates": 40},
+      "min_score": 0.08,
+      "embedding": {"model": "ref-embed-v1", "dim": 256, "endpoint_ref": "${KB_EMBED_ENDPOINT_EU}", "no_train": true, "no_log": true},
+      "acl": {"enforce_acl": true, "require_acl_classifications": ["confidential", "restricted"], "redaction_mode": "redact", "default_acl_decision": "deny", "deny_wins": true},
+      "residency_region": "home",
+      "allowed_regions": ["home"]
+    },
+    "no-rerank": {
+      "$comment": "Rerank DEVRE DIŞI profil (opsiyonellik kanıtı, SAD §10.2 'reranking (opsiyonel)'). Yalnız vector search cosine → top_k. Geçerli sıralama döndürür; R6 order-only trivially tutar.",
+      "top_k": 5,
+      "rerank": {"enabled": false, "model": "ref-rerank-v1", "candidates": 20},
+      "min_score": 0.10,
+      "embedding": {"model": "ref-embed-v1", "dim": 256, "endpoint_ref": "${KB_EMBED_ENDPOINT}", "no_train": true, "no_log": true},
+      "acl": {"enforce_acl": true, "require_acl_classifications": ["confidential", "restricted"], "redaction_mode": "redact", "default_acl_decision": "deny", "deny_wins": true},
+      "residency_region": "home",
+      "allowed_regions": ["home"]
+    },
+    "degraded-noacl-train": {
+      "$comment": "NEGATİF profil (yalnız negatif kapı kanıtı için): enforce_acl=false (6.1.4 ACL pre-filtre BYPASS → yetkisiz/cross-clearance chunk döner, R4 eler) + no_train=false (train-açık endpoint → hassas soru NO_TRAIN_REQUIRED_VIOLATION, R8 eler). Üretimde KULLANILMAZ.",
+      "top_k": 10,
+      "rerank": {"enabled": true, "model": "ref-rerank-v1", "candidates": 20},
+      "min_score": 0.0,
+      "embedding": {"model": "ref-embed-v1", "dim": 256, "endpoint_ref": "${KB_EMBED_ENDPOINT}", "no_train": false, "no_log": true},
+      "acl": {"enforce_acl": false, "require_acl_classifications": ["confidential", "restricted"], "redaction_mode": "redact", "default_acl_decision": "deny", "deny_wins": true},
+      "residency_region": "home",
+      "allowed_regions": ["home"]
+    }
+  }
+}

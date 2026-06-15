@@ -1,0 +1,136 @@
+{
+  "$comment": "WBS 6.2.1 — Vector search (top-k) + opsiyonel rerank (SAD §10.2). Bilgi Tabanı & RAG ONLINE retrieval hattının (hot-path) BİRİNCİ aşaması: SAD §10.2 'Soru ──► embed ──► vector search (top-k) ──► reranking (opsiyonel) ──► trim (token budget) ──► LLM context (kaynak atıflı)'. Bu motor 6.1.3 IndexPipeline'ın ürettiği AKTİF IndexedChunk'ları (namespace+classification+acl+version+citation metadata C2/C9 ile TAŞINMIŞ) TÜKETİR — chunk/embed/version'u YENİDEN YAPMAZ (referans probe index_pipeline_probe'u import eder; o da ingest_connector_probe'u import eder; kod tekrarı YOK). Soruyu AYNI vendor-neutral EmbeddingAdapter SPI ile (ADR-001/002) embed eder → aday chunk vektörleriyle cosine benzerliği → namespace izolasyonu (FR-KB-004) + 6.1.4 ACL pre-filtre (FR-KB-005) + yalnız-aktif (6.1.3 C8) ile sınırlı aday kümesi → top-k seçim (FR-KB-011 bağlam maliyeti sınırı) → OPSİYONEL rerank (vendor-neutral RerankAdapter SPI, yalnız sıralar, küme değiştirmez) → citation'lı RankedResult. Aday hiçbiri min_score eşiğini geçmezse BOŞ sonuç + grounded=false (FR-KB-007 anti-hallucination kancası → 3.3.4 Policy). Hot-path (SAD §20 RAG kalemi ~100–200ms; retrieval P95 ≤200ms 0.2.5 vector-db-eval kapısında ölçülür — burada SOFT not). Vendor-neutral (ADR-002): embedding + rerank birer SPI arkasındadır; referans deterministik feature-hash BoW embedder + coverage reranker yerine canlıda gerçek semantik model + cross-encoder AYNI imza arkasına TAKILIR; orchestrator yalnız chunk+vektör+citation sözleşmesine bağımlıdır (ADR-001). Determinizm: tohumlu deterministik embedder/reranker (Date.now/rastgele YOK). Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (fixture içerikleri sentetik — FR-TST-008). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "6.2.1",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-KB-004", "FR-KB-005", "FR-KB-006", "FR-KB-007", "FR-KB-011", "FR-TEN-002", "FR-RES-010", "FR-LLM-012", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-KB-004", "SR-KB-005", "SR-KB-006", "SR-KB-007", "SR-KB-011", "SR-RES-010"],
+    "rtm": ["TC-KB-004", "TC-KB-005", "TC-KB-006", "TC-KB-007", "TC-KB-011"],
+    "sad": ["§10.2 (online retrieval hot-path: Soru → embed → vector search top-k → rerank (opsiyonel) → trim → LLM context kaynak atıflı)", "§10.1 (IndexedChunk/embedding ÜRETEN taraf — bu motor TÜKETİR)", "§12.1 (pgvector/OpenSearch ANN top-k)", "§20 (RAG retrieval ~100–200ms hot-path bütçe kalemi)", "§6.1 (THINK: Policy pre-check → LLM Router → RAG/Tool)"],
+    "brd": ["§9.9 (Bilgi Tabanı ve RAG)", "§13 (anti-hallucination/kaynak atfı)", "§15 (retrieval gözlemlenebilirlik)"],
+    "adr": ["ADR-001 (orchestrator/RAG client SPI bağımsızlığı — embedding+rerank SPI arkası)", "ADR-002 (vendor-neutral — embedding/rerank modeli değiştirilebilir, kategori başına ≥2)", "ADR-008 (semantic cache AYNI embedding SPI'yi tüketir)"],
+    "api": ["§ L2 RAG/retrieval iç sözleşme (orchestrator RAG Client → KB Service)", "§11.6 ErrorTaxonomy ruhu"],
+    "db": ["DB.md §5.3 kb_chunk (embedding/chunk_no/version_no) — 1.1.7 vektör store", "DB.md §7.1 HNSW ANN", "DB.md §12 pgvector boyut 1536"],
+    "vendor_eval": ["0.2.5 vector-db-eval: recall@k ≥0.95 en-kötü sorgu sınıfı + retrieval P95 ≤200ms SAD §20 + cross-tenant/ACL sızıntı=0 — bu motorun CANLI kapısı (pgvector/OpenSearch ANN)"],
+    "consumes": ["6.1.3 AKTİF IndexedChunk (content+embedding+namespace+citation+access metadata)", "6.1.4 ACL pre-filtre yüklemi (PrefilterPredicate — FR-KB-005 enforcement at retrieval)"],
+    "consumed_by": ["6.2.2 token trimming (RankedResult token_estimate/char_count TÜKETİR — bağlam bütçesi)", "6.2.3 kaynak atfı (RankedResult citation TÜKETİR — FR-KB-006 yanıt→kaynak)", "6.2.4 hassas doküman no-log (retrieval no-log kanalı TÜKETİR)", "6.2.5 KB Q&A benchmark (retrieval recall/sıralama ölçer — FR-KB-009)", "3.3.4 anti-hallucination (grounded=false → 'kaynak yoksa uydurma yok' → FR-KB-007)"]
+  },
+
+  "placement": {
+    "$comment": "Retrieval ONLINE (hot-path) RAG hattında çalışır — turn döngüsünün THINK aşamasında (SAD §6.1: Policy pre-check → LLM Router → gerekirse RAG/Tool). Soru→embed→vector search top-k→rerank(opsiyonel)→trim (SAD §10.2). Çoğu turda ATLANIR (SAD §20: 'Top-k; çoğu turda atlanır'); gerektiğinde ~100–200ms bütçe kalemi (hot-path P95 ≤200ms retrieval — formal ölçüm 0.2.5 vector-db-eval + canlı PoC). Vendor-neutral (ADR-002): embedding + rerank birer SPI arkasında; RAG client yalnız chunk+vektör+citation sözleşmesine bağımlı (ADR-001). Referans probe stored vektör yerine aday chunk content'ini AYNI EmbeddingAdapter ile YENİDEN embed eder (durable vektör store 1.1.7'de; canlıda pgvector/OpenSearch ANN top-k metadata-filtreli) — ranking sözleşmesi AYNI. Hassas soru no-train/no-log endpoint + home-region (FR-LLM-012/FR-KB-010/NFR 10.7).",
+    "plane": "voice-runtime (online retrieval, hot-path)",
+    "hot_path": true,
+    "behind_spi": true,
+    "orchestrator_depends_on_chunk_vector_citation_contract_only": true,
+    "two_stage": "stage1 vector search (cosine top-n) → stage2 OPSİYONEL rerank (top-n → top-k)",
+    "enforcement_points": ["store pre-filter (namespace + active + 6.1.4 ACL yüklemi vector query'sine push — yetkisiz/yabancı aday HİÇ çekilmez)", "retrieval-side namespace+active invariant (her dönen chunk ctx namespace + aktif)"],
+    "latency_budget_soft": "SAD §20 RAG retrieval ~100–200ms; hot-path retrieval P95 ≤200ms (0.2.5 vector-db-eval + canlı). Referans probe deterministik — gecikme SOFT raporlanır, HARD kapı DEĞİL (formal ölçüm canlı ANN).",
+    "trace": "SAD §10.2, SAD §6.1, SAD §20, ADR-001, ADR-002, 0.2.5 vector-db-eval"
+  },
+
+  "spi": {
+    "$comment": "İki SPI yüzeyi (vendor-neutral, ADR-001/002). (1) EmbeddingAdapter: embed_batch(texts, ctx) → list[vector(embedding_dim)] — soru + chunk content AYNI uzayda; referans deterministik feature-hash BoW embedder (sha256-tohumlu signed feature hashing, L2-normalize → cosine lexical overlap'ı yansıtır, recall TEST EDİLEBİLİR) yerine canlıda gerçek semantik model AYNI imza arkasına. ctx residency_region + no_train + no_log + sensitive taşır; hassas soru + no_train=false → NO_TRAIN_REQUIRED_VIOLATION (fail-closed). (2) RerankAdapter: rerank(query_text, candidates) → reordered candidates (yalnız SIRALAR; küme=aynı, yeni doc EKLEMEZ, namespace/ACL sızıntısı ÜRETMEZ); referans deterministik coverage reranker (query-term coverage + tie-break) yerine canlıda gerçek cross-encoder. RankedResult sözleşmesi: {result_key, rank, score, rerank_score, chunk_id, document_id, doc_logical_key, namespace, tenant_id, kb_id, version_no, chunk_no, source_uri, title, content, char_count, token_estimate, content_hash, classification}. RetrievalError: {error_class, detail} (taksonomi).",
+    "embedding_adapter_method": "embed_batch(texts, ctx) -> list[vector(embedding_dim)]",
+    "rerank_adapter_method": "rerank(query_text, candidates) -> reordered_candidates (order-only, same set)",
+    "ranked_result_fields": ["result_key", "rank", "score", "rerank_score", "chunk_id", "document_id", "doc_logical_key", "namespace", "tenant_id", "kb_id", "version_no", "chunk_no", "source_uri", "title", "content", "char_count", "token_estimate", "content_hash", "classification"],
+    "trace": "ADR-001, ADR-002, ADR-008, SAD §10.2, DB.md §5.3"
+  },
+
+  "retrieval": {
+    "$comment": "İki aşamalı retrieval. STAGE 1 (vector search): aday küme = query namespaces (tenant+kb_ids) ∩ AKTİF chunk ∩ 6.1.4 ACL-admit (pre-filter); her aday content'i AYNI EmbeddingAdapter ile embed → soru ile cosine; min_score eşiği altı ELENİR (alaka filtresi → grounding); kalanlar cosine desc sıralanır, top rerank_candidates (n≥top_k) alınır. STAGE 2 (OPSİYONEL rerank): rerank.enabled ise RerankAdapter aday alt-kümesini yeniden sıralar (yalnız sıralar — küme değişmez); sonra top_k alınır. min_score'u geçen aday YOKSA → BOŞ sonuç + grounded=false + NO_RELEVANT_SOURCE (FR-KB-007 kancası). top_k FR-KB-011 bağlam maliyeti sınırı (→6.2.2 trim). Sıralama deterministik (tie-break: score desc → chunk_id). Reranker DEVRE DIŞIysa cosine sıralaması doğrudan top_k.",
+    "stage1_vector_search": "cosine(query_vec, chunk_content_vec) over namespace+active+ACL-admit aday kümesi",
+    "min_score_threshold": "alaka eşiği — altı elenir → grounding (FR-KB-007)",
+    "top_k_bound": "FR-KB-011 bağlam maliyeti sınırı (→6.2.2)",
+    "stage2_rerank_optional": true,
+    "rerank_order_only": "result set ⊆ vector-candidate set (post-min_score); yeni doc/namespace/ACL leak YOK",
+    "deterministic_tie_break": "score desc → chunk_id",
+    "trace": "SAD §10.2, FR-KB-011, FR-KB-007, FR-RES-010"
+  },
+
+  "embedding": {
+    "$comment": "Vendor-neutral embedding (ADR-002) bir SPI arkasında. Referans embedder DETERMİNİSTİK feature-hash bag-of-words: tokenize(lowercase, \\w+, len≥2) → her token sha256 → signed feature hashing (bucket = h % dim, sign = ±1) → tf accumulate → L2-normalize. cosine = lexical overlap (gerçek değer değil; recall'ı TEST EDİLEBİLİR kılan referans geometri). Canlıda gerçek SEMANTİK model (OpenAI/Cohere/bge/yerel) AYNI imza arkasına. embedding_dim model-bağımlı referans 1536 (DB.md §12). Soru + chunk content AYNI embedder/uzay (query-doc tutarlılığı). Residency: embedding home-region (NFR 10.7); hassas soru → no_train + no_log endpoint (FR-LLM-012/FR-KB-010) — değilse NO_TRAIN_REQUIRED_VIOLATION; payload sağlayıcı loguna yazılmaz.",
+    "reference_embedder": "deterministic signed feature-hash BoW, L2-normalized (cosine ~ lexical overlap)",
+    "embedding_dim": 1536,
+    "query_doc_same_space": true,
+    "no_train_required_for_sensitive": true,
+    "no_log_required": true,
+    "region_pin_required": true,
+    "trace": "FR-KB-010, FR-LLM-012, NFR 10.7, ADR-002, ADR-008, DB.md §12"
+  },
+
+  "rerank": {
+    "$comment": "OPSİYONEL (SAD §10.2 'reranking (opsiyonel)'). Vendor-neutral RerankAdapter SPI arkasında (ADR-001/002). Referans reranker DETERMİNİSTİK coverage skoru: rerank_score = |query_tokens ∩ chunk_tokens| / |query_tokens| + küçük vec_score tie-break; bi-encoder cosine'den FARKLI (exact lexical coverage) sinyal → bi-encoder'ın kaçırdığı sıralamayı düzeltebilir. Canlıda gerçek cross-encoder AYNI imza arkasına. INVARIANT: rerank yalnız SIRALAR — aday alt-kümesini reorder eder, yeni doc EKLEMEZ, namespace/ACL sızıntısı ÜRETMEZ (result ⊆ vector-candidate). rerank.fail (sağlayıcı hatası) → RERANK_PROVIDER_ERROR (yapısal; canlıda fallback = rerank'siz cosine, BRD §19). Devre dışı yol da GEÇERLİ sıralama döndürür (opsiyonellik).",
+    "optional": true,
+    "reference_reranker": "deterministic query-term coverage + vec_score tie-break",
+    "order_only_subset": true,
+    "candidates_min_ge_top_k": true,
+    "fallback_on_provider_error": "rerank'siz cosine sıralaması (BRD §19)",
+    "trace": "SAD §10.2, ADR-001, ADR-002, BRD §19"
+  },
+
+  "grounding": {
+    "$comment": "Anti-hallucination kancası (FR-KB-007 → 3.3.4 Policy). min_score eşiğini geçen aday YOKSA (veya namespace boş / ACL hepsini eler) retrieval BOŞ sonuç + grounded=false + reason=NO_RELEVANT_SOURCE döndürür — UYDURMA YAPMAZ. Orchestrator bu sinyali 'kontrol ediyorum / aktarıyorum / ticket açıyorum' davranışına çevirir (Policy Engine, 3.3.4). grounded=true yalnız ≥1 sonuç döndüğünde. Retrieval kaynak ÜRETMEZ, yalnız var olanı sıralar/filtreler.",
+    "empty_when_below_threshold": true,
+    "grounded_flag": true,
+    "reason_no_relevant_source": "NO_RELEVANT_SOURCE",
+    "never_fabricate": true,
+    "trace": "FR-KB-007, BRD §13, →3.3.4"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (R1–R10). max_cross_namespace_returned=0: dönen her chunk query tenant+kb namespace'inde. max_unauthorized_returned=0: 6.1.4 ACL-deny chunk dönmez (FR-KB-005 enforcement at retrieval). max_inactive_returned=0: yalnız aktif sürüm (6.1.3 C8). require_topk_bound: |results| ≤ top_k + min_score eşiği (FR-KB-011). require_ranking_order: score desc + deterministik tie-break; require_recall_at_k: labeled query'lerde recall@k ≥ min_recall_at_k. require_rerank_order_only: rerank yalnız sıralar (result ⊆ vector-candidate, namespace/ACL leak yok). require_citation: her sonuç doc_id+version+chunk_no+source_uri+block_span+content_hash+score+token_estimate (FR-KB-006→6.2.3, budget→6.2.2). require_no_log: query/content audit'e yazılmaz + home-region + hassas no-train. require_grounding: aday yoksa grounded=false+NO_RELEVANT_SOURCE (FR-KB-007). require_robust: structured RetrievalError, exception kaçmaz. Eşikler MÜHENDİSLİK varsayılanı; gerçek recall/latency 0.2.5 vector-db-eval + tenant compliance profile ile ayarlanır.",
+    "max_cross_namespace_returned": 0,
+    "max_unauthorized_returned": 0,
+    "max_inactive_returned": 0,
+    "require_topk_bound": true,
+    "require_ranking_order": true,
+    "require_recall_at_k": true,
+    "min_recall_at_k": 1.0,
+    "require_rerank_order_only": true,
+    "require_citation": true,
+    "require_no_log": true,
+    "require_grounding": true,
+    "require_robust": true,
+    "trace": "SAD §10.2, FR-KB-004, FR-KB-005, FR-KB-006, FR-KB-007, FR-KB-011, FR-KB-010, FR-LLM-012, NFR 10.7"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Retrieval hata sınıfları (API §11.6 ruhu — retrieval'a özgü). DETERMİNİSTİK + müşteriye sızmaz (ham sağlayıcı kodu yalnız audit). MISSING_QUERY_CONTEXT tenant/kb/principal eksik (fail-closed). EMPTY_QUERY boş soru. INVALID_TOP_K top_k≤0. EMBED_PROVIDER_ERROR/EMBED_DIM_MISMATCH embedding SPI. NO_TRAIN_REQUIRED_VIOLATION hassas soru train-açık endpoint'e (fail-closed). REGION_VIOLATION residency. RERANK_PROVIDER_ERROR rerank SPI (canlıda fallback). INTERNAL_ERROR catch-all (çökme yok). Boş-alaka (NO_RELEVANT_SOURCE) bir HATA DEĞİL → grounded=false sonuç.",
+    "classes": ["MISSING_QUERY_CONTEXT", "EMPTY_QUERY", "INVALID_TOP_K", "EMBED_PROVIDER_ERROR", "EMBED_DIM_MISMATCH", "NO_TRAIN_REQUIRED_VIOLATION", "REGION_VIOLATION", "RERANK_PROVIDER_ERROR", "INTERNAL_ERROR"],
+    "trace": "API §11.6, SAD §10.2"
+  },
+
+  "residency": {
+    "$comment": "Soru embedding'i tenant home-region'da + no-train/no-log endpoint'e gider (NFR 10.7/FR-LLM-012/FR-KB-010); hassas soru için no-train zorunlu (fail-closed NO_TRAIN_REQUIRED_VIOLATION). Soru payload + chunk content sağlayıcı/retrieval loguna yazılmaz (no_log). Bölge uyumsuz REGION_VIOLATION. Hassas chunk content yalnız no-log kanala döner (6.2.4 detay). Audit yapısal — ham soru/content/PII YAZILMAZ (query_digest=sha256).",
+    "region_pin_required": true,
+    "no_log_required": true,
+    "no_train_required_for_sensitive": true,
+    "query_payload_logged": false,
+    "content_logged": false,
+    "trace": "NFR 10.7, FR-KB-010, FR-LLM-012, SAD §14, →6.2.4"
+  },
+
+  "pii": {
+    "$comment": "Bu SPEC/config/sample DESCRIPTOR'ları sır/credential ve gerçek PII DEĞERİ TUTMAZ (fixture içerikleri sentetik — FR-TST-008). NOT: chunk content + soru runtime'da PII içerebilir (meşru) → retrieval bunu no_log=true ile taşır + audit'e ham YAZMAZ (query_digest/principal_digest sha256). Spec/config'te uzun rakam dizisi (kart/TCKN) yasak.",
+    "raw_pii_in_spec_forbidden": true,
+    "query_and_content_may_contain_pii": true,
+    "audit_no_raw_payload": true,
+    "trace": "FR-KB-010, FR-LLM-012, BRD §14, BRD §17.7, FR-REC-004"
+  },
+
+  "invariants": [
+    { "id": "R1", "desc": "RANKING + RECALL: soru AYNI EmbeddingAdapter SPI ile embed edilir (chunk content ile AYNI uzay); aday chunk'lar cosine ile skorlanır; sonuçlar score DESC + deterministik tie-break (chunk_id) ile sıralı; labeled query'lerde recall@k ≥ min_recall_at_k (relevant doküman top_k içinde). Referans embedder feature-hash BoW → cosine lexical overlap'ı yansıtır (canlıda semantik model AYNI SPI).", "trace": "SAD §10.2, FR-KB-009 (→6.2.5), ADR-001/002" },
+    { "id": "R2", "desc": "TOP-K BOUND: |results| ≤ top_k (FR-KB-011 bağlam maliyeti sınırı → 6.2.2 trim); min_score eşiğini geçmeyen aday sonuçta YER ALMAZ. top_k + min_score config profilinden.", "trace": "FR-KB-011, FR-RES-010, SAD §10.2" },
+    { "id": "R3", "desc": "NAMESPACE ISOLATION: dönen her chunk YALNIZ query tenant+kb namespace'inde (FR-KB-004 sınır); cross-namespace dönen=0 (FR-TEN-002); aday küme yabancı namespace'ten çekilmez. 1.1.7 RLS + ANN metadata filtre ile fiziksel olarak da zorlanır.", "trace": "FR-KB-004, FR-TEN-002, SAD §10.2, DB.md §5.3" },
+    { "id": "R4", "desc": "ACL ENFORCEMENT AT RETRIEVAL: 6.1.4 ACL pre-filtre yüklemi (PrefilterPredicate) vector search aday kümesine UYGULANIR → yetkisiz (classification>clearance / ACL-deny / ACL-not-granted) chunk HİÇ dönmez (FR-KB-005 'yetkisiz dokümandan retrieval sonucu dönmez'). 6.1.4 enforcement metadata/karar SAHİBİ; 6.2.1 yüklemini retrieval'e push eder (consumes).", "trace": "FR-KB-005, SR-KB-005, →6.1.4" },
+    { "id": "R5", "desc": "ACTIVE-ONLY: yalnız AKTİF sürüm chunk'ları retrieval'e görünür; supersede (eski sürüm) dönen=0 (6.1.3 C8 atomik aktivasyon TÜKETİLİR).", "trace": "FR-KB-003, →6.1.3 C8, SAD §10.1/§10.2" },
+    { "id": "R6", "desc": "OPTIONAL RERANK ORDER-ONLY: rerank.enabled ise RerankAdapter SPI aday alt-kümesini yeniden SIRALAR (vendor-neutral, ADR-001/002); result set ⊆ vector-candidate set (yeni doc EKLENMEZ); rerank namespace/ACL sızıntısı ÜRETMEZ; labeled rerank_target rerank sonrası #1. rerank DEVRE DIŞI yol da geçerli sıralama döndürür (opsiyonellik, SAD §10.2). Sağlayıcı hatası RERANK_PROVIDER_ERROR (canlıda fallback cosine).", "trace": "SAD §10.2, ADR-001, ADR-002, BRD §19" },
+    { "id": "R7", "desc": "CITATION CARRIED: her RankedResult document_id + doc_logical_key + version_no + chunk_no + source_uri + content_hash + score + rank + char_count + token_estimate taşır → FR-KB-006 'yanıtın hangi kaynağa dayandığı' (→6.2.3 kaynak atfı) + token bütçesi (→6.2.2 trim).", "trace": "FR-KB-006, FR-RES-010, SAD §10.2, →6.2.2, →6.2.3" },
+    { "id": "R8", "desc": "NO-LOG / RESIDENCY: soru embedding'i home-region (NFR 10.7) + no_log (FR-KB-010); hassas soru YALNIZ no-train endpoint (FR-LLM-012) — aksi NO_TRAIN_REQUIRED_VIOLATION fail-closed; audit YAPISAL — ham soru/content/PII YAZILMAZ (query_digest/principal_digest sha256); query payload sağlayıcı loguna gitmez (→6.2.4 detay).", "trace": "FR-KB-010, FR-LLM-012, NFR 10.7, →6.2.4" },
+    { "id": "R9", "desc": "GROUNDING (anti-hallucination kancası): min_score eşiğini geçen aday yoksa (boş namespace / hepsi elendi / hepsi ACL-deny) retrieval BOŞ sonuç + grounded=false + reason=NO_RELEVANT_SOURCE döndürür — UYDURMA YAPMAZ (FR-KB-007 → 3.3.4 Policy 'kontrol/aktar/ticket'); grounded=true yalnız ≥1 sonuçta.", "trace": "FR-KB-007, BRD §13, →3.3.4" },
+    { "id": "R10", "desc": "ROBUST + SCOPE BOUNDARY: boş/aşırı/embed-hatalı/rerank-hatalı girdide hiçbir exception kaçmaz → STRUCTURED RetrievalError taksonomisi; çok-query batch dayanıklı. KAPSAM: retrieval SIRALAR+FİLTRELER; embedding/chunk/version ÜRETİMİ → 6.1.3 (TÜKETİR), ACL metadata/authoritative karar → 6.1.4, token-trim → 6.2.2, kaynak-atfı sentezi → 6.2.3, no-log enforcement detay → 6.2.4, benchmark/recall@k canlı → 6.2.5/0.2.5, fiziksel ANN store → 1.1.7. Sır/credential üretmez.", "trace": "6.1.3, 6.1.4, 6.2.2, 6.2.3, 6.2.4, 6.2.5, 0.2.5, 1.1.7" }
+  ]
+}

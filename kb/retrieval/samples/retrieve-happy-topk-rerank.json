@@ -1,0 +1,32 @@
+{
+  "$comment": "WBS 6.2.1 — Happy path: tek tenant (t-acme/kb-1) içinde lexical-ayırt edici public dokümanlar; vector search top-k + OPSİYONEL rerank. Rerank kanıtı: 'iade-tekrar' dokümanı tek terimi (iade) çok tekrarlar → bi-encoder cosine'i yüksek; 'iade-sure' dokümanı sorgu terimlerinin TAMAMINI kapsar → coverage reranker onu #1'e taşır (cross-encoder stand-in bi-encoder'ın kaçırdığını düzeltir, SAD §10.2). R1 (recall+sıralama), R2 (top-k), R6 (rerank order-only + target #1), R7 (citation) kanıtı. Sentetik (FR-TST-008).",
+  "scenario": "happy-topk-rerank",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "min_recall_at_k": 1.0,
+  "acls": {},
+  "documents": [
+    {"source_id": "iade-sure", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:iade-sure",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "Iade suresi musteri urunu satin aldiktan sonra 14 gun icinde iade talebi olusturabilir kosul ambalaj"},
+    {"source_id": "iade-tekrar", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:iade-tekrar",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "Iade iade iade iade iade iade iade iade iade duyuru kampanya banner anasayfa"},
+    {"source_id": "kargo", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:kargo",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "Kargo teslimat standart gonderi uc is gunu hizli gonderi ertesi gun takip numarasi"},
+    {"source_id": "sss", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:sss",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "Genel sss calisma saatleri hafta ici destek hatti telefon eposta iletisim"}
+  ],
+  "queries": [
+    {"name": "iade-suresi-rerank", "query_text": "iade suresi kosul ambalaj talebi",
+     "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"], "principals": ["role:human_agent"],
+       "clearance": "internal", "channel_no_log": true},
+     "expect": {"relevant_documents": ["iade-sure"], "rerank_top": "iade-sure", "grounded": true}},
+    {"name": "kargo-q", "query_text": "kargo teslimat suresi gonderi gun takip",
+     "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"], "principals": ["role:human_agent"],
+       "clearance": "internal", "channel_no_log": true},
+     "expect": {"relevant_documents": ["kargo"], "top_document": "kargo", "grounded": true}}
+  ]
+}

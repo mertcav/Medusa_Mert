@@ -1,0 +1,32 @@
+{
+  "$comment": "WBS 6.2.1 — Retrieval-anında ACL enforcement (FR-KB-005, R4): confidential 'ucret' dokümanı acl:fin ile korunur. Düşük clearance/yetkisiz principal sorgusu → ucret HİÇ dönmez (6.1.4 ACL pre-filtre TÜKETİLİR); finans principal'i + confidential clearance → görür. deny-wins (taseron) → görmez. public 'iade' herkese döner. R4 (ACL), R3 (namespace), R7 (citation). Sentetik (FR-TST-008).",
+  "scenario": "acl-filter",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "min_recall_at_k": 1.0,
+  "acls": {
+    "acl:fin": {"default": "deny", "allow": ["group:finance", "role:tenant_owner"], "deny": ["group:contractors"]}
+  },
+  "documents": [
+    {"source_id": "iade-public", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:iade",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "Iade politikasi musteri urun 14 gun iade kosul ambalaj kullanilmamis genel"},
+    {"source_id": "ucret-conf", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:ucret",
+     "classification": "confidential", "acl_ref": "acl:fin", "redaction_state": "applied",
+     "inline_text": "Gizli ucret bandi maas terfi politika yil sonu gozden gecirme finans bonus prim"}
+  ],
+  "queries": [
+    {"name": "ajan-ucret-dener", "query_text": "gizli ucret bandi maas terfi finans bonus",
+     "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"], "principals": ["role:human_agent"],
+       "clearance": "internal", "channel_no_log": true},
+     "expect": {"deny_documents": ["ucret-conf"], "grounded": false}},
+    {"name": "finans-ucret-gorur", "query_text": "gizli ucret bandi maas terfi finans bonus",
+     "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"], "principals": ["group:finance"],
+       "clearance": "confidential", "channel_no_log": true},
+     "expect": {"relevant_documents": ["ucret-conf"], "top_document": "ucret-conf", "grounded": true}},
+    {"name": "taseron-deny-wins", "query_text": "gizli ucret bandi maas terfi finans bonus",
+     "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"], "principals": ["group:finance", "group:contractors"],
+       "clearance": "confidential", "channel_no_log": true},
+     "expect": {"deny_documents": ["ucret-conf"], "grounded": false}}
+  ]
+}

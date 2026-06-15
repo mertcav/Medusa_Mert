@@ -1,0 +1,30 @@
+{
+  "$comment": "WBS 6.2.1 — Active-only (R5) + grounding (R9) + rerank OPSİYONEL-KAPALI (no-rerank profili, SAD §10.2 opsiyonellik). 'doc:pol' iki kez indekslenir (içerik değişir → v2 aktif, v1 supersede); retrieval YALNIZ v2 döndürür. Alakasız soru → BOŞ + grounded=false + NO_RELEVANT_SOURCE (anti-hallucination kancası → 3.3.4/FR-KB-007, UYDURMA YOK). Sentetik (FR-TST-008).",
+  "scenario": "versioning-grounding",
+  "expect_gate": "pass",
+  "profile": "no-rerank",
+  "min_recall_at_k": 1.0,
+  "acls": {},
+  "documents": [
+    {"source_id": "pol", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:pol",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "Eski surum politika belge alfa beta gama eski versiyon yururlukten kalkti"},
+    {"source_id": "pol", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:pol",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "Yeni surum politika belge delta epsilon zeta guncel yururlukteki gecerli surum iki"},
+    {"source_id": "rehber", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:rehber",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "Kullanim rehberi kurulum adim ayar yapilandirma baslangic hizli klavuz"}
+  ],
+  "queries": [
+    {"name": "guncel-politika", "query_text": "guncel yururlukteki politika belge surum gecerli",
+     "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"], "principals": ["role:human_agent"],
+       "clearance": "internal", "channel_no_log": true},
+     "expect": {"relevant_documents": ["pol"], "top_document": "pol", "grounded": true}},
+    {"name": "alakasiz-soru", "query_text": "hava durumu yagmur sicaklik meteoroloji ruzgar nem",
+     "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"], "principals": ["role:human_agent"],
+       "clearance": "internal", "channel_no_log": true},
+     "expect_status": "empty",
+     "expect": {"grounded": false}}
+  ]
+}

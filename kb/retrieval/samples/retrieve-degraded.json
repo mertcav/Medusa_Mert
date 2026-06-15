@@ -1,0 +1,21 @@
+{
+  "$comment": "WBS 6.2.1 — NEGATİF senaryo (expect_gate=fail): degraded-noacl-train profili 6.1.4 ACL pre-filtresini BYPASS eder (enforce_acl=false) → confidential 'ucret' dokümanı yetkisiz/düşük-clearance principal'a DÖNER → R4 (yetkisiz-dönen) ELER + beklenti sapması (deny_documents döndü). Ayrıca train-açık embedding endpoint (no_train=false) → hassas soru NO_TRAIN_REQUIRED_VIOLATION (R8/fail-closed). Üretimde KULLANILMAZ — yalnız kapı elemesinin gösterimi. Sentetik (FR-TST-008).",
+  "scenario": "degraded-noacl-train",
+  "expect_gate": "fail",
+  "profile": "degraded-noacl-train",
+  "min_recall_at_k": 1.0,
+  "acls": {
+    "acl:fin": {"default": "deny", "allow": ["group:finance"], "deny": ["group:contractors"]}
+  },
+  "documents": [
+    {"source_id": "ucret-conf", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:ucret",
+     "classification": "confidential", "acl_ref": "acl:fin", "redaction_state": "applied",
+     "inline_text": "Gizli ucret bandi maas terfi politika finans bonus prim yil sonu gozden gecirme"}
+  ],
+  "queries": [
+    {"name": "yetkisiz-ucret-sizar", "query_text": "gizli ucret bandi maas terfi finans bonus",
+     "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"], "principals": ["role:human_agent"],
+       "clearance": "internal", "channel_no_log": true},
+     "expect": {"deny_documents": ["ucret-conf"], "grounded": false}}
+  ]
+}

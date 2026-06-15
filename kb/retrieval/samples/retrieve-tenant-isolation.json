@@ -1,0 +1,26 @@
+{
+  "$comment": "WBS 6.2.1 — Namespace izolasyonu (FR-KB-004/FR-TEN-002): AYNI mantıksal içerik (aynı source_id/doc_logical_key) hem t-acme hem t-rival tenant'ında indekslenir; her tenant'ın sorgusu YALNIZ kendi namespace'inden döner — cross-tenant sızıntı=0 (R3). 6.1.3 namespace yazım izolasyonu (C5) + retrieval aday filtresi birlikte. Sentetik (FR-TST-008).",
+  "scenario": "tenant-isolation",
+  "expect_gate": "pass",
+  "profile": "pilot-default",
+  "min_recall_at_k": 1.0,
+  "acls": {},
+  "documents": [
+    {"source_id": "fiyat", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:fiyat",
+     "classification": "internal", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "Acme fiyat listesi urun katalog indirim oran kampanya ceyrek donem standart paket"},
+    {"source_id": "fiyat", "tenant_id": "t-rival", "kb_id": "kb-1", "doc_logical_key": "doc:fiyat",
+     "classification": "internal", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "Rival fiyat listesi urun katalog indirim oran kampanya ceyrek donem ozel paket"}
+  ],
+  "queries": [
+    {"name": "acme-fiyat", "query_text": "fiyat listesi urun katalog indirim kampanya",
+     "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"], "principals": ["role:human_agent"],
+       "clearance": "internal", "channel_no_log": true},
+     "expect": {"relevant_documents": ["fiyat"], "grounded": true}},
+    {"name": "rival-fiyat", "query_text": "fiyat listesi urun katalog indirim kampanya",
+     "context": {"tenant_id": "t-rival", "kb_ids": ["kb-1"], "principals": ["role:human_agent"],
+       "clearance": "internal", "channel_no_log": true},
+     "expect": {"relevant_documents": ["fiyat"], "grounded": true}}
+  ]
+}
