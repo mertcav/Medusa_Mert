@@ -1,0 +1,16 @@
+{
+  "name": "ab-invalid-config-forced-degraded",
+  "$comment": "DEGRADE: ağırlık toplamı≠1 (0.3+0.3) geçersiz config force-apply edildi (invalid_config) → C3 invalid_config ihlali. Kapı eler.",
+  "expect": "fail",
+  "tenant_id": "t-globex",
+  "correlation_id": "corr-ab-102",
+  "campaign_id": "camp-ab-102",
+  "experiment_id": "exp-ab-102",
+  "actor_role": "operations_manager",
+  "variants": [
+    {"id": "var-A", "weight": 0.3, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.3, "script_version": "scr-v2"}
+  ],
+  "contacts_count": 200,
+  "inject": ["invalid_config"]
+}

@@ -1,0 +1,37 @@
+{
+  "$comment": "WBS 10.1.8 A/B test kampanyaları politika konfigürasyonu (vendor-neutral, credential-free). Varyant dağıtım yöntemi + ağırlık kuralları + karşılaştırma (z-test) parametreleri + uygunluk-koruması bayrakları + yetkili roller burada parametrelenir. Gerçek dialer çevirme (10.1.x) / disposition üretimi (10.1.5) / script versiyon deposu (10.1.6) / consent ön-kontrol (10.2) / audit store (12.x) / rapor render (A-14) BAŞKA modüllerde; bu config A/B motorunun TÜKETTİĞİ dağıtım+karşılaştırma+yetki kurallarını tutar. Sır/credential ve PII (müşteri adı/telefon/hesap no) YOK — yalnız yöntem/parametre/rol adları + bayraklar. Değerler MÜHENDİSLİK varsayılanı; pilot tenant + dialer entegrasyonu (10.1.x) verisiyle kalibre edilir (BRD §22 açık karar).",
+  "version": "1.0",
+  "wbs": "10.1.8",
+  "allocation": {
+    "$comment": "SR-OUT-012: deterministik sticky hash dağıtımı; ağırlıklar 1.0'a toplanır; gözlenen dağılım weight_tolerance içinde yansır. min_variants=2 (A/B). Hash girdisi yalnız yapısal kimlik (experiment_id+contact_key); PII YOK.",
+    "method": "deterministic_sticky_hash",
+    "weight_sum": 1.0,
+    "weight_tolerance": 0.10,
+    "min_variants": 2
+  },
+  "comparison": {
+    "$comment": "SR-OUT-012: iki-oran z-testi; kazanan yalnız min_sample + anlamlılık (alpha) ile beyan, aksi inconclusive. Deterministik (math.erfc).",
+    "metric": "conversion_rate",
+    "test": "two_proportion_z_test",
+    "default_min_sample": 100,
+    "default_alpha": 0.05,
+    "control_variant": "first"
+  },
+  "eligibility_guard": {
+    "$comment": "C8: A/B uygunluğu (consent/DNC/saat) override edemez. Gerekli bayraklar ön-kontrol (10.2/§19.1) sonucudur; bu modül tüketir+korur.",
+    "required_flags": ["consent_ok", "dnc_ok", "hours_ok"],
+    "rule": "eligible = consent_ok AND dnc_ok AND hours_ok"
+  },
+  "authorization": {
+    "$comment": "FR-IAM-011/ADR-012: A/B config/start campaign:manage yetkisi ister. Yetkili roller immutable bundle; yetki kararı backend'de. Yetkisiz aktör → DENIED.",
+    "permission": "campaign:manage",
+    "authorized_roles": ["operations_manager", "conversation_designer", "tenant_admin", "tenant_owner"]
+  },
+  "consume_from": ["10.1.1", "10.1.5", "10.1.6", "10.2", "A-10", "10.1.x"],
+  "report_to": ["10.1.x-dialer", "A-14", "0.4.7"],
+  "observability": {
+    "metric_prefix": "ab_experiment_",
+    "alarm_on_eligibility_bypass": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "ab-false-winner-degraded",
+  "$comment": "DEGRADE: anlamsız fark (A 50/100, B 53/100, inconclusive olmalı) için kazanan beyan edildi (false_winner) → C5 false_winner ihlali. SR-OUT-012 karşılaştırma çekirdeği breach. Kapı eler.",
+  "expect": "fail",
+  "tenant_id": "t-globex",
+  "correlation_id": "corr-ab-104",
+  "campaign_id": "camp-ab-104",
+  "experiment_id": "exp-ab-104",
+  "actor_role": "operations_manager",
+  "variants": [
+    {"id": "var-A", "weight": 0.5, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.5, "script_version": "scr-v2"}
+  ],
+  "contacts_count": 200,
+  "outcomes": {
+    "var-A": {"trials": 100, "conversions": 50},
+    "var-B": {"trials": 100, "conversions": 53}
+  },
+  "inject": ["false_winner"]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "ab-compare-inconclusive-happy",
+  "$comment": "Karşılaştırma: A %50 (50/100), B %53 (53/100). Küçük fark, anlamsız (|z|<1.96) → inconclusive (yanlış kazanan YOK). Doğru davranış. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-globex",
+  "correlation_id": "corr-ab-004",
+  "campaign_id": "camp-ab-004",
+  "experiment_id": "exp-ab-004",
+  "actor_role": "operations_manager",
+  "variants": [
+    {"id": "var-A", "weight": 0.5, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.5, "script_version": "scr-v2"}
+  ],
+  "contacts_count": 200,
+  "outcomes": {
+    "var-A": {"trials": 100, "conversions": 50},
+    "var-B": {"trials": 100, "conversions": 53}
+  },
+  "min_sample": 100,
+  "alpha": 0.05,
+  "expected": {"terminal": "APPLIED", "verdict": "inconclusive", "applied": true}
+}

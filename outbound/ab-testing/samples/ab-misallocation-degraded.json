@@ -1,0 +1,16 @@
+{
+  "name": "ab-misallocation-degraded",
+  "$comment": "DEGRADE: bir contact TANIMSIZ varyanta (var-GHOST) düşürüldü + dağılım skew (misallocation) → C4 misallocation ihlali. SR-OUT-012 dağıtım çekirdeği breach. Kapı eler.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ab-103",
+  "campaign_id": "camp-ab-103",
+  "experiment_id": "exp-ab-103",
+  "actor_role": "operations_manager",
+  "variants": [
+    {"id": "var-A", "weight": 0.5, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.5, "script_version": "scr-v2"}
+  ],
+  "contacts_count": 200,
+  "inject": ["misallocation"]
+}

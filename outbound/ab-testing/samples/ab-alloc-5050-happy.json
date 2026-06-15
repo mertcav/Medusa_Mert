@@ -1,0 +1,16 @@
+{
+  "name": "ab-alloc-5050-happy",
+  "$comment": "Klasik A/B: iki varyant 50/50, 400 contact. Deterministik+sticky dağıtım; gözlenen dağılım toleransta. outcomes yok → karşılaştırma henüz değil (not_evaluated). İhlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ab-001",
+  "campaign_id": "camp-ab-001",
+  "experiment_id": "exp-ab-001",
+  "actor_role": "operations_manager",
+  "variants": [
+    {"id": "var-A", "weight": 0.5, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.5, "script_version": "scr-v2"}
+  ],
+  "contacts_count": 400,
+  "expected": {"terminal": "APPLIED", "verdict": "not_evaluated", "applied": true}
+}

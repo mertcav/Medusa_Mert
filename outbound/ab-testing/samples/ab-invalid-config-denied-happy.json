@@ -1,0 +1,15 @@
+{
+  "name": "ab-invalid-config-denied-happy",
+  "$comment": "Geçersiz config: tek varyant (A/B değil) → DENIED. Doğru reddetme — ihlal DEĞİL. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-globex",
+  "correlation_id": "corr-ab-009",
+  "campaign_id": "camp-ab-009",
+  "experiment_id": "exp-ab-009",
+  "actor_role": "operations_manager",
+  "variants": [
+    {"id": "var-A", "weight": 1.0, "script_version": "scr-v1"}
+  ],
+  "contacts_count": 200,
+  "expected": {"terminal": "DENIED", "applied": false}
+}

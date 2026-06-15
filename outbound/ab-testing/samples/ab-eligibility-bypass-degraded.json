@@ -1,0 +1,17 @@
+{
+  "name": "ab-eligibility-bypass-degraded",
+  "$comment": "DEGRADE: A/B atamasıyla uygunsuz (consent/DNC/saat olumsuz) contact 'aranabilir' yapıldı (eligibility_bypass) → C8 eligibility_bypass ihlali. A/B suppression bypass aracı olamaz. Kapı eler.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ab-107",
+  "campaign_id": "camp-ab-107",
+  "experiment_id": "exp-ab-107",
+  "actor_role": "operations_manager",
+  "variants": [
+    {"id": "var-A", "weight": 0.5, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.5, "script_version": "scr-v2"}
+  ],
+  "contacts": ["ck-1", "ck-2", "ck-3", "ck-4"],
+  "ineligible_contacts": ["ck-2", "ck-4"],
+  "inject": ["eligibility_bypass"]
+}

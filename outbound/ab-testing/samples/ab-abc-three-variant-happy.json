@@ -1,0 +1,17 @@
+{
+  "name": "ab-abc-three-variant-happy",
+  "$comment": "Çok-varyant A/B/C (3 varyant ~34/33/33), 600 contact. Geçerli config; dağıtım üçe bölünür. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-initech",
+  "correlation_id": "corr-ab-006",
+  "campaign_id": "camp-ab-006",
+  "experiment_id": "exp-ab-006",
+  "actor_role": "conversation_designer",
+  "variants": [
+    {"id": "var-A", "weight": 0.34, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.33, "script_version": "scr-v2"},
+    {"id": "var-C", "weight": 0.33, "script_version": "scr-v3"}
+  ],
+  "contacts_count": 600,
+  "expected": {"terminal": "APPLIED", "verdict": "not_evaluated", "applied": true}
+}

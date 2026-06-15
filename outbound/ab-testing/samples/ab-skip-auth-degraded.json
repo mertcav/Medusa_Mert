@@ -1,0 +1,16 @@
+{
+  "name": "ab-skip-auth-degraded",
+  "$comment": "DEGRADE: yetkisiz aktör (human_agent) config'i yetki atlanarak UYGULANDI (skip_auth) → C2 unauthorized ihlali. Kapı eler.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ab-101",
+  "campaign_id": "camp-ab-101",
+  "experiment_id": "exp-ab-101",
+  "actor_role": "human_agent",
+  "variants": [
+    {"id": "var-A", "weight": 0.5, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.5, "script_version": "scr-v2"}
+  ],
+  "contacts_count": 200,
+  "inject": ["skip_auth"]
+}

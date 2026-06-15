@@ -1,0 +1,16 @@
+{
+  "name": "ab-not-idempotent-degraded",
+  "$comment": "DEGRADE: aynı experiment tekrarı farklı dağıtım üretti (churn, not_idempotent) → C6 not_idempotent ihlali. Sticky atama ihlali. Kapı eler.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ab-105",
+  "campaign_id": "camp-ab-105",
+  "experiment_id": "exp-ab-105",
+  "actor_role": "operations_manager",
+  "variants": [
+    {"id": "var-A", "weight": 0.5, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.5, "script_version": "scr-v2"}
+  ],
+  "contacts_count": 200,
+  "inject": ["not_idempotent"]
+}

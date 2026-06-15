@@ -1,0 +1,16 @@
+{
+  "name": "ab-no-audit-degraded",
+  "$comment": "DEGRADE: deney audit kaydı üretilmedi (no_audit) → C10 missing_audit ihlali (require_decision_record). Kapı eler.",
+  "expect": "fail",
+  "tenant_id": "t-globex",
+  "correlation_id": "corr-ab-108",
+  "campaign_id": "camp-ab-108",
+  "experiment_id": "exp-ab-108",
+  "actor_role": "operations_manager",
+  "variants": [
+    {"id": "var-A", "weight": 0.5, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.5, "script_version": "scr-v2"}
+  ],
+  "contacts_count": 200,
+  "inject": ["no_audit"]
+}

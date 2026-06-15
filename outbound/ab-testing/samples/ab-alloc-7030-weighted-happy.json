@@ -1,0 +1,16 @@
+{
+  "name": "ab-alloc-7030-weighted-happy",
+  "$comment": "Ağırlıklı dağıtım 70/30 (kademeli rollout deseni), 500 contact. Gözlenen dağılım ağırlıkları toleransta yansıtır. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-globex",
+  "correlation_id": "corr-ab-002",
+  "campaign_id": "camp-ab-002",
+  "experiment_id": "exp-ab-002",
+  "actor_role": "conversation_designer",
+  "variants": [
+    {"id": "var-A", "weight": 0.7, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.3, "script_version": "scr-v2"}
+  ],
+  "contacts_count": 500,
+  "expected": {"terminal": "APPLIED", "verdict": "not_evaluated", "applied": true}
+}

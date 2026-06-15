@@ -1,0 +1,22 @@
+{
+  "name": "ab-compare-winner-happy",
+  "$comment": "Karşılaştırma: A %10 (100/1000), B %20 (200/1000). Yeterli örneklem + anlamlı fark (|z|≫1.96) → winner B. SR-OUT-012 çekirdek 2/2. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ab-003",
+  "campaign_id": "camp-ab-003",
+  "experiment_id": "exp-ab-003",
+  "actor_role": "operations_manager",
+  "variants": [
+    {"id": "var-A", "weight": 0.5, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.5, "script_version": "scr-v2"}
+  ],
+  "contacts_count": 200,
+  "outcomes": {
+    "var-A": {"trials": 1000, "conversions": 100},
+    "var-B": {"trials": 1000, "conversions": 200}
+  },
+  "min_sample": 100,
+  "alpha": 0.05,
+  "expected": {"terminal": "APPLIED", "verdict": "winner", "leader": "var-B", "applied": true}
+}

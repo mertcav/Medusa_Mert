@@ -1,0 +1,22 @@
+{
+  "name": "ab-min-sample-inconclusive-happy",
+  "$comment": "Yetersiz örneklem koruması: A 2/20, B 8/20 (büyük oransal fark) AMA n=20 < min_sample=100 → inconclusive. Erken kazanan beyanı ENGELLENİR. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ab-005",
+  "campaign_id": "camp-ab-005",
+  "experiment_id": "exp-ab-005",
+  "actor_role": "operations_manager",
+  "variants": [
+    {"id": "var-A", "weight": 0.5, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.5, "script_version": "scr-v2"}
+  ],
+  "contacts_count": 200,
+  "outcomes": {
+    "var-A": {"trials": 20, "conversions": 2},
+    "var-B": {"trials": 20, "conversions": 8}
+  },
+  "min_sample": 100,
+  "alpha": 0.05,
+  "expected": {"terminal": "APPLIED", "verdict": "inconclusive", "applied": true}
+}

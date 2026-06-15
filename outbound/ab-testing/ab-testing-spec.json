@@ -1,0 +1,144 @@
+{
+  "$comment": "WBS 10.1.8 — A/B test kampanyaları (BRD §9.13 Outbound Kampanya Yönetimi / FR-OUT-012 'A/B test kampanyaları desteklenmelidir' [Should] / SR-OUT-012 [yöntem T — 'A/B test kampanyaları desteklenir'; kabul: 'Varyant dağıtımı ve karşılaştırma yapılır'] / TC-OUT-012). 10. workstream'in (Outbound) Kampanya Yönetimi alt-bloğunun A/B TEST modülü. FR-OUT-012 + SR-OUT-012 VARYANT DAĞITIM (allocation) + VARYANT KARŞILAŞTIRMA (comparison) MOTORUNU sahiplenir. Bir kampanyaya ≥2 VARYANT (A/B/...) tanımlanır; her varyant bir script/teklif versiyonuna (FR-OUT-009) bağlıdır ve bir AĞIRLIK (allocation weight) taşır; ağırlıklar 1.0'a (100%) toplanır. Modül bir DETERMİNİSTİK A/B MOTORUdur: ABExperimentRequest{experiment_id, campaign_id, tenant_id, correlation_id, actor_role, variants[{id, weight, script_version}], contacts[]|contacts_count, outcomes{variant→{trials, conversions}}, min_sample, alpha, eligibility{consent_ok, dnc_ok, hours_ok}} alır → komutun YETKİLİ (campaign:manage) ve varyant config'inin GEÇERLİ (≥2 varyant, ağırlık toplamı 1.0, benzersiz id, her varyantta script_version) olduğunu doğrular → uygularsa (1) her contact'ı DETERMİNİSTİK STICKY hash ile ağırlıklara göre tam-bir varyanta DAĞITIR (allocation) → (2) disposition-türevli outcomes'tan varyant başına dönüşüm oranı hesaplar ve iki-oran z-testiyle KARŞILAŞTIRIR → kazanan yalnız min_sample + anlamlılık (alpha) sağlanırsa BEYAN edilir, aksi halde 'inconclusive' (yanlış kazanan YOK) → bir terminal sonuç {APPLIED (dağıtım + karşılaştırma yapıldı) | DENIED (yetkisiz / geçersiz config / cross-tenant → işlem yok)} üretir. ÇEKİRDEK INVARIANT (SR-OUT-012): VARYANT DAĞITIMI deterministik+sticky — her contact tam bir TANIMLI varyanta düşer, gözlenen dağılım yapılandırılan ağırlıkları tolerans içinde yansıtır, aynı contact tekrar→aynı varyant (C4 misallocation=0); VARYANT KARŞILAŞTIRMASI doğru — kazanan yalnız min_sample + anlamlılık karşılanırsa beyan, aksi 'inconclusive' (C5 false_winner=0); A/B yalnızca script/teklif varyantını değiştirir, consent/DNC/suppression (FR-OUT-003/006) veya arama-saatleri (FR-OUT-004) UYGUNLUĞUNU ATLAMAZ (C8 eligibility_bypass=0); config/start yalnız campaign:manage yetkisiyle (C2 unauthorized=0); yalnız geçerli varyant config'i uygulanır (C3 invalid_config=0); aynı experiment tekrar→aynı dağıtım, churn yok (C6 not_idempotent=0); yalnız bu tenant kampanyasını etkiler (C7 cross_tenant=0); her sonuç kanıt (C9) + audit (C10); metrikler düşük-kardinalite + PII metrikte yok (C11); spec/config/sample ham PII/sır tutmaz (C12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): kampanya OLUŞTURMA + liste yükleme → 10.1.1 (FR-OUT-001); CRM dinamik liste → 10.1.2 (FR-OUT-002); consent/suppression ÖN-KONTROL motoru → 10.2/§19.1 (FR-OUT-003; bu modül o kapının SONUCUNU tüketir, yeniden hesaplamaz); arama saatleri → 10.1.4 (FR-OUT-004); max deneme/yeniden-arama → 10.1.3 (FR-OUT-005); script/teklif versiyonu KAYDI → 10.1.6 (FR-OUT-009; bu modül variant→script_version BAĞLAR, versiyon deposunu sahiplenmez); disposition ÜRETİMİ → 10.1.5 (FR-OUT-008/011; bu modül disposition-türevli outcomes'ı TÜKETİR); kampanya DURDURMA → 10.1.7 (FR-OUT-010); outbound dialer ÇEVİRME/zamanlama → 10.1.x dialer çekirdeği (bu modül variant ATAR, çevirmez); gerçek audit STORE → 7.1.6/12.1.8; gözlemlenebilirlik omurgası → 0.4.7 (metrik ÜRETİR); analitik rapor render → A-14 / FR-ANA-*; panel UI 'A/B kur/karşılaştır' render → L2 paneli (A-10). Spec/config/sample'larda sır/credential ve gerçek PII (müşteri adı/telefon/hesap no/ham transkript) YOK — yalnız yapısal KİMLİKLER (experiment/variant/campaign/tenant/contact/correlation kimlikleri, script versiyon etiketi) + SAYAÇLAR (trials/conversions/contact adedi) + AĞIRLIKLAR + bayraklar. KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS/DB/API esastır.",
+  "version": "1.0",
+  "wbs": "10.1.8",
+  "phase": "F2",
+  "priority": "Should",
+  "trace": {
+    "fr": ["FR-OUT-012", "FR-OUT-009", "FR-OUT-003", "FR-OUT-006", "FR-OUT-011", "FR-IAM-011", "FR-IAM-006", "FR-TEN-002", "FR-REC-004", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-OUT-012"],
+    "rtm": ["TC-OUT-012"],
+    "brd": [
+      "§9.13 (Outbound Kampanya Yönetimi — FR-OUT-012 A/B test kampanyaları desteklenmelidir)",
+      "§8.2 / §10 (Outbound senaryo — kampanya yürütme, varyant deneyleri)",
+      "§16 (Campaign varlığı — campaign.script_version FR-OUT-009; A/B varyant o versiyon eksenini deneyler)",
+      "§15 (Analitik & raporlama — varyant karşılaştırma sonucu rapora akar)"
+    ],
+    "sad": [
+      "§6 (Fail soft — A/B deneyi çağrı akışını bozmaz; yalnız script/teklif varyantını seçer)",
+      "§13.3 (correlation/tenant context propagation — deney correlation_id+tenant taşır)",
+      "§14.4 (panel — L2 A-10 kampanya ekranı 'A/B kur/karşılaştır' yüzeyi)",
+      "§19.1 (consent/suppression — A/B uygunluğu ATLAMAZ; ön-kontrol sonucunu tüketir)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — A/B motoru kampanya kontrol düzleminde varyant dağıtım+karşılaştırma fonksiyonu; STT/LLM/TTS'e doğrudan bağlanmaz)",
+      "ADR-002 (vendor-neutral — telephony/dialer/LLM sağlayıcı bağımsız; aynı varyant atama sözleşmesi arkasına gerçek dialer)",
+      "ADR-012 (RBAC — campaign:manage immutable bundle; A/B config/start yetkisi backend'de doğrulanır)"
+    ],
+    "threat_model": [
+      "TM-E-* (yetki yükseltme — A/B config/start yalnız campaign:manage; yetkisiz kurulum reddedilir, C2)",
+      "TM-T-* (tenant izolasyonu — deney yalnız bu tenant kampanya+contact'ını etkiler; cross-tenant red, FR-TEN-002, C7)",
+      "TM-T-* (tahrifat — varyant atama deterministik+sticky; uygunluk [consent/DNC/saat] ATLANMAZ, A/B suppression bypass aracı olamaz, C8)",
+      "TM-R-* (inkâr — her deney sonucu [APPLIED/DENIED] who/what + variants + allocation + comparison ile audit'e yazılır, C10)"
+    ],
+    "consumes": [
+      "10.1.1 kampanya oluşturma (FR-OUT-001) — campaign_id'yi TÜKETİR",
+      "10.1.6 script/teklif versiyonu (FR-OUT-009) — variant→script_version etiketini BAĞLAR (versiyon deposu 10.1.6'da)",
+      "10.2/§19.1 consent/suppression ön-kontrol (FR-OUT-003/006) — eligibility {consent_ok, dnc_ok, hours_ok} SONUCUNU tüketir (yeniden hesaplamaz)",
+      "10.1.5 disposition (FR-OUT-008/011) — disposition-türevli per-variant outcomes {trials, conversions} TÜKETİR",
+      "Panel L2 A-10 (campaign:manage) — A/B config/start komutunu (actor_role ile) TÜKETİR"
+    ],
+    "consumed_by": [
+      "Outbound dialer çekirdeği (10.1.x, FR-OUT-005) — per-contact VARYANT ATAMASINI (variant_id + script_version) TÜKETİR: o varyantın script'iyle çevirir",
+      "7.1.6 + 12.1.8 audit store (FR-IAM-006) — deney kaydını kalıcılaştırır",
+      "0.4.7 gözlemlenebilirlik — ab_experiment_* metriklerini tüketir",
+      "Analitik/raporlama (A-14, FR-ANA-*) — varyant karşılaştırma sonucunu (winner/inconclusive + per-variant oran) TÜKETİR"
+    ]
+  },
+
+  "placement": {
+    "$comment": "A/B motoru kampanya kontrol düzleminde bir VARYANT-DAĞITIM + KARŞILAŞTIRMA fonksiyonudur: operasyon yöneticisi/conversation_designer (campaign:manage) bir kampanyaya varyant seti (her biri script_version + weight) tanımlayıp deneyi başlatınca, bu motor yetkiyi + config geçerliliğini doğrular, her contact'ı deterministik+sticky hash ile ağırlıklara göre tam-bir varyanta dağıtır, disposition-türevli outcomes'tan varyant başına dönüşümü hesaplar ve iki-oran z-testiyle karşılaştırır (kazanan/inconclusive), sonucu audit'ler. Motor hot-path medya işlemez; deterministik kontrol/analitik düzlemi (RAG benzeri — medya bütçesi dışı). Vendor-neutral (ADR-001/002): varyant atama+karşılaştırma sözleşmesi sağlayıcı bağımsız.",
+    "plane": "outbound campaign control plane (A/B experiment engine — deterministik varyant dağıtımı + iki-oran karşılaştırması)",
+    "owns": "FR-OUT-012 A/B test: ABExperimentRequest → yetki (campaign:manage) + varyant config geçerliliği (≥2 varyant, ağırlık toplamı 1.0, benzersiz id, script_version bağı) doğrulama + deterministik sticky varyant DAĞITIMI (allocation) + disposition-türevli per-variant dönüşüm + iki-oran z-test KARŞILAŞTIRMASI (winner|inconclusive) + uygunluk-koruması (consent/DNC/saat atlanmaz) + deney audit",
+    "delegates": "kampanya OLUŞTURMA → 10.1.1; CRM liste → 10.1.2; consent/suppression ön-kontrol → 10.2/§19.1 (sonucu TÜKETİR); arama saatleri → 10.1.4; max deneme → 10.1.3; disposition ÜRETİMİ → 10.1.5 (outcomes'ı TÜKETİR); script/teklif versiyon DEPOSU → 10.1.6 (variant→version BAĞLAR); durdurma → 10.1.7; dialer ÇEVİRME → 10.1.x (variant ATAR, çevirmez); audit store → 7.1.6/12.1.8; rapor render → A-14/FR-ANA-*; panel UI render → L2 A-10",
+    "deterministic": true,
+    "trace": "API §A-10, DB.md campaign, SAD §6, SAD §19.1, ADR-001, ADR-002, ADR-012"
+  },
+
+  "allocation": {
+    "$comment": "SR-OUT-012 ÇEKİRDEK (1/2) — VARYANT DAĞITIMI. Her contact, DETERMİNİSTİK STICKY hash (hashlib tabanlı; Date.now/gerçek-rastgele YOK) ile [0,1) aralığına eşlenir ve kümülatif ağırlık kovalarına göre tam-bir varyanta düşer. STICKY: aynı (experiment_id, contact_key) → her zaman aynı varyant (tekrar atama/churn yok). Gözlenen dağılım, yapılandırılan ağırlıkları weight_tolerance içinde yansıtır (büyük N'de yakınsar). Bir contact TANIMSIZ varyanta düşerse / 0 veya >1 varyanta düşerse / tekrar farklı varyanta düşerse → C4 misallocation ihlali. Hash girdisi yalnız yapısal kimlik (experiment_id + contact_key); PII kullanılmaz.",
+    "method": "deterministic_sticky_hash",
+    "hash": "hashlib (stdlib) — salt=experiment_id, key=contact_key; PII girdisi YOK",
+    "weight_sum": 1.0,
+    "weight_tolerance": 0.10,
+    "min_variants": 2,
+    "trace": "SR-OUT-012, FR-OUT-012, FR-OUT-009"
+  },
+
+  "comparison": {
+    "$comment": "SR-OUT-012 ÇEKİRDEK (2/2) — VARYANT KARŞILAŞTIRMASI. disposition-türevli per-variant outcomes {trials (aranan), conversions (başarı/dönüşüm)} → varyant başına dönüşüm oranı conversions/trials. Kontrol varyantı (ilk/A) referans; lider varyant kontrole karşı İKİ-ORAN Z-TESTİ ile karşılaştırılır. KAZANAN yalnız (a) tüm karşılaştırılan varyantların trials ≥ min_sample VE (b) |z| ≥ z(alpha) [iki-yön] ise BEYAN edilir; aksi halde verdict='inconclusive' (yanlış kazanan YOK). min_sample altı / anlamsız farkta kazanan beyanı → C5 false_winner ihlali. Anlamlılık testi deterministik (math.erfc normal CDF); ek rastgelelik yok.",
+    "metric": "conversion_rate = conversions / trials",
+    "test": "two_proportion_z_test (control = ilk varyant; deterministik, math.erfc)",
+    "default_min_sample": 100,
+    "default_alpha": 0.05,
+    "verdicts": ["winner", "inconclusive"],
+    "trace": "SR-OUT-012, FR-OUT-012, FR-OUT-011, FR-ANA-*"
+  },
+
+  "eligibility_guard": {
+    "$comment": "C8 — A/B SUPPRESSION-BYPASS ARACI OLAMAZ. A/B deneyi yalnızca hangi script/teklif VARYANTININ kullanılacağını seçer; bir contact'ın ARANMAYA UYGUN olup olmadığını (consent_ok ∧ dnc_ok ∧ hours_ok — FR-OUT-003/006/004, 10.2/§19.1 ön-kontrol SONUCU) DEĞİŞTİRMEZ. Uygun-olmayan contact deneye dahil edilse bile dialer onu aramaz; A/B atama uygunluğu override edemez. inject eligibility_bypass ile uygunsuz contact 'aranabilir' işaretlenirse → C8 ihlali. Bu modül uygunluğu yeniden HESAPLAMAZ; ön-kontrol sonucunu (eligibility) tüketir ve KORUR.",
+    "required_flags": ["consent_ok", "dnc_ok", "hours_ok"],
+    "rule": "eligible = consent_ok AND dnc_ok AND hours_ok; A/B atama eligible'ı override EDEMEZ",
+    "trace": "FR-OUT-003, FR-OUT-006, FR-OUT-004, SAD §19.1"
+  },
+
+  "authorization": {
+    "$comment": "FR-IAM-011/ADR-012: A/B config/start campaign:manage yetkisi ister; yetki kararı her zaman backend'de. Yetkili roller (immutable bundle): operations_manager (L2 supervisor seti), conversation_designer (script/teklif varyantını tasarlar), tenant_admin, tenant_owner. Yetkisiz aktör (ör. human_agent, qa_analyst) → DENIED (işlem yok, ihlal değil; doğru reddetme). inject skip_auth ile yetkisiz config uygulanırsa C2 unauthorized ihlali.",
+    "permission": "campaign:manage",
+    "authorized_roles": ["operations_manager", "conversation_designer", "tenant_admin", "tenant_owner"],
+    "decision_at": "backend",
+    "trace": "FR-IAM-011, ADR-012, API §A-10 (campaign:manage), SAD §27 RBAC"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal deney sonuçları. APPLIED = config geçerli + dağıtım yapıldı (+ outcomes verildiyse karşılaştırma). DENIED = yetkisiz/geçersiz-config/cross-tenant (işlem yok). İkisi de geçerli terminal sonuç — DENIED ihlal DEĞİL, doğru reddetmedir. Terminal sonuçlar audit üretir. (Karşılaştırma VERDICT'i [winner|inconclusive] APPLIED içindeki bir alandır, ayrı terminal değildir.)",
+    "list": ["APPLIED", "DENIED"],
+    "terminal": ["APPLIED", "DENIED"]
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli; bir senaryoda ihlal varsa kapı eler. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F2 canlı dialer entegrasyonu + pilot tenant verisinde doğrulanır (BRD §22 açık karar).",
+    "max_unauthorized": 0,
+    "max_invalid_config": 0,
+    "max_misallocation": 0,
+    "max_false_winner": 0,
+    "max_not_idempotent": 0,
+    "max_cross_tenant": 0,
+    "max_eligibility_bypass": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "A/B motoru her sonuç için BRD §15 + deney metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. ab_experiment_total{tenant,result} → deney sayımı; ab_variant_allocation_total{tenant,variant} → varyant başına atanan contact (variant DÜŞÜK kardinalite — A/B/C... sabit); ab_comparison_verdict_total{tenant,verdict} → winner|inconclusive sayımı; ab_experiment_denied_total{tenant,reason} → reddedilen config (yetki/geçersiz erken-uyarı); ab_eligibility_bypass_total → uygunluğu atlanan contact (C8 ihlal alarmı, 0 olmalı). tenant_id+variant+verdict+result+reason DÜŞÜK kardinalite (label uygun); experiment_id/contact_key/campaign_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Müşteri PII metrikte VE log'da YOK (FR-REC-004). eligibility_bypass>0 (C8 ihlali) → alarm ≤2dk (SAD §17.2, NFR 10.1).",
+    "metrics": ["ab_experiment_total", "ab_variant_allocation_total", "ab_comparison_verdict_total", "ab_experiment_denied_total", "ab_eligibility_bypass_total"],
+    "low_cardinality_labels": ["tenant_id", "variant", "verdict", "result", "reason"],
+    "high_cardinality_trace_only": ["experiment_id", "contact_key", "campaign_id", "correlation_id"],
+    "alarm": "eligibility_bypass>0 (A/B consent/DNC/saat atladı — C8 ihlali) VEYA experiment_denied oranı ani artışı → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "C1", "desc": "Determinizm/tamlık: her ABExperimentRequest tanımlı işlem boyunca ilerler ve bir terminal sonuca {APPLIED|DENIED} ulaşır; aynı girdi → aynı çıktı (deterministik hash + deterministik z-test); stuck/tanımsız durum yok. stuck_state=0.", "trace": "SR-OUT-012, FR-OUT-012"},
+    {"id": "C2", "desc": "Yetki (FR-IAM-011/ADR-012): A/B config/start yalnız campaign:manage yetkili aktörle (operations_manager/conversation_designer/tenant_admin/tenant_owner) uygulanır; yetkisiz aktör → DENIED (işlem yok). unauthorized=0.", "trace": "FR-IAM-011, ADR-012, API §A-10"},
+    {"id": "C3", "desc": "Geçerli config: yalnız geçerli varyant config'i uygulanır — ≥2 varyant, ağırlık toplamı 1.0 (epsilon içinde), benzersiz variant id, her varyantta script_version (FR-OUT-009 bağı); geçersiz config → DENIED. invalid_config=0.", "trace": "FR-OUT-012, FR-OUT-009"},
+    {"id": "C4", "desc": "Varyant dağıtımı (SR-OUT-012 ÇEKİRDEK 1/2): deterministik+sticky atama — her contact tam bir TANIMLI varyanta düşer, gözlenen dağılım ağırlıkları weight_tolerance içinde yansıtır, aynı (experiment,contact) tekrar→aynı varyant; tanımsız varyant / 0|>1 varyant / non-sticky reassign → ihlal. misallocation=0.", "trace": "SR-OUT-012, FR-OUT-012"},
+    {"id": "C5", "desc": "Varyant karşılaştırması (SR-OUT-012 ÇEKİRDEK 2/2): per-variant dönüşüm oranı doğru hesaplanır; kazanan yalnız min_sample + anlamlılık (alpha) karşılanırsa beyan, aksi 'inconclusive'; anlamsız/yetersiz örnekte kazanan beyanı → ihlal. false_winner=0.", "trace": "SR-OUT-012, FR-OUT-012, FR-OUT-011"},
+    {"id": "C6", "desc": "Idempotency: aynı experiment_id + contact seti tekrar → birebir aynı dağıtım (sticky); tekrar atama/churn yok, çifte yan-etki yok. not_idempotent=0.", "trace": "FR-OUT-012, FR-TOOL-003 deseni"},
+    {"id": "C7", "desc": "Tenant izolasyonu (FR-TEN-002): deney yalnız bu tenant'ın kampanya+contact'ını etkiler; cross-tenant campaign_id/contact reddedilir. cross_tenant=0.", "trace": "FR-TEN-002, FR-OUT-012"},
+    {"id": "C8", "desc": "Uygunluk koruması (FR-OUT-003/006/004): A/B yalnız script/teklif varyantını seçer; consent/DNC/suppression/saat UYGUNLUĞUNU override ETMEZ — uygun-olmayan contact A/B atamasıyla 'aranabilir' yapılamaz. eligibility_bypass=0.", "trace": "FR-OUT-003, FR-OUT-006, FR-OUT-004, SAD §19.1"},
+    {"id": "C9", "desc": "Kanıt: her sonuç experiment_id + variants(+weights+script_version) + allocation sayımları + comparison istatistikleri + actor_role + kaynak taşır; kanıtsız sonuç yok. missing_evidence=0.", "trace": "FR-IAM-006"},
+    {"id": "C10", "desc": "Audit: her sonuç (APPLIED/DENIED) → audit {result, experiment_id, campaign_id, variants, verdict, actor_role, deny_reason, correlation_id, tenant_id} (FR-IAM-006). missing_audit=0.", "trace": "FR-IAM-006, 0.4.7 label_policy"},
+    {"id": "C11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (variant/verdict/result/reason); experiment_id/contact_key/campaign_id/correlation_id metrikte yok, yalnız trace; müşteri PII metrikte VE log'da yok. (0.4.7 label_policy, FR-REC-004).", "trace": "FR-REC-004, 0.4.7 label_policy"},
+    {"id": "C12", "desc": "Sır/PII yok: spec/config/sample müşteri adı/telefon numarası/hesap no/ham transkript/OTP/credential tutmaz; yalnız yapısal kimlikler (experiment/variant/campaign/tenant/contact/correlation kimlikleri, script versiyon etiketi) + sayaçlar (trials/conversions/contact) + ağırlıklar + bayraklar. secret_or_pii=0.", "trace": "BRD §14, BRD §16, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar müşteri ADI, TELEFON numarası, HESAP numarası, ham TRANSKRİPT, OTP, PAROLA, PII DEĞERİ veya credential TUTMAZ — yalnız yapısal KİMLİKLER (experiment/variant/campaign/tenant/contact/correlation kimlikleri ör. exp-001 / var-A / camp-001 / t-acme / ck-001 / corr-001, script versiyon etiketi ör. scr-v2) + SAYAÇLAR (trials/conversions/contact adedi) + AĞIRLIKLAR + BAYRAKLAR. Kimlik/sayaç/ağırlık/bayrak PII DEĞİLDİR; tasarımca PII-olmayandır. Varyant atama hash girdisi yalnız experiment_id+contact_key (yapısal kimlik); PII hash'lenmez.",
+    "forbids": ["customer_name", "customer_phone_value", "account_number_value", "transcript_text", "otp_code_value", "password_value", "credential", "secret", "pii_value"]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "ab-cross-tenant-degraded",
+  "$comment": "DEGRADE: deney yabancı tenant kaynağına dokundu (cross_tenant) → C7 cross_tenant ihlali. Tenant izolasyonu breach. Kapı eler.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ab-106",
+  "campaign_id": "camp-ab-106",
+  "experiment_id": "exp-ab-106",
+  "actor_role": "operations_manager",
+  "variants": [
+    {"id": "var-A", "weight": 0.5, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.5, "script_version": "scr-v2"}
+  ],
+  "contacts_count": 200,
+  "inject": ["cross_tenant"]
+}

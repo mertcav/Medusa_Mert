@@ -1,0 +1,17 @@
+{
+  "name": "ab-eligibility-preserved-happy",
+  "$comment": "Uygunluk koruması (C8): 6 contact, 2'si ön-kontrolde (consent/DNC/saat) uygunsuz. A/B yalnız script seçer; uygunsuz contact callable DEĞİL (callable=4). A/B suppression bypass aracı OLAMAZ. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ab-007",
+  "campaign_id": "camp-ab-007",
+  "experiment_id": "exp-ab-007",
+  "actor_role": "operations_manager",
+  "variants": [
+    {"id": "var-A", "weight": 0.5, "script_version": "scr-v1"},
+    {"id": "var-B", "weight": 0.5, "script_version": "scr-v2"}
+  ],
+  "contacts": ["ck-1", "ck-2", "ck-3", "ck-4", "ck-5", "ck-6"],
+  "ineligible_contacts": ["ck-3", "ck-6"],
+  "expected": {"terminal": "APPLIED", "callable_count": 4, "applied": true}
+}
