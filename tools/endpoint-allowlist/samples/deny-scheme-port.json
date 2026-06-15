@@ -1,0 +1,24 @@
+{
+  "name": "deny-scheme-port — yasak scheme/port → DENY SCHEME_BLOCKED/PORT_BLOCKED (A5/A6)",
+  "$comment": "s1: http (https-only). s2: file:// (yerel dosya SSRF). s3: onaylı host ama port 8080 (443 değil). Hepsi onaylı host olsa bile scheme/port allowlist EZER. Sentetik (FR-TST-008).",
+  "profile": "crm-egress-strict",
+  "requests": [
+    {"call_id": "s1", "correlation_id": "corr-s1", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET http://crm.example.com/v1/x",
+     "target": {"scheme": "http", "host": "crm.example.com", "port": 443, "path": "/v1/x"},
+     "resolved_ips": ["203.0.113.10"]},
+    {"call_id": "s2", "correlation_id": "corr-s2", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET file://crm.example.com/etc/passwd",
+     "target": {"scheme": "file", "host": "crm.example.com", "port": 443, "path": "/etc/passwd"},
+     "resolved_ips": ["203.0.113.10"]},
+    {"call_id": "s3", "correlation_id": "corr-s3", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://crm.example.com:8080/v1/x",
+     "target": {"scheme": "https", "host": "crm.example.com", "port": 8080, "path": "/v1/x"},
+     "resolved_ips": ["203.0.113.10"]}
+  ],
+  "expect": {
+    "s1": {"decision": "deny", "reason_code": "SCHEME_BLOCKED"},
+    "s2": {"decision": "deny", "reason_code": "SCHEME_BLOCKED"},
+    "s3": {"decision": "deny", "reason_code": "PORT_BLOCKED"}
+  }
+}

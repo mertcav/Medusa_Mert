@@ -1,0 +1,34 @@
+{
+  "name": "deny-path-malformed — path_prefix dışı + traversal + bozuk hedef → DENY (A8/A12)",
+  "$comment": "x1: onaylı host ama /admin path_prefix /v1/ altında değil → PATH_NOT_ALLOWED. x2: traversal /v1/../admin → MALFORMED_TARGET (fail-closed). x3: /v1extra segment-sınırı eşleşmez → PATH_NOT_ALLOWED. x4: decimal IP obfuscation host → MALFORMED. x5: DNS adı ama resolved_ips yok → MALFORMED (fail-closed). Sentetik (FR-TST-008).",
+  "profile": "crm-egress-strict",
+  "requests": [
+    {"call_id": "x1", "correlation_id": "corr-x1", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://crm.example.com/admin/secrets",
+     "target": {"scheme": "https", "host": "crm.example.com", "port": 443, "path": "/admin/secrets"},
+     "resolved_ips": ["203.0.113.10"]},
+    {"call_id": "x2", "correlation_id": "corr-x2", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://crm.example.com/v1/../admin",
+     "target": {"scheme": "https", "host": "crm.example.com", "port": 443, "path": "/v1/../admin"},
+     "resolved_ips": ["203.0.113.10"]},
+    {"call_id": "x3", "correlation_id": "corr-x3", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://crm.example.com/v1extra/x",
+     "target": {"scheme": "https", "host": "crm.example.com", "port": 443, "path": "/v1extra/x"},
+     "resolved_ips": ["203.0.113.10"]},
+    {"call_id": "x4", "correlation_id": "corr-x4", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://2130706433/v1/x",
+     "target": {"scheme": "https", "host": "2130706433", "port": 443, "path": "/v1/x"},
+     "resolved_ips": []},
+    {"call_id": "x5", "correlation_id": "corr-x5", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://crm.example.com/v1/x",
+     "target": {"scheme": "https", "host": "crm.example.com", "port": 443, "path": "/v1/x"},
+     "resolved_ips": []}
+  ],
+  "expect": {
+    "x1": {"decision": "deny", "reason_code": "PATH_NOT_ALLOWED"},
+    "x2": {"decision": "deny", "reason_code": "MALFORMED_TARGET"},
+    "x3": {"decision": "deny", "reason_code": "PATH_NOT_ALLOWED"},
+    "x4": {"decision": "deny", "reason_code": "MALFORMED_TARGET"},
+    "x5": {"decision": "deny", "reason_code": "MALFORMED_TARGET"}
+  }
+}

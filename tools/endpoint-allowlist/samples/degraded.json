@@ -1,0 +1,23 @@
+{
+  "name": "degraded — SSRF blok KAPALI → onaylı host iç metadata IP'ye çözülünce PERMIT (SSRF-floor KASITLI eler)",
+  "$comment": "DEGRADE/anti-örnek: enforce_ssrf=false + policy.block_metadata/block_private_networks=false → gate iç IP'yi PERMIT eder. _check_gates'in SSRF-FLOOR'u (policy toggle'dan BAĞIMSIZ A2/A3/A9 invariant) iç hedef PERMIT edildiğini YAKALAR → KIRMIZI. Bu, SSRF blokunun sadece policy-opsiyonel DEĞİL, GERÇEK bir güvenlik kapısı olduğunu kanıtlar (ADR-014; 7.1.5 failsafe deseni). Beklenen eleme (expect_degraded). Sentetik (FR-TST-008).",
+  "enforce_ssrf": false,
+  "expect_degraded": true,
+  "policy": {
+    "tenant_id": "t-pilot",
+    "default_action": "deny",
+    "schemes_allowed": ["https"],
+    "ports_allowed": [443],
+    "block_metadata": false,
+    "block_private_networks": false,
+    "allow": [
+      {"connector_id": "crm-rest", "scheme": "https", "host": "crm.example.com", "port": 443, "path_prefix": "/v1/"}
+    ]
+  },
+  "requests": [
+    {"call_id": "d1", "correlation_id": "corr-d1", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://crm.example.com/v1/customers/{customer_id}",
+     "target": {"scheme": "https", "host": "crm.example.com", "port": 443, "path": "/v1/customers/C-7007"},
+     "resolved_ips": ["169.254.169.254"]}
+  ]
+}

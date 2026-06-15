@@ -1,0 +1,106 @@
+{
+  "$comment": "WBS 7.2.3 — Endpoint allowlist (onaysız endpoint engelleme; SAD §11.2 Integration Gateway + FR-TOOL-012 'Onaylanmamış endpoint'lere erişim engellenmelidir'). Tool Yürütme Hattının (SAD §11.1) EGRESS KARAR GATE'i: connector (7.2.1 REST / 7.2.2 SOAP/GraphQL/webhook) bir KANONİK endpoint + çözülmüş hedef (scheme/host/port/path + resolved_ips) ÜRETİR; bu gate o hedefi tenant-tanımlı allowlist ile karşılaştırıp PERMIT/DENY KARAR verir — DENY ise istek WIRE'a GİTMEZ (connector upstream_call'a inmez; AttemptOutcome üretilmez). ADR-014'ün (Zorunlu egress kontrol katmanı — egress proxy + merkezi allowlist) UYGULAMA-KATMANI karar çekirdeği; ağ-katmanı egress proxy enforcement'ı 17.1.4/0.4.x platform engineering (defense-in-depth, AYNI karar mantığı). SEC-06 (egress yalnız allowlist üzerinden; iç metadata endpoint engeli) + SEC-20 (egress kontrol) tasarım kontrolleri. INVARIANT (SR-TOOL-012 kabul ölçütü): 'Allowlist dışı endpoint çağrısı reddedilir' — default-deny (A1): eşleşen allow kuralı yoksa DENY. Üstüne SSRF savunması (TM-E-06): cloud metadata (A2) + RFC1918/loopback/link-local/ULA özel ağ (A3) + DNS rebinding (A4 — allowlist'li host iç IP'ye çözülürse host-allow BYPASS ETMEZ) BLOK, allow kuralını EZER (A9 block-overrides-allow / most-restrictive-wins). scheme allowlist (A5; file/gopher/http-when-https-only blok), port allowlist (A6), host eşleme etiket-sınırı semantiği (A7; substring YOK, `*.x.com` ≠ `x.com` ≠ `evilx.com`), path_prefix segment-sınırı + traversal reddi (A8), determinizm (A10), audit no-log (A11; düşük kardinalite — yalnız kanonik endpoint template + karar + reason_code; query/path-değeri/PII/secret/IP YOK), fail-closed (A12; bozuk/çözülemeyen hedef → DENY, ASLA permit). DENY → gate-seviyesi TERMINAL fault ENDPOINT_NOT_ALLOWED (retry edilmez — engellenmiş endpoint'i tekrar denemek anlamsız + saldırı sinyali); 7.1.5 bunu müşteriye teknik-detaysız NOT_PERMITTED/CANNOT_COMPLETE'e çevirir. KAPSAM DIŞI (bilinçli): kanonik endpoint/target ÜRETİMİ → 7.2.1/7.2.2 (connector; gate yalnız KARAR verir); timeout/retry/circuit breaker → 7.1.4 (FR-TOOL-003; gate PERMIT verince 7.1.4 sarar, DENY'i retry ETMEZ); ağ-katmanı egress proxy / private endpoint / WAF / IP allowlist (inbound) → 17.1.4 (NFR 10.6; bu gate uygulama-katmanı KARAR, proxy enforcement orada — defense-in-depth); input/output JSON schema → 7.1.1 (FR-TOOL-002); tool authz/scope → 7.1.2 (FR-TOOL-004/005; authz 'agent bu tool'u çağırabilir mi', allowlist 'bu endpoint'e gidilebilir mi' — DİK boyutlar); idempotency → 7.1.3; MÜŞTERİYE hata metni → 7.1.5 (gate yalnız yapısal fault üretir); correlation_id audit zenginleştirme → 7.1.6 (FR-TOOL-010); allowlist'in L1 panelden YÖNETİMİ (CRUD/maker-checker) → ileri panel WBS; gerçek DNS çözümleme → canlı resolver (referans: provided resolved_ips). Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (fixture'lar sentetik — FR-TST-008; host'lar example.com / RFC5737-TEST-NET public IP / RFC1918+RFC3927 özel IP illüstratif). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "7.2.3",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TOOL-012", "FR-TST-008"],
+    "nfr": ["NFR 10.6", "NFR 10.7"],
+    "srs": ["SR-TOOL-012"],
+    "rtm": ["TC-TOOL-012"],
+    "sad": [
+      "§11.2 (Integration Gateway: 'Yalnız onaylı endpoint'lere (allowlist) erişim' FR-TOOL-012 — bu modülün karar çekirdeği)",
+      "§11.1 (Tool Yürütme Hattı — egress karar gate'i: connector kanonik endpoint üretir → gate PERMIT/DENY → [5] Integration GW sarar/DENY short-circuit)",
+      "§14 (Güvenlik mimarisi — 'Yalnız onaylı endpoint'lere (allowlist) erişim (FR-TOOL-012)'; zero-trust ağ, private endpoint, IP allowlist)",
+      "§8.1/§8.2 (Adapter/transport SPI — gate connector'ın ÜRETTİĞİ kanonik endpoint'i tüketir)"
+    ],
+    "brd": ["§9.10 (Tool ve İş Süreci Yönetimi — FR-TOOL-012)", "§14 (Güvenlik & uyumluluk — egress kontrol)"],
+    "adr": [
+      "ADR-014 (Zorunlu egress kontrol katmanı — egress proxy + merkezi allowlist; bu modül uygulama-katmanı KARAR çekirdeği, durum Önerilen → 7.2.3/17.1.4 uygulama)",
+      "ADR-001 (orchestrator/Tool Executor bağımsızlığı — gate connector SPI ÇIKTISINI tüketir)",
+      "ADR-002 (vendor-neutral — allowlist kararı transport/sağlayıcıdan bağımsız)"
+    ],
+    "threat_model": [
+      "TM-E-06 (SSRF — tool/webhook ile iç ağ/metadata endpoint'e erişim; mevcut önlem 'Endpoint allowlist (FR-TOOL-012)')",
+      "TM-I-04 (hassas içeriğin 3rd-party'ye gitmesi — egress daraltma yardımcı)",
+      "SEC-06 (egress yalnız allowlist üzerinden — egress proxy; iç metadata endpoint engeli)",
+      "SEC-20 (secrets/least-privilege + egress kontrol)"
+    ],
+    "consumes": [
+      "7.2.1 REST connector (FR-TOOL-001) — kanonik endpoint template + çözülmüş target (scheme/host/port/path) ÜRETİR; gate karar verir",
+      "7.2.2 SOAP/GraphQL/webhook connector (FR-TOOL-001) — AYNI kanonik endpoint/target yüzeyi",
+      "tenant egress policy (FR-TOOL-012) — L1 admin tanımlı allowlist (config preset; CRUD yönetimi ileri panel WBS)",
+      "DNS çözümleme — canlı resolver hedefin resolved_ips'i; referans: deterministik provided resolved_ips (gerçek DNS YOK)"
+    ],
+    "consumed_by": [
+      "7.1.4 timeout/retry/circuit breaker (FR-TOOL-003) — PERMIT → 7.1.4 upstream_call'u sarar; DENY (ENDPOINT_NOT_ALLOWED terminal) → retry ETMEZ, short-circuit",
+      "7.1.5 hata normalizasyonu (FR-TOOL-008) — ENDPOINT_NOT_ALLOWED → müşteriye teknik-detaysız NOT_PERMITTED/CANNOT_COMPLETE",
+      "7.1.6 correlation_id audit (FR-TOOL-010) — gate karar kaydını (no-log) zenginleştirir",
+      "17.1.4 ağ-katmanı egress proxy (NFR 10.6) — AYNI allowlist karar mantığı, proxy enforcement (defense-in-depth)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Egress karar gate'i Tool Yürütme Hattında (SAD §11.1) connector ile dayanıklılık motoru (7.1.4) ARASINDA bir PRE-FLIGHT KARAR'dır: '… [4] idempotency ──► [EGRESS GATE: connector kanonik endpoint+target ÜRETİR → allowlist KARAR] ──► PERMIT ? [5] Integration GW {timeout+retry+breaker} sarar : DENY short-circuit (ENDPOINT_NOT_ALLOWED, WIRE'a gitmez) ──► [6] error normalization …'. Karar SAF (clock/random YOK) — aynı policy+target → aynı karar (A10). ADR-014: ağ-katmanında zorunlu egress proxy AYNI allowlist'i her bağlantıda yeniden uygular (defense-in-depth); bu modül o kararın referans uygulama-katmanı çekirdeği. Voice-runtime hot-path (orchestrator ACT, SAD §6.1) — gecikme katkısı ihmal edilebilir (saf karar, ağ I/O yok). Vendor-neutral (ADR-001/002): karar transport/sağlayıcıdan bağımsız.",
+    "plane": "voice-runtime (orchestrator Tool Executor / Integration GW — egress karar gate)",
+    "hot_path": true,
+    "decision_pure": true,
+    "runs": "connector kanonik endpoint üretiminden SONRA, 7.1.4 upstream_call'dan ÖNCE (pre-flight); DENY → upstream_call hiç çağrılmaz",
+    "default_action": "deny (FR-TOOL-012 default-deny; policy.default_action != 'deny' → INVALID_POLICY)",
+    "deny_is_terminal": "ENDPOINT_NOT_ALLOWED gate-seviyesi TERMINAL fault — 7.1.4 retry ETMEZ (engellenmiş endpoint tekrarı anlamsız + saldırı sinyali)",
+    "trace": "SAD §11.1, SAD §11.2, SAD §14, ADR-014, ADR-001, ADR-002, FR-TOOL-012"
+  },
+
+  "decision_contract": {
+    "$comment": "EgressGate(policy).decide(request) → AllowlistDecision. EgressPolicy (tenant-scoped, bildirimsel): {tenant_id, default_action:'deny', schemes_allowed[], ports_allowed[], block_metadata, block_private_networks, allow[{connector_id?, scheme, host (exact|*.suffix), port?, path_prefix?}]}. EgressRequest: {call_id, correlation_id, tenant_id, connector_id?, method?, endpoint (kanonik interpolesiz template — C11/7.2.x), target{scheme, host, port, path}, resolved_ips[] (DNS sonucu; host IP-literal ise gereksiz)}. AllowlistDecision: {decision: permit|deny, reason_code, matched_rule: idx|null, endpoint (kanonik template — audit), fault_class: null|ENDPOINT_NOT_ALLOWED, no_log: true}.",
+    "policy_fields": ["tenant_id", "default_action", "schemes_allowed", "ports_allowed", "block_metadata", "block_private_networks", "allow"],
+    "allow_rule_fields": ["connector_id", "scheme", "host", "port", "path_prefix"],
+    "request_fields": ["call_id", "correlation_id", "tenant_id", "connector_id", "method", "endpoint", "target", "resolved_ips"],
+    "target_fields": ["scheme", "host", "port", "path"],
+    "decision_fields": ["decision", "reason_code", "matched_rule", "endpoint", "fault_class", "no_log"],
+    "permit_reason": "ALLOWED",
+    "deny_reasons": ["UNLISTED_ENDPOINT", "SCHEME_BLOCKED", "PORT_BLOCKED", "PRIVATE_NETWORK_BLOCKED", "METADATA_BLOCKED", "DNS_REBINDING_BLOCKED", "PATH_NOT_ALLOWED", "MALFORMED_TARGET", "POLICY_TENANT_MISMATCH"],
+    "deny_fault_class": "ENDPOINT_NOT_ALLOWED",
+    "trace": "FR-TOOL-012, SAD §11.2, ADR-014"
+  },
+
+  "fault_alignment": {
+    "$comment": "ENDPOINT_NOT_ALLOWED gate-seviyesi TERMINAL fault — 7.1.4 fault_taxonomy'sinin terminal kümesine MANTIKEN eklenir (connector'ın ürettiği UPSTREAM_4XX/SCHEMA_INVALID/AUTH_FAILED/NOT_FOUND ile aynı sınıf: retry edilmez). Connector bu fault'u ÜRETMEZ (gate üretir; 7.1.4'ün CIRCUIT_OPEN/RETRY_EXHAUSTED gateway-fault'larıyla benzer şekilde pipeline-katmanı fault'tur). 7.1.5 ENDPOINT_NOT_ALLOWED → müşteriye 'işlemi şu an tamamlayamıyorum' (NOT_PERMITTED/CANNOT_COMPLETE) — engellenmiş endpoint detayı SIZMAZ.",
+    "gate_terminal_fault": "ENDPOINT_NOT_ALLOWED",
+    "retryable": false,
+    "produced_by": "egress gate (connector DEĞİL)",
+    "trace": "7.1.4 fault_taxonomy (terminal), 7.1.5 error-normalization, FR-TOOL-008"
+  },
+
+  "ssrf_blocklist": {
+    "$comment": "SSRF savunması (A2/A3, TM-E-06) — policy.block_metadata / block_private_networks açıkken host IP-literal ∨ HER resolved_ip bu aralıklarda ise BLOK, allow kuralını EZER (A9). Cloud metadata özel-kasa (A2). IPv4 + IPv6. Karar IP'yi kanonikleştirir (decimal/octal/hex obfuscation parse + reddet).",
+    "metadata_ips": ["169.254.169.254", "fd00:ec2::254", "100.100.200.200"],
+    "metadata_hosts": ["metadata.google.internal", "metadata", "instance-data"],
+    "private_v4_cidrs": ["0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16", "172.16.0.0/12", "192.0.0.0/24", "192.168.0.0/16", "198.18.0.0/15", "240.0.0.0/4"],
+    "private_v6_ranges": ["::1/128", "::/128", "fc00::/7", "fe80::/10", "ff00::/8", "::ffff:0:0/96"],
+    "trace": "TM-E-06, ADR-014, SEC-06"
+  },
+
+  "invariants": [
+    {"id": "A1", "desc": "Default-deny (SR-TOOL-012 kabul ölçütü): policy.default_action ZORUNLU 'deny'; eşleşen allow kuralı yoksa DENY UNLISTED_ENDPOINT. 'Allowlist dışı endpoint çağrısı reddedilir.'"},
+    {"id": "A2", "desc": "Metadata blok: hedef host/IP cloud metadata (169.254.169.254, fd00:ec2::254, metadata.google.internal, ...) ise DENY METADATA_BLOCKED — allow kuralı olsa bile (block-overrides-allow A9). TM-E-06."},
+    {"id": "A3", "desc": "Özel-ağ blok (SSRF): host IP-literal ∨ herhangi resolved_ip RFC1918/loopback/link-local/ULA/reserved ise DENY PRIVATE_NETWORK_BLOCKED — allow kuralını EZER. ADR-014."},
+    {"id": "A4", "desc": "DNS rebinding savunması: TÜM resolved_ips A2/A3'ten geçmeli; allowlist'li host BİR iç IP'ye çözülürse host-allow BYPASS ETMEZ → DENY DNS_REBINDING_BLOCKED."},
+    {"id": "A5", "desc": "Scheme allowlist: target.scheme ∉ policy.schemes_allowed → DENY SCHEME_BLOCKED (file/gopher/ftp/data + https-only iken http blok)."},
+    {"id": "A6", "desc": "Port allowlist: target.port ∉ policy.ports_allowed → DENY PORT_BLOCKED."},
+    {"id": "A7", "desc": "Host eşleme etiket-sınırı semantiği: exact (case-insensitive) ∨ `*.suffix` (etiket sınırında); substring YOK — `evilexample.com` ≠ `example.com`, `*.example.com` ≠ `example.com` (kendisi) ve ≠ `a.evil-example.com`. Trailing-dot normalize."},
+    {"id": "A8", "desc": "path_prefix segment-sınırı: kural path_prefix taşıyorsa target.path o prefix'le `/` segment sınırında başlamalı → değilse DENY PATH_NOT_ALLOWED. Path traversal (`..` segment) → DENY MALFORMED_TARGET (normalize sonrası prefix kaçışı önlenir)."},
+    {"id": "A9", "desc": "Block-overrides-allow (most-restrictive-wins): metadata/private/rebinding/scheme/port blokları allow eşleşmesini EZER; hiçbir allow kuralı iç IP'ye/yasak scheme'e izin veremez."},
+    {"id": "A10", "desc": "Determinizm: aynı policy+request → birebir aynı AllowlistDecision (saf karar; Date.now/gerçek-rastgele YOK)."},
+    {"id": "A11", "desc": "Audit no-log: karar kaydı yalnız correlation_id+kanonik endpoint (interpolesiz template)+decision+reason_code+matched_rule+no_log; query/path-param değeri/body/PII/secret/resolved_ip literal YOK (düşük kardinalite — 0.4.7 label politikası)."},
+    {"id": "A12", "desc": "Fail-closed: bozuk hedef (host yok, IP-literal parse edilemez/obfuscated, DNS-adı için resolved_ips yok, host/path'te kontrol karakteri) → DENY MALFORMED_TARGET; hata ASLA permit'e dönmez."}
+  ],
+
+  "audit": {
+    "$comment": "Karar başına yapısal audit kaydı (7.1.6 correlation_id audit'e köprü; FR-TOOL-010). no_log: ham URL query/path-değeri/body/secret/PII/resolved_ip içermez — yalnız correlation_id, kanonik endpoint (template), decision, reason_code, matched_rule.",
+    "no_log": true,
+    "fields": ["correlation_id", "endpoint", "decision", "reason_code", "matched_rule", "no_log"],
+    "trace": "FR-TOOL-010, →7.1.6, BRD §17.7, NFR 10.7"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "deny-tenant-mismatch — request tenant ≠ policy tenant → DENY POLICY_TENANT_MISMATCH",
+  "$comment": "Cross-tenant policy uygulaması engellenir: crm-egress-strict policy'si t-pilot'a ait; t-OTHER'ın isteği onaylı host olsa bile reddedilir (tenant izolasyonu — FR-TEN ruhu). Sentetik (FR-TST-008).",
+  "profile": "crm-egress-strict",
+  "requests": [
+    {"call_id": "t1", "correlation_id": "corr-t1", "tenant_id": "t-OTHER", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://crm.example.com/v1/customers/{customer_id}",
+     "target": {"scheme": "https", "host": "crm.example.com", "port": 443, "path": "/v1/customers/C-9009"},
+     "resolved_ips": ["203.0.113.10"]}
+  ],
+  "expect": {
+    "t1": {"decision": "deny", "reason_code": "POLICY_TENANT_MISMATCH"}
+  }
+}

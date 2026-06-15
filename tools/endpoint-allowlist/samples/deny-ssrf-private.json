@@ -1,0 +1,29 @@
+{
+  "name": "deny-ssrf-private — özel-ağ IP + DNS rebinding → DENY (A3/A4/A9, ADR-014)",
+  "$comment": "r1: IP-literal host 192.168.x → PRIVATE_NETWORK_BLOCKED. r2: allowlist'li host iç 10.x'e çözülür (rebinding) → DNS_REBINDING_BLOCKED (host-allow BYPASS ETMEZ). r3: çok-IP, biri iç (172.16.x) → blok. r4: loopback. Sentetik (FR-TST-008).",
+  "profile": "crm-egress-strict",
+  "requests": [
+    {"call_id": "r1", "correlation_id": "corr-r1", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://192.168.1.10/v1/x",
+     "target": {"scheme": "https", "host": "192.168.1.10", "port": 443, "path": "/v1/x"},
+     "resolved_ips": ["192.168.1.10"]},
+    {"call_id": "r2", "correlation_id": "corr-r2", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://crm.example.com/v1/customers/{customer_id}",
+     "target": {"scheme": "https", "host": "crm.example.com", "port": 443, "path": "/v1/customers/C-3003"},
+     "resolved_ips": ["10.5.5.5"]},
+    {"call_id": "r3", "correlation_id": "corr-r3", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://crm.example.com/v1/customers/{customer_id}",
+     "target": {"scheme": "https", "host": "crm.example.com", "port": 443, "path": "/v1/customers/C-3004"},
+     "resolved_ips": ["203.0.113.10", "172.16.0.4"]},
+    {"call_id": "r4", "correlation_id": "corr-r4", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://127.0.0.1/v1/x",
+     "target": {"scheme": "https", "host": "127.0.0.1", "port": 443, "path": "/v1/x"},
+     "resolved_ips": ["127.0.0.1"]}
+  ],
+  "expect": {
+    "r1": {"decision": "deny", "reason_code": "PRIVATE_NETWORK_BLOCKED"},
+    "r2": {"decision": "deny", "reason_code": "DNS_REBINDING_BLOCKED"},
+    "r3": {"decision": "deny", "reason_code": "DNS_REBINDING_BLOCKED"},
+    "r4": {"decision": "deny", "reason_code": "PRIVATE_NETWORK_BLOCKED"}
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "allow-permit-wildcard — *.partner.example.com alt alan adı → PERMIT; apex → DENY (A7)",
+  "$comment": "Etiket-sınırı wildcard: api.partner.example.com geçer (rule 0); apex partner.example.com EŞLEŞMEZ (wildcard kendisini içermez) → UNLISTED. Sentetik (FR-TST-008).",
+  "profile": "partner-wildcard",
+  "requests": [
+    {"call_id": "w1", "correlation_id": "corr-w1", "tenant_id": "t-2", "connector_id": "partner-gql", "method": "POST",
+     "endpoint": "POST https://api.partner.example.com/graphql",
+     "target": {"scheme": "https", "host": "api.partner.example.com", "port": 443, "path": "/graphql"},
+     "resolved_ips": ["203.0.113.20"]},
+    {"call_id": "w2", "correlation_id": "corr-w2", "tenant_id": "t-2", "connector_id": "partner-gql", "method": "GET",
+     "endpoint": "GET https://partner.example.com/status",
+     "target": {"scheme": "https", "host": "partner.example.com", "port": 443, "path": "/status"},
+     "resolved_ips": ["203.0.113.21"]},
+    {"call_id": "w3", "correlation_id": "corr-w3", "tenant_id": "t-2", "connector_id": "erp-soap", "method": "POST",
+     "endpoint": "POST https://erp.example.com/soap/orders",
+     "target": {"scheme": "https", "host": "erp.example.com", "port": 443, "path": "/soap/orders"},
+     "resolved_ips": ["203.0.113.22"]}
+  ],
+  "expect": {
+    "w1": {"decision": "permit", "reason_code": "ALLOWED"},
+    "w2": {"decision": "deny", "reason_code": "UNLISTED_ENDPOINT"},
+    "w3": {"decision": "permit", "reason_code": "ALLOWED"}
+  }
+}

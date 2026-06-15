@@ -1,0 +1,19 @@
+{
+  "name": "deny-unlisted — allowlist dışı host → DENY UNLISTED_ENDPOINT (A1, SR-TOOL-012 çekirdek kabul ölçütü)",
+  "$comment": "'Allowlist dışı endpoint çağrısı reddedilir.' Public IP'ye çözülse bile (SSRF değil) onaylı listede olmayan host reddedilir → default-deny. Host-confusion varyantı da UNLISTED. Sentetik (FR-TST-008).",
+  "profile": "crm-egress-strict",
+  "requests": [
+    {"call_id": "u1", "correlation_id": "corr-u1", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://exfil.attacker.net/collect",
+     "target": {"scheme": "https", "host": "exfil.attacker.net", "port": 443, "path": "/collect"},
+     "resolved_ips": ["203.0.113.99"]},
+    {"call_id": "u2", "correlation_id": "corr-u2", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://crm.example.com.attacker.net/v1/x",
+     "target": {"scheme": "https", "host": "crm.example.com.attacker.net", "port": 443, "path": "/v1/x"},
+     "resolved_ips": ["203.0.113.98"]}
+  ],
+  "expect": {
+    "u1": {"decision": "deny", "reason_code": "UNLISTED_ENDPOINT"},
+    "u2": {"decision": "deny", "reason_code": "UNLISTED_ENDPOINT"}
+  }
+}

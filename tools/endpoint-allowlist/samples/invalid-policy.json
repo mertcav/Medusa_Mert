@@ -1,0 +1,22 @@
+{
+  "name": "invalid-policy — default_action 'allow' → INVALID_POLICY (FR-TOOL-012 default-deny zorunlu)",
+  "$comment": "Allowlist mimarisi default-DENY OLMALI; default_action='allow' (default-permit) FR-TOOL-012'yi ihlal eder → policy KURULUMDA reddedilir (PolicyError). Bu, 'onaysız endpoint engelleme'nin yapı-zamanı garantisidir. expect_invalid_policy. Sentetik (FR-TST-008).",
+  "expect_invalid_policy": true,
+  "policy": {
+    "tenant_id": "t-pilot",
+    "default_action": "allow",
+    "schemes_allowed": ["https"],
+    "ports_allowed": [443],
+    "block_metadata": true,
+    "block_private_networks": true,
+    "allow": [
+      {"connector_id": "crm-rest", "scheme": "https", "host": "crm.example.com", "port": 443}
+    ]
+  },
+  "requests": [
+    {"call_id": "i1", "correlation_id": "corr-i1", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://crm.example.com/v1/x",
+     "target": {"scheme": "https", "host": "crm.example.com", "port": 443, "path": "/v1/x"},
+     "resolved_ips": ["203.0.113.10"]}
+  ]
+}

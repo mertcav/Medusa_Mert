@@ -1,0 +1,44 @@
+{
+  "$comment": "WBS 7.2.3 — Egress allowlist policy preset'leri (SAD §11.2 / FR-TOOL-012 / ADR-014). Her profil tenant-scoped bir EgressPolicy: default_action ZORUNLU 'deny' (FR-TOOL-012 default-deny), scheme/port allowlist, SSRF blok toggle'ları (block_metadata/block_private_networks — varsayılan açık), ve allow[] kuralları {connector_id?, scheme, host (exact|*.suffix etiket-sınırı), port?, path_prefix? (segment-sınırı)}. Host'lar example.com (sentetik — FR-TST-008). SIR/credential YOK (allowlist policy'de sır olmaz; auth connector tarafında 7.2.1/7.2.2). Canlıda allowlist L1 admin panelinden yönetilir (CRUD/maker-checker — ileri panel WBS); bu preset'ler referans. block_overrides_allow her zaman geçerli (A9): hiçbir allow kuralı iç IP'ye/yasak scheme'e izin veremez.",
+  "version": "1.0",
+  "profiles": {
+    "crm-egress-strict": {
+      "$comment": "Pilot CRM/Ticketing egress allowlist — yalnız https/443, iki onaylı host, path_prefix ile daraltılmış (BRD §6.1 CRM entegrasyonu). SSRF blok açık.",
+      "tenant_id": "t-pilot",
+      "default_action": "deny",
+      "schemes_allowed": ["https"],
+      "ports_allowed": [443],
+      "block_metadata": true,
+      "block_private_networks": true,
+      "allow": [
+        {"connector_id": "crm-rest", "scheme": "https", "host": "crm.example.com", "port": 443, "path_prefix": "/v1/"},
+        {"connector_id": "ticketing-rest", "scheme": "https", "host": "tickets.example.com", "port": 443, "path_prefix": "/api/tickets"}
+      ]
+    },
+    "partner-wildcard": {
+      "$comment": "Partner API entegrasyonu — *.partner.example.com alt alan adlarına izin (etiket-sınırı wildcard A7; apex partner.example.com HARİÇ). webhook/GraphQL connector'lar (7.2.2) aynı host yüzeyini kullanır.",
+      "tenant_id": "t-2",
+      "default_action": "deny",
+      "schemes_allowed": ["https"],
+      "ports_allowed": [443],
+      "block_metadata": true,
+      "block_private_networks": true,
+      "allow": [
+        {"scheme": "https", "host": "*.partner.example.com", "port": 443},
+        {"connector_id": "erp-soap", "scheme": "https", "host": "erp.example.com", "port": 443, "path_prefix": "/soap"}
+      ]
+    },
+    "regulated-tight": {
+      "$comment": "Regüle tenant (finans/sağlık) — en sıkı egress: tek host, tek path_prefix, açık port pinleme. Residency-duyarlı (NFR 10.7); allowlist dışı her şey reddedilir.",
+      "tenant_id": "t-bank",
+      "default_action": "deny",
+      "schemes_allowed": ["https"],
+      "ports_allowed": [443],
+      "block_metadata": true,
+      "block_private_networks": true,
+      "allow": [
+        {"connector_id": "core-banking", "scheme": "https", "host": "api.bank.example.com", "port": 443, "path_prefix": "/v2/accounts"}
+      ]
+    }
+  }
+}

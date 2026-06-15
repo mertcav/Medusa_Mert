@@ -1,0 +1,19 @@
+{
+  "name": "allow-permit-exact — onaylı host + path_prefix + public IP → PERMIT (A1/A7/A8)",
+  "$comment": "crm.example.com /v1/ allowlist'te (crm-egress-strict, rule 0); 203.0.113.10 belgeleme/public IP. SR-TOOL-012'nin POZİTİF tarafı: onaylı endpoint geçer. Sentetik (FR-TST-008).",
+  "profile": "crm-egress-strict",
+  "requests": [
+    {"call_id": "p1", "correlation_id": "corr-a1", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://crm.example.com/v1/customers/{customer_id}",
+     "target": {"scheme": "https", "host": "crm.example.com", "port": 443, "path": "/v1/customers/C-1001"},
+     "resolved_ips": ["203.0.113.10"]},
+    {"call_id": "p2", "correlation_id": "corr-a2", "tenant_id": "t-pilot", "connector_id": "ticketing-rest", "method": "POST",
+     "endpoint": "POST https://tickets.example.com/api/tickets",
+     "target": {"scheme": "https", "host": "tickets.example.com", "port": 443, "path": "/api/tickets"},
+     "resolved_ips": ["198.51.100.7"]}
+  ],
+  "expect": {
+    "p1": {"decision": "permit", "reason_code": "ALLOWED"},
+    "p2": {"decision": "permit", "reason_code": "ALLOWED"}
+  }
+}

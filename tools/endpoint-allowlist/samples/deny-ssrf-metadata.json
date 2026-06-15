@@ -1,0 +1,19 @@
+{
+  "name": "deny-ssrf-metadata — cloud metadata host/IP → DENY METADATA_BLOCKED (A2/A9, TM-E-06)",
+  "$comment": "SSRF: onaylı host metadata IP'ye çözülse de (m1) ya da doğrudan metadata host adı (m2) BLOK; allow kuralı EZİLİR (block-overrides-allow A9). 169.254.169.254 = cloud metadata. Sentetik (FR-TST-008).",
+  "profile": "crm-egress-strict",
+  "requests": [
+    {"call_id": "m1", "correlation_id": "corr-m1", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://crm.example.com/v1/customers/{customer_id}",
+     "target": {"scheme": "https", "host": "crm.example.com", "port": 443, "path": "/v1/customers/C-2002"},
+     "resolved_ips": ["169.254.169.254"]},
+    {"call_id": "m2", "correlation_id": "corr-m2", "tenant_id": "t-pilot", "connector_id": "crm-rest", "method": "GET",
+     "endpoint": "GET https://metadata.google.internal/computeMetadata/v1/",
+     "target": {"scheme": "https", "host": "metadata.google.internal", "port": 443, "path": "/computeMetadata/v1/"},
+     "resolved_ips": ["169.254.169.254"]}
+  ],
+  "expect": {
+    "m1": {"decision": "deny", "reason_code": "METADATA_BLOCKED"},
+    "m2": {"decision": "deny", "reason_code": "METADATA_BLOCKED"}
+  }
+}
