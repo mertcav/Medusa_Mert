@@ -1,0 +1,28 @@
+{
+  "$comment": "Sentetik — write retry güvenliği (FR-TOOL-009): idempotency_key YOKSA write retry edilmez (duplicate önleme); key VARSA retry edilir.",
+  "name": "gw-write-idempotency",
+  "seed": 5,
+  "profile": "write-strict",
+  "calls": [
+    {
+      "call_id": "w-noidem", "correlation_id": "corr-wi-1", "tenant_id": "t-a",
+      "endpoint": "payments.charge", "operation_class": "write",
+      "attempts_script": [
+        {"result": "fault", "fault_class": "UPSTREAM_5XX", "latency_ms": 60},
+        {"result": "ok", "latency_ms": 70}
+      ]
+    },
+    {
+      "call_id": "w-idem", "correlation_id": "corr-wi-2", "tenant_id": "t-a",
+      "endpoint": "payments.charge", "operation_class": "write", "idempotency_key": "idem-7f3a",
+      "attempts_script": [
+        {"result": "fault", "fault_class": "UPSTREAM_5XX", "latency_ms": 60},
+        {"result": "ok", "latency_ms": 70}
+      ]
+    }
+  ],
+  "expect": {
+    "w-noidem": {"status": "failed", "attempts": 1, "retried": false, "reason": "write_not_retried_no_idempotency"},
+    "w-idem": {"status": "success", "attempts": 2, "retried": true}
+  }
+}

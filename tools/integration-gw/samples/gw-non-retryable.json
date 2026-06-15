@@ -1,0 +1,19 @@
+{
+  "$comment": "Sentetik — terminal 4xx client error: retry YOK (kontrolsüz retry yok), tek deneme.",
+  "name": "gw-non-retryable",
+  "seed": 1,
+  "profile": "rest-default",
+  "calls": [
+    {
+      "call_id": "c1", "correlation_id": "corr-nr-1", "tenant_id": "t-a",
+      "endpoint": "crm.read.customer", "operation_class": "read",
+      "attempts_script": [
+        {"result": "fault", "fault_class": "UPSTREAM_4XX", "latency_ms": 15},
+        {"result": "ok", "latency_ms": 40}
+      ]
+    }
+  ],
+  "expect": {
+    "c1": {"status": "failed", "attempts": 1, "retried": false, "fault_class": "UPSTREAM_4XX", "reason": "terminal_fault"}
+  }
+}

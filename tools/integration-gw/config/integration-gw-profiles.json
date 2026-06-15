@@ -1,0 +1,82 @@
+{
+  "$comment": "WBS 7.1.4 — Integration GW resilience profilleri (ResiliencePolicy preset'leri). Sample'lar `profile` adıyla referans verebilir ya da inline `policy` taşıyabilir. Değerler MÜHENDİSLİK VARSAYILANI (tenant/endpoint bazında ayarlanabilir); sır/credential/PII İÇERMEZ. timeout_ms değerleri SAD §20 tool overhead bütçesi (P95 ≤100ms) bağlamında SOFT — gerçek endpoint SLA'sına göre canlıda ayarlanır.",
+  "version": "1.0",
+  "profiles": {
+    "rest-default": {
+      "$comment": "Genel REST okuma/idempotent yazma için makul varsayılan.",
+      "timeout_ms": 800,
+      "max_attempts": 3,
+      "base_backoff_ms": 50,
+      "backoff_multiplier": 2.0,
+      "max_backoff_ms": 2000,
+      "jitter": "full",
+      "retry_writes_require_idempotency": true,
+      "breaker": {
+        "failure_threshold": 5,
+        "window_size": 20,
+        "min_calls": 10,
+        "rate_threshold": 0.5,
+        "cooldown_ms": 5000,
+        "half_open_max_probes": 2,
+        "half_open_success_to_close": 2
+      }
+    },
+    "soap-conservative": {
+      "$comment": "Ağır/legacy SOAP backend; daha uzun timeout, az retry, erken devre.",
+      "timeout_ms": 2500,
+      "max_attempts": 2,
+      "base_backoff_ms": 100,
+      "backoff_multiplier": 2.0,
+      "max_backoff_ms": 1500,
+      "jitter": "equal",
+      "retry_writes_require_idempotency": true,
+      "breaker": {
+        "failure_threshold": 3,
+        "window_size": 12,
+        "min_calls": 6,
+        "rate_threshold": 0.5,
+        "cooldown_ms": 8000,
+        "half_open_max_probes": 1,
+        "half_open_success_to_close": 1
+      }
+    },
+    "flaky-tolerant": {
+      "$comment": "Geçici hataya eğilimli ama hızlı toparlayan bağımlılık; daha çok retry, kısa cooldown.",
+      "timeout_ms": 600,
+      "max_attempts": 4,
+      "base_backoff_ms": 40,
+      "backoff_multiplier": 2.0,
+      "max_backoff_ms": 1000,
+      "jitter": "full",
+      "retry_writes_require_idempotency": true,
+      "breaker": {
+        "failure_threshold": 6,
+        "window_size": 20,
+        "min_calls": 10,
+        "rate_threshold": 0.6,
+        "cooldown_ms": 3000,
+        "half_open_max_probes": 2,
+        "half_open_success_to_close": 2
+      }
+    },
+    "write-strict": {
+      "$comment": "Para/poliçe/PII yazma (BRD §13 deterministic workflow); idempotency ZORUNLU, muhafazakar retry.",
+      "timeout_ms": 1500,
+      "max_attempts": 3,
+      "base_backoff_ms": 80,
+      "backoff_multiplier": 2.0,
+      "max_backoff_ms": 2000,
+      "jitter": "equal",
+      "retry_writes_require_idempotency": true,
+      "breaker": {
+        "failure_threshold": 4,
+        "window_size": 16,
+        "min_calls": 8,
+        "rate_threshold": 0.5,
+        "cooldown_ms": 6000,
+        "half_open_max_probes": 1,
+        "half_open_success_to_close": 2
+      }
+    }
+  }
+}

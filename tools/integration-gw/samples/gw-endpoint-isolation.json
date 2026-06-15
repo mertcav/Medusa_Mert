@@ -1,0 +1,26 @@
+{
+  "$comment": "Sentetik — endpoint izolasyonu (R9): bir bağımlılık (crm) OPEN iken sağlıklı başka bağımlılık (kb) kısa-devre EDİLMEZ (bulkhead).",
+  "name": "gw-endpoint-isolation",
+  "seed": 8,
+  "policy": {
+    "timeout_ms": 500, "max_attempts": 1, "base_backoff_ms": 50, "backoff_multiplier": 2.0,
+    "max_backoff_ms": 1000, "jitter": "full", "retry_writes_require_idempotency": true,
+    "breaker": {"failure_threshold": 2, "window_size": 10, "min_calls": 6, "rate_threshold": 0.9,
+                "cooldown_ms": 5000, "half_open_max_probes": 1, "half_open_success_to_close": 1}
+  },
+  "calls": [
+    {"call_id": "b0", "correlation_id": "corr-ei-0", "endpoint": "crm.read", "operation_class": "read",
+     "attempts_script": [{"result": "fault", "fault_class": "UPSTREAM_5XX", "latency_ms": 30}]},
+    {"call_id": "b1", "correlation_id": "corr-ei-1", "endpoint": "crm.read", "operation_class": "read",
+     "attempts_script": [{"result": "fault", "fault_class": "UPSTREAM_5XX", "latency_ms": 30}]},
+    {"call_id": "g0", "correlation_id": "corr-ei-2", "endpoint": "kb.read", "operation_class": "read",
+     "attempts_script": [{"result": "ok", "latency_ms": 35}]},
+    {"call_id": "b2", "correlation_id": "corr-ei-3", "endpoint": "crm.read", "operation_class": "read",
+     "attempts_script": [{"result": "ok", "latency_ms": 40}]}
+  ],
+  "expect": {
+    "b1": {"status": "failed", "breaker_state_after": "OPEN"},
+    "g0": {"status": "success", "short_circuited": false, "breaker_state_after": "CLOSED"},
+    "b2": {"status": "short_circuited", "short_circuited": true, "fault_class": "CIRCUIT_OPEN"}
+  }
+}

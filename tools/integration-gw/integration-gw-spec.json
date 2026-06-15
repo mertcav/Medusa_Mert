@@ -1,0 +1,128 @@
+{
+  "$comment": "WBS 7.1.4 — Timeout/retry/circuit breaker (Integration GW) (SAD §11.1 adım [5] + §11.2 + FR-TOOL-003). Tool Yürütme Hattının (SAD §11.1) DAYANIKLILIK (resilience) aşaması: 'LLM tool call ──► [1] input schema ──► [2] authz ──► [3] policy gate ──► [4] idempotency ──► [5] Integration GW: timeout + retry + circuit breaker ──► [6] output schema + error normalization ──► [7] correlation_id audit'. Bu motor adım [5]'i uygular: bir upstream bağımlılığına (REST/SOAP/GraphQL/webhook — FR-TOOL-001) giden tek bir tool çağrısını per-attempt TIMEOUT, sınırlı RETRY (exponential backoff + jitter), ve endpoint-başına CIRCUIT BREAKER (CLOSED/OPEN/HALF_OPEN) ile sarar. INVARIANT (SR-TOOL-003 kabul ölçütü): 'Bağımlılık hatasında devre açılır; KONTROLSÜZ RETRY YOK' — attempts ≤ max_attempts (R2), yalnız RETRYABLE (geçici) hatalar yeniden denenir (R4), ve yazma işlemleri (write) yalnız idempotency key varsa yeniden denenir (R5, FR-TOOL-009 köprüsü — duplicate işlem önleme). Breaker eşik (ardışık hata veya hata oranı) aşılınca OPEN olur (R6) ve cooldown boyunca çağrılar upstream'e DEĞMEDEN fail-fast kısa-devre edilir (R7); cooldown sonrası HALF_OPEN probe başarı→CLOSED / hata→OPEN (R8). Breaker endpoint-başına izole (R9 — bir bağımlılığın açık devresi sağlıklı bir bağımlılığı kısa-devre etmez). Determinizm (R10): jitter tohumlu (seeded) PRNG'den; Date.now/gerçek-rastgele YOK; aynı seed+girdi → aynı sonuç. Audit yapısal no-log (R11 — correlation_id+endpoint+karar; ham payload/secret/PII YOK). Her terminal hata bilinen bir fault_class taşır (R12 — yapısal taksonomi). KAPSAM DIŞI (bilinçli): input/output schema doğrulama → 7.1.1 (FR-TOOL-002); tool authz/scope → 7.1.2 (FR-TOOL-004/005); idempotency key üretimi/store → 7.1.3 (FR-TOOL-009 — bu motor key'in VARLIĞINI tüketir, üretmez); MÜŞTERİYE dönen hata metni normalizasyonu → 7.1.5 (FR-TOOL-008 — bu motor yalnız yapısal fault_class üretir); correlation_id audit/trace zenginleştirme → 7.1.6 (FR-TOOL-010); allowlist → FR-TOOL-012; asenkron uzun-işlem workflow → FR-TOOL-011. Vendor-neutral (ADR-002): gerçek HTTP/SOAP/GraphQL transport bir SPI noktasıdır (upstream_call(req)→outcome); referans probe upstream'i deterministik 'attempts_script' ile MODELLER (gerçek ağ YOK); canlıda AYNI imza arkasına gerçek transport + connection pool (FR-RES-006) takılır; timeout/retry/breaker mantığı transport'tan bağımsız. Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (fixture'lar sentetik — FR-TST-008). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "7.1.4",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TOOL-003", "FR-TOOL-009", "FR-TOOL-001", "FR-RES-006", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.4"],
+    "srs": ["SR-TOOL-003", "SR-TOOL-009"],
+    "rtm": ["TC-TOOL-003"],
+    "sad": [
+      "§11.1 adım [5] (Integration GW: timeout + retry + circuit breaker — FR-TOOL-003; bu motor)",
+      "§11.2 (Integration Gateway: REST/SOAP/GraphQL/webhook; connection pooling FR-RES-006)",
+      "§6.1 (turn state machine ACT durumu — schema-validated tool + idempotency)",
+      "§8.3 (adapter fallback + circuit breaker + deterministic flow — aynı dayanıklılık deseni)",
+      "§20 (tool overhead SAD §20 bütçe kalemi — retry/backoff gecikme katkısı SOFT not)"
+    ],
+    "brd": ["§9.10 (Tool ve İş Süreci Yönetimi — FR-TOOL-003)", "§8.1 (lean runtime — backpressure/circuit breaker)", "§13 (deterministic actions — kontrollü retry)"],
+    "adr": [
+      "ADR-001 (orchestrator/Tool Executor SPI bağımsızlığı — upstream transport SPI noktası)",
+      "ADR-002 (vendor-neutral — transport değiştirilebilir; resilience mantığı bağımsız)",
+      "ADR-003 (hot-path runtime — non-blocking; timeout/breaker bloklamadan)"
+    ],
+    "api": ["§ Adapter SPI ortak yetenekler (timeout/retry/circuit breaker/error normalization)", "§11.6 ErrorTaxonomy (fault_class ortak hata taksonomisi ruhu)"],
+    "consumes": [
+      "7.1.1 schema-validated tool input (FR-TOOL-002) — bu motor doğrulanmış çağrıyı alır",
+      "7.1.3 idempotency key (FR-TOOL-009) — write retry güvenliği için key VARLIĞINI tüketir (üretmez)"
+    ],
+    "consumed_by": [
+      "7.1.5 hata normalizasyonu (FR-TOOL-008 — terminal fault_class → müşteriye teknik-detaysız mesaj)",
+      "7.1.6 correlation_id audit (FR-TOOL-010 — resilience kararları audit/trace'e)",
+      "SAD §8.3 adapter fallback (breaker OPEN/timeout → secondary/deterministic flow)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Resilience aşaması Tool Yürütme Hattının (SAD §11.1) adım [5]'inde, [4] idempotency üretiminden SONRA ve [6] output schema/error normalization'dan ÖNCE çalışır. Voice-runtime hot-path (orchestrator ACT durumu, SAD §6.1); ancak araç çağrıları çoğu turda yoktur (THINK→SPEAK) → ACT yalnız tool gerektiğinde. Non-blocking (ADR-003): timeout async deadline, breaker OPEN fail-fast bloklamaz. SAD §20 tool overhead bütçe kalemi (retry/backoff toplam gecikmeye katkı) — HARD latency kapısı 0.3.2 latency-budget'te (tool overhead P95 ≤100ms); bu motor SOFT not. Vendor-neutral (ADR-001/002): upstream_call(req)→outcome bir SPI noktası; referans deterministik attempts_script ile modeller (gerçek ağ/credential YOK); canlıda gerçek REST/SOAP/GraphQL transport + connection pool (FR-RES-006) AYNI imza arkasına.",
+    "plane": "voice-runtime (orchestrator Tool Executor — ACT, hot-path tool gerektiğinde)",
+    "hot_path": true,
+    "behind_spi": true,
+    "transport_is_spi_point": true,
+    "breaker_keyed_by_endpoint": true,
+    "breaker_observation_granularity": "per-call (gateway çağrısının nihai dispozisyonu breaker penceresine yazılır; call-içi retry'lar max_attempts ile AYRI sınırlı)",
+    "enforcement_points": [
+      "per-attempt TIMEOUT: bir deneme timeout_ms'i aşarsa TIMEOUT fault (latency deadline'da kesilir — hung YOK; R1)",
+      "RETRY kapısı: retryable(fault) ∧ retry_allowed_for_op ∧ attempts<max_attempts (R2/R4/R5)",
+      "write retry kapısı: operation_class=='write' ise yalnız idempotency_key varsa retry (R5, FR-TOOL-009)",
+      "CIRCUIT breaker: CLOSED→OPEN (ardışık hata ≥ failure_threshold ∨ pencere dolu ∧ hata oranı ≥ rate_threshold; R6); OPEN→fail-fast cooldown boyunca (R7); OPEN→HALF_OPEN cooldown sonrası probe; HALF_OPEN→CLOSED/OPEN (R8)"
+    ],
+    "latency_budget_soft": "retry+backoff toplam gecikmeye katkı; HARD kapı DEĞİL. Tool overhead P95 ≤100ms kapısı SAD §20 / 0.3.2 latency-budget'te.",
+    "trace": "SAD §11.1, SAD §11.2, SAD §20, ADR-001, ADR-002, ADR-003"
+  },
+
+  "spi": {
+    "$comment": "Upstream transport SPI noktası (vendor-neutral, ADR-001/002). upstream_call(req)→AttemptOutcome: referans probe deterministik 'attempts_script' okur (gerçek ağ YOK); canlıda gerçek REST/SOAP/GraphQL/webhook transport + connection pool (FR-RES-006) AYNI imza arkasına. ResiliencePolicy girdi: {timeout_ms, max_attempts, base_backoff_ms, backoff_multiplier, max_backoff_ms, jitter, retry_on?, retry_writes_require_idempotency, breaker{...}}. ToolCall girdi: {call_id, correlation_id, tenant_id, endpoint, operation_class, idempotency_key?, at_ms?, attempts_script[]}. CallResult çıktı: {call_id, correlation_id, endpoint, operation_class, status, fault_class, reason, attempts, retries, retried, timed_out_attempts, short_circuited, total_latency_ms, backoff_total_ms, breaker_state_before, breaker_state_after}. AttemptOutcome: {result: ok|timeout|fault, latency_ms?, fault_class?}.",
+    "transport_method": "upstream_call(req) -> AttemptOutcome (referans: deterministik attempts_script; canlıda gerçek transport AYNI imza)",
+    "call_result_fields": ["call_id", "correlation_id", "endpoint", "operation_class", "status", "fault_class", "reason", "attempts", "retries", "retried", "timed_out_attempts", "short_circuited", "total_latency_ms", "backoff_total_ms", "breaker_state_before", "breaker_state_after"],
+    "policy_fields": ["timeout_ms", "max_attempts", "base_backoff_ms", "backoff_multiplier", "max_backoff_ms", "jitter", "retry_on", "retry_writes_require_idempotency", "breaker"],
+    "breaker_fields": ["failure_threshold", "window_size", "min_calls", "rate_threshold", "cooldown_ms", "half_open_max_probes", "half_open_success_to_close"],
+    "trace": "ADR-001, ADR-002, FR-RES-006, SAD §11.2"
+  },
+
+  "timeout": {
+    "$comment": "Per-attempt deadline. Bir denemenin ölçülen gecikmesi timeout_ms'i aşarsa (result=='timeout' VEYA latency_ms>timeout_ms) → TIMEOUT fault; etkin gecikme deadline'da KESİLİR (timeout_ms) — hung/sonsuz bekleme YOK (R1). TIMEOUT retryable bir faulttur (geçici). Bağlamsal: SAD §8.3 adapter timeout → fallback deseninin tool-tarafı karşılığı.",
+    "effective_latency_capped_at_timeout": true,
+    "timeout_is_retryable": true,
+    "trace": "FR-TOOL-003, SR-TOOL-003, SAD §8.3"
+  },
+
+  "retry": {
+    "$comment": "Sınırlı (bounded) retry — 'kontrolsüz retry yok' (SR-TOOL-003). attempts ≤ max_attempts (ilk deneme dahil; R2). Yalnız RETRYABLE (geçici) fault'lar yeniden denenir (R4); TERMINAL fault'lar ASLA (örn. 4xx client error, schema invalid, auth — bunlar tekrarda da başarısız olur + kaynak israfı). Backoff: base_backoff_ms × multiplier^(deneme-1), max_backoff_ms ile kapılı; jitter ∈ {full: [0,backoff], equal: [backoff/2, backoff], none: backoff} tohumlu PRNG (R3/R10). Başarı kalan denemeleri kısa-keser. WRITE güvenliği (R5, FR-TOOL-009): operation_class=='write' ve retry_writes_require_idempotency ise yalnız idempotency_key varsa retry — aksi tek deneme (duplicate yan-etki riski; idempotency 7.1.3'te). Read her zaman retry-uygun. Breaker call-içinde OPEN olursa retry durur (fail-fast).",
+    "bounded_by_max_attempts": true,
+    "retryable_only": true,
+    "backoff_formula": "min(max_backoff_ms, base_backoff_ms × backoff_multiplier^(attempt-1))",
+    "jitter_modes": ["full", "equal", "none"],
+    "write_retry_requires_idempotency": true,
+    "success_short_circuits_remaining": true,
+    "trace": "FR-TOOL-003, FR-TOOL-009, SR-TOOL-003, SR-TOOL-009"
+  },
+
+  "circuit_breaker": {
+    "$comment": "Endpoint-başına (per-dependency) breaker; 'Bağımlılık hatasında devre açılır' (SR-TOOL-003). Durumlar: CLOSED (normal), OPEN (fail-fast), HALF_OPEN (sınırlı probe). Gözlem granülaritesi PER-CALL (gateway çağrısının nihai başarı/başarısızlığı). Trip (CLOSED→OPEN): ardışık_hata ≥ failure_threshold VEYA (pencere ≥ min_calls ∧ hata_oranı ≥ rate_threshold) — R6. OPEN: opened_at'tan cooldown_ms geçene kadar çağrılar upstream'e DEĞMEDEN CIRCUIT_OPEN ile kısa-devre (attempts=0; R7). cooldown sonrası ilk çağrı OPEN→HALF_OPEN geçişi (probe). HALF_OPEN: half_open_max_probes kadar probe'a izin; başarı half_open_success_to_close'a ulaşınca CLOSED (reset; R8); herhangi probe hatası → OPEN (cooldown yeniden). Endpoint izolasyonu (R9): her endpoint AYRI breaker; biri OPEN diğerini etkilemez (bulkhead).",
+    "states": ["CLOSED", "OPEN", "HALF_OPEN"],
+    "observation_granularity": "per-call",
+    "trip_conditions": ["consecutive_failures >= failure_threshold", "window_filled (>= min_calls) AND failure_rate >= rate_threshold"],
+    "open_fail_fast": true,
+    "half_open_probe_recovery": true,
+    "per_endpoint_isolation": true,
+    "trace": "FR-TOOL-003, SR-TOOL-003, SAD §8.3, SAD §11.2"
+  },
+
+  "fault_taxonomy": {
+    "$comment": "Upstream/gateway fault sınıfları + retryability. RETRYABLE = geçici (transient) → backoff ile yeniden denenebilir. TERMINAL = kalıcı → retry YOK (tekrarda da başarısız). GATEWAY = motorun kendi ürettiği (CIRCUIT_OPEN kısa-devre; RETRY_EXHAUSTED son denemeden sonra). Müşteriye dönen METİN 7.1.5'te (FR-TOOL-008); burada yalnız yapısal sınıf.",
+    "retryable": ["TIMEOUT", "UPSTREAM_5XX", "CONN_RESET", "CONN_REFUSED", "RATE_LIMITED", "DEADLINE_EXCEEDED"],
+    "terminal": ["UPSTREAM_4XX", "SCHEMA_INVALID", "AUTH_FAILED", "NOT_FOUND"],
+    "gateway": ["CIRCUIT_OPEN", "RETRY_EXHAUSTED"],
+    "trace": "FR-TOOL-003, FR-TOOL-008, API §11.6"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Motorun girdi/yapılandırma hatası taksonomisi (fault_class'tan AYRI — bunlar config/girdi bütünlüğü hataları, structured TrimError benzeri).",
+    "classes": ["MISSING_POLICY_CONFIG", "INVALID_POLICY", "INVALID_CALL_INPUT", "NON_MONOTONIC_CLOCK", "INTERNAL_ERROR"],
+    "trace": "FR-TST-008"
+  },
+
+  "invariants": [
+    {"id": "R1", "desc": "TIMEOUT zorlanır: bir deneme timeout_ms'i aşarsa TIMEOUT fault + etkin gecikme deadline'da kesilir (hung YOK); her denemenin etkin gecikmesi ≤ timeout_ms."},
+    {"id": "R2", "desc": "Sınırlı retry ('kontrolsüz retry yok'): upstream denemeleri ≤ max_attempts; yapılandırılan tavanı ASLA aşmaz."},
+    {"id": "R3", "desc": "Backoff exponential + jitter sınırlı: nth backoff base = min(max_backoff, base×mult^(n-1)); jittered ∈ jitter moduna göre bant; max_backoff_ms ile kapılı."},
+    {"id": "R4", "desc": "TERMINAL fault'lar yeniden denenmez: terminal fault_class → attempts==1 (retry YOK)."},
+    {"id": "R5", "desc": "Write retry güvenliği (FR-TOOL-009): operation_class=='write' ve idempotency_key yoksa → retryable fault olsa bile attempts==1 (duplicate önleme); key varsa retry-uygun."},
+    {"id": "R6", "desc": "Breaker bağımlılık hatasında OPEN olur: ardışık hata ≥ failure_threshold VEYA hata oranı ≥ rate_threshold → CLOSED→OPEN."},
+    {"id": "R7", "desc": "OPEN fail-fast: OPEN durumda cooldown içinde çağrı upstream'e DEĞMEZ (attempts==0), status=short_circuited, fault_class=CIRCUIT_OPEN."},
+    {"id": "R8", "desc": "HALF_OPEN kurtarma: cooldown sonrası probe başarısı half_open_success_to_close'a ulaşınca CLOSED; probe hatası → OPEN (cooldown yeniden)."},
+    {"id": "R9", "desc": "Endpoint izolasyonu: breaker endpoint-başına; bir endpoint OPEN iken sağlıklı başka endpoint kısa-devre EDİLMEZ."},
+    {"id": "R10", "desc": "Determinizm: aynı seed+girdi → birebir aynı sonuç (jitter tohumlu PRNG; Date.now/gerçek-rastgele YOK)."},
+    {"id": "R11", "desc": "Audit no-log: çağrı başına yapısal audit correlation_id+endpoint+karar taşır; ham payload/secret/PII YOK."},
+    {"id": "R12", "desc": "Yapısal hata taksonomisi: her terminal başarısızlık bilinen bir fault_class taşır (retryable∪terminal∪gateway)."}
+  ],
+
+  "audit": {
+    "$comment": "Çağrı başına yapısal audit kaydı (7.1.6 correlation_id audit'e köprü; FR-TOOL-010). no_log: ham tool payload/secret/PII içermez — yalnız correlation_id, endpoint, operation_class, status, fault_class, attempts, breaker geçişleri.",
+    "no_log": true,
+    "fields": ["correlation_id", "endpoint", "operation_class", "status", "fault_class", "attempts", "breaker_state_before", "breaker_state_after", "no_log"],
+    "trace": "FR-TOOL-010, →7.1.6, BRD §17.7"
+  }
+}

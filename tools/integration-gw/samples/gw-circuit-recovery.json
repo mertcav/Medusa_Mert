@@ -1,0 +1,26 @@
+{
+  "$comment": "Sentetik — HALF_OPEN kurtarma (R8): trip OPEN → cooldown içinde fail-fast → cooldown sonrası probe başarısı → CLOSED. at_ms ile mantıksal saat ilerletilir.",
+  "name": "gw-circuit-recovery",
+  "seed": 4,
+  "policy": {
+    "timeout_ms": 500, "max_attempts": 1, "base_backoff_ms": 50, "backoff_multiplier": 2.0,
+    "max_backoff_ms": 1000, "jitter": "full", "retry_writes_require_idempotency": true,
+    "breaker": {"failure_threshold": 2, "window_size": 10, "min_calls": 6, "rate_threshold": 0.9,
+                "cooldown_ms": 1000, "half_open_max_probes": 1, "half_open_success_to_close": 1}
+  },
+  "calls": [
+    {"call_id": "f1", "correlation_id": "corr-cr-1", "endpoint": "erp.read", "operation_class": "read",
+     "at_ms": 0, "attempts_script": [{"result": "fault", "fault_class": "UPSTREAM_5XX", "latency_ms": 30}]},
+    {"call_id": "f2", "correlation_id": "corr-cr-2", "endpoint": "erp.read", "operation_class": "read",
+     "attempts_script": [{"result": "fault", "fault_class": "UPSTREAM_5XX", "latency_ms": 30}]},
+    {"call_id": "in-cooldown", "correlation_id": "corr-cr-3", "endpoint": "erp.read", "operation_class": "read",
+     "at_ms": 500, "attempts_script": [{"result": "ok", "latency_ms": 40}]},
+    {"call_id": "probe", "correlation_id": "corr-cr-4", "endpoint": "erp.read", "operation_class": "read",
+     "at_ms": 2000, "attempts_script": [{"result": "ok", "latency_ms": 40}]}
+  ],
+  "expect": {
+    "f2": {"status": "failed", "breaker_state_after": "OPEN"},
+    "in-cooldown": {"status": "short_circuited", "short_circuited": true, "fault_class": "CIRCUIT_OPEN"},
+    "probe": {"status": "success", "short_circuited": false, "breaker_state_after": "CLOSED"}
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$comment": "Sentetik — iki deneme timeout (deadline kesilir, hung YOK) sonra başarı; TIMEOUT retryable.",
+  "name": "gw-timeout-retry",
+  "seed": 3,
+  "profile": "flaky-tolerant",
+  "calls": [
+    {
+      "call_id": "c1", "correlation_id": "corr-to-1", "tenant_id": "t-a",
+      "endpoint": "inventory.read.stock", "operation_class": "read",
+      "attempts_script": [
+        {"result": "timeout"},
+        {"result": "ok", "latency_ms": 9999},
+        {"result": "ok", "latency_ms": 50}
+      ]
+    }
+  ],
+  "expect": {
+    "c1": {"status": "success", "attempts": 3, "timed_out_attempts": 2, "retried": true}
+  }
+}

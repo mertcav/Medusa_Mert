@@ -1,0 +1,19 @@
+{
+  "$comment": "Sentetik — geçici 5xx sonra başarı: backoff+jitter ile 1 retry, success-on-retry.",
+  "name": "gw-retry-transient",
+  "seed": 7,
+  "profile": "rest-default",
+  "calls": [
+    {
+      "call_id": "c1", "correlation_id": "corr-rt-1", "tenant_id": "t-a",
+      "endpoint": "crm.read.order", "operation_class": "read",
+      "attempts_script": [
+        {"result": "fault", "fault_class": "UPSTREAM_5XX", "latency_ms": 30},
+        {"result": "ok", "latency_ms": 40}
+      ]
+    }
+  ],
+  "expect": {
+    "c1": {"status": "success", "attempts": 2, "retried": true, "reason": "retried_ok"}
+  }
+}

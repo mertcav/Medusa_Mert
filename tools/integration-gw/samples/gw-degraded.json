@@ -1,0 +1,33 @@
+{
+  "$comment": "Sentetik — bağımlılık tamamen down: GÜVENLİ DÜŞÜŞ (graceful degradation). Read'ler retry'ı tüketir (bounded, R2); art arda hatalar devreyi açar (R6) → fail-fast kısa-devre (R7); write idempotency_key olmadan retry edilmez (R5, duplicate yok). Tüm çağrılar AYNI bağımlılığa (legacy-erp) → her başarısız çağrı breaker penceresine yazılır (per-call gözlem). Invariant'lar arıza altında da KORUNUR → kapı 🟢 (sistem doğru davranır).",
+  "name": "gw-degraded",
+  "seed": 9,
+  "policy": {
+    "timeout_ms": 600, "max_attempts": 3, "base_backoff_ms": 50, "backoff_multiplier": 2.0,
+    "max_backoff_ms": 1500, "jitter": "full", "retry_writes_require_idempotency": true,
+    "breaker": {"failure_threshold": 3, "window_size": 10, "min_calls": 6, "rate_threshold": 0.9,
+                "cooldown_ms": 8000, "half_open_max_probes": 1, "half_open_success_to_close": 2}
+  },
+  "calls": [
+    {"call_id": "d0", "correlation_id": "corr-dg-0", "endpoint": "legacy-erp", "operation_class": "read",
+     "attempts_script": [
+       {"result": "fault", "fault_class": "UPSTREAM_5XX", "latency_ms": 40},
+       {"result": "fault", "fault_class": "UPSTREAM_5XX", "latency_ms": 40},
+       {"result": "fault", "fault_class": "UPSTREAM_5XX", "latency_ms": 40}]},
+    {"call_id": "w0", "correlation_id": "corr-dg-1", "endpoint": "legacy-erp", "operation_class": "write",
+     "attempts_script": [{"result": "fault", "fault_class": "UPSTREAM_5XX", "latency_ms": 40}]},
+    {"call_id": "d1", "correlation_id": "corr-dg-2", "endpoint": "legacy-erp", "operation_class": "read",
+     "attempts_script": [
+       {"result": "timeout"},
+       {"result": "timeout"},
+       {"result": "timeout"}]},
+    {"call_id": "d2", "correlation_id": "corr-dg-3", "endpoint": "legacy-erp", "operation_class": "read",
+     "attempts_script": [{"result": "ok", "latency_ms": 40}]}
+  ],
+  "expect": {
+    "d0": {"status": "failed", "attempts": 3, "reason": "retry_exhausted"},
+    "w0": {"status": "failed", "attempts": 1, "reason": "write_not_retried_no_idempotency"},
+    "d1": {"status": "failed", "attempts": 3, "timed_out_attempts": 3, "breaker_state_after": "OPEN"},
+    "d2": {"status": "short_circuited", "attempts": 0, "short_circuited": true, "fault_class": "CIRCUIT_OPEN"}
+  }
+}

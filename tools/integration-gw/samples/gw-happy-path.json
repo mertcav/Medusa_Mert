@@ -1,0 +1,16 @@
+{
+  "$comment": "Sentetik (FR-TST-008) — sağlıklı upstream: tek deneme başarı, breaker CLOSED kalır.",
+  "name": "gw-happy-path",
+  "seed": 11,
+  "profile": "rest-default",
+  "calls": [
+    {
+      "call_id": "c1", "correlation_id": "corr-hp-1", "tenant_id": "t-a",
+      "endpoint": "crm.read.customer", "operation_class": "read",
+      "attempts_script": [{"result": "ok", "latency_ms": 45}]
+    }
+  ],
+  "expect": {
+    "c1": {"status": "success", "attempts": 1, "retried": false, "short_circuited": false, "breaker_state_after": "CLOSED"}
+  }
+}
