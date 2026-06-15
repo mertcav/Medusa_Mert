@@ -1,0 +1,27 @@
+{
+  "name": "hybrid-race — poll önce tamamlar, sonra callback gelir → idempotent no-op, emit 1 (W3)",
+  "$comment": "Hybrid mod: güvenlik-ağı poll SUCCEEDED yakalar; sonra gerçek callback (imzalı, geçerli) gelir → execution zaten terminal → idempotent no-op, ikinci tool.async.completed YOK (exactly-once W3). Sentetik (FR-TST-008).",
+  "profile": "hybrid",
+  "dispatch_req": {
+    "execution_id": "ex-rc-1", "tenant_id": "t-pilot", "correlation_id": "corr-rc-1",
+    "operation": "erp_create_work_order", "endpoint": "POST https://erp.example.com/work-orders",
+    "deadline_ms": 100000000, "at_ms": 0,
+    "dispatch": {"result": "ok", "status_code": 202}
+  },
+  "timeline": [
+    {"kind": "poll", "name": "poll-wins", "at_ms": 100000,
+     "upstream": {"status": "SUCCEEDED", "result_ref": "objref://t-pilot/ex-rc-1/poll-result"}},
+    {"kind": "callback", "name": "late-callback", "at_ms": 120000,
+     "execution_id": "ex-rc-1", "tenant_id": "t-pilot", "correlation_id": "corr-rc-1",
+     "status": "SUCCEEDED", "result_ref": "objref://t-pilot/ex-rc-1/cb-result",
+     "body": "{\"execution_id\":\"ex-rc-1\",\"status\":\"SUCCEEDED\"}", "ts": 120, "nonce": "nonce-rc-1", "sign": true}
+  ],
+  "expect": {
+    "dispatch_status": "PENDING", "non_blocking": true, "final_status": "SUCCEEDED",
+    "emitted_count": 1, "result_ref": "objref://t-pilot/ex-rc-1/poll-result"
+  },
+  "expect_events": [
+    {"index": 0, "result": {"result": "terminal"}},
+    {"index": 1, "result": {"result": "accepted", "completed": false}}
+  ]
+}

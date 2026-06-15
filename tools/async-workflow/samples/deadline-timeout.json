@@ -1,0 +1,18 @@
+{
+  "name": "deadline-timeout — callback gelmez, deadline aşılır → reaper TIMED_OUT (W6)",
+  "$comment": "callback-primary modunda upstream hiç callback göndermez; deadline aşımında reaper execution'ı TIMED_OUT yapar (zombie yok W6). Sentetik (FR-TST-008).",
+  "profile": "callback-primary",
+  "dispatch_req": {
+    "execution_id": "ex-dl-1", "tenant_id": "t-pilot", "correlation_id": "corr-dl-1",
+    "operation": "erp_create_work_order", "endpoint": "POST https://erp.example.com/work-orders",
+    "deadline_ms": 300000, "at_ms": 0,
+    "dispatch": {"result": "ok", "status_code": 202}
+  },
+  "timeline": [
+    {"kind": "tick", "name": "past-deadline", "at_ms": 360000}
+  ],
+  "expect": {
+    "dispatch_status": "PENDING", "non_blocking": true, "final_status": "TIMED_OUT",
+    "emitted_count": 1, "fault_class": "ASYNC_DEADLINE_EXCEEDED"
+  }
+}

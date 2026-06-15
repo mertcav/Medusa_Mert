@@ -1,0 +1,138 @@
+{
+  "$comment": "WBS 7.2.4 — Asenkron uzun-işlem workflow (callback/polling) (SAD §11.2 Integration Gateway + FR-TOOL-011). Tool Yürütme Hattının (SAD §11.1) UZUN-İŞLEM dilimi: bazı kurumsal işlemler (ör. ödeme mutabakatı, ERP iş emri, belge üretimi) saniyeler-dakikalar sürer; orkestratör (voice runtime, hot-path; NFR 10.1 P95 ≤1.2sn / NFR 10.2 density) BU SÜRE boyunca BLOKLANAMAZ. Bu modül FR-TOOL-011'i gerçekler: connector (7.2.1/7.2.2) dispatch çağrısı yapar → upstream 202 Accepted + iş tanıtıcısı döner → bu modül bir ASYNC EXECUTION kaydı oluşturur (PENDING, NON-BLOCKING) ve tool sonucunu orkestratöre HEMEN 'pending' olarak döndürür (orkestratör beklemez; agent kullanıcıyı bilgilendirir — SAD §11.2). Nihai sonuç İKİ MUTABAKAT (reconciliation) modu ile gelir: (1) CALLBACK (inbound webhook): upstream iş bitince platform callback endpoint'ine POST eder → platform HMAC imza + ±300s timestamp penceresi + nonce replay reddi (SEC-05/TM-S-05, API §10.1) ile DOĞRULAR → idempotent terminal; (2) POLLING: platform upstream status endpoint'ini SINIRLI (bounded) backoff+jitter+deadline ile yoklar. INVARIANT (SR-TOOL-011 kabul ölçütü): 'Uzun işlem bloklamadan callback/polling ile tamamlanır' — dispatch NON-BLOCKING (W1), execution durum makinesi PENDING→RUNNING→{SUCCEEDED|FAILED|TIMED_OUT|CANCELLED} terminal-immutable (W2), callback∧poll yarışı IDEMPOTENT exactly-once completion (W3; çift callback / callback-sonra-poll → no-op, ikinci tool.async.completed YOK — tool_execution WORM 1.1.3 hizalı), callback authenticity HMAC+ts+nonce (W4; geçersiz imza/expired/replay → REDDEDİLİR, execution TAMAMLANMAZ), polling BOUNDED (W5; max attempt + backoff + deadline, ASLA unbounded), deadline/TTL ile zombie YOK (W6; süre aşımı → TIMED_OUT reaper), tenant+correlation binding (W7; başka tenant/uyumsuz correlation callback → REDDEDİLİR), result-by-reference (W8; tool.async.completed yalnız {execution_id, status, result_ref} — ham payload/PII WIRE'a/webhook'a GİTMEZ, API §10.2 + nesne deposu 1.1.6), idempotency-key köprüsü (W9; async write dispatch idempotency_key taşır → retry'lanan dispatch İKİ upstream iş yaratmaz, FR-TOOL-009), fault_class hizalama (W10; dispatch fault'ları 7.1.4 taksonomisi; async-özgü gate fault ASYNC_DEADLINE_EXCEEDED/CALLBACK_REJECTED), audit no-log (W11; execution_id+correlation_id+status+endpoint(template)+attempts, payload/PII/secret YOK — 0.4.7 düşük kardinalite), determinizm (W12; tohumlu sanal saat; Date.now/gerçek-rastgele YOK). KAPSAM DIŞI (bilinçli): dispatch transport'unun KENDİSİ (REST 202 çağrısı) → 7.2.1/7.2.2 (AYNI connector SPI; bu modül dispatch AttemptOutcome'unu TÜKETİR); dispatch'in timeout/retry/circuit breaker ORKESTRASYONU → 7.1.4 (FR-TOOL-003; bu modül dispatch'i sarmaz, SONUCUNU alır); allowlist → 7.2.3 (FR-TOOL-012; dispatch endpoint'i + callback alıcı endpoint'i gate'ten geçer); input/output JSON schema → 7.1.1 (FR-TOOL-002); tool authz/scope → 7.1.2 (FR-TOOL-004/005); idempotency key ÜRETİMİ/store → 7.1.3 (FR-TOOL-009; bu modül key'i VARSA dedup için kullanır, üretmez); MÜŞTERİYE hata metni → 7.1.5 (FR-TOOL-008; CALLBACK_REJECTED/ASYNC_DEADLINE_EXCEEDED → müşteriye TEMPORARY/CANNOT_COMPLETE); correlation_id audit/trace zenginleştirme → 7.1.6 (FR-TOOL-010); giden webhook abonelik yönetimi/imza-anahtar rotasyonu → API §10.1/ileri WBS; sonuç payload'ının nesne deposuna yazımı → 1.1.6 (bu modül result_ref'i TAŞIR, yazmaz); kritik-işlem teyit/insan-onay workflow'u → 7.3 (deterministic workflow engine, BRD §13). Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (fixture'lar sentetik — FR-TST-008; host'lar example.com; imza fixture-secret runtime'da, repoya yazılmaz). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "7.2.4",
+  "phase": "F2",
+  "priority": "Should",
+  "trace": {
+    "fr": ["FR-TOOL-011", "FR-TOOL-009", "FR-RES-006", "FR-TEN-002", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.2", "NFR 10.6", "NFR 10.7"],
+    "srs": ["SR-TOOL-011"],
+    "rtm": ["TC-TOOL-011"],
+    "sad": [
+      "§11.2 (Integration Gateway: 'Uzun işlemler için asenkron workflow (FR-TOOL-011) → orkestratör beklemez, sonuç callback/polling ile döner; bu sırada agent kullanıcıyı bilgilendirir')",
+      "§11.1 adım [5]/[7] (Tool Yürütme Hattı — dispatch 7.1.4'ün altında; bu modül dispatch sonucunu alıp mutabakatı yürütür, audit/trace [7])",
+      "§6.1 (turn state machine — uzun-işlem dispatch ACT'te başlar, sonuç turn-dışı; orkestratör non-blocking devam eder)",
+      "§8.1/§8.2 (Adapter SPI — connector dispatch + status SPI; transport değiştirilebilir)",
+      "§20 (latency bütçesi — async dispatch HOT-PATH'i bloklamaz; reconciliation OUT-OF-BAND)"
+    ],
+    "brd": ["§9.10 (Tool ve İş Süreci Yönetimi — FR-TOOL-011 uzun işlem)", "§6.1 (CRM/Ticketing/ERP uzun-işlem entegrasyonu)", "§13 (kritik işlem workflow — async sonuç teyidi 7.3 ile köprülenir)", "§15 (gözlemlenebilirlik — execution lifecycle)"],
+    "adr": [
+      "ADR-001 (orchestrator/Tool Executor bağımsızlığı — async reconciliation SPI arkasında)",
+      "ADR-002 (vendor-neutral — callback/poll transport değiştirilebilir; mutabakat mantığı bağımsız)",
+      "ADR-003 (hot-path runtime — non-blocking I/O; dispatch turn'ü bloklamaz)",
+      "ADR-007 (event stream — tool.async.completed at-least-once + idempotent tüketim)"
+    ],
+    "api": ["§10.1 (webhook envelope + imzalama t/v1 + ±300s + at-least-once + idempotent)", "§10.2 (tool.async.completed: execution_id, status, result_ref — FR-TOOL-011)", "§11.6 ErrorTaxonomy (fault_class hizalama)"],
+    "threat_model": ["SEC-05 (Webhook imza+timestamp+nonce replay reddi; alıcı idempotent tüketim → API §10 FR-TOOL-011)", "TM-S-05 (sahte webhook ile zehirli event — HMAC+±300s)", "TM-T-01/TM-I-01 (cross-tenant — callback tenant binding W7)"],
+    "consumes": [
+      "7.2.1/7.2.2 dispatch AttemptOutcome (FR-TOOL-001) — 202 Accepted + iş tanıtıcısı; bu modül PENDING execution kaydı yapar",
+      "7.1.4 dispatch dayanıklılığı (FR-TOOL-003) — dispatch'in timeout/retry/breaker SONUCUNU alır (bu modül dispatch'i sarmaz)",
+      "7.2.3 endpoint allowlist (FR-TOOL-012) — dispatch + callback alıcı endpoint allowlist'ten geçer",
+      "7.1.3 idempotency key (FR-TOOL-009) — VARSA dispatch dedup'unda kullanır (üretmez)"
+    ],
+    "consumed_by": [
+      "7.1.5 hata normalizasyonu (FR-TOOL-008) — CALLBACK_REJECTED/ASYNC_DEADLINE_EXCEEDED → müşteriye teknik-detaysız metin",
+      "7.1.6 correlation_id audit (FR-TOOL-010) — execution lifecycle audit kaydını zenginleştirir",
+      "7.3 deterministic workflow engine (BRD §13) — async sonuç kritik-işlem teyidine bağlanır",
+      "1.1.8 event stream (ADR-007) — tool.async.completed at-least-once yayını"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Async workflow Tool Yürütme Hattının (SAD §11.1) adım [5] dispatch'inden SONRA başlar ve adım [7] audit/trace ile çevrilidir, AMA reconciliation orkestratör turn'ünün DIŞINDADIR (out-of-band). Zincir: 7.1.4 gateway → connector.upstream_call(dispatch_req) → AttemptOutcome(202 accepted + job_ref) → 7.2.4 dispatch() → PENDING execution + tool result='pending' (HEMEN, NON-BLOCKING; orkestratör devam eder, agent kullanıcıyı bilgilendirir SAD §11.2). Sonra OUT-OF-BAND: callback ingest (inbound webhook, HMAC doğrulanır) ∨ poll step (bounded). Terminal olunca tool.async.completed (result_ref) yayını + (çağrı hâlâ aktifse) orkestratöre bildirim. NON-BLOCKING dispatch NFR 10.1 (hot-path latency) + NFR 10.2 (density: bloklanan worker yok) için ŞART. Vendor-neutral (ADR-001/002): callback/poll transport bir SPI noktası; referans deterministik timeline; canlıda gerçek webhook server + HTTP poll AYNI mantık arkasına.",
+    "plane": "voice-runtime dispatch (non-blocking) + control-plane reconciliation (out-of-band callback/poll)",
+    "hot_path_dispatch": true,
+    "reconciliation_out_of_band": true,
+    "behind_spi": true,
+    "non_blocking_invariant": "dispatch() orkestratöre HEMEN döner; turn bloklanmaz (W1 — SR-TOOL-011 çekirdeği, NFR 10.1/10.2)",
+    "endpoint_identity": "kanonik dispatch endpoint + callback alıcı path TEMPLATE (interpolesiz — düşük kardinalite; observability 0.4.7)",
+    "trace": "SAD §11.1, SAD §11.2, SAD §20, ADR-001, ADR-002, ADR-003, NFR 10.1, NFR 10.2"
+  },
+
+  "execution_states": {
+    "$comment": "Async execution durum makinesi (W2). Terminal durumlar IMMUTABLE — terminal'e ulaşan execution bir daha durum değiştirmez (W3 idempotent exactly-once; tool_execution WORM 1.1.3 hizalı).",
+    "states": ["PENDING", "RUNNING", "SUCCEEDED", "FAILED", "TIMED_OUT", "CANCELLED"],
+    "terminal": ["SUCCEEDED", "FAILED", "TIMED_OUT", "CANCELLED"],
+    "non_terminal": ["PENDING", "RUNNING"],
+    "transitions": {
+      "PENDING": ["RUNNING", "SUCCEEDED", "FAILED", "TIMED_OUT", "CANCELLED"],
+      "RUNNING": ["SUCCEEDED", "FAILED", "TIMED_OUT", "CANCELLED"],
+      "SUCCEEDED": [], "FAILED": [], "TIMED_OUT": [], "CANCELLED": []
+    },
+    "trace": "FR-TOOL-011, tool_execution WORM (DB.md §6.5, 1.1.3)"
+  },
+
+  "reconciliation": {
+    "$comment": "İki mutabakat modu (W3/W4/W5). CALLBACK: inbound webhook, HMAC-SHA256(secret, t + '.' + body) + |now-t| ≤ ts_tolerance_s + nonce-daha-önce-görülmedi → terminal. POLLING: bounded — base_backoff_ms * 2^attempt (max_backoff_ms cap) + tohumlu jitter; attempts ≤ max_attempts; deadline_ms aşılırsa TIMED_OUT. HYBRID: ikisi de aktif, İLK terminal kazanır, diğeri idempotent no-op. RACE: callback ve poll AYNI execution'ı terminal'e taşımaya çalışırsa exactly-once (W3) — terminal-immutable guard.",
+    "modes": ["callback", "polling", "hybrid"],
+    "callback_verification_order": ["execution_bul", "tenant+correlation_binding (W7)", "HMAC_imza (W4)", "timestamp_penceresi (W4)", "nonce_replay (W4)", "terminal_immutable_idempotent (W3)", "terminal_uygula+emit"],
+    "polling": {"bounded": true, "schedule": "base_backoff_ms * 2^attempt, cap max_backoff_ms, + seeded jitter", "stop": ["terminal_status", "attempts==max_attempts → TIMED_OUT", "now>=deadline → TIMED_OUT"]},
+    "exactly_once": "ilk terminal sinyal kazanır; sonraki (çift callback / poll-sonrası-callback) → no-op, ikinci tool.async.completed YOK",
+    "trace": "FR-TOOL-011, SEC-05, API §10.1/§10.2, ADR-007"
+  },
+
+  "callback_security": {
+    "$comment": "SEC-05/TM-S-05 (sahte webhook). İmza HMAC-SHA256, header 'X-Signature: t=<unix>,v1=<hex>' (API §10.1). Doğrulama: (1) imza eşleşir mi (secret yalnız ${ENV}/fixture-runtime); (2) |now - t| ≤ ts_tolerance_s (default 300); (3) nonce daha önce görülmedi (replay reddi). Herhangi biri başarısız → CALLBACK_REJECTED, execution DEĞİŞMEZ, audit'e reject_reason. Secret asla loglanmaz/audit'lenmez/repoya yazılmaz.",
+    "algo": "hmac-sha256",
+    "signature_header": "X-Signature",
+    "signature_format": "t=<unix>,v1=<hex(hmac_sha256(secret, t + '.' + body))>",
+    "ts_tolerance_s_default": 300,
+    "reject_reasons": ["BAD_SIGNATURE", "MISSING_SIGNATURE", "TIMESTAMP_OUT_OF_WINDOW", "NONCE_REPLAYED", "TENANT_MISMATCH", "CORRELATION_MISMATCH", "UNKNOWN_EXECUTION"],
+    "secret_reference_only": true,
+    "trace": "SEC-05, TM-S-05, API §10.1, NFR 10.6"
+  },
+
+  "result_reference": {
+    "$comment": "W8 — sonuç REFERANSLA döner. tool.async.completed envelope (API §10.2) yalnız {execution_id, status, result_ref}; ham sonuç payload'ı / PII webhook'a ve audit'e GİRMEZ. result_ref nesne deposu (1.1.6) pointer'ı (ör. 'objref://tenant/exec/...'). Tenant sistemi result_ref ile kendi yetkisiyle çeker (residency/no-log NFR 10.7).",
+    "completed_event_type": "tool.async.completed",
+    "completed_payload_fields": ["execution_id", "status", "result_ref"],
+    "forbidden_inline": ["result", "payload", "body", "pii"],
+    "trace": "API §10.2, FR-TOOL-011, FR-REC-004, NFR 10.7, 1.1.6"
+  },
+
+  "dispatch_contract": {
+    "$comment": "Dispatch connector (7.2.1/7.2.2) AttemptOutcome'unu TÜKETİR. result=ok + status 200/202 → PENDING execution + job_ref kaydı (NON-BLOCKING). result=fault terminal (4xx) → execution FAILED (async başlamaz). result=fault retryable → dispatch 7.1.4'e ait; bu modül yalnız NİHAİ dispatch sonucunu alır (retry'dan sonra). W9: idempotency_key VARSA (tenant_id, idempotency_key) → aynı execution_id (dedup; iki upstream iş yok).",
+    "accepted_statuses": [200, 201, 202],
+    "non_blocking": true,
+    "dedup_key": ["tenant_id", "idempotency_key"],
+    "trace": "FR-TOOL-001, FR-TOOL-003, FR-TOOL-009, 7.1.4 AttemptOutcome"
+  },
+
+  "fault_taxonomy_alignment": {
+    "$comment": "7.1.4 (integration-gw) fault_taxonomy ile hizalama (W10). Dispatch fault'ları connector/gateway taksonomisinde. Async-özgü GATE fault'ları (terminal): ASYNC_DEADLINE_EXCEEDED (deadline/poll tükendi → TIMED_OUT), CALLBACK_REJECTED (güvenlik — imza/ts/nonce/binding; execution'ı TAMAMLAMAZ).",
+    "retryable": ["TIMEOUT", "UPSTREAM_5XX", "CONN_RESET", "CONN_REFUSED", "RATE_LIMITED", "DEADLINE_EXCEEDED"],
+    "terminal": ["UPSTREAM_4XX", "SCHEMA_INVALID", "AUTH_FAILED", "NOT_FOUND"],
+    "async_gate_faults": ["ASYNC_DEADLINE_EXCEEDED", "CALLBACK_REJECTED"],
+    "status_to_final": {"SUCCEEDED": "ok", "FAILED": "fault", "TIMED_OUT": "fault", "CANCELLED": "fault"},
+    "trace": "7.1.4 fault_taxonomy, FR-TOOL-003, API §11.6"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Modülün girdi/yapılandırma bütünlüğü hataları (execution durum sonuçlarından AYRI — bunlar isteğin işlenmeden reddini doğurur).",
+    "classes": ["MISSING_WORKFLOW_CONFIG", "INVALID_WORKFLOW_SPEC", "MISSING_SIGNING_CONFIG", "LITERAL_SECRET_IN_SPEC", "INVALID_INVOCATION", "UNKNOWN_EXECUTION", "NON_MONOTONIC_CLOCK", "INTERNAL_ERROR"],
+    "trace": "FR-TST-008, FR-TOOL-011"
+  },
+
+  "invariants": [
+    {"id": "W1", "desc": "Non-blocking dispatch (SR-TOOL-011 çekirdeği): uzun-işlem dispatch() orkestratöre HEMEN 'pending' + execution_id döner; turn BLOKLANMAZ (NFR 10.1/10.2). Sonuç beklenmez."},
+    {"id": "W2", "desc": "Execution durum makinesi: PENDING/RUNNING → SUCCEEDED|FAILED|TIMED_OUT|CANCELLED; terminal durumlar IMMUTABLE (terminal→başka durum YASAK)."},
+    {"id": "W3", "desc": "Idempotent exactly-once completion: callback ∧ poll yarışında execution AT-MOST-ONCE terminal olur; çift/geç sinyal → no-op; ikinci tool.async.completed YAYINLANMAZ (tool_execution WORM hizalı)."},
+    {"id": "W4", "desc": "Callback authenticity (SEC-05): HMAC-SHA256 imza + |now-t|≤ts_tolerance_s + nonce-replay-reddi. Geçersiz/expired/replay → CALLBACK_REJECTED; execution DEĞİŞMEZ; emit YOK."},
+    {"id": "W5", "desc": "Bounded polling: max_attempts + exponential backoff (cap) + tohumlu jitter; ASLA unbounded. Attempts tükenir → TIMED_OUT."},
+    {"id": "W6", "desc": "Deadline/TTL (zombie yok): her execution deadline_ms taşır; now>=deadline → terminal TIMED_OUT (reaper); execution sonsuza PENDING kalmaz."},
+    {"id": "W7", "desc": "Tenant+correlation binding: callback/poll yalnız EŞLEŞEN execution'ı (tenant_id ∧ correlation_id) mutabık kılar; uyumsuz → TENANT_MISMATCH/CORRELATION_MISMATCH reddi (FR-TEN-002)."},
+    {"id": "W8", "desc": "Result-by-reference: tool.async.completed yalnız {execution_id, status, result_ref}; ham result/payload/PII webhook'a ve audit'e GİRMEZ (API §10.2, NFR 10.7, nesne deposu 1.1.6)."},
+    {"id": "W9", "desc": "Idempotency-key köprüsü (FR-TOOL-009): async write dispatch idempotency_key taşır; (tenant_id, idempotency_key) dedup → retry'lanan dispatch İKİ upstream iş yaratmaz (aynı execution_id)."},
+    {"id": "W10", "desc": "fault_class hizalama: dispatch fault'ları 7.1.4 retryable∪terminal taksonomisi; async gate fault'ları ASYNC_DEADLINE_EXCEEDED/CALLBACK_REJECTED; final_status→{ok|fault} eşlemesi tutarlı."},
+    {"id": "W11", "desc": "Audit no-log: execution lifecycle audit yalnız execution_id+correlation_id+status+endpoint(template)+attempts+no_log; ham payload/result/PII/secret/nonce-sır YOK (0.4.7 düşük kardinalite)."},
+    {"id": "W12", "desc": "Determinizm: tohumlu sanal saat + tohumlu jitter; aynı seed+girdi → birebir aynı execution trace. Date.now/gerçek-rastgele YOK."}
+  ],
+
+  "audit": {
+    "$comment": "Execution lifecycle yapısal audit (7.1.6'ya köprü; FR-TOOL-010). no_log: ham payload/result/PII/secret/imza içermez — yalnız execution_id, correlation_id, status, endpoint(template), attempts, reject_reason(varsa, düşük-kardinalite kod).",
+    "no_log": true,
+    "fields": ["execution_id", "correlation_id", "status", "endpoint", "attempts", "reject_reason", "no_log"],
+    "trace": "FR-TOOL-010, →7.1.6, BRD §17.7, NFR 10.7"
+  }
+}

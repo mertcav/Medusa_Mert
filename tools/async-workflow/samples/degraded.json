@@ -1,0 +1,21 @@
+{
+  "name": "degraded — audit redaksiyonu KAPALI → ham result_ref/payload audit'e sızar (W8/W11 negatif kapı)",
+  "$comment": "KASITLI BAŞARISIZ (expect_degraded). redact_audit=false → engine ham sonucu audit'e yazar; W11/W8 no-log tarayıcısı yakalar → 🔴. Redaksiyonun gerçek güvenlik kapısı olduğunu kanıtlar (rest-connector/error-normalization deseni). Sentetik (FR-TST-008).",
+  "profile": "callback-primary",
+  "redact_audit": false,
+  "_raw_result": "MUSTERI-IBAN-TR00-LEAK-MARKER",
+  "leak_markers": ["MUSTERI-IBAN-TR00-LEAK-MARKER"],
+  "dispatch_req": {
+    "execution_id": "ex-dg-1", "tenant_id": "t-pilot", "correlation_id": "corr-dg-1",
+    "operation": "erp_create_work_order", "endpoint": "POST https://erp.example.com/work-orders",
+    "deadline_ms": 300000, "at_ms": 0,
+    "dispatch": {"result": "ok", "status_code": 202}
+  },
+  "timeline": [
+    {"kind": "callback", "name": "callback-ok", "at_ms": 45000,
+     "execution_id": "ex-dg-1", "tenant_id": "t-pilot", "correlation_id": "corr-dg-1",
+     "status": "SUCCEEDED", "result_ref": "objref://t-pilot/ex-dg-1/result",
+     "body": "{\"execution_id\":\"ex-dg-1\",\"status\":\"SUCCEEDED\"}", "ts": 45, "nonce": "nonce-dg-1", "sign": true}
+  ],
+  "expect_degraded": true
+}

@@ -1,0 +1,22 @@
+{
+  "name": "polling-timeout — upstream hep RUNNING → max_attempts tükenir → TIMED_OUT (W5)",
+  "$comment": "Poll hiç terminal vermez; bounded poll 5 denemede tükenir → TIMED_OUT + ASYNC_DEADLINE_EXCEEDED. ASLA unbounded (W5). Sentetik (FR-TST-008).",
+  "profile": "polling-only",
+  "dispatch_req": {
+    "execution_id": "ex-pto-1", "tenant_id": "t-pilot", "correlation_id": "corr-pto-1",
+    "operation": "erp_status_job", "endpoint": "POST https://legacy-erp.example.com/jobs",
+    "deadline_ms": 100000000, "at_ms": 0,
+    "dispatch": {"result": "ok", "status_code": 202}
+  },
+  "timeline": [
+    {"kind": "poll", "name": "poll-1", "at_ms": 100000, "upstream": {"status": "RUNNING"}},
+    {"kind": "poll", "name": "poll-2", "at_ms": 200000, "upstream": {"status": "RUNNING"}},
+    {"kind": "poll", "name": "poll-3", "at_ms": 300000, "upstream": {"status": "RUNNING"}},
+    {"kind": "poll", "name": "poll-4", "at_ms": 400000, "upstream": {"status": "RUNNING"}},
+    {"kind": "poll", "name": "poll-5-exhausted", "at_ms": 500000, "upstream": {"status": "RUNNING"}}
+  ],
+  "expect": {
+    "dispatch_status": "PENDING", "non_blocking": true, "final_status": "TIMED_OUT",
+    "emitted_count": 1, "attempts": 5, "fault_class": "ASYNC_DEADLINE_EXCEEDED"
+  }
+}

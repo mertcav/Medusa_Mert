@@ -1,0 +1,23 @@
+{
+  "name": "callback-tenant-mismatch — başka tenant callback'i → TENANT_MISMATCH reddi (W7)",
+  "$comment": "Callback execution ex-tm-1 (t-pilot) için ama tenant_id=t-attacker → cross-tenant binding reddi (FR-TEN-002/TM-T-01); execution değişmez. Sentetik (FR-TST-008).",
+  "profile": "callback-primary",
+  "dispatch_req": {
+    "execution_id": "ex-tm-1", "tenant_id": "t-pilot", "correlation_id": "corr-tm-1",
+    "operation": "erp_create_work_order", "endpoint": "POST https://erp.example.com/work-orders",
+    "deadline_ms": 300000, "at_ms": 0,
+    "dispatch": {"result": "ok", "status_code": 202}
+  },
+  "timeline": [
+    {"kind": "callback", "name": "cross-tenant-callback", "at_ms": 45000,
+     "execution_id": "ex-tm-1", "tenant_id": "t-attacker", "correlation_id": "corr-tm-1",
+     "status": "SUCCEEDED", "result_ref": "objref://t-attacker/ex-tm-1/result",
+     "body": "{\"execution_id\":\"ex-tm-1\",\"status\":\"SUCCEEDED\"}", "ts": 45, "nonce": "nonce-tm-1", "sign": true}
+  ],
+  "expect": {
+    "dispatch_status": "PENDING", "non_blocking": true, "final_status": "PENDING", "emitted_count": 0
+  },
+  "expect_events": [
+    {"index": 0, "result": {"result": "rejected", "reject_reason": "TENANT_MISMATCH", "fault_class": "CALLBACK_REJECTED"}}
+  ]
+}

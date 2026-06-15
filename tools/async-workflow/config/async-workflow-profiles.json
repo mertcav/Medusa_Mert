@@ -1,0 +1,24 @@
+{
+  "$comment": "WBS 7.2.4 — Asenkron uzun-işlem workflow profil preset'leri (FR-TOOL-011). Sağlayıcı-nötr (ADR-002); sır YOK — callback signing_ref yalnız ${ENV}. Her profil bir reconciliation modu + (callback/hybrid) HMAC signing + (polling/hybrid) bounded poll yapılandırması tanımlar. Değerler mühendislik varsayılanı; tenant override yalnız sıkılaştırır (DPIA most-restrictive ruhu).",
+  "profiles": {
+    "callback-primary": {
+      "$comment": "Tercih edilen mod: upstream callback (webhook) gönderir. HMAC-SHA256 + ±300s + nonce replay (SEC-05). Poll YOK → callback gelmezse deadline reaper TIMED_OUT (W6).",
+      "workflow_id": "callback-primary",
+      "mode": "callback",
+      "callback": {"signing_ref": "${ASYNC_CALLBACK_SIGNING_KEY}", "header": "X-Signature", "ts_tolerance_s": 300}
+    },
+    "polling-only": {
+      "$comment": "Upstream callback desteklemeyen sistemler (ör. eski ERP). Bounded poll: 5 deneme, 2s base backoff, 60s cap, 250ms jitter. Callback yok → signing gerekmez.",
+      "workflow_id": "polling-only",
+      "mode": "polling",
+      "poll": {"max_attempts": 5, "base_backoff_ms": 2000, "max_backoff_ms": 60000, "jitter_ms": 250}
+    },
+    "hybrid": {
+      "$comment": "Hem callback hem güvenlik-ağı polling. İlk terminal sinyal kazanır (exactly-once W3). Callback hızlı yol; poll callback kaybolursa yedek (at-least-once dayanıklılık ADR-007).",
+      "workflow_id": "hybrid",
+      "mode": "hybrid",
+      "callback": {"signing_ref": "${ASYNC_CALLBACK_SIGNING_KEY}", "header": "X-Signature", "ts_tolerance_s": 300},
+      "poll": {"max_attempts": 6, "base_backoff_ms": 2000, "max_backoff_ms": 30000, "jitter_ms": 250}
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "idempotency-dedup — aynı idempotency_key ile 2. dispatch → tek execution (W9)",
+  "$comment": "7.1.4 retry'i write dispatch'i tekrar gönderirse (tenant_id, idempotency_key) dedup → AYNI execution; iki upstream iş yaratılmaz (FR-TOOL-009). İlk dispatch normal, ikinci timeline 'dispatch2' eventi ile (probe redispatch desteklemediğinden burada tek dispatch + W9 selftest kapsar). Sentetik (FR-TST-008).",
+  "profile": "callback-primary",
+  "dispatch_req": {
+    "execution_id": "ex-id-1", "tenant_id": "t-pilot", "correlation_id": "corr-id-1",
+    "operation": "payment_reconcile", "endpoint": "POST https://psp.example.com/reconcile",
+    "deadline_ms": 300000, "at_ms": 0, "idempotency_key": "idem-pay-9001",
+    "dispatch": {"result": "ok", "status_code": 202}
+  },
+  "timeline": [
+    {"kind": "callback", "name": "callback-ok", "at_ms": 45000,
+     "execution_id": "ex-id-1", "tenant_id": "t-pilot", "correlation_id": "corr-id-1",
+     "status": "SUCCEEDED", "result_ref": "objref://t-pilot/ex-id-1/result",
+     "body": "{\"execution_id\":\"ex-id-1\",\"status\":\"SUCCEEDED\"}", "ts": 45, "nonce": "nonce-id-1", "sign": true}
+  ],
+  "expect": {
+    "dispatch_status": "PENDING", "non_blocking": true, "final_status": "SUCCEEDED", "emitted_count": 1
+  }
+}

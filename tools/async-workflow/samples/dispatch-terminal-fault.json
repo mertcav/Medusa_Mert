@@ -1,0 +1,16 @@
+{
+  "name": "dispatch-terminal-fault — dispatch 4xx (terminal) → FAILED, async başlamaz (W2/W10)",
+  "$comment": "Connector dispatch'i terminal fault döndürürse (ör. AUTH_FAILED) async workflow başlamaz; execution FAILED + fault_class korunur; tool.async.completed yine de exactly-once yayılır. Sentetik (FR-TST-008).",
+  "profile": "callback-primary",
+  "dispatch_req": {
+    "execution_id": "ex-df-1", "tenant_id": "t-pilot", "correlation_id": "corr-df-1",
+    "operation": "erp_create_work_order", "endpoint": "POST https://erp.example.com/work-orders",
+    "deadline_ms": 300000, "at_ms": 0,
+    "dispatch": {"result": "fault", "fault_class": "AUTH_FAILED", "status_code": 401}
+  },
+  "timeline": [],
+  "expect": {
+    "dispatch_status": "FAILED", "non_blocking": true, "final_status": "FAILED",
+    "emitted_count": 1, "fault_class": "AUTH_FAILED"
+  }
+}

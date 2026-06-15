@@ -1,0 +1,24 @@
+{
+  "name": "callback-bad-signature — kurcalanmış callback → CALLBACK_REJECTED, PENDING korunur (W4)",
+  "$comment": "Sahte/kurcalanmış webhook (TM-S-05): gövde imzadan sonra değişti → HMAC uyuşmaz → reddedilir, execution TAMAMLANMAZ (SEC-05). tamper_body imzayı eski gövdeye bırakır. Sentetik (FR-TST-008).",
+  "profile": "callback-primary",
+  "dispatch_req": {
+    "execution_id": "ex-bad-1", "tenant_id": "t-pilot", "correlation_id": "corr-bad-1",
+    "operation": "erp_create_work_order", "endpoint": "POST https://erp.example.com/work-orders",
+    "deadline_ms": 300000, "at_ms": 0,
+    "dispatch": {"result": "ok", "status_code": 202}
+  },
+  "timeline": [
+    {"kind": "callback", "name": "tampered-callback", "at_ms": 45000,
+     "execution_id": "ex-bad-1", "tenant_id": "t-pilot", "correlation_id": "corr-bad-1",
+     "status": "SUCCEEDED", "result_ref": "objref://t-pilot/ex-bad-1/result",
+     "body": "{\"execution_id\":\"ex-bad-1\",\"status\":\"SUCCEEDED\"}", "ts": 45, "nonce": "nonce-bad-1",
+     "sign": true, "tamper_body": true}
+  ],
+  "expect": {
+    "dispatch_status": "PENDING", "non_blocking": true, "final_status": "PENDING", "emitted_count": 0
+  },
+  "expect_events": [
+    {"index": 0, "result": {"result": "rejected", "reject_reason": "BAD_SIGNATURE", "fault_class": "CALLBACK_REJECTED"}}
+  ]
+}

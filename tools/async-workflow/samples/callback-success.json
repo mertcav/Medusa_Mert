@@ -1,0 +1,21 @@
+{
+  "name": "callback-success — uzun-işlem dispatch (202) → imzalı callback → SUCCEEDED (W1/W4/W8)",
+  "$comment": "ERP iş emri: dispatch 202 Accepted → PENDING (non-blocking W1). Upstream imzalı callback gönderir → HMAC doğrulanır → SUCCEEDED + tool.async.completed(result_ref). SR-TOOL-011 pozitif yol. Sentetik (FR-TST-008; host example.com).",
+  "profile": "callback-primary",
+  "dispatch_req": {
+    "execution_id": "ex-erp-1", "tenant_id": "t-pilot", "correlation_id": "corr-erp-1",
+    "operation": "erp_create_work_order", "endpoint": "POST https://erp.example.com/work-orders",
+    "deadline_ms": 300000, "at_ms": 0,
+    "dispatch": {"result": "ok", "status_code": 202}
+  },
+  "timeline": [
+    {"kind": "callback", "name": "upstream-callback", "at_ms": 45000,
+     "execution_id": "ex-erp-1", "tenant_id": "t-pilot", "correlation_id": "corr-erp-1",
+     "status": "SUCCEEDED", "result_ref": "objref://t-pilot/ex-erp-1/result",
+     "body": "{\"execution_id\":\"ex-erp-1\",\"status\":\"SUCCEEDED\"}", "ts": 45, "nonce": "nonce-erp-1", "sign": true}
+  ],
+  "expect": {
+    "dispatch_status": "PENDING", "non_blocking": true, "final_status": "SUCCEEDED",
+    "emitted_count": 1, "result_ref": "objref://t-pilot/ex-erp-1/result"
+  }
+}

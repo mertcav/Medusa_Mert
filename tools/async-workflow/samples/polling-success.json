@@ -1,0 +1,20 @@
+{
+  "name": "polling-success — callback'siz upstream → bounded poll RUNNING→SUCCEEDED (W5)",
+  "$comment": "Eski ERP callback desteklemez. Bounded poll: ilk poll RUNNING, ikinci poll SUCCEEDED → result_ref. Sentetik (FR-TST-008).",
+  "profile": "polling-only",
+  "dispatch_req": {
+    "execution_id": "ex-poll-1", "tenant_id": "t-pilot", "correlation_id": "corr-poll-1",
+    "operation": "erp_status_job", "endpoint": "POST https://legacy-erp.example.com/jobs",
+    "deadline_ms": 100000000, "at_ms": 0,
+    "dispatch": {"result": "ok", "status_code": 202}
+  },
+  "timeline": [
+    {"kind": "poll", "name": "poll-1-running", "at_ms": 100000, "upstream": {"status": "RUNNING"}},
+    {"kind": "poll", "name": "poll-2-succeeded", "at_ms": 200000,
+     "upstream": {"status": "SUCCEEDED", "result_ref": "objref://t-pilot/ex-poll-1/result"}}
+  ],
+  "expect": {
+    "dispatch_status": "PENDING", "non_blocking": true, "final_status": "SUCCEEDED",
+    "emitted_count": 1, "attempts": 2, "result_ref": "objref://t-pilot/ex-poll-1/result"
+  }
+}
