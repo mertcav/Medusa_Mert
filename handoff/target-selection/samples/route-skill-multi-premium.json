@@ -1,0 +1,13 @@
+{
+  "name": "route-skill-multi-premium",
+  "$comment": "Çoklu skill eşleşmesi (FR-HND-003). billing_dispute + tr + ek required_skills [tier:premium] → gerekli skill {domain:billing, lang:tr, tier:premium}. q-billing-tr yalnız {domain:billing,lang:tr} kapsar (tier:premium yok) → elenir; yalnız q-billing-premium-tr (sg-billing-premium-tr) üç skill'i de kapsar → exact. En sıkı eşleşme. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-route-006",
+  "call_id": "call-route-006",
+  "intent": "billing_dispute",
+  "language": "tr",
+  "required_skills": ["tier:premium"],
+  "reason": "POLICY",
+  "expected": {"terminal": "SELECTED", "department": "billing", "skill_group": "sg-billing-premium-tr", "queue": "q-billing-premium-tr", "priority": "high", "match_quality": "exact"}
+}

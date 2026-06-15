@@ -1,0 +1,12 @@
+{
+  "name": "route-department-default",
+  "$comment": "Fallback tier 2 (R5). tech_support + en → doğru departman=tech ama tech kuyrukları (q-tech-a/z) yalnız tr; en için exact skill+dil kuyruğu YOK → departman varsayılan kuyruğu q-tech-default (sg-tech-general, dil tr/en). match_quality=department_default (skill gevşetildi, dil korundu). Doğru departman korunur, çıkmaza girilmez. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-route-003",
+  "call_id": "call-route-003",
+  "intent": "tech_support",
+  "language": "en",
+  "reason": "USER_REQUEST",
+  "expected": {"terminal": "SELECTED", "department": "tech", "queue": "q-tech-default", "match_quality": "department_default"}
+}

@@ -1,0 +1,12 @@
+{
+  "name": "route-priority-anger",
+  "$comment": "Öncelik (R6). tech_support + tr + reason ANGER (9.4 öfke tetiği) → öncelik high. tech departmanında iki exact tr kuyruğu var: q-tech-a (priority_capable=false) + q-tech-z (priority_capable=true). high öncelik → priority_capable kuyruk q-tech-z tercih edilir (id sırası q-tech-a olsa da öncelik öne alır). Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-route-005",
+  "call_id": "call-route-005",
+  "intent": "tech_support",
+  "language": "tr",
+  "reason": "ANGER",
+  "expected": {"terminal": "SELECTED", "department": "tech", "queue": "q-tech-z", "priority": "high", "match_quality": "exact"}
+}

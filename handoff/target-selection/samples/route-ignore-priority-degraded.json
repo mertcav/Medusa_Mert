@@ -1,0 +1,13 @@
+{
+  "name": "route-ignore-priority-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). tech_support + tr + reason ANGER → öncelik high olmalı (öfkeli müşteri önceliklendirilir, R6). Motor önceliği YOK SAYIYOR (inject ignore_priority → normal). R6 ihlali (priority_ignored>0): öfke tetiği öncelik kuyruğuna/pozisyonuna yansımıyor — müşteri sıradan kuyrukta bekler. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-route-010",
+  "call_id": "call-route-010",
+  "intent": "tech_support",
+  "language": "tr",
+  "reason": "ANGER",
+  "inject": ["ignore_priority"],
+  "expected": {}
+}

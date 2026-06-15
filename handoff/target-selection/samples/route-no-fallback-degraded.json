@@ -1,0 +1,13 @@
+{
+  "name": "route-no-fallback-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). tech_support + en → exact skill+dil kuyruğu yok; DOĞRU motor departman-default kuyruğu q-tech-default'a düşmeli (R5). Motor fallback zincirini KIRIYOR (inject no_fallback) → çıkmaz → UNRESOLVED, oysa eşleşebilecek bir default vardı. R5 ihlali (broken_fallback>0): bir default eşleşebilirken çıkmaza girildi. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-route-009",
+  "call_id": "call-route-009",
+  "intent": "tech_support",
+  "language": "en",
+  "reason": "USER_REQUEST",
+  "inject": ["no_fallback"],
+  "expected": {"terminal": "UNRESOLVED"}
+}

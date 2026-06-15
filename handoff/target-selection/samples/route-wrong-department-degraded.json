@@ -1,0 +1,13 @@
+{
+  "name": "route-wrong-department-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). billing_dispute → doğru departman billing ama motor YANLIŞ departman seçiyor (inject wrong_department → general). R2 ihlali (wrong_department>0): FR-HND-003 'agent doğru departman ve skill grubunu seçmelidir'. Yanlış departman müşteriyi konu-dışı ekibe yönlendirir. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-route-007",
+  "call_id": "call-route-007",
+  "intent": "billing_dispute",
+  "language": "tr",
+  "reason": "USER_REQUEST",
+  "inject": ["wrong_department"],
+  "expected": {}
+}

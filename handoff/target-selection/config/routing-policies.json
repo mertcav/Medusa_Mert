@@ -1,0 +1,63 @@
+{
+  "$comment": "WBS 9.5 hedef seçim yönlendirme politika konfigürasyonu (vendor-neutral, credential-free). Kuyruk/skill_group/departman envanteri ÜRETİMİ tenant admin panelindedir (L1/A-* ekran CRUD); bu config seçim motorunun TÜKETTİĞİ illüstratif envanter + yönlendirme kurallarını tutar. Sır/credential ve PII (müşteri adı/telefon/hesap no/ham transkript) YOK — yalnız yapısal kimlikler + dil kodları + skill etiketleri (kategori:değer) + öncelik kuralları + fallback zinciri. Tenant override yalnız yapısal: kendi kuyruk/skill/departman envanteri + kuralları (cross-tenant erişim yok, FR-TEN-002). Değerler MÜHENDİSLİK varsayılanı; pilot tenant + CC entegrasyonu verisiyle kalibre edilir (BRD §22 açık karar).",
+  "version": "1.0",
+  "wbs": "9.5",
+  "departments": ["billing", "tech", "sales", "general"],
+  "default_department": "general",
+  "skill_groups": {
+    "$comment": "skill_group → kapsadığı skill etiketleri (kategori:değer; yapısal, PII değil). exact tier seçilen kuyruğun skill_group'u gerekli skill'leri ⊇ kapsamalı (R4).",
+    "sg-billing-tr": ["domain:billing", "lang:tr"],
+    "sg-billing-en": ["domain:billing", "lang:en"],
+    "sg-billing-premium-tr": ["domain:billing", "lang:tr", "tier:premium"],
+    "sg-billing-general": ["domain:billing"],
+    "sg-tech-tr": ["domain:tech", "lang:tr"],
+    "sg-tech-general": ["domain:tech"],
+    "sg-sales-tr": ["domain:sales", "lang:tr"],
+    "sg-general": []
+  },
+  "queues": [
+    {"id": "q-billing-tr", "department": "billing", "skill_group": "sg-billing-tr", "languages": ["tr"], "priority_capable": false},
+    {"id": "q-billing-en", "department": "billing", "skill_group": "sg-billing-en", "languages": ["en"], "priority_capable": false},
+    {"id": "q-billing-premium-tr", "department": "billing", "skill_group": "sg-billing-premium-tr", "languages": ["tr"], "priority_capable": true},
+    {"id": "q-billing-default", "department": "billing", "skill_group": "sg-billing-general", "languages": ["tr", "en"], "priority_capable": false, "is_department_default": true},
+    {"id": "q-tech-a", "department": "tech", "skill_group": "sg-tech-tr", "languages": ["tr"], "priority_capable": false},
+    {"id": "q-tech-z", "department": "tech", "skill_group": "sg-tech-tr", "languages": ["tr"], "priority_capable": true},
+    {"id": "q-tech-default", "department": "tech", "skill_group": "sg-tech-general", "languages": ["tr", "en"], "priority_capable": false, "is_department_default": true},
+    {"id": "q-sales-tr", "department": "sales", "skill_group": "sg-sales-tr", "languages": ["tr"], "priority_capable": false},
+    {"id": "q-general", "department": "general", "skill_group": "sg-general", "languages": ["tr", "en"], "priority_capable": true, "is_tenant_default": true}
+  ],
+  "intent_to_department": {
+    "$comment": "intent → departman kuralı (FR-HND-003 doğru departman). Bilinmeyen intent → default_department.",
+    "billing_dispute": "billing",
+    "payment": "billing",
+    "tech_support": "tech",
+    "sales_inquiry": "sales"
+  },
+  "intent_skills": {
+    "$comment": "intent → gerekli domain skill etiketi (request.required_skills + dil ile birleştirilir).",
+    "billing_dispute": ["domain:billing"],
+    "payment": ["domain:billing"],
+    "tech_support": ["domain:tech"],
+    "sales_inquiry": ["domain:sales"]
+  },
+  "priority_rules": {
+    "$comment": "9.4 reason → öncelik (R6). Öfke/politika önceliklendirilir.",
+    "ANGER": "high",
+    "POLICY": "high",
+    "USER_REQUEST": "normal",
+    "LOW_CONFIDENCE": "normal"
+  },
+  "fallback_chain": ["exact", "department_default", "general_fallback"],
+  "tenant_general_queue": "q-general",
+  "emit_to": ["9.1", "9.2", "9.3"],
+  "unresolved_to": {
+    "$comment": "Hedef çözülemezse karar 9.7 temsilci-yok fallback motoruna yükselir (FR-HND-007). Bu config yalnız hedef işaretçiyi taşır.",
+    "to": "9.7",
+    "options": ["callback", "voicemail", "ticket"]
+  },
+  "observability": {
+    "metric_prefix": "handoff_target_",
+    "alarm_on_fallback_rate": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

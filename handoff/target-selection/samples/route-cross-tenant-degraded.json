@@ -1,0 +1,13 @@
+{
+  "name": "route-cross-tenant-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). billing_dispute + tr → motor BAŞKA tenant'ın kuyruğunu seçiyor (inject cross_tenant_target → q-foreigntenant-billing, bu tenant config'inde yok). R7 ihlali (cross_tenant_target>0): FR-TEN-002 tenant izolasyonu — hedef yalnız bu tenant'ın envanterinden seçilmeli. Cross-tenant hedef = veri sınırı ihlali (TM-T-*). Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-route-011",
+  "call_id": "call-route-011",
+  "intent": "billing_dispute",
+  "language": "tr",
+  "reason": "USER_REQUEST",
+  "inject": ["cross_tenant_target"],
+  "expected": {}
+}

@@ -1,0 +1,13 @@
+{
+  "name": "route-skill-mismatch-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). billing_dispute + tr → gerekli skill {domain:billing, lang:tr}; motor gerekli skill'i TAŞIMAYAN bir kuyruğu (q-billing-default / sg-billing-general — lang:tr yok) exact diye seçiyor (inject skill_mismatch). R4 ihlali (mis_skill>0): seçilen kuyruğun skill grubu gerekli dil skill'ini kapsamıyor — yanlış-yetkin temsilciye tam-güvenle yönlendirme. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-route-008",
+  "call_id": "call-route-008",
+  "intent": "billing_dispute",
+  "language": "tr",
+  "reason": "USER_REQUEST",
+  "inject": ["skill_mismatch"],
+  "expected": {}
+}

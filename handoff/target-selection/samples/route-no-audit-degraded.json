@@ -1,0 +1,13 @@
+{
+  "name": "route-no-audit-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). billing_dispute + tr → doğru hedef seçilir ama motor karar audit kaydı ÜRETMİYOR (inject no_audit). R9 ihlali (missing_audit>0): FR-IAM-006 her hedef seçim kararı {department, skill_group, queue, priority, match_quality, correlation_id, tenant} audit'e yazılmalı (inkâr-edilemezlik). Gate ELER (require_decision_record).",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-route-012",
+  "call_id": "call-route-012",
+  "intent": "billing_dispute",
+  "language": "tr",
+  "reason": "USER_REQUEST",
+  "inject": ["no_audit"],
+  "expected": {}
+}

@@ -1,0 +1,12 @@
+{
+  "name": "route-exact-skill",
+  "$comment": "Mutlu yol (FR-TEL-008/FR-HND-003). billing_dispute intent + tr dil → doğru departman=billing, gerekli skill {domain:billing, lang:tr} → exact skill kuyruğu q-billing-tr (sg-billing-tr). Üç boyut (department/skill_group/queue) dolu. reason USER_REQUEST → öncelik normal. Hedef 9.1/9.2/9.3'e iletilir. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-route-001",
+  "call_id": "call-route-001",
+  "intent": "billing_dispute",
+  "language": "tr",
+  "reason": "USER_REQUEST",
+  "expected": {"terminal": "SELECTED", "resolved": true, "department": "billing", "skill_group": "sg-billing-tr", "queue": "q-billing-tr", "priority": "normal", "match_quality": "exact"}
+}

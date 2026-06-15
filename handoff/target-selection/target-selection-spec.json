@@ -1,0 +1,140 @@
+{
+  "$comment": "WBS 9.5 — Kuyruk/skill/departman bazlı hedef seçimi (BRD §9.12 İnsan Temsilciye Aktarım / SAD §7.3 Human Handoff Akışı). 9. workstream'in (İnsan Temsilciye Aktarım) BEŞİNCİ modülü ve F2-Must aktarım çekirdeği. FR-TEL-008 ('Kuyruk, skill ve departman bazlı aktarım yapılabilmelidir') + FR-HND-003 ('Agent doğru departman ve skill grubunu seçmelidir') HEDEF SEÇİMİNİ SAHİPLENİR. SAD §7.3 akış diyagramındaki 'Handoff Manager ──► hedef seçimi (departman/skill/kuyruk)' noktasıdır. 9.4 (tetikleyiciler) 'NE ZAMAN/NEDEN' kararını üretir; bu modül 'NEREYE' kararını üretir; 9.1/9.2/9.3 (cold/warm/whisper) bu HEDEFİ taşıma için TÜKETİR. Modül bir HEDEF SEÇİM MOTORUdur (deterministik): RoutingRequest{intent, language, required_skills[], reason (9.4'ten), attributes} alır ve TargetSelection{department, skill_group, queue, priority, match_quality, fallback_chain[]} üretir. ÜÇ YÖNLENDİRME BOYUTU (FR-TEL-008): kuyruk (queue) + skill (skill_group) + departman (department) — seçilen hedef ÜÇÜNÜ DE taşır. ÇEKİRDEK INVARIANT: doğru departman intent→tenant kuralından seçilir (R2 wrong_department=0); seçilen kuyruğun skill grubu gerekli skill'leri (dil dahil) kapsar (R4 mis_skill=0); sıralı fallback zinciri exact→departman-default→tenant-general fail-safe (R5 broken_fallback=0 — default varken çıkmaza girmez); reason-türevi öncelik (öfke/politika→yüksek) deterministik uygulanır (R6 priority_ignored=0); hedef bu tenant'ın config'inden (R7 cross_tenant_target=0); her hedef kanıt taşır (R8); her karar audit'e yazılır (R9); temsilci bulunamayan UNRESOLVED yol 9.7'ye yükselir, oturum düşmez (R10 fail-safe). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): aktarım MEKANİZMASI (cold SIP REFER → 9.1; warm köprüleme+whisper → 9.2; whisper konferans → 9.3 — bu modül HEDEFİ ÜRETİR, taşımayı DEĞİL); aktarım TETİKLEME kararı (ne zaman/neden) → 9.4 (reason'ı TÜKETİR, ÜRETMEZ); bağlam paketi (özet+intent+alanlar+auth) + screen-pop → 9.6 (FR-HND-004/005); temsilci-yok callback/voicemail/ticket motoru → 9.7 (FR-HND-007 — bu modül UNRESOLVED'i 9.7'ye YÜKSELTİR); aktarım başarısı+bekleme raporlama → 9.8 (FR-HND-008); intent/niyet sınıflandırması → 3.x diyalog/NLU (bu modül intent'i TÜKETİR); dil tespiti → STT (4.x; bu modül dil kodunu TÜKETİR); skill/departman/kuyruk envanteri YÖNETİMİ (CRUD) → tenant admin paneli (L1/A-* ekranlar; bu modül config'i TÜKETİR); canlı temsilci uygunluk/doluluk → CC entegrasyonu (11.x; bu modül hedef seçer, atamayı CC yapar); audit STORE → 7.1.6/12.1.8; gözlemlenebilirlik omurgası → 0.4.7 (bu modül metrik ÜRETİR, omurgayı DEĞİL). Spec/config/sample'larda sır/credential ve gerçek PII (müşteri adı/telefon/hesap no / ham transkript) YOK — yalnız yapısal KİMLİKLER (departman/skill_group/kuyruk/intent kimlikleri) + dil kodları + skill etiketleri + öncelik seviyeleri + reason kodu + uygunluk bayrakları + sanal zaman. KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS esastır.",
+  "version": "1.0",
+  "wbs": "9.5",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TEL-008", "FR-HND-003", "FR-HND-007", "FR-TEN-002", "FR-IAM-006", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-TEL-008", "SR-HND-003"],
+    "rtm": ["TC-TEL-008", "TC-HND-003"],
+    "brd": [
+      "§9.12 (İnsan Temsilciye Aktarım — FR-TEL-008 kuyruk/skill/departman bazlı aktarım; FR-HND-003 doğru departman+skill grubu seçimi; FR-HND-007 temsilci-yok fallback)",
+      "§16/§24 (Call / Call Leg / Audit Log varlıkları — hedef seçimi outcome/audit kaydı)",
+      "§8.1 (CC entegrasyonu — seçilen kuyruk/skill/departman hedefi CC'ye iletilir)"
+    ],
+    "sad": [
+      "§7.3 (Human Handoff Akışı — 'Handoff Manager ──► hedef seçimi (departman/skill/kuyruk)' noktası; bu modül HEDEF SEÇİMİ noktasıdır)",
+      "§13.3 (correlation/tenant context propagation — hedef seçimi correlation_id+tenant taşır)",
+      "§14 (güvenlik tasarımı — fail-safe: hedef bulunamazsa UNRESOLVED→9.7; oturum DÜŞMEZ)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — hedef seçimi orkestratör/handoff manager'da; CC/telefoni'ye doğrudan bağlanmaz, kuyruk/skill envanterini config'ten TÜKETİR)",
+      "ADR-002 (vendor-neutral — kuyruk/skill/departman modeli CC sağlayıcı bağımsız; seçim mantığı aynı kalır)"
+    ],
+    "threat_model": [
+      "TM-T-* (tenant izolasyonu — kuyruk/skill/departman envanteri tenant-scoped; cross-tenant hedef red, FR-TEN-002)",
+      "TM-I-* (bilgi sızıntısı — yapısal kimlikler/skill etiketleri/dil kodları; müşteri adı/telefon/transkript metrik/log'ta yok)",
+      "TM-R-* (inkâr — her hedef seçim kararı + kanıt + match_quality audit'e yazılır)",
+      "TM-D-* (DoS — hedef bulunamazsa fail-safe 9.7'ye yükselir; oturum düşmez)"
+    ],
+    "consumes": [
+      "9.4 transfer tetikleyiciler (FR-HND-001/002) — TransferDecision reason'ını (öfke/politika→öncelik ipucu) TÜKETİR",
+      "Diyalog/NLU intent (handoff intent / iş niyeti) — departman/skill eşlemesi için TÜKETİR (ÜRETMEZ)",
+      "STT dil tespiti (FR-STT-005) — dil kodunu (lang skill) TÜKETİR (ÜRETMEZ)",
+      "Tenant config: kuyruk/skill_group/departman envanteri + yönlendirme kuralları (L1/A-* panel CRUD) — TÜKETİR"
+    ],
+    "consumed_by": [
+      "9.1 cold transfer (FR-TEL-007) — seçilen hedefi (departman/skill/kuyruk) REFER yönlendirme için TÜKETİR",
+      "9.2 warm transfer (FR-TEL-007/FR-HND-006) — hedef kuyruğa danışma+köprü için TÜKETİR",
+      "9.3 whisper transfer (FR-TEL-007) — hedef temsilciyi konferansa eklemek için TÜKETİR",
+      "9.6 bağlam paketi (FR-HND-004/005) — hedef departman/skill bağlamını screen-pop için TÜKETİR",
+      "9.7 temsilci-yok fallback (FR-HND-007) — UNRESOLVED hedefi callback/voicemail/ticket'a YÜKSELTİR",
+      "9.8 aktarım raporlama (FR-HND-008) — kuyruk/skill/departman dağılımını TÜKETİR",
+      "7.1.6 + 12.1.8 audit store (FR-IAM-006) — hedef seçim kaydını kalıcılaştırır",
+      "0.4.7 gözlemlenebilirlik — handoff_target_total / handoff_target_* metriklerini tüketir"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Hedef seçim motoru orkestratör/handoff manager içinde bir KARAR fonksiyonudur (SAD §7.3 'Handoff Manager ──► hedef seçimi' noktası): 9.4 transfer kararını verince, bu motor RoutingRequest'i (intent/language/required_skills/reason) tenant yönlendirme kurallarından geçirir ve bir TargetSelection üretir. Hedef mekanizma modülüne (9.1/9.2/9.3) iletilir; motor taşımayı YAPMAZ. Motor hot-path'i BLOKLAMAZ — seçim O(kuyruk-sayısı) deterministik kural değerlendirmesi, sanal zaman. Vendor-neutral (ADR-001/002): kuyruk/skill/departman envanteri CC sağlayıcı bağımsız bir modelde; canlı CC entegrasyonunda (11.x) aynı seçim sözleşmesi arkasına gerçek skill-based routing motoru.",
+    "plane": "voice-runtime orchestrator (handoff manager — hedef seçim motoru)",
+    "owns": "SAD §7.3 HEDEF SEÇİMİ noktası: RoutingRequest → departman/skill/kuyruk çözümleme + öncelik + sıralı fallback → TargetSelection (department + skill_group + queue + priority + match_quality + kanıt) + karar audit",
+    "delegates": "aktarım taşıması → 9.1/9.2/9.3; tetikleme kararı → 9.4; bağlam paketi → 9.6; temsilci-yok fallback → 9.7; raporlama → 9.8; audit store → 7.1.6/12.1.8; intent ÜRETİMİ → NLU (3.x); dil tespiti → STT (4.x); kuyruk/skill envanteri CRUD → L1/A-* panel; canlı temsilci atama → CC (11.x)",
+    "deterministic": true,
+    "trace": "SAD §7.3, ADR-001, ADR-002"
+  },
+
+  "states": {
+    "$comment": "Hedef seçim durum makinesi (R1). SELECTING→{SELECTED|UNRESOLVED}. SELECTING: RoutingRequest yönlendirme kurallarından geçiriliyor (departman→skill→kuyruk + öncelik + fallback zinciri). SELECTED (terminal): geçerli bir hedef {department, skill_group, queue} çözüldü → mekanizma modülüne (9.1/9.2/9.3) iletilir. UNRESOLVED (terminal): hiçbir kuyruk eşleşmedi ve default/general kuyruk da uygun değil (dil desteksiz / config boşluğu) → fail-safe 9.7'ye yükselir (FR-HND-007), oturum DÜŞMEZ. Terminal durumlar IMMUTABLE.",
+    "flow": ["SELECTING", "SELECTED", "UNRESOLVED"],
+    "non_terminal": ["SELECTING"],
+    "terminal": ["SELECTED", "UNRESOLVED"],
+    "terminal_selected": ["SELECTED"],
+    "terminal_unresolved": ["UNRESOLVED"]
+  },
+
+  "transitions": {
+    "$comment": "İzinli geçişler + kapı koşulu. Hedef seçim motoru fail-safe: bir kuyruk eşleşirse SELECTED, hiç eşleşme yoksa (default dahil) UNRESOLVED'e gider ve 9.7'ye yükselir (oturum korunur). Sıra: gerekli-skill-hesapla → departman-çöz → exact-skill-kuyruk → (yoksa) departman-default → (yoksa) tenant-general → öncelik-uygula.",
+    "edges": [
+      {"from": "SELECTING", "to": "SELECTED", "gate": "E1", "cond": "departman+skill_group+kuyruk çözüldü (match_quality ∈ {exact, department_default, general_fallback}) → hedef + öncelik LATCH"},
+      {"from": "SELECTING", "to": "UNRESOLVED", "gate": "E2", "cond": "hiçbir kuyruk eşleşmedi ve departman-default/tenant-general de uygun değil (dil desteksiz / config boşluğu) → fail-safe 9.7'ye yükselt (FR-HND-007)"}
+    ],
+    "on_selected": "EMIT eylemi: TargetSelection{department, skill_group, queue, priority, match_quality, fallback_chain[], evidence} → mekanizma modülüne (9.1/9.2/9.3) iletilir; karar audit'e yazılır (R9)",
+    "on_unresolved": "ESCALATE eylemi: TargetSelection{resolved=false} → 9.7 temsilci-yok fallback (callback/voicemail/ticket, FR-HND-007); oturum düşmez; değerlendirme audit'e yazılır (R9)"
+  },
+
+  "routing_dimensions": {
+    "$comment": "FR-TEL-008 üç yönlendirme boyutu. Seçilen hedef ÜÇÜNÜ DE taşır (R3 missing_dimension=0). department = iş birimi (intent→departman kuralı, FR-HND-003); skill_group = yetkinlik grubu (gerekli skill'leri kapsayan — dil/domain/tier, FR-HND-003); queue = fiziksel/mantıksal bekleme kuyruğu (departman+skill_group eşlemesi). Skill etiketi formatı kategori:değer (ör. lang:tr, domain:billing, tier:premium) — yapısal, PII değil.",
+    "dimensions": ["department", "skill_group", "queue"],
+    "skill_tag_format": "kategori:değer (lang:* / domain:* / tier:*)",
+    "trace": "FR-TEL-008, FR-HND-003"
+  },
+
+  "fallback_chain": {
+    "$comment": "Sıralı, deterministik fallback zinciri (R5). exact: departman içinde skill_group gerekli skill'leri (dil dahil) KAPSAYAN + dili destekleyen kuyruk (en iyi eşleşme). department_default: exact yoksa, departmanın varsayılan kuyruğu (skill gevşetilir, yalnız dil kontrol). general_fallback: o da yoksa, tenant genel kuyruğu (catch-all). Her adım match_quality kaydeder. Bir default eşleşebilirken çıkmaza girilmez (broken_fallback=0). Tüm adımlar tükenir ve hiçbiri eşleşmezse (dil desteksiz vb.) UNRESOLVED → 9.7 (gerçek temsilci-yok, config hatası DEĞİL).",
+    "tiers": ["exact", "department_default", "general_fallback"],
+    "match_quality_order": ["exact", "department_default", "general_fallback"]
+  },
+
+  "priority_model": {
+    "$comment": "Reason-türevi öncelik (R6). 9.4 reason'ı öncelik ipucuna eşlenir: ANGER/POLICY → high (önceliklendirilmiş kuyruk pozisyonu / priority_capable kuyruk tercihi); USER_REQUEST/LOW_CONFIDENCE → normal. Öncelik deterministik; aynı reason → aynı öncelik. high önceliklü istek için exact tier'da priority_capable kuyruk tercih edilir (eşitlikte). Öncelik MÜHENDİSLİK varsayılanı; tenant config'inde ayarlanabilir (BRD §22 açık karar).",
+    "levels": ["high", "normal"],
+    "reason_to_priority": {"ANGER": "high", "POLICY": "high", "USER_REQUEST": "normal", "LOW_CONFIDENCE": "normal"},
+    "default": "normal"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli; bir senaryoda ihlal varsa kapı eler. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F2 canlı CC entegrasyonu + pilot tenant verisinde doğrulanır.",
+    "max_wrong_department": 0,
+    "max_mis_skill": 0,
+    "max_missing_dimension": 0,
+    "max_broken_fallback": 0,
+    "max_priority_ignored": 0,
+    "max_cross_tenant_target": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "Hedef seçim motoru her karar için BRD §15 + handoff metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. handoff_target_total{tenant,department,match_quality,priority} → seçim sayımı (department/match_quality/priority DÜŞÜK kardinalite, label uygun — tenant başına departman/skill_group sayısı sınırlı); handoff_target_fallback_total{tenant,tier} → fallback tier kullanımı (department_default/general_fallback artışı = skill envanteri boşluğu erken-uyarı); handoff_target_unresolved_total → çözülemeyen hedef (9.7 yükseltme); handoff_target_cross_tenant_blocked_total → engellenen cross-tenant hedef (güvenlik). tenant_id+department+skill_group+match_quality+priority DÜŞÜK kardinalite (label uygun); call_id/correlation_id/queue_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Müşteri adı/telefon/hesap no/ham transkript metriklerde YOK. general_fallback/unresolved oranı ani artışı (skill envanteri yetersiz) → alarm ≤2dk (SAD §17.2, NFR 10.1).",
+    "metrics": ["handoff_target_total", "handoff_target_fallback_total", "handoff_target_unresolved_total", "handoff_target_cross_tenant_blocked_total"],
+    "low_cardinality_labels": ["tenant_id", "department", "skill_group", "match_quality", "priority", "tier"],
+    "high_cardinality_trace_only": ["call_id", "correlation_id", "queue_id"],
+    "alarm": "general_fallback/unresolved oranı ani artışı (skill envanteri boşluğu) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "R1", "desc": "Seçim tamlığı/determinizm: her RoutingRequest tanımlı kenarlar boyunca ilerler ve bir terminal karara {SELECTED|UNRESOLVED} ulaşır; aynı girdi → aynı çıktı; stuck/tanımsız durum yok. stuck_state=0.", "trace": "SAD §7.3, SR-TEL-008"},
+    {"id": "R2", "desc": "Doğru departman (FR-HND-003): intent → tenant intent_to_department kuralından doğru departman seçilir; yanlış departmana yönlendirme yok. wrong_department=0.", "trace": "FR-HND-003, SR-HND-003"},
+    {"id": "R3", "desc": "Üç yönlendirme boyutu (FR-TEL-008): SELECTED hedef department + skill_group + queue ÜÇÜNÜ DE taşır; eksik boyutlu hedef yok. missing_dimension=0.", "trace": "FR-TEL-008, SR-TEL-008"},
+    {"id": "R4", "desc": "Skill eşleşmesi (FR-HND-003/FR-TEL-008): exact tier'da seçilen kuyruğun skill_group'u gerekli skill'leri (dil dahil) KAPSAR; gerekli skill'i taşımayan kuyruğa tam-güvenle (exact) yönlendirme yok (gevşetme yalnız department_default/general_fallback tier'da, match_quality ile kayıtlı). mis_skill=0.", "trace": "FR-HND-003, FR-TEL-008, SR-HND-003"},
+    {"id": "R5", "desc": "Sıralı fallback zinciri fail-safe (FR-HND-003): exact → department_default → general_fallback deterministik sırayla denenir; bir default eşleşebilirken çıkmaza girilmez. broken_fallback=0.", "trace": "FR-HND-003, FR-HND-007"},
+    {"id": "R6", "desc": "Öncelik (reason-türevi): 9.4 reason → öncelik (ANGER/POLICY→high, USER_REQUEST/LOW_CONFIDENCE→normal) deterministik uygulanır; high istekte priority_capable kuyruk tercih edilir. priority_ignored=0.", "trace": "FR-HND-002, FR-TEL-008"},
+    {"id": "R7", "desc": "Tenant izolasyonu (FR-TEN-002): seçilen kuyruk/skill_group/departman YALNIZ bu tenant'ın config'inden; cross-tenant hedef seçimi reddedilir. cross_tenant_target=0.", "trace": "FR-TEN-002, FR-HND-003"},
+    {"id": "R8", "desc": "Kanıt + reason kaydı: her SELECTED hedef eşleşen kural (intent→departman) + gerekli skill'ler + match_quality + denenmiş fallback tier'ları taşır; kanıtsız seçim yok. missing_evidence=0.", "trace": "FR-HND-008, FR-IAM-006"},
+    {"id": "R9", "desc": "Audit + gözlemlenebilirlik: her karar (SELECTED veya UNRESOLVED) → audit {department, skill_group, queue, priority, match_quality, correlation_id, tenant_id} (FR-IAM-006); metrikler düşük-kardinalite (department/skill_group/match_quality), müşteri adı/telefon/transkript metrikte yok. missing_audit=0.", "trace": "FR-IAM-006, 0.4.7 label_policy"},
+    {"id": "R10", "desc": "Fail-safe yükseltme: hedef bulunamazsa (UNRESOLVED) karar 9.7 temsilci-yok fallback'e (callback/voicemail/ticket, FR-HND-007) yükselir; oturum DÜŞMEZ; bir terminal kararı daima üretilir.", "trace": "FR-HND-007, SAD §14"},
+    {"id": "R11", "desc": "Sır/PII yok: spec/config/sample müşteri adı/telefon/hesap no/ham transkript/credential tutmaz; yalnız yapısal kimlikler (departman/skill_group/kuyruk/intent kimlikleri) + dil kodları + skill etiketleri + öncelik seviyeleri + reason kodu. secret_or_pii=0.", "trace": "BRD §14, BRD §16, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar müşteri ADI, TELEFON numarası, HESAP numarası, ham TRANSKRİPT METNİ, PII DEĞERİ veya credential TUTMAZ — yalnız yapısal KİMLİKLER (departman/skill_group/kuyruk/intent kimlikleri, metin değil) + dil kodları (lang:tr/en) + skill etiketleri (kategori:değer) + öncelik seviyeleri (high/normal) + reason kodu (9.4'ten) + uygunluk bayrakları (boolean) + sanal zaman. Intent kimliği (billing_dispute vb.) yapısal referanstır; dil kodu ve skill etiketi PII değildir; kuyruk/skill_group/departman kimliği envanter referansıdır (içerik değil).",
+    "forbids": ["customer_name", "customer_phone", "account_number", "raw_phone_number_value", "transcript_text", "utterance", "credential", "secret", "pii_value"]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "route-general-fallback",
+  "$comment": "Fallback tier 3 (R5). Bilinmeyen intent general_inquiry → intent_to_department eşlemesi yok → default_department=general; general departmanında exact skill kuyruğu yok, departman-default yok → tenant genel kuyruğu q-general (catch-all). match_quality=general_fallback. Fail-safe: hiçbir spesifik eşleşme olmasa da kuyruk bulunur. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-route-004",
+  "call_id": "call-route-004",
+  "intent": "general_inquiry",
+  "language": "tr",
+  "reason": "USER_REQUEST",
+  "expected": {"terminal": "SELECTED", "department": "general", "queue": "q-general", "match_quality": "general_fallback"}
+}

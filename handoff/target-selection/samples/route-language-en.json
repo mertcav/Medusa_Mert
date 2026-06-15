@@ -1,0 +1,12 @@
+{
+  "name": "route-language-en",
+  "$comment": "Dil bazlı yönlendirme (FR-TEL-008). billing_dispute + en → gerekli skill {domain:billing, lang:en} → exact kuyruk q-billing-en (sg-billing-en). Dil skill etiketi (lang:en) seçimi belirler — aynı departman farklı dil kuyruğu. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-route-002",
+  "call_id": "call-route-002",
+  "intent": "billing_dispute",
+  "language": "en",
+  "reason": "USER_REQUEST",
+  "expected": {"terminal": "SELECTED", "department": "billing", "skill_group": "sg-billing-en", "queue": "q-billing-en", "match_quality": "exact"}
+}
