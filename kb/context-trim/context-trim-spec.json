@@ -1,0 +1,113 @@
+{
+  "$comment": "WBS 6.2.2 — Token trimming (bağlam maliyeti sınırı) (SAD §10.2 + FR-KB-011/FR-RES-010). Bilgi Tabanı & RAG ONLINE retrieval hattının (hot-path) trim aşaması: SAD §10.2 'Soru ──► embed ──► vector search (top-k) ──► reranking (opsiyonel) ──► TRIM (token budget) ──► LLM context (kaynak atıflı)'. 6.2.1 RetrievalEngine'in ürettiği citation'lı RankedResult listesini (her biri content+char_count+token_estimate+citation metadata TAŞIR) TÜKETİR — retrieval/embed/rerank'i YENİDEN YAPMAZ (referans probe retrieval_probe'u import eder; o da index_pipeline_probe'u → ingest_connector_probe'u; kod tekrarı YOK). Sabit bağlam segmentlerini (3.2.3 versiyonlu system prompt + 3.2.2 yuvarlanan özet + 3.2.1 history penceresi + tool spec'leri) token-sayılı OPAK girdi olarak alır; toplam LLM bağlam bütçesi (model penceresi − response reserve) içinde RAG'a kalan alt-bütçeyi (rag_available) hesaplar; RankedResult'ları RANK SIRASIYLA (alaka-önce) greedy paketler; sığmayanı OPSİYONEL olarak son chunk'ı kuyruğa kadar TRUNCATE ederek doldurur, geri kalanı DÜŞÜRÜR. INVARIANT (SR-KB-011 kabul ölçütü): toplam bağlam token'ı yapılandırılan tavanı AŞMAZ (total_context_tokens ≤ context_token_budget; rag_used ≤ rag_available ≤ rag_token_budget). Citation BÜTÜNLÜĞÜ korunur (her tutulan sonuç document_id+version+chunk_no+source_uri+content_hash taşır → 6.2.3 kaynak atfı); truncate edilen content ORİJİNALİN bir ÖN-EKİdir (uydurma YOK), truncated=true işaretli + context_content_hash bağlamdaki gerçek metni yansıtır. Hiç sonuç sığmazsa → grounded=false + BUDGET_EXHAUSTED (anti-hallucination — uydurma yerine güvenli düşüş). FR-RES-010 köprüsü: history/özet büyüdükçe rag_available DARALIR → hem özetleme (3.2.2) hem retrieval kısıtı (bu motor) token tüketimini DÜŞÜRÜR ve toplam bağlam tavanı korunur. Hot-path (SAD §20 RAG kalemi; trim O(n) saf hesap, ihmal edilebilir). Vendor-neutral (ADR-002): tokenizasyon yaklaşık char/divisor (6.1.3 ile AYNI) bir SPI noktasıdır — canlıda gerçek model-özgü tokenizer AYNI imza arkasına TAKILIR; trim mantığı tokenizer'dan bağımsız. Determinizm: Date.now/rastgele YOK; aynı girdi → aynı trim. Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (fixture içerikleri sentetik — FR-TST-008). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "6.2.2",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-KB-011", "FR-RES-010", "FR-KB-006", "FR-KB-007", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-KB-011", "SR-RES-010", "SR-LLM-005"],
+    "rtm": ["TC-KB-011", "TC-RES-010"],
+    "sad": ["§10.2 (online retrieval hot-path: ... → vector search top-k → rerank (opsiyonel) → TRIM (token budget) → LLM context kaynak atıflı — bu motor TRIM aşaması)", "§9 (LLM Router bağlam montajı: system prompt + özet + history + RAG context bütçe altında)", "§6.2 (Session Memory özetleme — RAG trim ile birlikte token tüketimi düşürür, FR-RES-010)", "§20 (RAG retrieval hot-path bütçe kalemi — trim saf hesap)"],
+    "brd": ["§9.9 (Bilgi Tabanı ve RAG — bağlam maliyeti)", "§8.1 (lean runtime / token maliyeti)", "§13 (anti-hallucination — bütçe tükenince güvenli düşüş)"],
+    "adr": ["ADR-001 (orchestrator/RAG client SPI bağımsızlığı — tokenizer SPI noktası)", "ADR-002 (vendor-neutral — tokenizer değiştirilebilir; trim mantığı bağımsız)", "ADR-008 (LLM Router model tiering — bağlam bütçesi tier-bağlı)"],
+    "api": ["§ L2 RAG/retrieval iç sözleşme (orchestrator RAG Client trim → LLM Router context)", "§11.6 ErrorTaxonomy ruhu"],
+    "consumes": ["6.2.1 RankedResult listesi (content+char_count+token_estimate+citation metadata) — retrieval/embed/rerank TÜKETİR, yeniden yapmaz", "3.2.3 versiyonlu system prompt + 3.2.2 yuvarlanan özet + 3.2.1 history penceresi (token-sayılı OPAK reserved segment olarak)"],
+    "consumed_by": ["6.2.3 kaynak atfı (trim sonrası kept RankedResult citation TÜKETİR — FR-KB-006 yanıt→kaynak)", "SAD §9 LLM Router (trimmed LLM context — bütçe altında montaj)", "3.3.4 anti-hallucination (BUDGET_EXHAUSTED → 'kaynak yoksa uydurma yok')"]
+  },
+
+  "placement": {
+    "$comment": "Trim ONLINE (hot-path) RAG hattında, 6.2.1 retrieval'in HEMEN ARDINDAN, LLM Router bağlam montajından ÖNCE çalışır (SAD §10.2 trim aşaması; SAD §9 context assembly). Çoğu turda RAG atlanır → trim de atlanır (SAD §20). Saf hesap (O(n) token muhasebe + prefix truncation) → gecikme ihmal edilebilir (HARD latency kapısı YOK; SOFT not). Vendor-neutral (ADR-002): yaklaşık tokenizer (char/divisor — 6.1.3 ile AYNI) bir SPI noktası; canlıda gerçek model-özgü tokenizer (tiktoken/HF) AYNI imza arkasına; trim greedy-paketleme mantığı tokenizer'dan bağımsız. Sabit segmentler (system prompt 3.2.3 / özet 3.2.2 / history 3.2.1 / tool spec) UPSTREAM üretilir → trim onları token-sayılı OPAK girdi olarak alır (içeriklerini görmez/üretmez).",
+    "plane": "voice-runtime (online retrieval, hot-path — trim aşaması)",
+    "hot_path": true,
+    "behind_spi": true,
+    "tokenizer_is_spi_point": true,
+    "consumes_ranked_results_from_6_2_1": true,
+    "reserved_segments_are_opaque_token_counted_inputs": true,
+    "enforcement_points": ["rag_available = min(rag_token_budget, context_token_budget − reserved_total) hesabı (sabit segment büyüdükçe RAG daralır — FR-RES-010)", "rank-greedy paketleme: total_context_tokens ≤ context_token_budget invariant'ı her tutulan sonuçtan ÖNCE kontrol"],
+    "latency_budget_soft": "trim saf hesap; HARD latency kapısı DEĞİL. RAG retrieval P95 ≤200ms kapısı 6.2.1/0.2.5 vector-db-eval'de.",
+    "trace": "SAD §10.2, SAD §9, SAD §20, ADR-001, ADR-002"
+  },
+
+  "spi": {
+    "$comment": "Tokenizer SPI noktası (vendor-neutral, ADR-001/002). approx_tokens(text) → int: referans yaklaşık char//divisor (6.1.3 token_estimate ile AYNI tutarlı muhasebe — chunk'ın taşıdığı token_estimate doğrudan TÜKETİLİR, yeniden sayım gereksiz). Canlıda gerçek model-özgü tokenizer (tiktoken/HF) AYNI imza arkasına; trim mantığı sayıdan bağımsız. ContextBudget girdi: {context_token_budget, response_reserve_tokens?, rag_token_budget, per_result_max_tokens?, allow_truncation, min_truncation_tokens, token_estimate_divisor, min_keep_results?}. ReservedSegment: {name, token_estimate}. TrimmedContext çıktı: {status, grounded, reason, kept[], dropped[], budget{...}, truncated_any, kept_count, dropped_count}. KeptResult = RankedResult citation alanları + {context_token_estimate, truncated, original_token_estimate, context_content_hash}. DroppedRef: {result_key, rank, drop_reason, token_estimate}. TrimError: {error_class, detail}.",
+    "tokenizer_method": "approx_tokens(text) -> int (char//divisor; canlıda gerçek tokenizer AYNI imza)",
+    "kept_result_fields": ["result_key", "rank", "document_id", "doc_logical_key", "namespace", "tenant_id", "kb_id", "version_no", "chunk_no", "source_uri", "title", "content", "content_hash", "classification", "score", "rerank_score", "context_token_estimate", "original_token_estimate", "truncated", "context_content_hash"],
+    "dropped_ref_fields": ["result_key", "rank", "drop_reason", "token_estimate"],
+    "budget_fields": ["context_token_budget", "response_reserve_tokens", "reserved_total", "rag_token_budget", "rag_available", "rag_used", "total_context_tokens", "headroom"],
+    "trace": "ADR-001, ADR-002, SAD §10.2, 6.1.3 token_estimate"
+  },
+
+  "trim": {
+    "$comment": "Rank-greedy (alaka-önce) paketleme. (1) rag_available = max(0, min(rag_token_budget, context_token_budget − reserved_total)); reserved_total = Σ reserved_segment.token_estimate (sabit segmentler trim EDİLMEZ — UPSTREAM bütçesi). (2) results RANK SIRASIYLA (6.2.1 #1..#n) gez: target = min(token_estimate, per_result_max_tokens) (per-result cap tek chunk'ın bütçeyi yemesini önler); running + target ≤ rag_available ise TUT (per-result cap nedeniyle target<token_estimate ise prefix-truncate, truncated=true); aksi → remaining = rag_available − running; allow_truncation ve remaining ≥ min_truncation_tokens ise bu chunk'ı remaining token'a prefix-truncate edip TUT (kuyruğu doldur), sonra DUR; değilse bu chunk + sonraki tüm (daha düşük rankli) sonuçları DÜŞÜR ve DUR. (3) min_keep_results>0 ise ve bütçe izin vermiyorsa yine de tavanı AŞMA (invariant öncelikli) — min_keep tavsiye, tavan zorunlu. Sonuç: kept = girdinin RANK PREFIX'i (contiguous, alaka-önce); dropped = suffix. TRUNCATE: ilk n×divisor karakter (prefix); context_content_hash = sha256(truncated_content); content_hash = ORİJİNAL chunk hash (kaynak kimliği korunur → 6.2.3 atfı); original_token_estimate korunur.",
+    "strategy": "rank-greedy contiguous prefix (relevance-first)",
+    "rag_available_formula": "max(0, min(rag_token_budget, context_token_budget − reserved_total))",
+    "per_result_cap": "min(token_estimate, per_result_max_tokens) — tek chunk bütçeyi yemez",
+    "optional_tail_truncation": true,
+    "truncation_is_prefix": "ilk n×divisor karakter; uydurma YOK; truncated=true + context_content_hash",
+    "drop_is_suffix": "sığmayan + sonraki düşük-rankli sonuçlar düşürülür (alaka-önce kesim)",
+    "deterministic": true,
+    "trace": "SAD §10.2, FR-KB-011, FR-RES-010"
+  },
+
+  "grounding": {
+    "$comment": "Anti-hallucination köprüsü (FR-KB-007 → 3.3.4). 6.2.1'den grounded=true (≥1 RankedResult) gelir ama bütçe HİÇBİRİNİ sığdıramazsa (rag_available=0 veya en üst chunk truncate edilemeyecek kadar büyük + allow_truncation=false) → kept=[] + grounded=FALSE + reason=BUDGET_EXHAUSTED. Orchestrator bunu 'kontrol/aktar/ticket' davranışına çevirir (3.3.4) — uydurma yerine güvenli düşüş. 6.2.1 zaten boş/ungrounded (NO_RELEVANT_SOURCE) ise trim PASS-THROUGH: grounded=false + orijinal reason korunur (yeni kaynak ÜRETMEZ). grounded=true yalnız kept≥1.",
+    "budget_exhausted_reason": "BUDGET_EXHAUSTED",
+    "passthrough_no_relevant_source": "NO_RELEVANT_SOURCE",
+    "grounded_only_when_kept_ge_1": true,
+    "never_fabricate": true,
+    "trace": "FR-KB-007, BRD §13, →3.3.4"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (B1–B10). require_budget_cap: total_context_tokens ≤ context_token_budget ve rag_used ≤ rag_available ≤ rag_token_budget (SR-KB-011 kabul ölçütü — bağlam token'ı tavanı AŞMAZ). require_rank_prefix: kept girdinin contiguous rank prefix'i (alaka-önce; yeniden sıralama YOK). require_citation_integrity: her kept document_id+version+chunk_no+source_uri+content_hash taşır (→6.2.3). require_truncation_safe: truncate content orijinalin ÖN-EKİ (substring@0); truncated=true; context token ≤ allotment; context_content_hash bağlam metnini yansıtır. require_no_exceed_single: en üst chunk tek başına > rag_available ise truncate-veya-drop → ASLA aşma. require_determinism: aynı girdi → aynı çıktı. require_grounding: kept=0 & 6.2.1-grounded → grounded=false+BUDGET_EXHAUSTED; 6.2.1-empty → pass-through. require_no_log: audit yapısal — ham content/soru/PII yok. require_monotonicity: rag bütçe↑ → kept token/sayı azalmaz. require_robust: structured TrimError, exception kaçmaz. Eşikler MÜHENDİSLİK varsayılanı; gerçek bütçe model penceresi + tenant compliance profile + LLM Router tier ile ayarlanır.",
+    "require_budget_cap": true,
+    "max_context_overflow_tokens": 0,
+    "require_rank_prefix": true,
+    "require_citation_integrity": true,
+    "require_truncation_safe": true,
+    "require_no_exceed_single": true,
+    "require_determinism": true,
+    "require_grounding": true,
+    "require_no_log": true,
+    "require_monotonicity": true,
+    "require_robust": true,
+    "trace": "SAD §10.2, FR-KB-011, FR-RES-010, FR-KB-006, FR-KB-007, NFR 10.7"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Trim hata sınıfları (API §11.6 ruhu — trim'e özgü). DETERMİNİSTİK + müşteriye sızmaz. MISSING_BUDGET_CONFIG: context_token_budget/rag_token_budget eksik veya ≤0 (fail-closed). INVALID_RESERVED: reserved segment token_estimate negatif/eksik. INVALID_RANKED_INPUT: RankedResult token_estimate/content eksik (6.2.1 sözleşme ihlali). INTERNAL_ERROR: catch-all (çökme yok). BUDGET_EXHAUSTED bir HATA DEĞİL → grounded=false sonuç (grounding bloğu).",
+    "classes": ["MISSING_BUDGET_CONFIG", "INVALID_RESERVED", "INVALID_RANKED_INPUT", "INTERNAL_ERROR"],
+    "trace": "API §11.6, SAD §10.2"
+  },
+
+  "residency": {
+    "$comment": "Trim yalnız token MUHASEBESİ + prefix truncation yapar — yeni embedding/retrieval/sağlayıcı çağrısı YOK → residency 6.2.1'de zorlanır (NFR 10.7). Audit YAPISAL — ham content/soru/PII YAZILMAZ (content_digest=sha256, no raw). Trimmed content runtime'da PII içerebilir (meşru, 6.2.1'den taşınır) → no_log=true ile taşınır, audit'e ham yazılmaz.",
+    "no_provider_call": true,
+    "no_log_required": true,
+    "audit_no_raw_payload": true,
+    "trace": "NFR 10.7, FR-KB-010, BRD §17.7, FR-REC-004"
+  },
+
+  "pii": {
+    "$comment": "Bu SPEC/config/sample DESCRIPTOR'ları sır/credential ve gerçek PII DEĞERİ TUTMAZ (fixture içerikleri sentetik — FR-TST-008). NOT: trimmed chunk content runtime'da PII içerebilir (meşru, 6.2.1'den) → trim no_log=true ile taşır + audit'e ham YAZMAZ (content_digest sha256). Spec/config'te uzun rakam dizisi (kart/TCKN) yasak.",
+    "raw_pii_in_spec_forbidden": true,
+    "content_may_contain_pii": true,
+    "audit_no_raw_payload": true,
+    "trace": "FR-KB-010, BRD §14, BRD §17.7, FR-REC-004"
+  },
+
+  "invariants": [
+    { "id": "B1", "desc": "BUDGET CAP (SR-KB-011 kabul ölçütü): toplam bağlam token'ı yapılandırılan tavanı AŞMAZ — total_context_tokens (reserved_total + rag_used) ≤ context_token_budget VE rag_used ≤ rag_available ≤ rag_token_budget. rag_available = max(0, min(rag_token_budget, context_token_budget − reserved_total)). FR-KB-011 bağlam maliyeti sınırı.", "trace": "FR-KB-011, SR-KB-011, FR-RES-010, SAD §10.2" },
+    { "id": "B2", "desc": "RANK PREFIX (alaka-önce): kept girdinin (6.2.1 rank #1..#n) contiguous PREFIX'idir; kept rank'leri artan; dropped sonuçlar tam olarak SUFFIX (daha düşük rankli) — yeniden sıralama YOK, alaka-önce kesim. En relevan sonuçlar bütünüyle tutulur (orta-rankli parçalar yerine).", "trace": "SAD §10.2, FR-KB-011" },
+    { "id": "B3", "desc": "CITATION INTEGRITY: her kept sonuç document_id + doc_logical_key + version_no + chunk_no + source_uri + content_hash (ORİJİNAL chunk kimliği) taşır → FR-KB-006 'yanıtın hangi kaynağa dayandığı' (→6.2.3 kaynak atfı). Trim citation'ı KORUR, üretmez.", "trace": "FR-KB-006, →6.2.3, SAD §10.2" },
+    { "id": "B4", "desc": "TRUNCATION SAFE: truncate edilen content ORİJİNAL content'in bir ÖN-EKİdir (content[:n×divisor], substring@0 — UYDURMA/EKLEME YOK); truncated=true işaretli; context_token_estimate ≤ tahsis; context_content_hash = sha256(bağlamdaki gerçek truncated metin) (orijinal content_hash AYRI korunur → kaynak kimliği ≠ bağlam metni dürüstçe ayrılır).", "trace": "FR-KB-006, BRD §13, SAD §10.2" },
+    { "id": "B5", "desc": "NO-EXCEED EVEN SINGLE-OVERSIZE: en üst (#1) chunk tek başına > rag_available olsa bile bağlam tavanı ASLA aşılmaz — allow_truncation ise #1 remaining token'a truncate edilir (≤ tavan); değilse #1 DÜŞER → grounding bloğu. Tek-büyük-chunk taşması imkânsız.", "trace": "FR-KB-011, FR-RES-010" },
+    { "id": "B6", "desc": "DETERMINISM: aynı (results, budget, reserved) → BİREBİR aynı TrimmedContext (Date.now/rastgele YOK). Token muhasebesi + prefix truncation saf fonksiyon.", "trace": "FR-TST-008" },
+    { "id": "B7", "desc": "GROUNDING CONSISTENCY: kept≥1 → grounded=true; 6.2.1-grounded ama bütçe hiçbirini sığdıramaz (kept=0) → grounded=false + reason=BUDGET_EXHAUSTED (anti-hallucination → 3.3.4); 6.2.1 zaten boş/ungrounded → PASS-THROUGH (grounded=false + orijinal NO_RELEVANT_SOURCE; yeni kaynak üretmez).", "trace": "FR-KB-007, BRD §13, →3.3.4" },
+    { "id": "B8", "desc": "NO-LOG / RESIDENCY: trim sağlayıcı çağrısı YAPMAZ (residency 6.2.1'de) — yalnız token muhasebe; audit YAPISAL — ham content/soru/PII YAZILMAZ (content_digest sha256); no_log=true.", "trace": "FR-KB-010, NFR 10.7, BRD §17.7" },
+    { "id": "B9", "desc": "MONOTONICITY (sağlık): rag bütçe ARTTIKÇA kept token/sayı AZALMAZ (≥); bütçe azaldıkça kept ARTMAZ (≤). Daha çok bütçe = daha çok (veya eşit) bağlam — beklenen davranış. reserved_total artarsa rag_available daralır → kept azalabilir (FR-RES-010 history-squeeze).", "trace": "FR-KB-011, FR-RES-010" },
+    { "id": "B10", "desc": "ROBUST + SCOPE BOUNDARY: eksik bütçe/geçersiz reserved/geçersiz RankedResult girdide hiçbir exception kaçmaz → STRUCTURED TrimError taksonomisi. KAPSAM: trim PAKETLER+TRUNCATE eder; retrieval/embed/rerank → 6.2.1 (TÜKETİR), kaynak-atfı sentezi → 6.2.3, history özetleme → 3.2.2, versiyonlu prompt → 3.2.3, per-call bellek bütçe → 3.1.4, gerçek tokenizer → adapter arkası. Sır/credential üretmez.", "trace": "6.2.1, 6.2.3, 3.2.2, 3.2.3, 3.1.4, ADR-002" }
+  ]
+}

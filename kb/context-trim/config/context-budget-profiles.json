@@ -1,0 +1,60 @@
+{
+  "$comment": "WBS 6.2.2 — Bağlam token bütçesi profilleri (token trimming). Sağlayıcı-nötr (ADR-002): token_estimate_divisor referans yaklaşık tokenizer parametresidir (6.1.3 ile AYNI char//divisor) — canlıda gerçek model-özgü tokenizer (tiktoken/HF) AYNI Tokenizer SPI arkasına; trim mantığı sayıdan bağımsız. context_token_budget = LLM modelinin GİRDİ bağlam penceresi (response_reserve ZATEN dışlanmış input tavanı); rag_token_budget = RAG bağlamına ayrılan HARD alt-tavan (≤ context). reserved segmentler (3.2.3 system prompt + 3.2.2 yuvarlanan özet + 3.2.1 history penceresi + tool spec) UPSTREAM üretilir → trim onları token-sayılı OPAK girdi alır; rag_available = min(rag_token_budget, context_token_budget − reserved_total). per_result_max_tokens tek chunk'ın bütçeyi yemesini önler. allow_truncation: sığmayan son chunk'ı kuyruğa kadar prefix-truncate (alaka-önce). Sır/credential YOK (yalnız davranış parametreleri). Eşikler MÜHENDİSLİK varsayılanı; gerçek bütçe model penceresi (ADR-008 tier) + tenant compliance profile ile ayarlanır.",
+  "profiles": {
+    "pilot-default": {
+      "$comment": "Pilot varsayılan (F1). ~8K input tavanı; RAG'a 2K; tek chunk ≤800 token; kuyruk truncation AÇIK.",
+      "context_token_budget": 8000,
+      "response_reserve_tokens": 1000,
+      "rag_token_budget": 2000,
+      "per_result_max_tokens": 800,
+      "allow_truncation": true,
+      "min_truncation_tokens": 40,
+      "token_estimate_divisor": 4,
+      "min_keep_results": 0
+    },
+    "regulated-tr": {
+      "$comment": "Regüle TR (finans/sağlık). Daha sıkı RAG bütçesi (1200 token — hassas bağlam dar tutulur) + per-result 500; kuyruk truncation AÇIK ama min_truncation yüksek (parça-bağlam gürültüsü az).",
+      "context_token_budget": 6000,
+      "response_reserve_tokens": 1000,
+      "rag_token_budget": 1200,
+      "per_result_max_tokens": 500,
+      "allow_truncation": true,
+      "min_truncation_tokens": 60,
+      "token_estimate_divisor": 4,
+      "min_keep_results": 0
+    },
+    "enterprise-eu": {
+      "$comment": "Enterprise EU. Büyük model penceresi (~16K input) + RAG'a 4K (uzun politika bağlamı) + per-result 1200.",
+      "context_token_budget": 16000,
+      "response_reserve_tokens": 2000,
+      "rag_token_budget": 4000,
+      "per_result_max_tokens": 1200,
+      "allow_truncation": true,
+      "min_truncation_tokens": 40,
+      "token_estimate_divisor": 4,
+      "min_keep_results": 0
+    },
+    "tight": {
+      "$comment": "Dar bütçe profili (küçük tier / yüksek-yoğunluk, ADR-008). Küçük model penceresi + dar RAG (400 token) → trim agresif; kuyruk truncation AÇIK. history-squeeze ve bütçe-tükenme senaryolarının pratik tabanı.",
+      "context_token_budget": 2000,
+      "response_reserve_tokens": 400,
+      "rag_token_budget": 400,
+      "per_result_max_tokens": 250,
+      "allow_truncation": true,
+      "min_truncation_tokens": 30,
+      "token_estimate_divisor": 4,
+      "min_keep_results": 0
+    },
+    "tight-no-truncate": {
+      "$comment": "Dar bütçe + truncation KAPALI (yalnız tam chunk). Bütçe en üst chunk'ı sığdıramazsa BUDGET_EXHAUSTED → grounded=false (güvenli düşüş kanıtı). Üretimde nadir; bütünlük-öncelikli tenant.",
+      "context_token_budget": 2000,
+      "response_reserve_tokens": 400,
+      "rag_token_budget": 200,
+      "per_result_max_tokens": null,
+      "allow_truncation": false,
+      "min_truncation_tokens": 30,
+      "token_estimate_divisor": 4,
+      "min_keep_results": 0
+    }
+  }
+}

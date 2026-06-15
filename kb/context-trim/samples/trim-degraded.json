@@ -1,0 +1,20 @@
+{
+  "$comment": "WBS 6.2.2 — NEGATİF (expect_gate=fail): büyük tek doküman + 'tight-no-truncate' → gerçekte bütçe tükenir (grounded=false + BUDGET_EXHAUSTED). Sample YANLIŞ/güvensiz beklentiyi (grounded=true, kept_documents=[iade-uzun]) iddia eder → harness sapmayı YAKALAR (beklenti tutmaz) → expect_gate=fail. Kanıt: RAG bütçesi yetersizken grounding KAYBI sessizce GİZLENMEZ, yüzeye çıkar (B7). Üretimde KULLANILMAZ — yalnız negatif kapı kanıtı.",
+  "scenario": "degraded-underbudget-claims-grounded",
+  "expect_gate": "fail",
+  "budget_profile": "tight-no-truncate",
+  "budget_override": {"rag_token_budget": 80},
+  "retrieval_profile": "pilot-default",
+  "acls": {},
+  "documents": [
+    {"source_id": "iade-uzun", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:iade-uzun",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "iade kosul sure gun ambalaj talebi musteri urun garanti fatura teslim kargo iade kosul sure gun ambalaj talebi musteri urun garanti fatura teslim kargo iade kosul sure gun ambalaj talebi musteri urun garanti fatura teslim kargo iade kosul sure gun ambalaj talebi musteri urun garanti fatura teslim kargo iade kosul sure gun ambalaj talebi musteri urun garanti fatura teslim kargo iade kosul sure gun ambalaj talebi musteri urun belge bir"}
+  ],
+  "queries": [
+    {"name": "iade-uzun-tek", "query_text": "iade kosul sure gun ambalaj talebi",
+     "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"], "principals": ["role:human_agent"],
+       "clearance": "internal", "channel_no_log": true},
+     "expect": {"grounded": true, "kept_documents": ["iade-uzun"], "expect_status": "ok"}}
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "$comment": "WBS 6.2.2 — DÜŞÜR (tail drop, truncation KAPALI): 3 doküman (~55 token/chunk), 'tight-no-truncate' (allow_truncation=false → yalnız TAM chunk; RAG override 130). İlk iki sonuç (~109) sığar, üçüncü (~55) kalan ~21'e sığmaz ve truncate edilemez → düşürülür. kept=2, dropped=1, grounded=true. B1 (tavan altı), B2 (rank prefix / drop suffix), B7 (grounded). Sentetik (FR-TST-008).",
+  "scenario": "drop-tail",
+  "expect_gate": "pass",
+  "budget_profile": "tight-no-truncate",
+  "budget_override": {"rag_token_budget": 130},
+  "retrieval_profile": "pilot-default",
+  "acls": {},
+  "documents": [
+    {"source_id": "iade", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:iade",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "iade kosul sure gun ambalaj talebi musteri urun garanti iade kosul sure gun ambalaj talebi musteri urun garanti iade kosul sure gun ambalaj talebi musteri urun garanti iade kosul sure gun ambalaj talebi musteri belge bir"},
+    {"source_id": "kosul", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:kosul",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "iade kosul sure gun ambalaj talebi fatura teslim kargo iade kosul sure gun ambalaj talebi fatura teslim kargo iade kosul sure gun ambalaj talebi fatura teslim kargo iade kosul sure gun ambalaj talebi fatura belge iki"},
+    {"source_id": "sure", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:sure",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "iade kosul sure gun ambalaj talebi degisim onarim destek iade kosul sure gun ambalaj talebi degisim onarim destek iade kosul sure gun ambalaj talebi degisim onarim destek iade kosul sure gun ambalaj talebi degisim belge uc"}
+  ],
+  "queries": [
+    {"name": "iade-genel", "query_text": "iade kosul sure gun ambalaj talebi",
+     "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"], "principals": ["role:human_agent"],
+       "clearance": "internal", "channel_no_log": true},
+     "expect": {"grounded": true, "truncated_any": false, "expect_status": "ok"}}
+  ]
+}

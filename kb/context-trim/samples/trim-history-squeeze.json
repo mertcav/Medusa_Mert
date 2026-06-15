@@ -1,0 +1,28 @@
+{
+  "$comment": "WBS 6.2.2 — FR-RES-010 KÖPRÜSÜ (history squeeze): sabit bağlam segmentleri (3.2.3 system prompt + 3.2.2 yuvarlanan özet + 3.2.1 history penceresi + tool spec) BÜYÜK → reserved_total RAG'a kalan alt-bütçeyi DARALTIR. 'tight' (context 2000, rag_token_budget 400) ama reserved_total=1720 → rag_available = min(400, 2000−1720=280) = 280. Hem özetleme (3.2.2) hem retrieval kısıtı (bu motor) token tüketimini düşürür; toplam bağlam tavanda (2000) kalır. B1 (total ≤ tavan), B9 (reserved↑→rag↓), B4 (kuyruk truncate). Sentetik (FR-TST-008).",
+  "scenario": "history-squeeze",
+  "expect_gate": "pass",
+  "budget_profile": "tight",
+  "retrieval_profile": "pilot-default",
+  "acls": {},
+  "reserved_segments": [
+    {"name": "system_prompt", "token_estimate": 320},
+    {"name": "rolling_summary", "token_estimate": 600},
+    {"name": "history_window", "token_estimate": 600},
+    {"name": "tool_specs", "token_estimate": 200}
+  ],
+  "documents": [
+    {"source_id": "iade", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:iade",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "iade kosul sure gun ambalaj talebi musteri urun garanti iade kosul sure gun ambalaj talebi musteri urun garanti iade kosul sure gun ambalaj talebi musteri urun garanti iade kosul sure gun ambalaj talebi musteri belge bir"},
+    {"source_id": "kosul", "tenant_id": "t-acme", "kb_id": "kb-1", "doc_logical_key": "doc:kosul",
+     "classification": "public", "acl_ref": null, "redaction_state": "not_required",
+     "inline_text": "iade kosul sure gun ambalaj talebi fatura teslim kargo iade kosul sure gun ambalaj talebi fatura teslim kargo iade kosul sure gun ambalaj talebi fatura teslim kargo iade kosul sure gun ambalaj talebi fatura belge iki"}
+  ],
+  "queries": [
+    {"name": "iade-uzun-diyalog", "query_text": "iade kosul sure gun ambalaj talebi",
+     "context": {"tenant_id": "t-acme", "kb_ids": ["kb-1"], "principals": ["role:human_agent"],
+       "clearance": "internal", "channel_no_log": true},
+     "expect": {"grounded": true, "max_total_tokens": 2000, "expect_status": "ok"}}
+  ]
+}
