@@ -1,0 +1,11 @@
+{
+  "name": "consent-optout-regime-allow",
+  "$comment": "opt_out rejimi (PROFILE-US-OPTOUT illüstratif): önceden rıza GEREKMEZ → rıza yokluğu BLOCK etmez → ALLOW basis=opt_out. Engelleme yalnız DNC/suppression (10.2.2) ile; consent boyutu ALLOW. Geçer.",
+  "expect": "pass",
+  "request_id": "req-us-001", "tenant_id": "t-acme", "correlation_id": "corr-us-001",
+  "campaign_id": "camp-us-001", "contact_key": "ck-us-001",
+  "subject_type": "individual", "country": "US", "profile_id": "PROFILE-US-OPTOUT",
+  "call_purpose": "sales", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "consent": null,
+  "expected": {"terminal": "ALLOW", "allow": true, "basis": "opt_out", "consent_required": false}
+}

@@ -1,0 +1,11 @@
+{
+  "name": "consent-uk-soft-basis",
+  "$comment": "UK soft_opt_in: birey, açık rıza kaynağı yok ama mevcut-müşteri soft_basis + kategori 'sales' eşleşir → ALLOW soft_basis (PECR soft opt-in). Geçer.",
+  "expect": "pass",
+  "request_id": "req-uk-002", "tenant_id": "t-acme", "correlation_id": "corr-uk-002",
+  "campaign_id": "camp-uk-002", "contact_key": "ck-uk-002",
+  "subject_type": "individual", "country": "UK",
+  "call_purpose": "sales", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "consent": {"soft_basis": true, "categories": ["sales"]},
+  "expected": {"terminal": "ALLOW", "allow": true, "basis": "soft_basis", "consent_required": true}
+}

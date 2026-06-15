@@ -1,0 +1,11 @@
+{
+  "name": "consent-block-no-consent",
+  "$comment": "TR opt_in, rıza kaydı YOK → fail-closed BLOCK no_consent (çağrı başlatılmaz). BLOCK doğru reddetmedir; senaryo GEÇER (kapı ihlal görmez).",
+  "expect": "pass",
+  "request_id": "req-tr-002", "tenant_id": "t-acme", "correlation_id": "corr-tr-002",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-002",
+  "subject_type": "individual", "country": "TR",
+  "call_purpose": "sales", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "consent": null,
+  "expected": {"terminal": "BLOCK", "allow": false, "block_reason": "no_consent", "consent_required": true}
+}

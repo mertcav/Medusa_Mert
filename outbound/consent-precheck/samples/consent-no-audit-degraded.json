@@ -1,0 +1,12 @@
+{
+  "name": "consent-no-audit-degraded",
+  "$comment": "DEGRADE (bilinçli): karar verilir ama no_audit ile audit kaydı üretilmiyor → K10 missing_audit ihlali (FR-IAM-006). Her consent kararı denetlenebilir olmalı. Kapı ELER.",
+  "expect": "fail",
+  "request_id": "req-deg-006", "tenant_id": "t-acme", "correlation_id": "corr-deg-006",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-deg-006",
+  "subject_type": "individual", "country": "TR",
+  "call_purpose": "sales", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "consent": {"source": "IYS", "granted_at": "2025-09-01T09:00:00",
+              "purposes": ["sales"], "channels": ["voice"], "categories": ["sales"]},
+  "inject": ["no_audit"]
+}

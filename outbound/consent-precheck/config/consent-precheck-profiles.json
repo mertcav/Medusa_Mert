@@ -1,0 +1,59 @@
+{
+  "$comment": "WBS 10.2.1 Consent Engine ön-kontrol — ülke compliance profilleri (cp.outbound.* türevi; vendor-neutral, credential-free). Bu config, DPIA §5.3 cp.outbound.* parametrelerinin (consent_model/consent_registry/b2b_exemption/recognized_sources/calling_hours) bu motorun TÜKETTİĞİ alt kümesini (consent boyutu) tutar. Profile ÇÖZÜMLEME (most-restrictive-wins, tenant override) motoru DPIA §5/SAD §19.3'tedir; bu config çözülmüş DEĞERLERİ taşır. DNC listeleri (cp.outbound.dnc_lists) → 10.2.2; calling_hours → 10.1.4 (bu modülde değil). Değerler MÜHENDİSLİK varsayılanı, counsel doğrulamasına tabi (DPIA); pilot tenant + İYS/TPS entegrasyonu (F2) ile kalibre edilir. Sır/credential ve PII YOK — yalnız enum/parametre/bayrak.",
+  "version": "1.0",
+  "wbs": "10.2.1",
+  "default_profile": "PROFILE-TR",
+  "channel": "voice",
+  "consent_validity_default_days": 1095,
+  "recognized_sources_global": ["IYS", "explicit_web_optin", "explicit_app_optin", "contract", "call_center_optin", "paper_form"],
+  "profiles": {
+    "PROFILE-TR": {
+      "$comment": "DPIA §5.3 PROFILE-TR: KVKK + ETK; cp.outbound.consent_model=opt_in; cp.outbound.consent_registry=IYS; cp.outbound.b2b_exemption=false (ETK B2B dahil değerlendirilir). Açık rıza zorunlu.",
+      "country": "TR",
+      "regime": "KVKK",
+      "consent_model": "opt_in",
+      "consent_registry": "IYS",
+      "b2b_exemption": false,
+      "recognized_sources": ["IYS", "explicit_web_optin", "explicit_app_optin", "contract", "call_center_optin"],
+      "consent_validity_days": 1095
+    },
+    "PROFILE-UK": {
+      "$comment": "DPIA §5.3 PROFILE-UK: UK_GDPR + PECR/Ofcom; cp.outbound.consent_model=soft_opt_in (mevcut müşteri istisnası); cp.outbound.consent_registry=TPS_CTPS; B2B PECR'de farklı → kurumsal muafiyet açık. soft_basis (existing_customer + kategori) açık rıza yerine geçebilir.",
+      "country": "UK",
+      "regime": "UK_GDPR",
+      "consent_model": "soft_opt_in",
+      "consent_registry": "TPS_CTPS",
+      "b2b_exemption": true,
+      "recognized_sources": ["explicit_web_optin", "explicit_app_optin", "contract", "call_center_optin", "existing_customer"],
+      "consent_validity_days": 730,
+      "soft_basis_allowed": true
+    },
+    "PROFILE-EU": {
+      "$comment": "DPIA §5.3 PROFILE-EU: EU_GDPR + EU AI Act şeffaflık; cp.outbound.consent_model varsayılanı consent (use-case'e göre legitimate_interest overlay'i ayrı); muhafazakâr olarak opt_in modellenir. B2B muafiyet üye-devlet overlay'ine bağlı → varsayılan kapalı.",
+      "country": "EU",
+      "regime": "EU_GDPR",
+      "consent_model": "opt_in",
+      "consent_registry": "none",
+      "b2b_exemption": false,
+      "recognized_sources": ["explicit_web_optin", "explicit_app_optin", "contract"],
+      "consent_validity_days": 730
+    },
+    "PROFILE-US-OPTOUT": {
+      "$comment": "İLLÜSTRATİF opt_out rejimi profili (consent_model=opt_out): önceden rıza gerekmez; rıza yokluğu BLOCK etmez — yalnız DNC/suppression (10.2.2) engelleyebilir. Rıza kaydı VARSA yine de tarih/kapsam geçerli olmalı. Gerçek ABD/eyalet kuralları counsel + overlay gerektirir; burada opt_out semantiğini göstermek için.",
+      "country": "US",
+      "regime": "OPT_OUT_DEMO",
+      "consent_model": "opt_out",
+      "consent_registry": "none",
+      "b2b_exemption": true,
+      "recognized_sources": ["explicit_web_optin", "contract", "existing_customer"],
+      "consent_validity_days": 1095
+    }
+  },
+  "consume_from": ["DPIA §5.3 cp.outbound.*", "SAD §19.3 profile çözümleme", "BRD §16 consent kaydı"],
+  "report_to": ["10.2.2-dnc", "10.1.x-dialer", "0.4.7"],
+  "observability": {
+    "metric_prefix": "consent_precheck_",
+    "alarm_on_consent_skip": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

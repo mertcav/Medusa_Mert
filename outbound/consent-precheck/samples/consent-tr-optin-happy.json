@@ -1,0 +1,12 @@
+{
+  "name": "consent-tr-optin-happy",
+  "$comment": "TR opt_in (İYS/ETK): birey, geçerli İYS rızası — kaynak IYS ∈ recognized, tarih validity içinde, amaç=sales ∈ purposes, kapsam voice+sales. Altı boyut geçer → ALLOW explicit. Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-001", "tenant_id": "t-acme", "correlation_id": "corr-tr-001",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-001",
+  "subject_type": "individual", "country": "TR",
+  "call_purpose": "sales", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "consent": {"source": "IYS", "granted_at": "2025-03-01T09:00:00",
+              "purposes": ["sales", "support"], "channels": ["voice", "sms"], "categories": ["sales"]},
+  "expected": {"terminal": "ALLOW", "allow": true, "basis": "explicit", "consent_required": true}
+}

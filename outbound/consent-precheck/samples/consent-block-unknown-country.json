@@ -1,0 +1,12 @@
+{
+  "name": "consent-block-unknown-country",
+  "$comment": "Bilinmeyen ülke 'ZZ' bir compliance profiline çözülemez → fail-closed BLOCK unknown_country (K3). Profil yoksa varsayılan izin DEĞİL, reddetme. Geçer.",
+  "expect": "pass",
+  "request_id": "req-zz-001", "tenant_id": "t-acme", "correlation_id": "corr-zz-001",
+  "campaign_id": "camp-zz-001", "contact_key": "ck-zz-001",
+  "subject_type": "individual", "country": "ZZ",
+  "call_purpose": "sales", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "consent": {"source": "IYS", "granted_at": "2025-09-01T09:00:00",
+              "purposes": ["sales"], "channels": ["voice"], "categories": ["sales"]},
+  "expected": {"terminal": "BLOCK", "allow": false, "block_reason": "unknown_country"}
+}

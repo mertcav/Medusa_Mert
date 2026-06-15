@@ -1,0 +1,11 @@
+{
+  "name": "consent-uk-individual-no-consent",
+  "$comment": "UK soft_opt_in: birey, ne açık rıza ne soft_basis → BLOCK no_consent. B2B muafiyeti yalnız company için (K4); birey rıza gerektirir. Geçer.",
+  "expect": "pass",
+  "request_id": "req-uk-003", "tenant_id": "t-acme", "correlation_id": "corr-uk-003",
+  "campaign_id": "camp-uk-002", "contact_key": "ck-uk-003",
+  "subject_type": "individual", "country": "UK",
+  "call_purpose": "sales", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "consent": null,
+  "expected": {"terminal": "BLOCK", "allow": false, "block_reason": "no_consent", "consent_required": true}
+}

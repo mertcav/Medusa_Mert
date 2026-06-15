@@ -1,0 +1,12 @@
+{
+  "name": "consent-block-out-of-scope",
+  "$comment": "TR opt_in: rıza kanalı yalnız 'sms' (voice yok) → kapsam dışı (K7) → BLOCK out_of_scope. Sesli arama rızası gerekiyor. Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-005", "tenant_id": "t-acme", "correlation_id": "corr-tr-005",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-005",
+  "subject_type": "individual", "country": "TR",
+  "call_purpose": "sales", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "consent": {"source": "IYS", "granted_at": "2025-09-01T09:00:00",
+              "purposes": ["sales"], "channels": ["sms"], "categories": ["sales"]},
+  "expected": {"terminal": "BLOCK", "allow": false, "block_reason": "out_of_scope"}
+}

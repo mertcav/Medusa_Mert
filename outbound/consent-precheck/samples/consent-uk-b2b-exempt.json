@@ -1,0 +1,11 @@
+{
+  "name": "consent-uk-b2b-exempt",
+  "$comment": "UK soft_opt_in profili b2b_exemption=true: kurumsal (company) contact → rıza GEREKMEZ (PECR B2B muafiyeti) → ALLOW b2b_exempt. consent_required=false; DNC ayrı kapı (10.2.2). Geçer.",
+  "expect": "pass",
+  "request_id": "req-uk-001", "tenant_id": "t-acme", "correlation_id": "corr-uk-001",
+  "campaign_id": "camp-uk-001", "contact_key": "ck-uk-001",
+  "subject_type": "company", "country": "UK",
+  "call_purpose": "sales", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "consent": null,
+  "expected": {"terminal": "ALLOW", "allow": true, "basis": "b2b_exempt", "consent_required": false}
+}

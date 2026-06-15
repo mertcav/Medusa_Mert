@@ -1,0 +1,11 @@
+{
+  "name": "consent-b2b-misexempt-degraded",
+  "$comment": "DEGRADE (bilinçli): TR birey (b2b_exemption=false) contact'a b2b_misexempt ile yanlış B2B muafiyeti uygulanıyor → rıza atlanıyor. K4 b2b_misexemption ihlali. Bireye kurumsal muafiyet uygulanamaz. Kapı ELER.",
+  "expect": "fail",
+  "request_id": "req-deg-004", "tenant_id": "t-acme", "correlation_id": "corr-deg-004",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-deg-004",
+  "subject_type": "individual", "country": "TR",
+  "call_purpose": "sales", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "consent": null,
+  "inject": ["b2b_misexempt"]
+}

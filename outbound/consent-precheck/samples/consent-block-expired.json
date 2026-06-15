@@ -1,0 +1,12 @@
+{
+  "name": "consent-block-expired",
+  "$comment": "TR opt_in (validity 1095g/~3yıl): rıza 2021-01 → 2026-06 call_time'da süresi DOLMUŞ → BLOCK expired_or_invalid_date. Tarih boyutu (K6). Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-003", "tenant_id": "t-acme", "correlation_id": "corr-tr-003",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-003",
+  "subject_type": "individual", "country": "TR",
+  "call_purpose": "sales", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "consent": {"source": "IYS", "granted_at": "2021-01-10T09:00:00",
+              "purposes": ["sales"], "channels": ["voice"], "categories": ["sales"]},
+  "expected": {"terminal": "BLOCK", "allow": false, "block_reason": "expired_or_invalid_date"}
+}

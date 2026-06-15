@@ -1,0 +1,12 @@
+{
+  "name": "consent-block-purpose-mismatch",
+  "$comment": "TR opt_in: rıza yalnız 'support' amacını kapsıyor; kampanya amacı 'sales' → amaç uyuşmaz (K2) → BLOCK purpose_mismatch. Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-004", "tenant_id": "t-acme", "correlation_id": "corr-tr-004",
+  "campaign_id": "camp-tr-002", "contact_key": "ck-tr-004",
+  "subject_type": "individual", "country": "TR",
+  "call_purpose": "sales", "campaign_category": "support", "call_time": "2026-06-15T11:00:00",
+  "consent": {"source": "explicit_web_optin", "granted_at": "2025-09-01T09:00:00",
+              "purposes": ["support"], "channels": ["voice"], "categories": ["support"]},
+  "expected": {"terminal": "BLOCK", "allow": false, "block_reason": "purpose_mismatch"}
+}
