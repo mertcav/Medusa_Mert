@@ -1,0 +1,21 @@
+{
+  "name": "cold-happy-path",
+  "$comment": "Mutlu yol (FR-TEL-007 cold). Aktarım kararı (9.4) → AI anonsu (BRD §14.2) → SIP REFER (queue-support'a) → 202 Accepted → NOTIFY 100/180 ilerleme → final NOTIFY 200 OK → orijinal A-leg BYE ile serbest (oturum kapanır, agent çıkar — fire-and-forget). Köprü yok (C5), fallback yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cold-001",
+  "call_id": "call-cold-001",
+  "target": {"type": "QUEUE", "ref": "queue-support", "tenant_id": "t-acme"},
+  "context_package_ref": "ctx-001",
+  "deadline_ms": 8000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1100},
+    {"kind": "refer", "t": 1300},
+    {"kind": "refer_ack", "t": 1500, "code": 202},
+    {"kind": "notify", "t": 1800, "code": 100, "final": false},
+    {"kind": "notify", "t": 2600, "code": 180, "final": false},
+    {"kind": "notify", "t": 4200, "code": 200, "final": true}
+  ],
+  "expected": {"terminal": "TRANSFERRED", "outcome": "success", "a_leg_released": true, "bridged": false, "fallback": false}
+}

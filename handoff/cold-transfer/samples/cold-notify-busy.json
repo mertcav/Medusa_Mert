@@ -1,0 +1,19 @@
+{
+  "name": "cold-notify-busy",
+  "$comment": "REFER kabul edildi (202) ama referred-to MEŞGUL — final NOTIFY sipfrag 486 Busy Here. FSM DOĞRU davranır: FAILED → fail-safe fallback (C4), A-leg korunur. Cold transfer'de agent çoktan anons yapmış; başarısızlıkta müşteri 9.7'ye yönlendirilir. Gate geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cold-003",
+  "call_id": "call-cold-003",
+  "target": {"type": "AGENT", "ref": "agent-42", "tenant_id": "t-acme"},
+  "deadline_ms": 8000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 900},
+    {"kind": "refer", "t": 1100},
+    {"kind": "refer_ack", "t": 1300, "code": 202},
+    {"kind": "notify", "t": 1600, "code": 100, "final": false},
+    {"kind": "notify", "t": 2400, "code": 486, "final": true}
+  ],
+  "expected": {"terminal": "FAILED", "outcome": "fail", "fallback": true}
+}

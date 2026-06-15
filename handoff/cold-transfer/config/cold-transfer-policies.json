@@ -1,0 +1,25 @@
+{
+  "$comment": "WBS 9.1 cold transfer politika konfigürasyonu (vendor-neutral, credential-free). Gerçek SIP REFER taşıması 4.2.5 TelephonyAdapter'da; bu config handoff-manager FSM davranış parametrelerini tutar. Sır/credential ve ham telefon numarası YOK — yalnız deadline/policy parametreleri + hedef tip listesi + anons şablon KİMLİĞİ (metin değil) + fallback yönlendirme. Tenant override yalnız sıkılaştırır (deadline düşürebilir).",
+  "version": "1.0",
+  "wbs": "9.1",
+  "refer_deadline_ms": 8000,
+  "announce_to_refer_budget_ms": 3000,
+  "target_types": ["QUEUE", "SKILL", "AGENT", "NUMBER"],
+  "announce": {
+    "$comment": "AI aktarım anonsu (BRD §14.2). Metin değil, şablon KİMLİĞİ — gerçek TTS metni Prompt Manager (3.2.3) + tenant locale'inde. Anons iletilmeden REFER gönderilmez (C2).",
+    "template_id": "handoff.cold.announce",
+    "required": true,
+    "ai_disclosure": true
+  },
+  "fallback": {
+    "$comment": "Başarısız cold transfer fail-safe yönlendirmesi (C4 / FR-HND-007). Motor 9.7'de; bu config tetik+öncelik sırasını taşır.",
+    "to": "9.7",
+    "options": ["callback", "voicemail", "ticket"],
+    "preserve_a_leg": true
+  },
+  "observability": {
+    "metric_prefix": "handoff_",
+    "alarm_on_failure_rate": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

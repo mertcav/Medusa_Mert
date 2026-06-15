@@ -1,0 +1,120 @@
+{
+  "$comment": "WBS 7.3.2 — Kritik işlem öncesi müşteri teyidi + ek doğrulama (FR-TOOL-006 'kritik işlem öncesinde müşteri teyidi alınmalıdır' + FR-TOOL-007 'para, sözleşme veya kişisel veri değişikliği için ek doğrulama uygulanmalıdır'). 7.3 'Deterministic workflow engine' workstream'inin İKİNCİ modülü. 7.3.1 (critical-workflow) kritik-işlem FSM'inin TAM çok-adımlı durum makinesini sahiplenir ve CONFIRM kapısında {value: yes|no|ambiguous} teyit OLAYINI, AUTH kapısında step_up BOOLEAN'ını TÜKETİR; bu olayların/kararların DETAYINI 7.3.1 açıkça erteledi ('teyit/ek-doğrulama AYRINTISI→7.3.2; hook TÜKETİLİR'). Bu modül o detay/karar KATMANINI sahiplenir: (A) MÜŞTERİ TEYİDİ — işlemin maskeli özet/okuma-geri (readback) istemini ÜRETİR, müşterinin tanınmış yanıtını {açık-olumlu | açık-olumsuz | belirsiz} OLARAK SINIFLANDIRIR (fail-closed: sessizlik/belirsiz/koşullu ASLA olumlu sayılmaz), sınırlı yeniden-sorgu (re-prompt) bütçesi uygular, teyidi işlem parmak iziyle (operation fingerprint) BAĞLAR (eski/çapraz-işlem teyidi yeniden kullanılamaz) → 7.3.1 CONFIRM olayını üretir; (B) EK DOĞRULAMA — para/sözleşme/kişisel-veri değişikliği işlemleri için gerekli ek doğrulamayı (step-up) POLITIKADAN belirler, kimlik doğrulama SONUCUNU (8.x'ten) tüketip işlem-bağlı (transaction-bound) + tazelik penceresi içinde + tek-kullanımlık (anti-replay) + yeterli yöntem-sınıfı (≥strong; caller_id tek başına KARŞILAMAZ, FR-AUTH-001) olduğunu DOĞRULAR → 7.3.1 step_up kararını üretir. ÇEKİRDEK INVARIANT (FR-TOOL-006/007 + SR-TOOL-006/007 kabul ölçütü): teyit alınmadan (açık olumlu) kritik işlem yürütülmez (V1; SR-TOOL-006); para/sözleşme/PII değişikliğinde tatmin edici ek doğrulama olmadan işlem reddedilir (V5; SR-TOOL-007 → SR-AUTH-003 köprüsü); teyit işlem parmak iziyle bağlıdır + ek doğrulama tek-kullanımlık/tazelik/işlem-bağlı (V2/V6 anti-replay); hassas değer sesli tam tekrarlanmaz (V3/V9; FR-AUTH-005). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): kimlik doğrulama MEKANİZMALARI (OTP/KBA/müşteri no üretimi+meydan-okuma) → 8.x (FR-AUTH-001..005; bu modül doğrulama SONUCUNU TÜKETİR, üretmez); FSM kapı SIRALAMASI + execute/onay → 7.3.1 (bu modül CONFIRM olayını + step_up kararını ÜRETİR, kapıyı kendisi yürütmez); STT/NLU ham ses→metin/niyet tanıma → 2.x/3.x STT+LLM (bu modül TANINMIŞ yanıt metnini/niyeti tüketir, açık-teyit SINIFLANDIRMA POLİTİKASINI deterministik+fail-closed sahiplenir); tool dispatch/transport → 7.2.x; müşteriye hata METNİ kataloğu → 7.1.5; audit STORE/correlation zenginleştirme → 7.1.6 + 12.1.8 (bu modül teyit/doğrulama karar KAYDINI üretir); maker-checker insan onayı → 7.3.1 APPROVAL + 12.1.7 UI; PCI kart akışı → 17.2.6. Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (fixture'lar sentetik — FR-TST-008). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "7.3.2",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TOOL-006", "FR-TOOL-007", "FR-AUTH-001", "FR-AUTH-003", "FR-AUTH-005", "FR-IAM-006", "FR-TST-008"],
+    "nfr": ["NFR 10.6", "NFR 10.7"],
+    "srs": ["SR-TOOL-006", "SR-TOOL-007", "SR-AUTH-003", "SR-AUTH-005"],
+    "rtm": ["TC-TOOL-006", "TC-TOOL-007"],
+    "brd": [
+      "§9.10 (Tool ve İş Süreci Yönetimi — FR-TOOL-006 müşteri teyidi / FR-TOOL-007 ek doğrulama)",
+      "§13 (Konuşma Güvenliği — adım 3 'işlem müşteriye özetlenir' + adım 4 'açık teyit alınır'; agent serbest karar VERMEZ)",
+      "§8.1 (Inbound: 'işlemi müşteriye teyit ettirir')",
+      "§9.11 (Kimlik Doğrulama — FR-AUTH-003 step-up / FR-AUTH-001 caller_id tek başına yetersiz / FR-AUTH-005 hassas bilgi tam tekrarlanmaz)"
+    ],
+    "sad": [
+      "§11.1 (Tool Yürütme Hattı — adım [3] policy gate 'kritik işlem → teyit/step-up' FR-TOOL-006/007 detay üretimi)",
+      "§11.3 (Deterministic actions — teyit/doğrulama serbest-metin değil kurallı/deterministik)",
+      "§6.1 (turn state machine — teyit istemi/yanıtı turn'lerde akar)",
+      "§13.3 (correlation/tenant context propagation)",
+      "§14 (güvenlik tasarımı — fail-closed, audit, anti-replay)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — teyit/doğrulama karar noktası STT/LLM/TTS'e doğrudan bağlanmaz)",
+      "ADR-002 (vendor-neutral — teyit sözlüğü/doğrulama politikası sağlayıcı bağımsız)",
+      "ADR-005 (barge-in/endpointing — teyit yanıtı edge sinyaliyle gelir; bu modül tanınmış yanıtı tüketir)"
+    ],
+    "threat_model": [
+      "TM-S-* (spoofing — ek doğrulama işlem-bağlı + tek-kullanımlık; çalınan/eski doğrulama yeniden kullanılamaz)",
+      "TM-E-* (yetki yükseltme — teyit/step-up kapısı atlanamaz; caller_id tek başına ek doğrulama sayılmaz)",
+      "TM-R-* (inkâr — her teyit/doğrulama kararı audit'e yazılır)",
+      "TM-I-* (bilgi ifşası — readback/audit ham hassas değer içermez; FR-AUTH-005)",
+      "SEC-05 (callback/anti-replay deseni — nonce+tazelik+bağ; 7.2.4 ile aynı üç-ayak)"
+    ],
+    "consumes": [
+      "2.x/3.x STT+LLM — müşterinin TANINMIŞ teyit yanıtı (metin/niyet); ham ses→metin DEĞİL",
+      "8.x kimlik doğrulama (FR-AUTH-001..005) — ek-doğrulama SONUCUNU (method/level/bound/nonce/verified_at) tüketir, üretmez",
+      "7.3.1 critical-workflow — işlem bağlamı (operation/risk_class/params) + deadline; teyit/step-up KARARINI 7.3.1'e geri verir"
+    ],
+    "consumed_by": [
+      "7.3.1 critical-workflow FSM — CONFIRM kapısı {value} teyit olayını + AUTH kapısı step_up booleanını tüketir",
+      "7.1.5 hata normalizasyonu (FR-TOOL-008) — DECLINE/NOT_CONFIRMED/VERIFICATION_FAILED → müşteriye teknik-detaysız metin",
+      "7.1.6 + 12.1.8 audit store (FR-TOOL-010/FR-IAM-006) — teyit/doğrulama karar kaydını kalıcılaştırır"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Teyit + ek-doğrulama karar katmanı, 7.3.1 kritik-işlem FSM'inin CONFIRM (adım 4) ve AUTH/step-up (adım 1) kapılarının BESLEYİCİSİDİR. Kritik tool niyeti algılanınca 7.3.1 FSM'i başlatır; SUMMARY adımında bu modül maskeli readback üretir; CONFIRM adımında müşterinin tanınmış yanıtını sınıflandırıp {value} olayını verir; para/sözleşme/PII işlemlerde bu modül 8.x'ten gelen ek-doğrulama sonucunu işlem-bağlı doğrulayıp step_up kararını verir. Saf deterministik karar — dış transport YOK; tanınmış yanıt + doğrulama sonucu fixture'la modellenir. Vendor-neutral (ADR-001/002): teyit sözlüğü + doğrulama politikası bir politika noktası; canlıda gerçek STT/LLM niyet + gerçek 8.x doğrulama sinyalleri AYNI karar sözleşmesi arkasına.",
+    "plane": "voice-runtime orchestrator (teyit/doğrulama karar katmanı; 7.3.1 FSM kapı beslemesi)",
+    "owns": "FR-TOOL-006 açık-teyit sınıflandırma + readback maskeleme + teyit bağı (V1–V4) ∧ FR-TOOL-007 ek-doğrulama politikası + işlem-bağlı/tazelik/tek-kullanımlık/yöntem-sınıfı doğrulaması (V5–V7)",
+    "delegates": "kapı sıralaması/execute/onay → 7.3.1; auth MEKANİZMASI → 8.x; STT/NLU niyet → 2.x/3.x; audit store → 7.1.6/12.1.8; müşteri hata metni → 7.1.5",
+    "deterministic": true,
+    "trace": "SAD §11.1 adım [3], SAD §11.3, ADR-001, ADR-002"
+  },
+
+  "confirmation": {
+    "$comment": "(A) MÜŞTERİ TEYİDİ (FR-TOOL-006). Açık-teyit sınıflandırma POLİTİKASI: tanınmış yanıt metni → {yes|no|ambiguous}. fail-closed: olumlu sözcük YOKSA veya olumlu∧olumsuz birlikte veya koşullu işaret (ama/fakat/eğer/önce/şart/but/if) varsa → ambiguous (asla yes). Açık olumsuz → no (V12 derhal onurlandırılır; yeniden sorguyla yes'e çevrilmez). Belirsiz → sınırlı yeniden-sorgu (re-prompt) bütçesi (max_reprompts); tükenince ambiguous final → CONFIRMATION_NOT_OBTAINED. Teyit BAĞI (V2): teyit, işlem parmak iziyle (operation fingerprint) bağlanır; müşterinin teyit ettiği özetin parmak izi ≠ hesaplanan işlem parmak izi → teyit geçersiz (eski/çapraz-işlem teyidi yeniden kullanılamaz). readback (özet/okuma-geri) hassas değerleri TAM tekrarlamaz (V3; FR-AUTH-005).",
+    "values": ["yes", "no", "ambiguous"],
+    "fail_closed": "yalnız açık-olumlu (∧ olumsuz/koşullu yok) → yes; aksi her durum → ambiguous/no; sessizlik ASLA yes değildir",
+    "reprompt": {"bounded": true, "policy_key": "max_reprompts", "exhausted_outcome": "CONFIRMATION_NOT_OBTAINED"},
+    "binding": "operation fingerprint (sha256, kanonik {name,params}); summary_fingerprint mismatch → BINDING_MISMATCH → ambiguous",
+    "readback_masking": "hassas kind (account/card/iban/national_id/phone/email) maskeli; amount (≤9 hane) gösterilebilir; bilinmeyen kind ham değer DEĞİL alan-adı",
+    "trace": "FR-TOOL-006, SR-TOOL-006, FR-AUTH-005, BRD §13 adım 3/4"
+  },
+
+  "additional_verification": {
+    "$comment": "(B) EK DOĞRULAMA (FR-TOOL-007). Para/sözleşme/kişisel-veri değişikliği işlemleri ek doğrulama (step-up) ZORUNLU kılar (V5). Gereklilik POLİTİKADAN: (a) risk_class config'te required=true, veya (b) işlem param_kinds'inde tetikleyici kind (amount/iban/account/card → para; contract → sözleşme; national_id/email/phone/pii → kişisel veri). Gerekliyse, 8.x'ten gelen doğrulama SONUCU dört testi GEÇMELİ: yöntem-sınıfı ≥ min_method_class (V7; caller_id 'weak' → KARŞILAMAZ, FR-AUTH-001; otp/step_up 'strong'); işlem-bağlı (V6; bound_fingerprint = işlem parmak izi — jenerik 'oturum açık' yetmez); tazelik (V6; now − verified_at ≤ freshness_ms; eski doğrulama yeniden kullanılamaz); tek-kullanımlık (V6; nonce replay yok). Biri eksik → satisfied=false (→ işlem reddedilir, SR-AUTH-003 köprüsü). step-up MEKANİZMASI 8.x'te; bu modül sonucu DOĞRULAR.",
+    "required_when": ["risk_class.required=true", "param_kind ∈ trigger_param_kinds (money/contract/pii)"],
+    "method_classes": {"caller_id": "weak", "customer_no": "medium", "kba": "medium", "otp": "strong", "step_up": "strong", "biometric": "strong"},
+    "class_rank": {"weak": 0, "medium": 1, "strong": 2},
+    "checks": ["METHOD_CLASS (≥ min_method_class)", "BOUND (bound_fingerprint = op fingerprint)", "FRESH (age ≤ freshness_ms)", "SINGLE_USE (nonce replay yok)"],
+    "fail_reasons": ["NO_VERIFICATION", "WEAK_METHOD", "NOT_BOUND", "STALE", "REPLAYED"],
+    "trace": "FR-TOOL-007, SR-TOOL-007, SR-AUTH-003, FR-AUTH-001, FR-AUTH-003, SEC-05"
+  },
+
+  "fsm_events": {
+    "$comment": "Bu modülün ÜRETTİĞİ ve 7.3.1 FSM'inin TÜKETTİĞİ olay/karar sözleşmesi (7.3.1 spec 'events': confirm {value, at_ms} + auth.step_up bool ile birebir). events_for_fsm.confirm.value = confirmation verdict; events_for_fsm.step_up = additional_verification.satisfied.",
+    "confirm": {"value": "yes|no|ambiguous", "at_ms": "int"},
+    "step_up": "bool (additional_verification.satisfied)",
+    "trace": "7.3.1 critical-workflow-spec.json 'events', BRD §13"
+  },
+
+  "decision": {
+    "$comment": "Birleşik karar (raporlama; FSM kapı sırasını onurlandırır — ek doğrulama AUTH kapısı CONFIRM'den ÖNCE). VERIFICATION_FAILED ek-doğrulama tatmin edilmedi (gerekliyse). DECLINE açık olumsuz teyit. NOT_CONFIRMED belirsiz/teyit alınamadı (re-prompt tükendi). PROCEED açık olumlu teyit ∧ bağ tamam ∧ (gerekli değil ∨ ek doğrulama tatmin).",
+    "values": ["PROCEED", "DECLINE", "NOT_CONFIRMED", "VERIFICATION_FAILED"],
+    "order": "VERIFICATION_FAILED (gerekli∧tatminsiz) → DECLINE (no) → NOT_CONFIRMED (ambiguous) → PROCEED (yes∧bağ∧doğrulama)",
+    "trace": "BRD §13, FR-TOOL-006/007"
+  },
+
+  "invariants": [
+    {"id": "V1", "desc": "Açık olumlu teyit zorunlu: yalnız açık-olumlu (∧ olumsuz/koşullu işaret yok ∧ bağ tamam) yanıt 'yes' üretir; sessizlik/belirsiz/koşullu/olumsuz ASLA 'yes' olmaz (fail-closed); teyit alınmadan kritik işlem yürütülmez (SR-TOOL-006)."},
+    {"id": "V2", "desc": "Teyit bağı (anti-replay): teyit işlem parmak iziyle bağlıdır; müşterinin teyit ettiği özetin parmak izi ≠ hesaplanan işlem parmak izi ise teyit GEÇERSİZ (yes'e dönmez); eski/çapraz-işlem teyidi yeniden kullanılamaz."},
+    {"id": "V3", "desc": "Maskeli readback (FR-AUTH-005): teyit istemi (özet/okuma-geri) hassas değerleri TAM tekrarlamaz; hesap/kart/IBAN/kimlik/telefon/e-posta maskeli, amount (≤9 hane) gösterilebilir; readback sızıntı tarayıcısından geçer."},
+    {"id": "V4", "desc": "Sınırlı yeniden-sorgu: belirsiz yanıt ≤ max_reprompts kez yeniden sorulur; tükenince 'ambiguous' final (CONFIRMATION_NOT_OBTAINED); asla sessizce 'yes'e dönmez."},
+    {"id": "V5", "desc": "Para/sözleşme/PII ek doğrulama (SR-TOOL-007): bu işlemler ek doğrulama (step-up) ZORUNLU kılar; tatmin edici doğrulama olmadan satisfied=false → işlem reddedilir (SR-AUTH-003 köprüsü)."},
+    {"id": "V6", "desc": "İşlem-bağlı + tazelik + tek-kullanımlık doğrulama: ek doğrulama sonucu aynı işlem parmak iziyle bağlı (BOUND), tazelik penceresi içinde (FRESH) ve tek-kullanımlık (SINGLE_USE; nonce replay yok) olmalı; jenerik/eski/çapraz-işlem doğrulama TATMIN ETMEZ."},
+    {"id": "V7", "desc": "Yeterli yöntem sınıfı: tatmin eden doğrulama yöntemi ≥ min_method_class (kritik=strong) olmalı; caller_id tek başına ek doğrulamayı KARŞILAMAZ (FR-AUTH-001)."},
+    {"id": "V8", "desc": "Fail-closed varsayılan: eksik/bilinmeyen girdi (yanıt yok / doğrulama yok / bozuk) → not-confirmed / not-verified; ASLA varsayılan olarak teyitli/doğrulanmış sayılmaz."},
+    {"id": "V9", "desc": "Çıktı/audit'te ham hassas yok (no-log): readback + karar audit ham PII/secret/tam-hassas-değer İÇERMEZ (maskeli; sızıntı tarayıcısı; FR-AUTH-005, NFR 10.7)."},
+    {"id": "V10", "desc": "Determinizm: tohumlu sanal saat (at_ms/now_ms); aynı girdi → birebir aynı teyit/doğrulama kararı. Date.now/gerçek-rastgele YOK."},
+    {"id": "V11", "desc": "Karar audit: her teyit/doğrulama kararı değiştirilemez audit kaydı üretir (→7.1.6/12.1.8; FR-IAM-006): kategori/verdict/fingerprint-referansı/yöntem-sınıfı/karar; ham değer yok."},
+    {"id": "V12", "desc": "Olumsuz derhal onurlandırılır: açık 'no' derhal DECLINE (→7.3.1 ABORTED CUSTOMER_DECLINED); yeniden sorgu ile 'yes'e ÇEVRİLMEZ."}
+  ],
+
+  "audit": {
+    "$comment": "Teyit/doğrulama karar kaydı (FR-IAM-006/FR-TOOL-010 → 7.1.6/12.1.8 store köprüsü). no_log: ham PII/secret/tam-hassas-değer/ham-utterance İÇERMEZ — yalnız request_id, correlation_id, tenant_id, operation(adı), risk_class, fingerprint(hash), confirmation_verdict, reprompts_used, binding_ok, additional_verification {required, satisfied, reason, method_class}, decision. Değiştirilemez (WORM).",
+    "no_log": true,
+    "fields": ["request_id", "correlation_id", "tenant_id", "operation", "risk_class", "fingerprint", "confirmation_verdict", "reprompts_used", "binding_ok", "additional_verification", "decision", "no_log"],
+    "immutable": true,
+    "trace": "FR-IAM-006, FR-TOOL-010, →7.1.6, →12.1.8, NFR 10.7"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Modülün girdi/yapılandırma bütünlüğü hataları (teyit/doğrulama kararlarından AYRI — isteğin işlenmeden reddini doğurur).",
+    "classes": ["MISSING_POLICY_CONFIG", "INVALID_POLICY", "INVALID_REQUEST", "NON_MONOTONIC_CLOCK", "INTERNAL_ERROR"],
+    "trace": "FR-TST-008"
+  }
+}

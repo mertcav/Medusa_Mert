@@ -1,0 +1,17 @@
+{
+  "name": "cold-blind-refer-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). AI aktarım anonsu YAPILMADAN (announce olayı yok) doğrudan SIP REFER gönderiliyor — müşteri habersiz aktarılıyor. C2 ihlali (blind_refer>0): BRD §14.2 'no deceptive impersonation' + nazik handoff zorunlu. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cold-005",
+  "call_id": "call-cold-005",
+  "target": {"type": "QUEUE", "ref": "queue-support", "tenant_id": "t-acme"},
+  "deadline_ms": 8000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "refer", "t": 300},
+    {"kind": "refer_ack", "t": 500, "code": 202},
+    {"kind": "notify", "t": 1200, "code": 200, "final": true}
+  ],
+  "expected": {"terminal": "TRANSFERRED"}
+}

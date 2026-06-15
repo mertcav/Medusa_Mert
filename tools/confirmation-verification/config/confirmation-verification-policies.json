@@ -1,0 +1,48 @@
+{
+  "$comment": "WBS 7.3.2 — Müşteri teyidi + ek doğrulama politika tablosu (FR-TOOL-006/007). Bu config teyit SINIFLANDIRMA sözlüğünün (açık-olumlu/olumsuz/koşullu) + yeniden-sorgu bütçesinin + ek-doğrulama gereklilik/güç/tazelik politikasının DETERMINISTIK girdisidir. Sözlükler ve eşikler MÜHENDİSLİK VARSAYILANI (BRD §22 açık karar: counsel + tenant compliance profile most-restrictive-wins ile yalnız SIKILAŞIR — DPIA `cp.*`). caller_id 'weak' (FR-AUTH-001: tek başına yetersiz); kritik işlemde min_method_class=strong (FR-AUTH-003). Vendor-neutral (ADR-002). Sentetik; sır/PII YOK.",
+  "version": "1.0",
+  "confirmation": {
+    "max_reprompts": 2,
+    "$comment_lex": "Sözcükler normalize edilmiş (tr-aware küçük harf, noktalama temizlenmiş) sözcük-sınırı eşleşir. Koşullu işaret (ama/fakat/eğer/önce/şart/but/if/unless) olumlu ile birlikte → ambiguous (koşullu kabul açık teyit DEĞİLDİR).",
+    "locales": {
+      "tr-TR": {
+        "affirmative": ["evet", "onaylıyorum", "onayliyorum", "onaylıyor", "onayla", "onaylarım", "kabul", "kabul ediyorum", "tamam", "olur", "doğru", "dogru", "devam", "tabii", "tabi", "eminim", "öyle", "oyle", "kesinlikle"],
+        "negative": ["hayır", "hayir", "iptal", "vazgeçtim", "vazgectim", "istemiyorum", "olmaz", "yanlış", "yanlis", "dur", "durdur", "reddet", "red", "yapma", "gerek yok", "yok"],
+        "conditional": ["ama", "fakat", "ancak", "eğer", "eger", "önce", "once", "şart", "sart", "şayet", "sayet", "belki", "galiba", "sanırım", "sanirim", "emin değilim", "emin degilim"]
+      },
+      "en-US": {
+        "affirmative": ["yes", "yeah", "yep", "yup", "confirm", "confirmed", "correct", "agree", "i agree", "proceed", "sure", "ok", "okay", "absolutely", "go ahead", "do it", "right"],
+        "negative": ["no", "nope", "nah", "cancel", "stop", "decline", "declined", "don't", "do not", "wrong", "never", "reject"],
+        "conditional": ["but", "however", "if", "unless", "before", "maybe", "perhaps", "i think", "not sure", "i'm not sure", "depends"]
+      }
+    }
+  },
+  "additional_verification": {
+    "$comment": "FR-TOOL-007 'para, sözleşme veya kişisel veri değişikliği için ek doğrulama'. trigger_param_kinds bir işlemi kind üzerinden ek-doğrulama-gerektiren yapar; risk_classes ise risk_class üzerinden (7.3.1 risk tablosuyla hizalı). default_min_method_class=strong (FR-AUTH-003). default_freshness_ms: doğrulama tazelik penceresi.",
+    "default_min_method_class": "strong",
+    "default_freshness_ms": 180000,
+    "trigger_param_kinds": ["amount", "iban", "account", "card", "contract", "national_id", "email", "phone", "pii"],
+    "method_classes": {
+      "caller_id": "weak",
+      "customer_no": "medium",
+      "kba": "medium",
+      "otp": "strong",
+      "step_up": "strong",
+      "biometric": "strong"
+    },
+    "risk_classes": {
+      "bank_account_change": {"category": "para", "required": true, "min_method_class": "strong", "freshness_ms": 180000},
+      "high_value_payment": {"category": "para", "required": true, "min_method_class": "strong", "freshness_ms": 120000},
+      "over_limit_refund": {"category": "para", "required": true, "min_method_class": "strong", "freshness_ms": 120000},
+      "contact_info_change": {"category": "kişisel veri", "required": true, "min_method_class": "strong", "freshness_ms": 180000},
+      "sensitive_pii_disclosure": {"category": "kişisel veri", "required": true, "min_method_class": "strong", "freshness_ms": 180000},
+      "contract_cancellation": {"category": "sözleşme", "required": true, "min_method_class": "strong", "freshness_ms": 180000}
+    }
+  },
+  "readback_masking": {
+    "$comment": "FR-AUTH-005 — readback'te hassas kind maskeli; amount gösterilebilir (≤9 hane). Bilinmeyen kind ham değer DEĞİL alan-adı placeholder olarak verilir (V3/V9).",
+    "mask_last_n": 4,
+    "masked_kinds": ["account", "card", "iban", "national_id", "phone", "email"],
+    "shown_kinds": ["amount", "currency"]
+  }
+}

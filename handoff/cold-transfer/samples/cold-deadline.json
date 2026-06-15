@@ -1,0 +1,19 @@
+{
+  "name": "cold-deadline",
+  "$comment": "Deadline guard (C8). REFER kabul (202) ama referred-to yanıtlamıyor; geç final NOTIFY 200 deadline (8000ms) AŞILDIKTAN sonra geliyor (refer t=1200 + 8000 = 9200; 200 t=11000'de). FSM zaman aşımı uygular → FAILED(DEADLINE), sonsuz hang YOK (hung_transfer=0) → fail-safe fallback. Geç başarı kabul EDİLMEZ. Gate geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cold-004",
+  "call_id": "call-cold-004",
+  "target": {"type": "QUEUE", "ref": "queue-support", "tenant_id": "t-acme"},
+  "deadline_ms": 8000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "refer", "t": 1200},
+    {"kind": "refer_ack", "t": 1450, "code": 202},
+    {"kind": "notify", "t": 1800, "code": 180, "final": false},
+    {"kind": "notify", "t": 11000, "code": 200, "final": true}
+  ],
+  "expected": {"terminal": "FAILED", "outcome": "fail", "fallback": true}
+}

@@ -1,0 +1,18 @@
+{
+  "name": "cold-cross-tenant-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). Transfer hedefi BAŞKA tenant'ın (t-evil) CC kaynağına işaret ediyor (target.tenant_id ≠ oturum tenant_id). C9 ihlali (cross_tenant_target>0): FR-TEN-002 tenant izolasyonu — bir tenant'ın çağrısı başka tenant'ın temsilcisine/kuyruğuna aktarılamaz. FSM hedefi reddeder (REFER gönderilmez → FAILED → fallback) ama gate ihlali sayar. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-cold-006",
+  "call_id": "call-cold-006",
+  "target": {"type": "AGENT", "ref": "agent-7", "tenant_id": "t-evil"},
+  "deadline_ms": 8000,
+  "events": [
+    {"kind": "decision", "t": 0},
+    {"kind": "announce", "t": 1000},
+    {"kind": "refer", "t": 1200},
+    {"kind": "refer_ack", "t": 1400, "code": 202},
+    {"kind": "notify", "t": 2200, "code": 200, "final": true}
+  ],
+  "expected": {"terminal": "FAILED"}
+}

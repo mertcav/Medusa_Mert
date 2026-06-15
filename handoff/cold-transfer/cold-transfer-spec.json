@@ -1,0 +1,135 @@
+{
+  "$comment": "WBS 9.1 — Cold transfer (SIP REFER) (BRD §9.12 İnsan Temsilciye Aktarım / SAD §7.3 Human Handoff Akışı). 9. workstream'in (İnsan Temsilciye Aktarım) İLK modülü ve F1-Must aktarım çekirdeği. FR-TEL-007 ('Cold, warm ve whisper transfer desteklenmelidir') üç transfer tipinden COLD/blind transfer tipini SAHİPLENİR; WARM köprüleme→9.2 (FR-HND-006), WHISPER→9.3. SAD §7.3: 'COLD: SIP REFER → CC'ye yönlendir, oturum kapanır'. Bu modül cold transfer'i bir DETERMINISTIK DURUM MAKİNESİ (REFER yaşam döngüsü, RFC 3515) olarak gerçekler: aktarım kararı geldiğinde (tetik 9.4 dışarıda) müşteriye AI aktarım anonsu yapılır (BRD §14.2 'no deceptive impersonation' + nazik handoff), TelephonyAdapter.transfer(callId, target, COLD) (4.2.5 SPI / API §11.5) ile SIP REFER gönderilir, 202 Accepted + NOTIFY sipfrag ilerleme (100/180/200) izlenir; final NOTIFY 200 OK → BAŞARI (orijinal A-leg BYE ile serbest, agent çıkar, oturum kapanır — fire-and-forget); final NOTIFY ≥300 / REFER reddi / deadline → BAŞARISIZLIK (oturum DÜŞMEZ, müşteri elde tutulur, 9.7 callback/voicemail/ticket'a devredilir — fail-safe). Her terminal sonuç (başarı/başarısızlık + bekleme süresi/süre) raporlama (FR-HND-008→9.8) + audit'e (FR-IAM-006) yazılır. ÇEKİRDEK INVARIANT: REFER yalnız anons sonrası gönderilir (C2 blind-REFER yok), başarıda orijinal leg serbest bırakılır (C3 orphaned/double-billed leg yok), başarısızlıkta oturum düşmez + fallback (C4 fail-safe FR-HND-007), cold=fire-and-forget köprüleme yok (C5 warm/whisper'dan ayrım), deadline aşımı→başarısızlık (C8 sonsuz hang yok), hedef tenant-scoped (C9 cross-tenant yok). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): TelephonyAdapter.transfer() SPI + gerçek SIP REFER/RTP TAŞIMASI → 4.2.5 (bu modül transfer() SPI'sini ÇAĞIRIR + transfer-result olaylarını TÜKETİR, ham SIP yığınını DEĞİL); WARM köprüleme+whisper → 9.2 (FR-HND-006); WHISPER brifing → 9.3; aktarım TETİKLEYİCİLERİ (kullanıcı isteği/düşük confidence/öfke/politika) → 9.4 (FR-HND-001/002; bu modül transfer KARARINI TÜKETİR, üretmez); kuyruk/skill/departman HEDEF SEÇİMİ → 9.5 (FR-TEL-008/FR-HND-003; bu modül ÇÖZÜLMÜŞ hedefi tüketir + biçim UYGUNLUĞUNU doğrular); bağlam paketi (özet+intent+alanlar+auth) + screen-pop → 9.6 (FR-HND-004/005; cold transfer bağlam paketini CC'ye iletir ama PAKETLEMEYİ 9.6 sahiplenir); temsilci-yok callback/voicemail/ticket MOTORU → 9.7 (FR-HND-007; bu modül başarısızlıkta fallback'i TETİKLER, motoru DEĞİL); aktarım başarısı+bekleme süresi RAPORLAMA toplama → 9.8 (FR-HND-008; bu modül outcome KAYDINI üretir); audit STORE/correlation zenginleştirme → 7.1.6/12.1.8; E.164/caller-ID → 2.1.5; neden kodu taksonomisi → 2.1.7. Spec/config/sample'larda sır/credential ve gerçek PII (ham telefon numarası DEĞERİ / çağrı içeriği) YOK — yalnız hedef tip/referans kimlikleri + sanal zaman + sayılar + SIP kodu (Q.850/sipfrag) + uygunluk bayrakları. KAYNAK DOĞRULUK; çelişkide BRD/SAD/API esastır.",
+  "version": "1.0",
+  "wbs": "9.1",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TEL-007", "FR-HND-007", "FR-HND-008", "FR-HND-004", "FR-TEN-002", "FR-IAM-006", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-TEL-007", "SR-HND-007", "SR-HND-008", "SR-HND-004"],
+    "rtm": ["TC-TEL-007"],
+    "brd": [
+      "§9.12 (İnsan Temsilciye Aktarım — FR-TEL-007 cold/warm/whisper transfer; FR-HND-007 temsilci yoksa callback/voicemail/ticket; FR-HND-008 aktarım başarısı+bekleme süresi raporlama)",
+      "§14.2 (No deceptive impersonation — aktarım öncesi AI bildirimi / nazik handoff anonsu)",
+      "§19 (6) (Kabul kriteri: 'Warm ve cold transfer başarıyla çalışmalıdır')",
+      "§16/§24 (Call / Call Leg / Audit Log varlıkları — transfer outcome kaydı)"
+    ],
+    "sad": [
+      "§7.3 (Human Handoff Akışı — COLD: SIP REFER → CC'ye yönlendir, oturum kapanır)",
+      "§8.1/§11.5 (TelephonyAdapter SPI — transfer(callId, target, mode∈{COLD,WARM,WHISPER}))",
+      "§6.1 (turn state machine — aktarım turn'leri ACT/SPEAK'te ilerler; cold-transfer FSM turn-üstü oturum durumu)",
+      "§13.3 (correlation/tenant context propagation — transfer outcome correlation_id+tenant taşır)",
+      "§14 (güvenlik tasarımı — fail-safe: başarısız aktarımda oturum düşmez)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — handoff manager STT/LLM/TTS'e doğrudan bağlanmaz; transfer kararı orkestratörden, mekanizma TelephonyAdapter SPI'sinden)",
+      "ADR-002 (vendor-neutral — SIP REFER cold transfer mantığı sağlayıcı bağımsız; managed CPaaS / BYOC trunk arkada değişir, FSM aynı)",
+      "ADR-009 (hibrit medya — aktarım sırasında medya konumu SPI'yi değiştirmez)"
+    ],
+    "threat_model": [
+      "TM-D-* (DoS / oturum düşmesi — başarısız aktarımda müşteri çağrısı korunur, fail-safe)",
+      "TM-I-* (bilgi sızıntısı — hedef referansı kimlik; ham numara/içerik metriklerde/loglarda yok)",
+      "TM-R-* (inkâr — her terminal outcome audit'e yazılır)",
+      "TM-T-* (tenant izolasyonu — transfer hedefi tenant CC routing'i içinde, cross-tenant reddedilir)"
+    ],
+    "consumes": [
+      "9.4 transfer tetikleyici (FR-HND-001/002) — transfer KARARINI tüketir (üretmez)",
+      "9.5 hedef seçimi (FR-TEL-008/FR-HND-003) — ÇÖZÜLMÜŞ TransferTarget'i tüketir",
+      "9.6 bağlam paketi (FR-HND-004/005) — CC'ye iletilecek context_package_ref'i tüketir",
+      "4.2.5 TelephonyAdapter.transfer() (FR-TEL-007) — transfer() SPI çağrısı + transfer-result olaylarını tüketir"
+    ],
+    "consumed_by": [
+      "9.7 temsilci-yok fallback (FR-HND-007) — başarısız cold transfer FALLBACK tetiğini tüketir",
+      "9.8 aktarım raporlama (FR-HND-008) — terminal outcome kaydını (success/fail + wait/duration) tüketir",
+      "7.1.6 + 12.1.8 audit store (FR-IAM-006) — transfer audit kaydını kalıcılaştırır",
+      "0.4.7 gözlemlenebilirlik — handoff_transfer_total / handoff_wait_seconds metriklerini tüketir"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Cold-transfer FSM'i orkestratör turn döngüsünün ÜSTÜNDE bir oturum-durumu makinesidir: aktarım kararı (9.4) algılanınca FSM başlatılır; agent anons turn'ünü sürdürür (ANNOUNCE), sonra TelephonyAdapter.transfer(...,COLD) çağrılır (REFER_SENT), REFER yaşam döngüsü (202→NOTIFY ilerleme→final) izlenir, terminal'e ulaşınca başarıda orijinal leg serbest / başarısızlıkta fallback tetiklenir. FSM hot-path turn'ünü BLOKLAMAZ — REFERRING durumu deadline'lı (C8), NOTIFY olayları asenkron gelir. Vendor-neutral (ADR-001/002): transfer() SPI + transfer-result olay arayüzü politika noktası; referans deterministik FSM; canlıda gerçek SIP REFER/NOTIFY sipfrag AYNI olay sözleşmesi arkasına (managed CPaaS / BYOC trunk).",
+    "plane": "voice-runtime orchestrator (handoff manager — oturum-durumu FSM)",
+    "owns": "SAD §7.3 cold transfer kompozisyonu: anons→REFER→NOTIFY izleme→başarıda leg serbest / başarısızlıkta fail-safe fallback + outcome audit",
+    "delegates": "transfer() SPI + SIP REFER taşıması → 4.2.5; hedef seçimi → 9.5; bağlam paketi → 9.6; fallback motoru → 9.7; outcome toplama → 9.8; audit store → 7.1.6/12.1.8",
+    "deterministic": true,
+    "trace": "SAD §7.3, SAD §8.1/§11.5, SAD §6.1, ADR-001, ADR-002"
+  },
+
+  "states": {
+    "$comment": "Cold transfer durum makinesi (C1). SIP REFER yaşam döngüsü (RFC 3515) handoff-manager soyutlamasında: INIT→ANNOUNCE→REFER_SENT→REFERRING→{TRANSFERRED|FAILED}. ANNOUNCE: AI müşteriye aktarım bildirimi (BRD §14.2). REFER_SENT: transfer(...,COLD) çağrıldı, 202 Accepted bekleniyor. REFERRING: 202 alındı, NOTIFY sipfrag ilerleme izleniyor. TRANSFERRED (terminal-başarı): final NOTIFY 200 OK → orijinal A-leg BYE, agent çıkar, oturum kapanır. FAILED (terminal-başarısızlık): REFER reddi / final NOTIFY ≥300 / deadline → oturum düşmez, fallback (9.7). Terminal durumlar IMMUTABLE.",
+    "flow": ["INIT", "ANNOUNCE", "REFER_SENT", "REFERRING", "TRANSFERRED", "FAILED"],
+    "non_terminal": ["INIT", "ANNOUNCE", "REFER_SENT", "REFERRING"],
+    "terminal": ["TRANSFERRED", "FAILED"],
+    "terminal_success": ["TRANSFERRED"],
+    "terminal_failure": ["FAILED"]
+  },
+
+  "transitions": {
+    "$comment": "İzinli geçişler + kapı koşulu. Her geçiş fail-safe: başarısızlık daima FAILED'e (oturum düşmeden) gider, asla tanımsız/stuck duruma değil (C1). Sıra: hedef-doğrula(G1)→anons(G2)→REFER(G3)→ilerleme/terminal(G4).",
+    "edges": [
+      {"from": "INIT", "to": "ANNOUNCE", "gate": "G1", "cond": "TransferTarget çözülmüş + geçerli tip (QUEUE/SKILL/AGENT/NUMBER) + tenant-scoped (C6/C9)"},
+      {"from": "INIT", "to": "FAILED", "gate": "G1", "cond": "hedef çözülmemiş/cross-tenant → REFER gönderilmez, fallback (C6/C9)"},
+      {"from": "ANNOUNCE", "to": "REFER_SENT", "gate": "G2", "cond": "AI aktarım anonsu iletildi (blind-REFER yok, C2) + transfer(...,COLD) çağrıldı"},
+      {"from": "REFER_SENT", "to": "REFERRING", "gate": "G3", "cond": "REFER 202 Accepted alındı (RFC 3515)"},
+      {"from": "REFER_SENT", "to": "FAILED", "gate": "G3", "cond": "REFER reddi (202 yok: 4xx/5xx/6xx/603/488 veya gönderim hatası) → fallback (C4)"},
+      {"from": "REFERRING", "to": "TRANSFERRED", "gate": "G4", "cond": "final NOTIFY sipfrag 200 OK (referred-to yanıtladı) deadline içinde (C1)"},
+      {"from": "REFERRING", "to": "FAILED", "gate": "G4", "cond": "final NOTIFY ≥300 (örn. 486/603) veya deadline aşımı → fallback (C4/C8)"}
+    ],
+    "on_transferred": "RELEASE eylemi: orijinal A-leg BYE ile serbest bırakılır + agent medyası durur + oturum kapanır (fire-and-forget, C3/C5)",
+    "on_failed": "FALLBACK eylemi: orijinal A-leg KORUNUR + 9.7 retention'a (callback/voicemail/ticket) devredilir (fail-safe, C4)"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli; bir senaryoda ihlal varsa kapı eler. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1 canlı PoC + gerçek trunk'ta doğrulanır.",
+    "max_blind_refer": 0,
+    "max_unresolved_target": 0,
+    "max_cross_tenant_target": 0,
+    "max_orphaned_leg": 0,
+    "max_dropped_on_failure": 0,
+    "max_bridged_on_cold": 0,
+    "max_hung_transfer": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "refer_deadline_ms": 8000,
+    "announce_to_refer_p95_ms": 3000,
+    "require_terminal": true,
+    "require_outcome_report": true
+  },
+
+  "sip_refer": {
+    "$comment": "RFC 3515 SIP REFER eşlemesi (handoff-manager soyutlamasında; ham SIP yığını 4.2.5/BYOC trunk'ta). transferor=platform (A-leg sahibi), transferee=müşteri, referred-to=CC hedefi. Blind/cold: REFER(Refer-To: hedef) → 202 Accepted → implicit subscription NOTIFY sipfrag (SIP/2.0 100/180/200) → final NOTIFY → başarıda transferor BYE gönderir. Bu modül bu yaşam döngüsünü transfer-result olay sözleşmesi olarak modeller; SIP kodları yalnız audit/log'ta, müşteriye sızmaz (C10).",
+    "roles": {"transferor": "platform (handoff manager)", "transferee": "müşteri (A-leg)", "referred_to": "CC hedefi (QUEUE/SKILL/AGENT/NUMBER)"},
+    "lifecycle": ["REFER", "202 Accepted", "NOTIFY sipfrag (100/180)", "final NOTIFY (200=başarı | ≥300=başarısız)", "BYE (başarıda transferor A-leg)"],
+    "success_sipfrag": 200,
+    "failure_sipfrag_min": 300,
+    "refer_reject_codes": [400, 403, 480, 486, 488, 503, 603]
+  },
+
+  "observability": {
+    "$comment": "Cold transfer her terminal için BRD §15 + handoff metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. handoff_transfer_total{mode=cold,outcome} → transfer sayımı (mode+outcome DÜŞÜK kardinalite, label uygun); handoff_wait_seconds → anons→terminal bekleme süresi (FR-HND-008→9.8); handoff_refer_duration_ms → REFER→final NOTIFY süresi; handoff_fallback_total → başarısızlıkta fallback tetiği (FR-HND-007). tenant_id+mode+outcome+target_type DÜŞÜK kardinalite (label uygun); call_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Ham telefon numarası, çağrı içeriği veya PII metriklerde yok. Aktarım başarısızlığı alarmı (SAD §17.2 'handoff başarısızlığı') ≤2dk (NFR 10.1).",
+    "metrics": ["handoff_transfer_total", "handoff_wait_seconds", "handoff_refer_duration_ms", "handoff_fallback_total"],
+    "low_cardinality_labels": ["tenant_id", "mode", "outcome", "target_type", "failure_class"],
+    "high_cardinality_trace_only": ["call_id", "correlation_id", "refer_to_ref"],
+    "alarm": "handoff başarısızlığı oranı artışı → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "C1", "desc": "FSM tamlığı: her senaryo tanımlı kenarlar boyunca ilerler ve bir terminal duruma {TRANSFERRED|FAILED} ulaşır; stuck/tanımsız durum yok. Başarısızlık daima FAILED'e gider (asla orphan/hang).", "trace": "SAD §7.3, SR-TEL-007"},
+    {"id": "C2", "desc": "REFER yalnız anons sonrası: ANNOUNCE (AI aktarım bildirimi) geçilmeden REFER_SENT'e ulaşılamaz; blind/sessiz REFER yok (BRD §14.2 no deceptive impersonation + nazik handoff). blind_refer=0.", "trace": "BRD §14.2, FR-TEL-007"},
+    {"id": "C3", "desc": "Başarıda orijinal leg serbest: TRANSFERRED → A-leg BYE ile serbest (a_leg_released) + agent medyası durur; orphaned/çift-faturalı leg yok. orphaned_leg=0.", "trace": "SAD §7.3 (oturum kapanır), BRD §16 Call Leg"},
+    {"id": "C4", "desc": "Başarısızlıkta fail-safe: REFER reddi/NOTIFY≥300/deadline → oturum DÜŞMEZ; A-leg korunur + 9.7 fallback (callback/voicemail/ticket) tetiklenir. dropped_on_failure=0.", "trace": "FR-HND-007, SAD §14"},
+    {"id": "C5", "desc": "Cold = fire-and-forget: başarıda agent köprülenmez/çıkar (warm 9.2 / whisper 9.3'ten ayrım); cold transfer'de köprü yok. bridged_on_cold=0.", "trace": "SAD §7.3, FR-TEL-007"},
+    {"id": "C6", "desc": "Hedef çözülmüş + geçerli tip: TransferTarget boş/çözülmemiş veya geçersiz tip ise REFER gönderilmez (FAILED→fallback). unresolved_target=0.", "trace": "FR-HND-003, API §11.5 TransferTarget"},
+    {"id": "C7", "desc": "Outcome raporlama + audit: her terminal outcome {success/fail} + wait_seconds + correlation_id + tenant_id audit'e yazılır (FR-HND-008→9.8, FR-IAM-006). missing_audit=0.", "trace": "FR-HND-008, FR-IAM-006"},
+    {"id": "C8", "desc": "Deadline guard: REFER/NOTIFY deadline (refer_deadline_ms) aşılırsa → FAILED (sonsuz hang yok). hung_transfer=0.", "trace": "SAD §6.1, NFR 10.1"},
+    {"id": "C9", "desc": "Tenant izolasyonu: transfer hedefi tenant'ın CC routing'i içinde; cross-tenant hedef reddedilir (FAILED). cross_tenant_target=0.", "trace": "FR-TEN-002, NFR 10.7"},
+    {"id": "C10", "desc": "Sır/PII yok: hedef referansı kimlik; ham telefon numarası/çağrı içeriği spec/config/sample/metrikte yok; SIP kodları yalnız audit/log. secret_or_pii=0.", "trace": "BRD §14, BRD §16, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar ham TELEFON NUMARASI DEĞERİ, çağrı medyası/transkript veya PII DEĞERİ TUTMAZ — yalnız hedef tip/referans KİMLİKLERİ + sanal zaman + transfer SAYILARI + SIP/sipfrag kodu (yapısal) + uygunluk bayrakları (boolean). Hedef referansı (queue/skill/agent kimliği) PII değildir. Örnekte numara gerekiyorsa yalnız rezerve/test bloğu (ITU 1632 / 555-01xx) yapısal biçim için; gerçek müşteri numarası YOK. Telefon numarası PII'dir (BRD §16 Contact); durable kayıt redaction/şifreleme orchestrator+DB katmanında.",
+    "forbids": ["raw_phone_number_value", "call_content", "transcript", "credential", "secret", "pii_value"]
+  }
+}
