@@ -1,0 +1,159 @@
+{
+  "$comment": "WBS 10.2.3 — Ülke/bölge ARAMA SAATİ kuralları (BRD §14.3 Outbound Uyumluluğu 'izin verilen saat' / FR-TEL-013 'Outbound arama saatleri ülke ve müşteri bazında sınırlandırılmalıdır' [Must] + FR-OUT-004 'Ülke ve bölgeye göre arama saatleri uygulanmalıdır' [Must] / SR-TEL-013 [yöntem T — 'Outbound arama saatleri ülke/müşteri bazında sınırlanır; izinli saat dışı arama yapılmaz'; kabul: 'Saat-dışı denemesi engellenir'] + SR-OUT-004 [yöntem T — 'Ülke/bölge arama saatleri uygulanır'; kabul: 'İzinli saat dışı arama engellenir'] / TC-TEL-013 + TC-OUT-004 / SAD §19.1 Consent Engine 'izin verilen saat (ülke/bölge) [FR-TEL-013, FR-OUT-004]'). 10. workstream'in (Outbound) Consent & uyumluluk motoru alt-bloğunun ARAMA SAATİ (calling-hours) modülü. FR-TEL-013 + FR-OUT-004 + SR-TEL-013 + SR-OUT-004'ün ARAMA SAATİ KARARINI sahiplenir: bir outbound çağrı talebinin (contact + ülke/bölge + call_time) izin verilen arama saatleri PENCERESİNE düşüp düşmediğine karar verir — çağrı anının (call_time, mutlak instant) contact'ın BÖLGESİNE göre YEREL saate çevrilmesi (FR-OUT-004 'ülke ve BÖLGEYE göre' = bölge → saat dilimi → yerel saat) + DÖRT KONJONKTİF KURAL: GÜNLÜK PENCERE (yerel saat izin verilen [start,end) içinde) ∧ HAFTANIN GÜNÜ (izin verilen weekday) ∧ BLACKOUT/TATİL (yerel tarih yasaklı listede değil) ∧ MÜŞTERİ PENCERESİ (FR-TEL-013 'müşteri bazında' — contact'a özel daha dar pencere/günler). Modül 10.2.1 Consent ön-kontrol + 10.2.2 DNC/suppression modüllerinin KARDEŞİdir ve onlarla AND'lenir: eligible = consent_ok AND dnc_ok AND hours_ok (bu modül hours_ok BOYUTUNU sahiplenir). Modül bir DETERMİNİSTİK FAIL-CLOSED MOTORUdur: CallingHoursCheckRequest{request_id, tenant_id, correlation_id, campaign_id, contact_key, country, region?, call_channel, campaign_category, call_time(ISO mutlak instant — UTC/offset), tz_offset_minutes?, customer_window?{start,end,weekdays[]}, profile_id?} alır → ülke/bölge profilini çözer (saat dilimi offset + allowed_window + allowed_weekdays + blackout_dates) → call_time'ı YEREL saate çevirir → DÖRT KURALI konjonktif değerlendirir → bir terminal karar {ALLOW (tüm kurallar geçti → arama saati boyutu açısından çağrı başlatılabilir) | BLOCK (en az bir kural ihlal / bölge-saat dilimi çözümlenemedi → çağrı BAŞLATILMAZ, saat-dışı denemesi engellenir)} + block_reason taksonomisi üretir. ÇEKİRDEK INVARIANT (FR-OUT-004): değerlendirme HER ZAMAN contact'ın YEREL saatinde yapılır — bölge → saat dilimi çözülür, sunucu/UTC saatiyle DEĞİL (K2 tz_error=0: yanlış saat dilimi/sunucu saati kullanımı = bölge bazlı uygulama ihlali); ÇEKİRDEK INVARIANT (SR-TEL-013): saat-dışı bir çağrı ASLA başlatılmaz / kontrol ATLANAMAZ (K8 hours_skip=0: izinli saat dışı arama yapılmaz; atlanması BRD §15/SAD §17.2 'arama saati kontrolünün atlanması' kritik alarmı). Bölge/saat dilimi çözümlenemezse fail-closed BLOCK unknown_region (K7, fail-open YASAK); yerel saat pencere dışı → BLOCK outside_window (K3); izinsiz haftanın günü → BLOCK weekday_blocked (K4); blackout/tatil → BLOCK blackout_date (K5); müşteri penceresi dışı → BLOCK customer_window (K6); her karar deterministik+terminal (K1); her karar kanıt (K9) + audit (K10); metrik düşük-kardinalite + PII metrikte/log'da yok (K11); spec/config/sample ham PII/sır tutmaz + tenant izolasyonu (K12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): arama öncesi CONSENT kararı (amaç/ülke/birey-şirket/kaynak/tarih/kapsam) → 10.2.1 (FR-OUT-003; bu modül consent BOYUTUNU çözmez, AND'ler); DNC/suppression gerçek zamanlı → 10.2.2 (FR-TEL-014/FR-OUT-006; AND'lenir); son arama / MAX DENEME → 10.1.3 (FR-OUT-005); Caller ID / numara yönetimi → FR-TEL-004/005; zorunlu açılış metni / AI disclosure → BRD §14.2; kampanya/teklif VERSİYONU → 10.1.6 (FR-OUT-009); kampanya OLUŞTURMA + liste → 10.1.1/10.1.2; silent/abandoned call önleme (kapasite) → 10.2.4 (FR-TEL-015); compliance profile ÇÖZÜMLEME motoru (most-restrictive-wins, tenant override) → DPIA §5/SAD §19.3 (bu modül çözülmüş allowed_window/weekdays/blackout/timezone DEĞERLERİNİ tüketir); IANA saat dilimi / DST çözümlemesi → vendor-neutral saat dilimi adapter (ADR-002; bu modül çözülmüş utc_offset_minutes'i tüketir — DST değişimini adapter sağlar, motor deterministik fixed-offset değerlendirir); contact REGION/timezone KAYDI → DB §5.4 contact + tenant residency; gerçek audit STORE → 7.1.6/12.1.8; gözlemlenebilirlik omurgası → 0.4.7 (metrik ÜRETİR); dialer ÇEVİRME/zamanlama → 10.1.x (bu modül ALLOW/BLOCK döndürür, çevirmez/ileri-sarmaz — saat-dışı için yeniden zamanlama 2.1.8 retry/callback'in calling_hours penceresine bağlanır); panel UI 'arama saati' render → L2 A-10. Spec/config/sample'larda sır/credential ve gerçek PII (müşteri adı/TELEFON numarası/hesap no/ham transkript) YOK — yalnız yapısal KİMLİKLER (request/campaign/tenant/contact/correlation kimlikleri) + ENUM'lar (call_channel/country/region) + GÖRELİ ISO TARİH-ZAMAN (call_time — sentetik) + SAAT PENCERELERİ (HH:MM) + offset/weekday SAYILARI + BAYRAKLAR. KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS/DB/API esastır.",
+  "version": "1.0",
+  "wbs": "10.2.3",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TEL-013", "FR-OUT-004", "FR-OUT-003", "FR-TEL-014", "FR-TEN-004", "FR-IAM-006", "FR-TEN-002", "FR-REC-004", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-TEL-013", "SR-OUT-004"],
+    "rtm": ["TC-TEL-013", "TC-OUT-004"],
+    "brd": [
+      "§14.3 (Outbound Uyumluluğu — 'izin verilen saat' arama öncesi çalıştırılacak kurallardan biri)",
+      "§9.4 (FR-TEL-013 — outbound arama saatleri ülke ve müşteri bazında sınırlandırılır)",
+      "§9.13 (Outbound Kampanya Yönetimi — FR-OUT-004 ülke ve bölgeye göre arama saatleri uygulanır)",
+      "§19 (kabul kriteri — Outbound consent ve uyumluluk kontrolleri doğrulanmalıdır)",
+      "§15 (kritik alarm — arama saati kontrolünün ATLANMASI)",
+      "§16 (Contact varlığı — contact bölge/saat dilimi bu motorun girdisidir)"
+    ],
+    "sad": [
+      "§19.1 (Consent Engine — 'izin verilen saat (ülke/bölge) [FR-TEL-013, FR-OUT-004]'; bu modül arama saati boyutunu somutlaştırır)",
+      "§19 (Compliance by design — Country compliance profiles ile parametrelenir; timezone + allowed_window + weekdays + blackout)",
+      "§6 (Fail soft / fail-closed — saat-dışı çağrı başlatılmaz; bölge/saat dilimi çözümlenemezse fail-closed BLOCK)",
+      "§13.3 (correlation/tenant context propagation — karar correlation_id+tenant taşır)",
+      "§14.4 (panel — L2 A-10 'arama saati' yüzeyi)",
+      "§17.2 (arama saati kontrolü atlama → kritik alarm ≤2dk)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — Arama saati kapısı kampanya kontrol/uyumluluk düzleminde bir karar fonksiyonu; STT/LLM/TTS'e doğrudan bağlanmaz)",
+      "ADR-002 (vendor-neutral — saat dilimi/IANA/DST çözümleme sağlayıcı bağımsız; aynı karar sözleşmesi arkasına gerçek tz adapter; çözülmüş utc_offset_minutes tüketilir)",
+      "ADR-012 (RBAC — arama saati POLİTİKA yönetimi consent:manage; per-call saat kontrolü otomatik gate)"
+    ],
+    "db": [
+      "DB §5.4 contact — contact bölge/saat dilimi (region/timezone) bu motorun girdisidir (OKUR, yazmaz)",
+      "DB §3 tenant — tenant default timezone/residency (FR-TEN-004) profil çözümlemesini besler (tüketir)"
+    ],
+    "threat_model": [
+      "TM-T-* (tahrifat — arama saati kontrolü ATLANAMAZ; bypass=hours_skip ihlali, K8 = BRD §15 kritik alarm; saat-dışı arama engellenir)",
+      "TM-T-* (tenant izolasyonu — arama saati profili/penceresi yalnız aynı tenant'a ait okunur; cross-tenant okuma reddedilir, FR-TEN-002, K12)",
+      "TM-I-* (bilgi ifşası — karar/metrik/log ham PII [ad/telefon] taşımaz; yalnız yapısal kimlik+enum+saat penceresi+tarih, K11/K12)",
+      "TM-R-* (inkâr — her karar [ALLOW/BLOCK] dört-kural değerlendirmesi + yerel saat + block_reason ile audit'e yazılır, K10)"
+    ],
+    "consumes": [
+      "DPIA §5 / SAD §19.3 compliance profile çözümleme — çözülmüş allowed_window + allowed_weekdays + blackout_dates + timezone (cp.outbound.calling_hours) DEĞERLERİNİ tüketir (most-restrictive-wins çözümlemeyi yeniden yapmaz)",
+      "Saat dilimi / DST adapter (ADR-002) — bölge → çözülmüş utc_offset_minutes durumunu TÜKETİR (IANA/DST'yi kendisi çözmez; deterministik fixed-offset değerlendirir)",
+      "DB §5.4 contact — contact region/timezone + customer_window'u OKUR (FR-TEL-013 müşteri bazında)",
+      "10.1.1 kampanya (FR-OUT-001) — campaign_id + campaign_category'yi TÜKETİR",
+      "Outbound dialer çekirdeği (10.1.x) — per-contact CallingHoursCheckRequest'i (call_time) gönderir"
+    ],
+    "consumed_by": [
+      "10.2.1 Consent ön-kontrol + 10.2.2 DNC — bu modülün hours_ok sonucu consent_ok + dnc_ok ile AND'lenir (eligible = consent_ok AND dnc_ok AND hours_ok)",
+      "Outbound dialer çekirdeği (10.1.x) — ALLOW ise (saat boyutu) çevirir, BLOCK ise çağrı BAŞLATMAZ (saat-dışı denemesi engellenir)",
+      "2.1.8 retry/geri-arama (FR-TEL-009) — BLOCK outside_window/weekday_blocked sonucu çağrıyı calling_hours penceresine yeniden zamanlamayı (callback) tetikler; bu modül zamanlamaz, kararı verir",
+      "10.1.8 A/B test — eligibility{hours_ok} SONUCUNU tüketir (yeniden hesaplamaz)",
+      "7.1.6 + 12.1.8 audit store (FR-IAM-006) — arama saati kararını kalıcılaştırır",
+      "0.4.7 gözlemlenebilirlik — hours_* metriklerini tüketir (hours_skip alarmı dahil)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Arama saati kontrolü, outbound kontrol/uyumluluk düzleminde bir KARAR fonksiyonudur: dialer bir contact'ı çevirmeden ÖNCE (SAD §19.1) bu motora CallingHoursCheckRequest gönderir; motor ülke/bölge profilini (timezone + allowed_window + weekdays + blackout) çözer, call_time'ı YEREL saate çevirir, dört kuralı konjonktif değerlendirir (hepsi geçmeli → ALLOW) ve ALLOW|BLOCK döndürür. Motor hot-path medya işlemez; deterministik kontrol/uyumluluk düzlemi (medya bütçesi dışı). Vendor-neutral (ADR-001/002): saat dilimi/DST çözümleme sağlayıcı bağımsız; aynı karar sözleşmesi arkasına gerçek tz adapter.",
+    "plane": "outbound compliance control plane (Arama saati kapısı — deterministik fail-closed konjonktif dört-kural yerel-saat arama saati kararı)",
+    "owns": "FR-TEL-013/SR-TEL-013 + FR-OUT-004/SR-OUT-004 arama saati boyutu: CallingHoursCheckRequest → ülke/bölge profil çözümü (timezone + allowed_window + weekdays + blackout) + call_time → YEREL saat çevirme + DÖRT KURAL konjonktif değerlendirme (günlük pencere/haftanın günü/blackout/müşteri penceresi) + bölge fail-closed + terminal karar {ALLOW|BLOCK} + block_reason taksonomisi + karar audit; değerlendirme YEREL saatte (FR-OUT-004)",
+    "delegates": "arama öncesi CONSENT kararı → 10.2.1 (FR-OUT-003; AND'lenir, çözülmez); DNC/suppression → 10.2.2 (FR-TEL-014; AND'lenir); max deneme → 10.1.3 (FR-OUT-005); Caller ID → FR-TEL-004/005; açılış metni → BRD §14.2; versiyon → 10.1.6; kapasite/abandoned → 10.2.4 (FR-TEL-015); profile ÇÖZÜMLEME → DPIA §5/SAD §19.3 (değerleri TÜKETİR); IANA/DST → tz adapter (TÜKETİR); contact region KAYDI → DB §5.4 (OKUR); audit store → 7.1.6/12.1.8; dialer ÇEVİRME/yeniden-zamanlama → 10.1.x + 2.1.8 (karar döndürür, çevirmez); panel UI → L2 A-10",
+    "deterministic": true,
+    "fail_closed": true,
+    "trace": "API §A-10, DB.md §5.4 contact, SAD §19.1, SAD §6, ADR-001, ADR-002, ADR-012"
+  },
+
+  "rules": {
+    "$comment": "SR-TEL-013 + SR-OUT-004 ÇEKİRDEK — DÖRT KONJONKTİF ARAMA SAATİ KURALI (BRD §14.3, SAD §19.1). call_time önce contact BÖLGESİNE göre YEREL saate çevrilir (FR-OUT-004; K2 — sunucu/UTC saati DEĞİL); sonra dört kural konjonktif (AND) değerlendirilir: HEPSİ geçerse ALLOW, en az biri ihlal ederse BLOCK. Sıra yalnız block_reason önceliğini belirler; karar (ALLOW/BLOCK) sıradan bağımsız. Her kural bir invariant'a (K3–K6) ve bir block_reason'a eşlenir; bölge/saat dilimi çözümlenemezse K7 fail-closed unknown_region.",
+    "list": [
+      {"id": "daily_window", "field": "profile.allowed_window{start,end}", "invariant": "K3", "block_reason": "outside_window",
+       "rule": "contact YEREL saati izin verilen günlük pencere [start,end) içinde olmalı; dışındaysa (gece/öğle-dışı) BLOCK outside_window — saat-dışı arama engellenir (SR-TEL-013)"},
+      {"id": "weekday", "field": "profile.allowed_weekdays[]", "invariant": "K4", "block_reason": "weekday_blocked",
+       "rule": "contact YEREL tarihinin haftanın günü (Pzt=0..Paz=6) izin verilen weekday listesinde olmalı; değilse (ör. Pazar yasak) BLOCK weekday_blocked"},
+      {"id": "blackout", "field": "profile.blackout_dates[]", "invariant": "K5", "block_reason": "blackout_date",
+       "rule": "contact YEREL tarihi blackout/resmî tatil listesinde OLMAMALI; listedeyse BLOCK blackout_date"},
+      {"id": "customer_window", "field": "request.customer_window{start,end,weekdays[]}", "invariant": "K6", "block_reason": "customer_window",
+       "rule": "FR-TEL-013 'müşteri bazında': contact'a özel daha dar pencere/günler tanımlıysa YEREL saat/gün bu pencere içinde olmalı; dışındaysa BLOCK customer_window (ülke penceresi geçse bile müşteri penceresi daha kısıtlayıcı olabilir)"}
+    ],
+    "block_precedence": ["unknown_region", "blackout_date", "weekday_blocked", "outside_window", "customer_window"],
+    "evaluation": "all_pass_fail_closed",
+    "trace": "BRD §14.3, SR-TEL-013, SR-OUT-004, SAD §19.1"
+  },
+
+  "decision": {
+    "$comment": "Konjonktif (all-pass) fail-closed karar algoritması. Adımlar: (1) ülke/bölge profilini çöz (timezone offset + allowed_window + allowed_weekdays + blackout_dates). (2) bölge → utc_offset_minutes çöz: açık tz_offset_minutes > profile.regions[region].utc_offset_minutes > profile.utc_offset_minutes; çözümlenemezse (bilinmeyen ülke / requires_region ∧ bölge yok / offset yok) fail-closed BLOCK unknown_region (K7). (3) call_time'ı UTC'ye normalize et + offset uygula → YEREL datetime (K2 — YEREL saatte değerlendir, sunucu/UTC DEĞİL). (4) dört kuralı konjonktif değerlendir: blackout (yerel tarih) ∧ weekday (yerel gün) ∧ daily_window (yerel saat) ∧ customer_window (varsa). (5) HEPSİ geçerse → ALLOW; en az biri ihlal ederse → BLOCK (block_precedence sırasıyla block_reason ata). Belirsizlik/bölge çözümlenemedi → BLOCK (fail-closed; ASLA fail-open). Değerlendirme YEREL saatte (FR-OUT-004): bölge → saat dilimi → yerel saat.",
+    "algorithm": "resolve_profile(timezone,window,weekdays,blackout) → resolve_offset(region) | unresolved ⇒ BLOCK(unknown_region) → to_local(call_time,offset) → eval4(blackout,weekday,daily_window,customer_window) → all_pass ⇒ ALLOW | any_fail ⇒ BLOCK(reason)",
+    "default": "BLOCK",
+    "trace": "SR-TEL-013, SR-OUT-004, SAD §19.1, SAD §6"
+  },
+
+  "block_reasons": {
+    "$comment": "BLOCK karar taksonomisi (her kural + bölge çözümlenememe + tenant izolasyonu). Düşük-kardinalite (metrik label uygun). 'hours_skip' yalnız BYPASS injection'ında (K8 ihlali) görünür — normal akışta üretilmez.",
+    "list": ["outside_window", "weekday_blocked", "blackout_date", "customer_window", "unknown_region", "cross_tenant"]
+  },
+
+  "outcomes": {
+    "$comment": "Terminal karar sonuçları. ALLOW = tüm arama saati kuralları geçti (yerel saat pencere içinde, izinli gün, blackout değil, müşteri penceresinde) → arama saati boyutu açısından çağrı başlatılabilir (consent/DNC AYRI kapılar). BLOCK = en az bir kural ihlal / bölge çözümlenemedi → çağrı BAŞLATILMAZ (saat-dışı denemesi engellenir). İkisi de geçerli terminal — BLOCK ihlal DEĞİL, fail-closed doğru reddetmedir. Her karar audit üretir.",
+    "list": ["ALLOW", "BLOCK"],
+    "terminal": ["ALLOW", "BLOCK"]
+  },
+
+  "authorization": {
+    "$comment": "Per-call arama saati kontrolü bir OTOMATİK gate'tir (dialer tetikler); RBAC kullanıcı-komutu değildir. Arama saati POLİTİKASI (allowed_window, weekdays, blackout_dates, timezone) yönetimi consent:manage yetkisi ister (security_compliance_officer/tenant_admin/tenant_owner); müşteri penceresi (customer_window) KAYDI consent:manage/disposition. Per-call check yetki sormaz, fail-closed çalışır. Karar her zaman backend'de.",
+    "policy_permission": "consent:manage",
+    "policy_roles": ["security_compliance_officer", "tenant_admin", "tenant_owner"],
+    "per_call_check": "automatic_gate (RBAC değil; fail-closed)",
+    "decision_at": "backend",
+    "trace": "FR-IAM-011, ADR-012, SAD §27 RBAC, DPIA §5"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli; bir senaryoda ihlal varsa kapı eler. hours_skip (K8) = BRD §15 kritik 'arama saati kontrolü atlama' alarmı; tz_error (K2) = FR-OUT-004 ihlali (yerel saat yerine sunucu/UTC saati). Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F2 canlı dialer + tz adapter + pilot tenant verisinde doğrulanır (BRD §22 açık karar).",
+    "max_hours_skip": 0,
+    "max_tz_error": 0,
+    "max_window_leak": 0,
+    "max_weekday_leak": 0,
+    "max_blackout_leak": 0,
+    "max_customer_window_leak": 0,
+    "max_failopen": 0,
+    "max_cross_tenant": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "Arama saati motoru her karar için BRD §15 + hours metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. hours_check_total{tenant,result} → karar sayımı; hours_block_total{tenant,block_reason} → reddetme nedeni (düşük-kardinalite taksonomi); hours_skip_total → arama saati kontrolünün ATLANMASI (K8 ihlal alarmı, 0 olmalı = BRD §15 kritik alarm 'arama saati kontrolü atlama'); hours_tz_error_total → yerel saat yerine sunucu/UTC saati (K2 ihlal, FR-OUT-004). tenant_id+result+block_reason+country+region DÜŞÜK kardinalite (label uygun); request_id/contact_key/campaign_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Müşteri PII (ad/telefon/ham numara) metrikte VE log'da YOK (FR-REC-004, BRD §17.7). hours_skip>0 (K8 ihlali) → kritik alarm ≤2dk (SAD §17.2, NFR 10.1, BRD §15).",
+    "metrics": ["hours_check_total", "hours_block_total", "hours_skip_total", "hours_tz_error_total"],
+    "low_cardinality_labels": ["tenant_id", "result", "block_reason", "country", "region"],
+    "high_cardinality_trace_only": ["request_id", "contact_key", "campaign_id", "correlation_id"],
+    "alarm": "hours_skip>0 (arama saati kontrolü atlandı — K8 ihlali, BRD §15 kritik 'arama saati kontrolü atlama') VEYA hours_block oranı ani artışı → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "K1", "desc": "Determinizm/tamlık: her CallingHoursCheckRequest tanımlı all-pass algoritması boyunca ilerler ve bir terminal karara {ALLOW|BLOCK} ulaşır; aynı girdi → aynı çıktı (deterministik profil çözümü + fixed-offset yerel saat çevirme + ISO tarih-saat karşılaştırması, sanal-saat call_time girdisi; Date.now/random YOK); stuck/tanımsız durum yok. stuck_state=0.", "trace": "SR-TEL-013, SAD §19.1"},
+    {"id": "K2", "desc": "Yerel saat ÇEKİRDEK (FR-OUT-004 'ülke ve BÖLGEYE göre'): değerlendirme HER ZAMAN contact'ın bölgesine göre çözülmüş YEREL saatinde yapılır (call_time → UTC normalize → utc_offset_minutes uygula → yerel datetime); sunucu/UTC saatiyle değerlendirme = bölge bazlı uygulama ihlali (tz_error). Yanlış saat dilimi/sunucu saatiyle ALLOW = ihlal. tz_error=0.", "trace": "FR-OUT-004, SR-OUT-004, BRD §14.3, FR-TEN-004"},
+    {"id": "K3", "desc": "Günlük pencere (SR-TEL-013): contact YEREL saati izin verilen günlük pencere [start,end) içinde olmalı; dışındaysa BLOCK outside_window — saat-dışı arama engellenir. Pencere dışı saate ALLOW = ihlal. window_leak=0.", "trace": "FR-TEL-013, SR-TEL-013, SAD §19.1"},
+    {"id": "K4", "desc": "Haftanın günü (FR-OUT-004): contact YEREL tarihinin haftanın günü izin verilen weekday listesinde olmalı; değilse (ör. Pazar yasak) BLOCK weekday_blocked. İzinsiz güne ALLOW = ihlal. weekday_leak=0.", "trace": "FR-OUT-004, BRD §14.3"},
+    {"id": "K5", "desc": "Blackout/tatil (FR-OUT-004): contact YEREL tarihi blackout/resmî tatil listesinde OLMAMALI; listedeyse BLOCK blackout_date. Blackout tarihine ALLOW = ihlal. blackout_leak=0.", "trace": "FR-OUT-004, BRD §14.3"},
+    {"id": "K6", "desc": "Müşteri penceresi (FR-TEL-013 'müşteri bazında'): contact'a özel daha dar pencere/günler tanımlıysa YEREL saat/gün bu pencere içinde olmalı; dışındaysa BLOCK customer_window (ülke penceresi geçse bile). Müşteri penceresi dışına ALLOW = ihlal. customer_window_leak=0.", "trace": "FR-TEL-013, BRD §14.3"},
+    {"id": "K7", "desc": "Fail-closed bilinmeyen bölge (SAD §6): contact'ın bölgesi/saat dilimi (utc_offset_minutes) çözümlenemezse fail-closed BLOCK unknown_region — ASLA fail-open ALLOW. Saat dilimi belirlenemeden ALLOW = failopen ihlali. failopen=0.", "trace": "SAD §6, SR-OUT-004, SAD §19.1"},
+    {"id": "K8", "desc": "Fail-closed / ATLANAMAZ (SR-TEL-013 ÇEKİRDEK): izinli saat dışı (herhangi kural ihlal) bir çağrı ASLA başlatılmaz (BLOCK); arama saati kontrolü bypass edilemez — bypass ile saat-dışı contact 'aranabilir' yapılırsa hours_skip ihlali (BRD §15 kritik 'arama saati kontrolü atlama' alarmı). hours_skip=0.", "trace": "SR-TEL-013, BRD §14.3, BRD §15, SAD §17.2"},
+    {"id": "K9", "desc": "Kanıt: her karar request_id + country + region + resolved_profile + utc_offset_minutes + local_time + dört-kural sonuçları + block_reason + hours_ok taşır; kanıtsız karar yok. missing_evidence=0.", "trace": "FR-IAM-006"},
+    {"id": "K10", "desc": "Audit: her karar (ALLOW/BLOCK) → audit {result, request_id, campaign_id, contact_key, country, region, local_time, block_reason, correlation_id, tenant_id} (FR-IAM-006); ham PII YOK. missing_audit=0.", "trace": "FR-IAM-006, 0.4.7 label_policy"},
+    {"id": "K11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (result/block_reason/country/region); request_id/contact_key/campaign_id/correlation_id metrikte yok, yalnız trace; müşteri PII (ad/telefon/ham numara) metrikte VE log'da yok (0.4.7 label_policy, FR-REC-004, BRD §17.7).", "trace": "FR-REC-004, 0.4.7 label_policy"},
+    {"id": "K12", "desc": "Sır/PII yok + tenant izolasyonu: spec/config/sample müşteri adı/TELEFON numarası/hesap no/ham transkript/OTP/credential tutmaz (yalnız yapısal kimlikler + enum + saat penceresi HH:MM + göreli ISO tarih-saat + offset/weekday sayısı + bayrak); arama saati profili/müşteri penceresi yalnız aynı tenant'a ait okunur, cross-tenant okuma → cross_tenant ihlali (FR-TEN-002). secret_or_pii=0 ∧ cross_tenant=0.", "trace": "BRD §14, BRD §16, FR-TEN-002, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar müşteri ADI, TELEFON numarası, HESAP numarası, ham TRANSKRİPT, OTP, PAROLA, PII DEĞERİ veya credential TUTMAZ — yalnız yapısal KİMLİKLER (request/campaign/tenant/contact/correlation kimlikleri ör. req-001 / camp-001 / t-acme / ck-001 / corr-001) + ENUM'lar (call_channel ör. voice; country ör. TR/UK/EU/US; region ör. US-NY/US-CA) + GÖRELİ ISO TARİH-ZAMAN (call_time ör. 2026-06-15T16:30:00+00:00 — sentetik; gerçek kişiye bağlı değil) + SAAT PENCERELERİ (HH:MM ör. 09:00) + SAYILAR (utc_offset_minutes ör. 180; weekday ör. 6; blackout_dates ISO tarih) + BAYRAKLAR. Kimlik/enum/saat/tarih/offset/bayrak PII DEĞİLDİR; tasarımca PII-olmayandır. Telefon numarası HİÇBİR alanda tutulmaz (contact yalnız opak ck-<id>).",
+    "forbids": ["customer_name", "customer_phone_value", "account_number_value", "transcript_text", "otp_code_value", "password_value", "credential", "secret", "pii_value", "raw_msisdn"]
+  }
+}

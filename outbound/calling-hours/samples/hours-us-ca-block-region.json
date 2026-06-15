@@ -1,0 +1,11 @@
+{
+  "name": "hours-us-ca-block-region",
+  "$comment": "FR-OUT-004 BÖLGE farkı kanıtı: AYNI call_time 13:00 UTC, US-CA (UTC-480/PST) → yerel 05:00 (08:00 penceresi öncesi) → BLOCK outside_window. US-NY'de aynı an 08:00 ALLOW olurdu — bölge sonucu değiştirir. Geçer.",
+  "expect": "pass",
+  "request_id": "req-us-002", "tenant_id": "t-acme", "correlation_id": "corr-us-002",
+  "campaign_id": "camp-us-001", "contact_key": "ck-us-002",
+  "country": "US", "profile_id": "PROFILE-US-CALL", "region": "US-CA",
+  "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-15T13:00:00+00:00",
+  "expected": {"terminal": "BLOCK", "block_reason": "outside_window", "local_time": "2026-06-15T05:00:00"}
+}

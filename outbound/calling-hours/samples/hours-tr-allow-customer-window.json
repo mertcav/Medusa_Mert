@@ -1,0 +1,11 @@
+{
+  "name": "hours-tr-allow-customer-window",
+  "$comment": "FR-TEL-013 müşteri bazında: müşteri 13:00–14:00 ister; TR call_time 10:30 UTC → yerel 13:30 (UTC+180) müşteri penceresi içinde + ülke penceresi içinde → ALLOW. Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-007", "tenant_id": "t-acme", "correlation_id": "corr-tr-007",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-007",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-15T10:30:00+00:00",
+  "customer_window": {"start": "13:00", "end": "14:00", "tenant_id": "t-acme"},
+  "expected": {"terminal": "ALLOW", "hours_ok": true, "local_time": "2026-06-15T13:30:00"}
+}

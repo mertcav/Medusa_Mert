@@ -1,0 +1,11 @@
+{
+  "name": "hours-cross-tenant-degraded",
+  "$comment": "DEGRADE: müşteri penceresi BAŞKA tenant'a (t-foreign) ait — bu tenant (t-acme) çağrısında yabancı-tenant arama saati verisi okunuyor. K12 cross_tenant ihlali (FR-TEN-002 tenant izolasyonu). Kapı ELER.",
+  "expect": "fail",
+  "request_id": "req-deg-008", "tenant_id": "t-acme", "correlation_id": "corr-deg-008",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-deg-008",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-15T08:00:00+00:00",
+  "customer_window": {"start": "09:00", "end": "18:00", "tenant_id": "t-foreign"},
+  "inject": []
+}

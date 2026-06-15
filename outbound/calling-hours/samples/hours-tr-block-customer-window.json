@@ -1,0 +1,11 @@
+{
+  "name": "hours-tr-block-customer-window",
+  "$comment": "FR-TEL-013 'müşteri bazında': ülke penceresi (09–18) yerel 11:00 için GEÇER, ancak müşteri yalnız 13:00–14:00 aranmak istemiş → BLOCK customer_window (müşteri penceresi ülkeden daha kısıtlayıcı). Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-006", "tenant_id": "t-acme", "correlation_id": "corr-tr-006",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-006",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-15T08:00:00+00:00",
+  "customer_window": {"start": "13:00", "end": "14:00", "tenant_id": "t-acme"},
+  "expected": {"terminal": "BLOCK", "block_reason": "customer_window"}
+}

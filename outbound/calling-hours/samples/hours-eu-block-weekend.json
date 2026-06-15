@@ -1,0 +1,10 @@
+{
+  "name": "hours-eu-block-weekend",
+  "$comment": "EU (UTC+60, izinli günler hafta içi [0–4]): 2026-06-20 Cumartesi call_time 08:00 UTC → yerel 09:00 (pencere içi) ama Cumartesi (weekday 5) izinli değil → BLOCK weekday_blocked. Geçer.",
+  "expect": "pass",
+  "request_id": "req-eu-001", "tenant_id": "t-acme", "correlation_id": "corr-eu-001",
+  "campaign_id": "camp-eu-001", "contact_key": "ck-eu-001",
+  "country": "EU", "profile_id": "PROFILE-EU", "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-20T08:00:00+00:00",
+  "expected": {"terminal": "BLOCK", "block_reason": "weekday_blocked"}
+}

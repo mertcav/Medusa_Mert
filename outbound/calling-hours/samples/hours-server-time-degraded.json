@@ -1,0 +1,10 @@
+{
+  "name": "hours-server-time-degraded",
+  "$comment": "DEGRADE (bilinçli): TR call_time 17:00 UTC → yerel 20:00 BLOCK olmalı; use_server_time ile YEREL saat yerine sunucu/UTC saati (17:00, pencere içi) kullanılıyor → yanlış ALLOW. K2 tz_error ihlali = FR-OUT-004 bölge bazlı uygulama bozuldu. Kapı ELER.",
+  "expect": "fail",
+  "request_id": "req-deg-002", "tenant_id": "t-acme", "correlation_id": "corr-deg-002",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-deg-002",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-15T17:00:00+00:00",
+  "inject": ["use_server_time"]
+}

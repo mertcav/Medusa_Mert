@@ -1,0 +1,11 @@
+{
+  "name": "hours-ignore-customer-window-degraded",
+  "$comment": "DEGRADE: müşteri yalnız 13:00–14:00 ister; yerel 11:00 müşteri penceresi dışı (BLOCK olmalı) ama ignore_customer_window ile müşteri penceresi görmezden geliniyor → ALLOW. K6 customer_window_leak ihlali (FR-TEL-013 müşteri bazında bozuldu). Kapı ELER.",
+  "expect": "fail",
+  "request_id": "req-deg-006", "tenant_id": "t-acme", "correlation_id": "corr-deg-006",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-deg-006",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-15T08:00:00+00:00",
+  "customer_window": {"start": "13:00", "end": "14:00", "tenant_id": "t-acme"},
+  "inject": ["ignore_customer_window"]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "hours-ignore-weekday-degraded",
+  "$comment": "DEGRADE: TR Pazar (weekday 6, yasak) ama ignore_weekday ile haftanın günü kuralı görmezden geliniyor → ALLOW. K4 weekday_leak ihlali. Kapı ELER.",
+  "expect": "fail",
+  "request_id": "req-deg-004", "tenant_id": "t-acme", "correlation_id": "corr-deg-004",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-deg-004",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-21T08:00:00+00:00",
+  "inject": ["ignore_weekday"]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "hours-us-ny-allow-region",
+  "$comment": "FR-OUT-004 BÖLGE bazlı: US-NY (UTC-300/EST), call_time 18:00 UTC → yerel 13:00 (08:00–21:00 penceresi içi) → ALLOW. Bölge → saat dilimi → yerel saat çözümü. Geçer.",
+  "expect": "pass",
+  "request_id": "req-us-001", "tenant_id": "t-acme", "correlation_id": "corr-us-001",
+  "campaign_id": "camp-us-001", "contact_key": "ck-us-001",
+  "country": "US", "profile_id": "PROFILE-US-CALL", "region": "US-NY",
+  "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-15T18:00:00+00:00",
+  "expected": {"terminal": "ALLOW", "hours_ok": true, "local_time": "2026-06-15T13:00:00"}
+}

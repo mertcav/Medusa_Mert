@@ -1,0 +1,10 @@
+{
+  "name": "hours-uk-allow",
+  "$comment": "UK (UTC+0, pencere 08:00–20:00): 2026-06-15 Pazartesi call_time 10:00 UTC → yerel 10:00 pencere içi, izinli gün → ALLOW. Geçer.",
+  "expect": "pass",
+  "request_id": "req-uk-001", "tenant_id": "t-acme", "correlation_id": "corr-uk-001",
+  "campaign_id": "camp-uk-001", "contact_key": "ck-uk-001",
+  "country": "UK", "profile_id": "PROFILE-UK", "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-15T10:00:00+00:00",
+  "expected": {"terminal": "ALLOW", "hours_ok": true, "local_time": "2026-06-15T10:00:00"}
+}

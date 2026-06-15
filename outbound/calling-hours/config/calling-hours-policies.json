@@ -1,0 +1,65 @@
+{
+  "$comment": "WBS 10.2.3 Ülke/bölge arama saati kuralları — ülke/bölge arama saati profilleri (cp.outbound.calling_hours türevi; vendor-neutral, credential-free). Bu config, DPIA §5.3 cp.outbound.* parametrelerinin bu motorun TÜKETTİĞİ alt kümesini (arama saati boyutu) tutar: her ülke için saat dilimi offset'i (utc_offset_minutes) + izin verilen günlük pencere (allowed_window) + izin verilen haftanın günleri (allowed_weekdays; Pzt=0..Paz=6) + blackout/tatil tarihleri (blackout_dates). Çok-saat-dilimli ülkeler için bölge (regions) override'ı utc_offset_minutes'i bölgeye göre çözer (FR-OUT-004 'ülke ve BÖLGEYE göre'); requires_region=true ise bölge zorunlu (bölge yoksa fail-closed unknown_region). Profile ÇÖZÜMLEME (most-restrictive-wins, tenant override) motoru DPIA §5/SAD §19.3'tedir; bu config çözülmüş DEĞERLERİ taşır. IANA saat dilimi/DST çözümlemesi vendor-neutral tz adapter'dadır (ADR-002); bu config deterministik fixed-offset değer taşır (DST kayması adapter tarafından sağlanır, motor çözülmüş offset'i değerlendirir). consent boyutu → 10.2.1; DNC/suppression → 10.2.2 (bu modülde değil). Değerler MÜHENDİSLİK varsayılanı, counsel doğrulamasına tabi (DPIA); pilot tenant + tz adapter (F2) ile kalibre edilir. Sır/credential ve PII (ham telefon/MSISDN) YOK — yalnız enum/saat/sayı/bayrak.",
+  "version": "1.0",
+  "wbs": "10.2.3",
+  "default_profile": "PROFILE-TR",
+  "channel": "voice",
+  "weekday_convention": "Pzt=0,Sal=1,Çar=2,Per=3,Cum=4,Cmt=5,Paz=6 (Python datetime.weekday)",
+  "profiles": {
+    "PROFILE-TR": {
+      "$comment": "DPIA §5.3 PROFILE-TR: KVKK + ETK. Tek saat dilimi (Europe/Istanbul, UTC+3 sabit). Ticari arama izinli saat penceresi MÜHENDİSLİK varsayılanı (counsel'a tabi): hafta içi+Cmt 09:00–18:00; Pazar yasak; resmî tatiller blackout.",
+      "country": "TR",
+      "regime": "ETK",
+      "timezone": "Europe/Istanbul",
+      "utc_offset_minutes": 180,
+      "requires_region": false,
+      "allowed_window": {"start": "09:00", "end": "18:00"},
+      "allowed_weekdays": [0, 1, 2, 3, 4, 5],
+      "blackout_dates": ["2026-04-23", "2026-05-01", "2026-05-19"]
+    },
+    "PROFILE-UK": {
+      "$comment": "DPIA §5.3 PROFILE-UK: UK_GDPR + PECR/Ofcom. Tek saat dilimi (Europe/London; DST adapter çözer, burada fixed UTC+0 örnek). Pencere 08:00–20:00 hafta içi+Cmt (mühendislik varsayılanı, Ofcom'a tabi); Pazar kısıtlı.",
+      "country": "UK",
+      "regime": "UK_GDPR",
+      "timezone": "Europe/London",
+      "utc_offset_minutes": 0,
+      "requires_region": false,
+      "allowed_window": {"start": "08:00", "end": "20:00"},
+      "allowed_weekdays": [0, 1, 2, 3, 4, 5],
+      "blackout_dates": ["2026-12-25", "2026-12-26"]
+    },
+    "PROFILE-EU": {
+      "$comment": "DPIA §5.3 PROFILE-EU: EU_GDPR. Üye-devlet bazlı; varsayılan CET (UTC+1, DST adapter çözer). Pencere 09:00–20:00 hafta içi (mühendislik varsayılanı, üye-devlet overlay'i daraltabilir); hafta sonu yasak (en kısıtlayıcı varsayılan).",
+      "country": "EU",
+      "regime": "EU_GDPR",
+      "timezone": "Europe/Brussels",
+      "utc_offset_minutes": 60,
+      "requires_region": false,
+      "allowed_window": {"start": "09:00", "end": "20:00"},
+      "allowed_weekdays": [0, 1, 2, 3, 4],
+      "blackout_dates": ["2026-12-25"]
+    },
+    "PROFILE-US-CALL": {
+      "$comment": "İLLÜSTRATİF çok-saat-dilimli ABD profili (FR-OUT-004 'ülke ve BÖLGEYE göre' kanıtı): requires_region=true → bölge zorunlu; bölge → utc_offset_minutes (US-NY=-300 EST, US-CA=-480 PST; DST adapter çözer). TCPA tipik 08:00–21:00 contact YEREL saati (mühendislik varsayılanı, eyalet+counsel'a tabi). profile-düzeyi offset YOK → bölgesiz çağrı fail-closed unknown_region.",
+      "country": "US",
+      "regime": "TCPA_DEMO",
+      "timezone": null,
+      "utc_offset_minutes": null,
+      "requires_region": true,
+      "allowed_window": {"start": "08:00", "end": "21:00"},
+      "allowed_weekdays": [0, 1, 2, 3, 4, 5, 6],
+      "blackout_dates": [],
+      "regions": {
+        "US-NY": {"timezone": "America/New_York", "utc_offset_minutes": -300},
+        "US-CA": {"timezone": "America/Los_Angeles", "utc_offset_minutes": -480}
+      }
+    }
+  },
+  "consume_from": ["DPIA §5.3 cp.outbound.calling_hours", "SAD §19.3 profile çözümleme", "ADR-002 tz/DST adapter", "DB §5.4 contact region/timezone + customer_window"],
+  "report_to": ["10.2.1-consent", "10.2.2-dnc", "10.1.x-dialer", "2.1.8-retry-callback", "0.4.7"],
+  "observability": {
+    "metric_prefix": "hours_",
+    "alarm_on_hours_skip": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

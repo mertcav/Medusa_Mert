@@ -1,0 +1,10 @@
+{
+  "name": "hours-tr-block-window-edge",
+  "$comment": "Pencere sınırı: TR call_time 15:00 UTC → yerel 18:00 (UTC+180). end=18:00 HARİÇ ([start,end)) → BLOCK outside_window. Sınır davranışını gösterir; geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-003", "tenant_id": "t-acme", "correlation_id": "corr-tr-003",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-003",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-15T15:00:00+00:00",
+  "expected": {"terminal": "BLOCK", "block_reason": "outside_window", "local_time": "2026-06-15T18:00:00"}
+}

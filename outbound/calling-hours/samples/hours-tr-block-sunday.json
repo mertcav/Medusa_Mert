@@ -1,0 +1,10 @@
+{
+  "name": "hours-tr-block-sunday",
+  "$comment": "FR-OUT-004 haftanın günü: TR 2026-06-21 Pazar, yerel 11:00 (pencere içi) ama Pazar (weekday 6) izinli günlerde [0–5] DEĞİL → BLOCK weekday_blocked. Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-004", "tenant_id": "t-acme", "correlation_id": "corr-tr-004",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-004",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-21T08:00:00+00:00",
+  "expected": {"terminal": "BLOCK", "block_reason": "weekday_blocked"}
+}

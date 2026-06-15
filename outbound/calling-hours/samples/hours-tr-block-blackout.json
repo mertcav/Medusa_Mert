@@ -1,0 +1,10 @@
+{
+  "name": "hours-tr-block-blackout",
+  "$comment": "FR-OUT-004 blackout/tatil: TR 2026-05-01 (resmî tatil, blackout listesinde), yerel 11:00 (pencere içi) + Cuma (izinli gün) ama blackout → BLOCK blackout_date (precedence weekday/window'dan önce). Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-005", "tenant_id": "t-acme", "correlation_id": "corr-tr-005",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-005",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-05-01T08:00:00+00:00",
+  "expected": {"terminal": "BLOCK", "block_reason": "blackout_date"}
+}

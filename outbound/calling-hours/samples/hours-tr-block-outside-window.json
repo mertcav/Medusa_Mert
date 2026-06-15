@@ -1,0 +1,10 @@
+{
+  "name": "hours-tr-block-outside-window",
+  "$comment": "SR-TEL-013 çekirdek: TR call_time 17:00 UTC → yerel 20:00 (UTC+180). Pencere 09:00–18:00 dışı (akşam) → BLOCK outside_window — saat-dışı arama engellenir. BLOCK doğru reddetmedir; geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-002", "tenant_id": "t-acme", "correlation_id": "corr-tr-002",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-002",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-15T17:00:00+00:00",
+  "expected": {"terminal": "BLOCK", "allow": false, "hours_ok": false, "block_reason": "outside_window", "local_time": "2026-06-15T20:00:00"}
+}

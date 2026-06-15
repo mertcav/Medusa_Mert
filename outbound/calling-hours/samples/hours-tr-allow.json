@@ -1,0 +1,10 @@
+{
+  "name": "hours-tr-allow",
+  "$comment": "TR: 2026-06-15 Pazartesi, call_time 08:00 UTC → yerel 11:00 (UTC+180). Pencere 09:00–18:00 içinde, izinli gün, blackout değil → ALLOW (arama saati boyutu açısından çağrı başlatılabilir). Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-001", "tenant_id": "t-acme", "correlation_id": "corr-tr-001",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-001",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales",
+  "call_time": "2026-06-15T08:00:00+00:00",
+  "expected": {"terminal": "ALLOW", "allow": true, "hours_ok": true, "local_time": "2026-06-15T11:00:00"}
+}
