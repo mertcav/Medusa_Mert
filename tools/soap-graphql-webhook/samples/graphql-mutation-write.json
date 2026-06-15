@@ -1,0 +1,13 @@
+{
+  "name": "graphql-mutation-write — mutation → write + idempotency header (C3/C8)",
+  "$comment": "GraphQL mutation → operation_class=write; idempotency_key write'ta Idempotency-Key header'ı olarak iletilir (FR-TOOL-009 köprüsü — 7.1.4 write retry güvenliği). variables PARAMETRELİ iletilir (C10 — değer query string'e enterpole edilmez). HTTP 200 + data → ok. Sentetik (FR-TST-008).",
+  "profile": "crm-graphql-bearer",
+  "invocations": [
+    {"call_id": "gm1", "correlation_id": "corr-hhh", "tenant_id": "t-1", "operation": "CreateTicket",
+     "idempotency_key": "idem-tkt-1", "args": {"input": {"subject": "callback"}}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 200, "latency_ms": 50, "has_data": true}]}
+  ],
+  "expect": {
+    "gm1": {"result": "ok", "operation_class": "write", "request_meta": {"idempotency_forwarded": true}}
+  }
+}

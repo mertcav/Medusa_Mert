@@ -1,0 +1,14 @@
+{
+  "name": "soap-payment-write — PostPayment write + idempotency header (C3/C8)",
+  "$comment": "SOAP PostPayment side_effect=write → operation_class=write; idempotency_key VARSA (7.1.3 üretir) write'ta Idempotency-Key header'ı iletilir (FR-TOOL-009 köprüsü — 7.1.4 write retry güvenliği R5). HTTP 200 → ok. Sentetik (FR-TST-008).",
+  "profile": "erp-soap-basic",
+  "invocations": [
+    {"call_id": "pw1", "correlation_id": "corr-ddd", "tenant_id": "t-1", "operation": "PostPayment",
+     "idempotency_key": "idem-pay-1", "args": {"amount": "100", "currency": "USD"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 200, "latency_ms": 70}]}
+  ],
+  "expect": {
+    "pw1": {"result": "ok", "operation_class": "write", "status_code": 200,
+            "request_meta": {"idempotency_forwarded": true, "method": "POST"}}
+  }
+}

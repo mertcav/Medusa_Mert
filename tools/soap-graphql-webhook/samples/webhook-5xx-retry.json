@@ -1,0 +1,13 @@
+{
+  "name": "webhook-5xx-retry — subscriber HTTP 503 → UPSTREAM_5XX RETRYABLE (C2)",
+  "$comment": "Abone (subscriber) geçici olarak 503 döner → UPSTREAM_5XX (retryable=true). At-least-once teslimat: 7.1.4 backoff ile retry eder. Webhook transport eşlemesi REST-benzeri (override yok). Sentetik (FR-TST-008).",
+  "profile": "events-webhook-hmac",
+  "invocations": [
+    {"call_id": "wr1", "correlation_id": "corr-jjj", "tenant_id": "t-1", "operation": "handoff_requested",
+     "idempotency_key": "evt-8001", "args": {"call_id": "C-8001"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 503, "latency_ms": 40}]}
+  ],
+  "expect": {
+    "wr1": {"result": "fault", "fault_class": "UPSTREAM_5XX", "status_code": 503, "retryable": true, "operation_class": "write"}
+  }
+}

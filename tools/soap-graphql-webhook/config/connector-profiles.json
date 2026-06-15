@@ -1,0 +1,48 @@
+{
+  "$comment": "WBS 7.2.2 — SOAP/GraphQL/webhook connector spec preset'leri (SAD §11.2 / FR-TOOL-001). Her profil bildirimsel bir ConnectorSpec'tir: protocol + base_url + auth (yalnız ${ENV} referansı — C5; literal sır YOK) + (webhook) signing (HMAC, yalnız ${ENV}) + connection pool (FR-RES-006) + operations (protokole göre). Host'lar example.com (sentetik — FR-TST-008). Gerçek sır/credential/imza-anahtarı repoya YAZILMAZ; canlıda auth.ref/signing.ref ortam değişkeninden çözülür, değer asla loglanmaz. operation_class: SOAP side_effect / GraphQL op_type / webhook(daima write) (C3).",
+  "version": "1.0",
+  "profiles": {
+    "erp-soap-basic": {
+      "$comment": "Tipik kurumsal ERP SOAP connector — basic auth (${ENV} ref), text/xml envelope, SOAPAction, keep-alive pool. side_effect okuma/yazma operasyonu ayırır; yazma idempotency_key VARSA iletir (7.1.3 üretir).",
+      "connector_id": "erp-soap",
+      "protocol": "soap",
+      "base_url": "https://erp.example.com",
+      "auth": {"type": "basic", "ref": "${ERP_SOAP_BASIC}", "header": "Authorization"},
+      "default_headers": {"X-Client": "chanteur-voice-ai"},
+      "default_timeout_ms": 2500,
+      "pool": {"max_per_host": 6, "keepalive_ms": 30000, "connect_overhead_ms": 50.0},
+      "operations": {
+        "GetAccountBalance": {"soap_action": "urn:erp/GetAccountBalance", "path": "/soap/v1/accounts", "side_effect": "read", "timeout_ms": 1500},
+        "PostPayment": {"soap_action": "urn:erp/PostPayment", "path": "/soap/v1/payments", "side_effect": "write", "success_codes": [200], "timeout_ms": 2500}
+      }
+    },
+    "crm-graphql-bearer": {
+      "$comment": "GraphQL CRM connector — bearer token auth (${ENV} ref), tek /graphql endpoint, query/mutation ayrımı → read/write. errors[] HTTP 200 içinde gelse de fault olarak sınıflanır (C13).",
+      "connector_id": "crm-graphql",
+      "protocol": "graphql",
+      "base_url": "https://crm.example.com",
+      "auth": {"type": "bearer", "ref": "${CRM_GQL_TOKEN}", "header": "Authorization", "scheme": "Bearer"},
+      "default_headers": {"X-Client": "chanteur-voice-ai"},
+      "default_timeout_ms": 2000,
+      "pool": {"max_per_host": 8, "keepalive_ms": 30000, "connect_overhead_ms": 40.0},
+      "operations": {
+        "GetCustomer": {"op_type": "query", "operation_name": "GetCustomer", "path": "/graphql", "query": "query GetCustomer($id:ID!){ customer(id:$id){ id name tier } }", "timeout_ms": 1500},
+        "CreateTicket": {"op_type": "mutation", "operation_name": "CreateTicket", "path": "/graphql", "query": "mutation CreateTicket($input:TicketInput!){ createTicket(input:$input){ id } }", "timeout_ms": 2000}
+      }
+    },
+    "events-webhook-hmac": {
+      "$comment": "Giden webhook connector — HMAC-SHA256 imza ZORUNLU (signing.ref ${ENV}; C13). At-least-once teslimat; daima write; event id idempotency_key olarak iletilir (abone tarafı dedup eder). API §10.1 webhook envelope imza deseni.",
+      "connector_id": "events-webhook",
+      "protocol": "webhook",
+      "base_url": "https://hooks.example.com",
+      "signing": {"ref": "${WEBHOOK_SIGNING_KEY}", "header": "X-Chanteur-Signature", "algo": "hmac-sha256"},
+      "default_headers": {"X-Client": "chanteur-voice-ai"},
+      "default_timeout_ms": 2000,
+      "pool": {"max_per_host": 8, "keepalive_ms": 20000, "connect_overhead_ms": 45.0},
+      "operations": {
+        "call_completed": {"event_type": "call.completed", "path": "/v1/events", "success_codes": [200, 202, 204], "timeout_ms": 1500},
+        "handoff_requested": {"event_type": "handoff.requested", "path": "/v1/events", "success_codes": [200, 202, 204], "timeout_ms": 1500}
+      }
+    }
+  }
+}

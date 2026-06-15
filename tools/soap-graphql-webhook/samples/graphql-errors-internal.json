@@ -1,0 +1,13 @@
+{
+  "name": "graphql-errors-internal — HTTP 200 + errors[INTERNAL_SERVER_ERROR] → UPSTREAM_5XX RETRYABLE (C13)",
+  "$comment": "EK DEĞER (C13): GraphQL HTTP 200 + errors[INTERNAL_SERVER_ERROR] → UPSTREAM_5XX (retryable=true). UNAUTHENTICATED ile karşıtlık: AYNI HTTP 200, farklı extensions.code → farklı retryability. 7.1.4 backoff ile retry eder. Sentetik (FR-TST-008).",
+  "profile": "crm-graphql-bearer",
+  "invocations": [
+    {"call_id": "gi1", "correlation_id": "corr-ggg", "tenant_id": "t-1", "operation": "GetCustomer",
+     "args": {"id": "C-9"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 200, "latency_ms": 30, "graphql_errors": [{"code": "INTERNAL_SERVER_ERROR"}]}]}
+  ],
+  "expect": {
+    "gi1": {"result": "fault", "fault_class": "UPSTREAM_5XX", "status_code": 200, "retryable": true}
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "webhook-injection-rejected — CRLF correlation_id → INJECTION_REJECTED, istek gönderilmez (C10)",
+  "$comment": "correlation_id değeri CRLF içerir (header injection denemesi) → istek WIRE'a GÖNDERİLMEDEN reddedilir (INJECTION_REJECTED). Beklenen güvenli sonuç. Sentetik (FR-TST-008).",
+  "profile": "events-webhook-hmac",
+  "expect_error_class": "INJECTION_REJECTED",
+  "invocations": [
+    {"call_id": "wi1", "correlation_id": "corr-kkk\r\nX-Admin: true", "tenant_id": "t-1", "operation": "call_completed",
+     "idempotency_key": "evt-9001", "args": {"call_id": "C-9001"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 202, "latency_ms": 40}]}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "graphql-errors-auth — HTTP 200 + errors[UNAUTHENTICATED] → AUTH_FAILED TERMINAL (C13)",
+  "$comment": "EK DEĞER (C13): GraphQL HTTP 200 NAİF olarak ok görünür; ama gövdedeki errors[] varsa FAULT'tur. errors[0].extensions.code=UNAUTHENTICATED → AUTH_FAILED (terminal, retryable=false). 7.1.4 retry ETMEZ. 'HTTP 200 → ok' yanılgısı önlenir. Sentetik (FR-TST-008).",
+  "profile": "crm-graphql-bearer",
+  "invocations": [
+    {"call_id": "ge1", "correlation_id": "corr-fff", "tenant_id": "t-1", "operation": "GetCustomer",
+     "args": {"id": "C-9"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 200, "latency_ms": 30, "has_data": false, "graphql_errors": [{"code": "UNAUTHENTICATED"}]}]}
+  ],
+  "expect": {
+    "ge1": {"result": "fault", "fault_class": "AUTH_FAILED", "status_code": 200, "retryable": false}
+  }
+}

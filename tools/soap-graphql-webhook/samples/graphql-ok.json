@@ -1,0 +1,15 @@
+{
+  "name": "graphql-ok — query HTTP 200 + data, no errors → ok + pool reuse (C1/C2/C3/C7)",
+  "$comment": "GraphQL query → operation_class=read. HTTP 200 + has_data, errors[] yok → ok. İki ardışık çağrı: cold (+40ms) → warm (0ms) FR-RES-006. Sentetik (FR-TST-008).",
+  "profile": "crm-graphql-bearer",
+  "invocations": [
+    {"call_id": "g1", "correlation_id": "corr-eee", "tenant_id": "t-1", "operation": "GetCustomer",
+     "args": {"id": "C-1001"}, "at_ms": 0, "wire_script": [{"result": "status", "status_code": 200, "latency_ms": 35, "has_data": true}]},
+    {"call_id": "g2", "correlation_id": "corr-eee", "tenant_id": "t-1", "operation": "GetCustomer",
+     "args": {"id": "C-1002"}, "at_ms": 100, "wire_script": [{"result": "status", "status_code": 200, "latency_ms": 40, "has_data": true}]}
+  ],
+  "expect": {
+    "g1": {"result": "ok", "fault_class": null, "protocol": "graphql", "operation_class": "read", "pooled": false, "latency_ms": 75.0},
+    "g2": {"result": "ok", "pooled": true, "latency_ms": 40.0}
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "webhook-delivered — HMAC-signed delivery, HTTP 202 ack → ok + write + signed (C2/C3/C5/C8/C13)",
+  "$comment": "Giden webhook teslimatı: HMAC imza ZORUNLU (signing.ref ${ENV}; C13/C5 — imza değeri audit'lenmez, yalnız signed=true). operation_class daima write; event id idempotency_key olarak iletilir (abone dedup). HTTP 202 (success_codes) → ok. Sentetik (FR-TST-008).",
+  "profile": "events-webhook-hmac",
+  "invocations": [
+    {"call_id": "wh1", "correlation_id": "corr-iii", "tenant_id": "t-1", "operation": "call_completed",
+     "idempotency_key": "evt-7001", "args": {"call_id": "C-7001", "outcome": "resolved"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 202, "latency_ms": 40}]}
+  ],
+  "expect": {
+    "wh1": {"result": "ok", "protocol": "webhook", "operation_class": "write", "status_code": 202,
+            "request_meta": {"signed": true, "idempotency_forwarded": true}}
+  }
+}

@@ -1,0 +1,150 @@
+{
+  "$comment": "WBS 7.2.2 — SOAP/GraphQL/webhook connector'lar (SAD §11.2 Integration Gateway + FR-TOOL-001). 7.2.1 (rest-connector) Tool Yürütme Hattının (SAD §11.1) UPSTREAM TRANSPORT katmanının REST dilimini uyguladı ve AYNI SPI seam'inin (7.1.4'ün ilan ettiği 'upstream_call(req) → AttemptOutcome; canlıda gerçek REST/SOAP/GraphQL/webhook transport + connection pool FR-RES-006 AYNI imza arkasına') SOAP/GraphQL/webhook dilimlerini bu modüle BIRAKTI ('SOAP/GraphQL/webhook → 7.2.2; AYNI SPI, farklı protokol mapper'). Bu modül o üç dilimi uygular: bildirimsel bir ConnectorSpec (protocol ∈ {soap,graphql,webhook}) + Invocation alır, protokole özgü kanonik bir istek KURAR (SOAP: HTTP POST + XML envelope + SOAPAction; GraphQL: HTTP POST + {query,variables,operationName} JSON; webhook: HTTP POST + JSON event payload + HMAC imza), vendor-neutral bir WIRE SPI üzerinden yürütür (referans: deterministik wire_script — gerçek ağ/credential YOK; canlı: gerçek HTTP/SOAP/GraphQL client + connection pool AYNI imza), ve protokol-yanıtını → 7.1.4'ün TÜKETTİĞİ AttemptOutcome'a EŞLER. INVARIANT (SR-TOOL-001 kabul ölçütü): 'Her connector tipi başarılı çağrı yapar'. Connector RETRY/BREAKER ORKESTRE ETMEZ (C4 — o 7.1.4); yalnız TEK denemenin sonucunu üretir. EK DEĞER (7.2.1 REST'in ötesinde, C13 — PROTOKOL-FARKINDA FAULT TESPİTİ): (1) SOAP — HTTP 500 NAİF olarak UPSTREAM_5XX (retryable) görünür, ama gövdedeki <soap:Fault> rolü Sender/Client ise bu bir İSTEMCİ hatasıdır → TERMINAL (retry futile); Receiver/Server ise → retryable. Rol HTTP status'tan ÖNCE gelir. (2) GraphQL — HTTP 200 NAİF olarak ok görünür, ama gövdedeki errors[] varsa bu bir FAULT'tur; errors[].extensions.code → fault_class (UNAUTHENTICATED/FORBIDDEN→AUTH_FAILED terminal; BAD_USER_INPUT/GRAPHQL_VALIDATION_FAILED→SCHEMA_INVALID terminal; INTERNAL_SERVER_ERROR→UPSTREAM_5XX retryable; RATE_LIMITED/THROTTLED→RATE_LIMITED retryable; bilinmeyen→UPSTREAM_4XX terminal güvenli). (3) Webhook — at-least-once teslimat; HMAC imza ZORUNLU (imzasız teslimat reddedilir); status REST-benzeri eşlenir. KAPSAM DIŞI (bilinçli): timeout/retry/circuit breaker ORKESTRASYONU → 7.1.4 (FR-TOOL-003; bu connector'ın AttemptOutcome'unu tüketir); allowlist → 7.2.3 (FR-TOOL-012; connector kanonik endpoint ÜRETİR, gate KARAR verir); REST dilimi → 7.2.1; input/output JSON schema doğrulama → 7.1.1 (FR-TOOL-002); tool authz/scope → 7.1.2 (FR-TOOL-004/005); idempotency key ÜRETİMİ/store → 7.1.3 (FR-TOOL-009; connector key'i VARSA iletir, üretmez); MÜŞTERİYE dönen hata metni normalizasyonu → 7.1.5 (FR-TOOL-008; connector yalnız yapısal fault_class üretir); correlation_id audit/trace zenginleştirme → 7.1.6 (FR-TOOL-010); webhook ABONELİK kataloğu/event şeması/imza-anahtar rotasyonu (API §10.1) → ileri WBS; asenkron uzun-işlem (callback/polling) → 7.2.4 (FR-TOOL-011). Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (fixture'lar sentetik — FR-TST-008; host'lar example.com). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "7.2.2",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TOOL-001", "FR-RES-006", "FR-TOOL-009", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-TOOL-001"],
+    "rtm": ["TC-TOOL-001"],
+    "sad": [
+      "§11.2 (Integration Gateway: REST/SOAP/GraphQL/webhook FR-TOOL-001; connection pooling + kalıcı oturum FR-RES-006; bu modülün SOAP/GraphQL/webhook dilimleri)",
+      "§11.1 adım [5]/[6] (Tool Yürütme Hattı — bu connector'lar adım [5]'in ALTINDAKI gerçek upstream transport'tur; 7.1.4 sarar)",
+      "§6.1 (turn state machine ACT durumu — schema-validated tool çağrısı bu transport'a iner)",
+      "§8.1/§8.2 (Adapter SPI — connector ortak yetenek deseni; transport değiştirilebilir)",
+      "§20 (tool overhead bütçe kalemi — connect/transfer gecikme katkısı; HARD kapı 0.3.2'de, burada SOFT)"
+    ],
+    "brd": ["§9.10 (Tool ve İş Süreci Yönetimi — FR-TOOL-001)", "§6.1 (CRM/Ticketing/ERP entegrasyonu — pilot)", "§8.1 (lean runtime — connection pooling/kaynak israfı azaltma)"],
+    "adr": [
+      "ADR-001 (orchestrator/Tool Executor bağımsızlığı — connector SPI arkasında)",
+      "ADR-002 (vendor-neutral — SOAP/GraphQL/webhook transport/client değiştirilebilir; eşleme mantığı bağımsız)",
+      "ADR-003 (hot-path runtime — non-blocking I/O; connection pool kalıcı oturum)"
+    ],
+    "api": ["§ Adapter SPI ortak yetenekler (timeout/error normalization/connection)", "§11.6 ErrorTaxonomy (fault_class ortak hata taksonomisi hizalama)", "§10.1 (webhook event envelope + imzalama — webhook dilimi imza deseni)"],
+    "consumes": [
+      "7.1.1 schema-validated tool input (FR-TOOL-002) — connector doğrulanmış argümanları template'e bağlar",
+      "7.1.2 tool authz kararı (FR-TOOL-004/005) — connector çağrıyı yetkilendirilmiş varsayar",
+      "7.1.3 idempotency key (FR-TOOL-009) — VARSA write çağrısında (SOAP write / GraphQL mutation / webhook delivery) iletir (üretmez)"
+    ],
+    "consumed_by": [
+      "7.1.4 timeout/retry/circuit breaker (FR-TOOL-003) — bu connector'ların AttemptOutcome'unu SPI seam'inde tüketir; retry/breaker ORKESTRE eder",
+      "7.2.3 endpoint allowlist (FR-TOOL-012) — connector'ın kanonik endpoint'ini onaylı liste ile karşılaştırır",
+      "7.1.5 hata normalizasyonu (FR-TOOL-008) — fault_class → müşteriye teknik-detaysız mesaj",
+      "7.1.6 correlation_id audit (FR-TOOL-010) — connector'ın yapısal audit kaydını zenginleştirir"
+    ],
+    "siblings": ["7.2.1 rest-connector (REST/HTTP dilimi — AYNI SPI, AYNI AttemptOutcome, AYNI fault_taxonomy hizalaması; bu modül üç protokol mapper'ı ekler)"]
+  },
+
+  "placement": {
+    "$comment": "SOAP/GraphQL/webhook connector'lar Tool Yürütme Hattının (SAD §11.1) adım [5] dayanıklılık motorunun (7.1.4) SARDIĞI gerçek upstream transport'tur: '… [4] idempotency ──► [5] Integration GW {timeout+retry+breaker SARAR → upstream_call(req)} ──► [6] output schema + error normalization …'. Çağrı zinciri: 7.1.4 gateway → (her deneme) → connector.upstream_call(req) → AttemptOutcome → 7.1.4 kararı (retry/breaker). 7.2.1 (REST) ile birebir aynı yerleşim/seam; yalnız protokol mapper farklı. Voice-runtime hot-path (orchestrator ACT, SAD §6.1) ama araç çağrısı çoğu turda yok. Non-blocking I/O + connection pool (ADR-003/FR-RES-006). SAD §20 tool overhead bütçe kalemi — HARD latency kapısı 0.3.2'de (tool overhead P95 ≤100ms); bu connector'lar SOFT not. Vendor-neutral (ADR-001/002): gerçek SOAP/GraphQL/webhook client bir SPI noktası; referans deterministik wire_script ile modeller (gerçek ağ/credential YOK).",
+    "plane": "voice-runtime (orchestrator Tool Executor / Integration GW — upstream SOAP/GraphQL/webhook transport)",
+    "hot_path": true,
+    "behind_spi": true,
+    "wired_by": "7.1.4 integration-gw (timeout/retry/circuit breaker bu connector'ları SPI seam'inde sarar)",
+    "endpoint_identity": "kanonik düşük-kardinalite kimlik (interpolesiz): SOAP 'POST scheme://host/path [soapAction]' · GraphQL 'POST scheme://host/path [op:OperationName]' · webhook 'POST scheme://host/path [event:<type>]' (breaker anahtarı 7.1.4 + observability label 0.4.7)",
+    "operation_class_map": "SOAP: operation.side_effect read|write (default write — RPC POST). GraphQL: op_type query→read / mutation→write. Webhook: daima write (teslimat yan-etkili bildirim). (7.1.4 write-retry/idempotency köprüsü FR-TOOL-009)",
+    "latency_budget_soft": "cold-connect (TLS) + transfer gecikmesine katkı; HARD kapı DEĞİL. Tool overhead P95 ≤100ms kapısı SAD §20 / 0.3.2 latency-budget'te.",
+    "trace": "SAD §11.1, SAD §11.2, SAD §20, ADR-001, ADR-002, ADR-003, FR-RES-006"
+  },
+
+  "spi": {
+    "$comment": "Upstream transport SPI noktası (vendor-neutral, ADR-001/002) — 7.2.1 ile AYNI seam'in SOAP/GraphQL/webhook gerçeklemesi. upstream_call(inv) → AttemptOutcome: referans probe deterministik 'wire_script' okur (gerçek ağ YOK); canlıda gerçek protokol client + keep-alive connection pool (FR-RES-006) AYNI imza arkasına. ConnectorSpec girdi: {connector_id, protocol(soap|graphql|webhook), base_url, auth{type,ref,header?,scheme?}, signing{ref,header?,algo?} (yalnız webhook — HMAC), default_headers?, pool{max_per_host,keepalive_ms,connect_overhead_ms}, default_timeout_ms?, operations{<op>:{...protokole-göre...}}}. SOAP operation: {soap_action, path?, side_effect?(read|write), timeout_ms?, success_codes?}. GraphQL operation: {op_type(query|mutation), operation_name?, path?, timeout_ms?}. Webhook operation: {event_type, path?, timeout_ms?, success_codes?}. Invocation girdi: {call_id, correlation_id, tenant_id, operation, path_params?, query_params?, args?(SOAP body/GraphQL variables/webhook payload alanları), idempotency_key?, at_ms?, wire_script[]}. AttemptOutcome çıktı (7.1.4 TÜKETİR): {call_id, result: ok|fault, latency_ms, fault_class?, status_code?, protocol, operation_class, endpoint, retryable, pooled, timed_out, request_meta{method, header_names[], idempotency_forwarded, signed, protocol_op}}. WireResponse (referans): {result: ok|status|timeout|conn_reset|conn_refused, status_code?, latency_ms?, soap_fault?{role,code?}, graphql_errors?[{code}], has_data?}.",
+    "transport_method": "upstream_call(inv) -> AttemptOutcome (referans: deterministik wire_script; canlıda gerçek SOAP/GraphQL/webhook client + keep-alive pool AYNI imza)",
+    "attempt_outcome_fields": ["call_id", "result", "latency_ms", "fault_class", "status_code", "protocol", "operation_class", "endpoint", "retryable", "pooled", "timed_out", "request_meta"],
+    "connector_spec_fields": ["connector_id", "protocol", "base_url", "auth", "signing", "default_headers", "pool", "operations"],
+    "invocation_fields": ["call_id", "correlation_id", "tenant_id", "operation", "path_params", "query_params", "args", "idempotency_key", "at_ms", "wire_script"],
+    "wire_response_results": ["ok", "status", "timeout", "conn_reset", "conn_refused"],
+    "protocols": ["soap", "graphql", "webhook"],
+    "trace": "ADR-001, ADR-002, FR-RES-006, SAD §11.2, 7.1.4 SPI seam, 7.2.1 sibling"
+  },
+
+  "status_to_fault": {
+    "$comment": "Transport HTTP status → fault_class TOPLAM eşleme (C2). fault_class 7.1.4 fault_taxonomy ile BİREBİR hizalı (7.2.1 ile AYNI tablo): 2xx (∨ success_codes) → result=ok; 408 → TIMEOUT (retryable); 429 → RATE_LIMITED (retryable); 401/403 → AUTH_FAILED (terminal); 404 → NOT_FOUND (terminal); 422 → SCHEMA_INVALID (terminal); diğer 4xx → UPSTREAM_4XX (terminal); 5xx → UPSTREAM_5XX (retryable). Wire seviyesi: timeout → TIMEOUT; conn_reset → CONN_RESET; conn_refused → CONN_REFUSED (hepsi retryable). PROTOKOL-FARKINDA katman (C13) bu transport eşlemesinin ÜZERİNE biner: SOAP soap_fault.role ve GraphQL graphql_errors[] transport status'unu EZER (protocol_override altında). MÜŞTERİYE dönen METİN burada DEĞİL (7.1.5); yalnız yapısal sınıf.",
+    "success_default": "200-299",
+    "map": {
+      "408": "TIMEOUT",
+      "429": "RATE_LIMITED",
+      "401": "AUTH_FAILED",
+      "403": "AUTH_FAILED",
+      "404": "NOT_FOUND",
+      "422": "SCHEMA_INVALID",
+      "4xx": "UPSTREAM_4XX",
+      "5xx": "UPSTREAM_5XX"
+    },
+    "wire_map": {
+      "timeout": "TIMEOUT",
+      "conn_reset": "CONN_RESET",
+      "conn_refused": "CONN_REFUSED"
+    },
+    "trace": "FR-TOOL-001, FR-TOOL-003, 7.1.4 fault_taxonomy, API §11.6, 7.2.1 status_to_fault"
+  },
+
+  "protocol_override": {
+    "$comment": "PROTOKOL-FARKINDA FAULT TESPİTİ (C13) — bu modülün 7.2.1 REST'in ötesindeki EK DEĞERİ. Transport HTTP status'u TEK BAŞINA yanıltıcı olabilir; protokol gövdesi nihai sınıfı belirler.",
+    "soap": {
+      "$comment": "SOAP <soap:Fault> rolü HTTP status'u EZER. Sender/Client (SOAP 1.2 'Sender' / 1.1 'Client') → istemci-taraflı, kalıcı → TERMINAL (UPSTREAM_4XX; retry futile — gövde değişmeden tekrar başarısız). Receiver/Server (1.2 'Receiver' / 1.1 'Server') → sunucu-taraflı, geçici olabilir → RETRYABLE (UPSTREAM_5XX). soap_fault VARSA HTTP 500 olsa bile rol kararı geçerlidir; bu sayede 'HTTP 500 → naif UPSTREAM_5XX retryable' yanılgısı önlenir.",
+      "sender_roles": ["Sender", "Client"],
+      "receiver_roles": ["Receiver", "Server"],
+      "sender_fault_class": "UPSTREAM_4XX",
+      "receiver_fault_class": "UPSTREAM_5XX"
+    },
+    "graphql": {
+      "$comment": "GraphQL HTTP 200 + errors[] → FAULT (HTTP 200 'ok' yanılgısı önlenir). errors[0].extensions.code → fault_class. Bilinmeyen kod → UPSTREAM_4XX (terminal, güvenli: anlamadığımız hatayı kör retry etmeyiz → mutation duplicate önleme).",
+      "code_map": {
+        "UNAUTHENTICATED": "AUTH_FAILED",
+        "FORBIDDEN": "AUTH_FAILED",
+        "BAD_USER_INPUT": "SCHEMA_INVALID",
+        "GRAPHQL_VALIDATION_FAILED": "SCHEMA_INVALID",
+        "GRAPHQL_PARSE_FAILED": "SCHEMA_INVALID",
+        "INTERNAL_SERVER_ERROR": "UPSTREAM_5XX",
+        "RATE_LIMITED": "RATE_LIMITED",
+        "THROTTLED": "RATE_LIMITED"
+      },
+      "unknown_code_fault_class": "UPSTREAM_4XX"
+    },
+    "webhook": {
+      "$comment": "Webhook teslimatı at-least-once; status REST-benzeri eşlenir (override yok). HMAC imza ZORUNLU (C13): signing.ref olmadan teslimat denenmez → MISSING_SIGNING_CONFIG; imza değeri gövdeden+secret'tan türetilir, audit'lenmez/loglanmaz (yalnız signed=true). API §10.1 webhook envelope imza deseni.",
+      "signature_required": true
+    },
+    "trace": "FR-TOOL-001, 7.1.4 fault_taxonomy, API §10.1/§11.6"
+  },
+
+  "fault_taxonomy_alignment": {
+    "$comment": "7.1.4 (integration-gw) fault_taxonomy ile hizalama kapısı (C2). Connector ürettiği her fault_class retryable∪terminal kümesinde olmalı; gateway-üretimi sınıflar (CIRCUIT_OPEN/RETRY_EXHAUSTED) connector tarafından ÜRETİLMEZ (onlar 7.1.4'e ait). 7.2.1 ile birebir AYNI kümeler.",
+    "retryable": ["TIMEOUT", "UPSTREAM_5XX", "CONN_RESET", "CONN_REFUSED", "RATE_LIMITED", "DEADLINE_EXCEEDED"],
+    "terminal": ["UPSTREAM_4XX", "SCHEMA_INVALID", "AUTH_FAILED", "NOT_FOUND"],
+    "connector_never_emits": ["CIRCUIT_OPEN", "RETRY_EXHAUSTED"],
+    "trace": "7.1.4 fault_taxonomy, FR-TOOL-003, 7.2.1 fault_taxonomy_alignment"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Connector'ın girdi/yapılandırma/güvenlik bütünlüğü hataları (fault_class'tan AYRI — bunlar isteğin WIRE'a gitmeden reddini doğurur; AttemptOutcome üretilmez, error_class döner).",
+    "classes": ["MISSING_CONNECTOR_CONFIG", "INVALID_CONNECTOR_SPEC", "UNKNOWN_OPERATION", "MISSING_PATH_PARAM", "LITERAL_SECRET_IN_SPEC", "MISSING_SIGNING_CONFIG", "INJECTION_REJECTED", "INVALID_INVOCATION", "NON_MONOTONIC_CLOCK", "UNSUPPORTED_PROTOCOL", "INTERNAL_ERROR"],
+    "trace": "FR-TST-008, FR-TOOL-001"
+  },
+
+  "invariants": [
+    {"id": "C1", "desc": "Bildirimsel deterministik istek kurulumu: aynı spec+invocation → birebir aynı kanonik istek (method, url, sıralı header adları, protokol-yükü). Date.now/gerçek-rastgele YOK."},
+    {"id": "C2", "desc": "Transport HTTP status → fault_class TOPLAM eşleme, 7.1.4 fault_taxonomy ile hizalı (7.2.1 ile AYNI tablo): 2xx∨success_codes → ok; 408/429/5xx → retryable; 401/403/404/422/diğer-4xx → terminal. Her emitted fault_class ∈ retryable∪terminal."},
+    {"id": "C3", "desc": "operation_class (read/write): SOAP side_effect (default write); GraphQL query→read / mutation→write; webhook→write (7.1.4 write-retry/idempotency köprüsü FR-TOOL-009)."},
+    {"id": "C4", "desc": "AttemptOutcome SPI sözleşmesi: connector 7.1.4'ün tükettiği seam şeklini döner; RETRY/BREAKER ORKESTRE ETMEZ — yalnız TEK denemenin sonucu (kapsam: 7.1.4)."},
+    {"id": "C5", "desc": "Sır yalnız referansla: auth.ref VE webhook signing.ref `${ENV}`/secret_ref ile; literal sır spec'te → LITERAL_SECRET_IN_SPEC (validate + build kapısı); çözülen değer/imza değeri ASLA loglanmaz/audit'lenmez."},
+    {"id": "C6", "desc": "Audit no-log: yapısal audit yalnız correlation_id+endpoint+protocol+method+operation_class+status_code+fault_class+pooled+signed+no_log; args/payload/query değeri/header değeri/imza değeri/PII YOK."},
+    {"id": "C7", "desc": "Connection pooling (FR-RES-006): havuz scheme+host+port ile anahtarlanır; keepalive içinde reuse → pooled=true (connect overhead YOK); cold → pooled=false (+connect_overhead_ms); max_per_host kapasitesi. (7.2.1 ile AYNI mantık.)"},
+    {"id": "C8", "desc": "Bağlam taşıma: correlation_id daima header; idempotency_key VARSA write'ta (SOAP write/GraphQL mutation/webhook) header olarak iletilir; connector bunları ÜRETMEZ (7.1.6/7.1.3)."},
+    {"id": "C9", "desc": "Determinizm: aynı seed+girdi → birebir aynı AttemptOutcome (sanal saat; Date.now/gerçek-rastgele YOK)."},
+    {"id": "C10", "desc": "Enjeksiyon güvenli: header'a bağlanan değerde (correlation_id/soap_action/auth-header/signature-header) CRLF/kontrol karakteri → INJECTION_REJECTED, istek WIRE'a GÖNDERİLMEZ. SOAP gövde alanları XML-escape edilir (tag enjeksiyonu nötralize); GraphQL değişkenleri JSON variables olarak iletilir (query string'e enterpolasyon YOK → yapısal enjeksiyon-güvenli)."},
+    {"id": "C11", "desc": "Kanonik endpoint kimliği: emitted endpoint interpolesiz düşük-kardinalite (SOAP soapAction / GraphQL operationName / webhook event-type) — breaker anahtarı (7.1.4) + observability label (0.4.7); interpole arg/path değeri endpoint'e SIZMAZ."},
+    {"id": "C12", "desc": "Vendor-neutral transport SPI: wire bir seam; referans deterministik wire_script; canlı gerçek protokol client AYNI imza; status→fault eşleme transport'tan bağımsız (ADR-001/002)."},
+    {"id": "C13", "desc": "PROTOKOL-FARKINDA FAULT TESPİTİ: SOAP <soap:Fault> rolü (Sender→terminal / Receiver→retryable) HTTP status'u EZER; GraphQL HTTP 200 + errors[] → FAULT (extensions.code → fault_class); webhook HMAC imza ZORUNLU (imzasız → MISSING_SIGNING_CONFIG). Naif transport-status eşlemesinin yanılttığı durumlar doğru sınıflanır."}
+  ],
+
+  "audit": {
+    "$comment": "Çağrı başına yapısal audit kaydı (7.1.6 correlation_id audit'e köprü; FR-TOOL-010). no_log: ham args/payload/query/body/header değeri/secret/imza değeri/PII içermez — yalnız correlation_id, kanonik endpoint (template), protocol, method, operation_class, status_code, fault_class, pooled, signed.",
+    "no_log": true,
+    "fields": ["correlation_id", "endpoint", "protocol", "method", "operation_class", "status_code", "fault_class", "pooled", "signed", "no_log"],
+    "trace": "FR-TOOL-010, →7.1.6, BRD §17.7, NFR 10.7"
+  }
+}

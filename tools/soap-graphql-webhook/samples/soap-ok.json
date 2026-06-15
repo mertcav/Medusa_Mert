@@ -1,0 +1,15 @@
+{
+  "name": "soap-ok — SOAP HTTP 200 happy path + connection pool reuse (C1/C2/C3/C7)",
+  "$comment": "İki ardışık SOAP çağrısı aynı host'a: ilki cold (pooled=false, +50ms connect), ikincisi warm (pooled=true, 0ms connect) — FR-RES-006. GetAccountBalance side_effect=read → operation_class=read. SR-TOOL-001: 'Her connector tipi başarılı çağrı yapar'. Sentetik (FR-TST-008).",
+  "profile": "erp-soap-basic",
+  "invocations": [
+    {"call_id": "s1", "correlation_id": "corr-aaa", "tenant_id": "t-1", "operation": "GetAccountBalance",
+     "args": {"account_id": "A-1001"}, "at_ms": 0, "wire_script": [{"result": "status", "status_code": 200, "latency_ms": 40}]},
+    {"call_id": "s2", "correlation_id": "corr-aaa", "tenant_id": "t-1", "operation": "GetAccountBalance",
+     "args": {"account_id": "A-1002"}, "at_ms": 120, "wire_script": [{"result": "status", "status_code": 200, "latency_ms": 45}]}
+  ],
+  "expect": {
+    "s1": {"result": "ok", "fault_class": null, "status_code": 200, "protocol": "soap", "operation_class": "read", "pooled": false, "latency_ms": 90.0},
+    "s2": {"result": "ok", "status_code": 200, "pooled": true, "latency_ms": 45.0}
+  }
+}

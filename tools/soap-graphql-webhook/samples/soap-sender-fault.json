@@ -1,0 +1,13 @@
+{
+  "name": "soap-sender-fault — HTTP 500 + <soap:Fault role=Sender> → TERMINAL (C13)",
+  "$comment": "EK DEĞER (C13): Transport HTTP 500 NAİF olarak UPSTREAM_5XX (retryable) görünür; ama gövdedeki soap:Fault rolü Sender (istemci hatası) → TERMINAL (UPSTREAM_4XX, retryable=false). 7.1.4 retry ETMEZ (R4) — kör retry futile olurdu. Rol HTTP status'u EZER. Sentetik (FR-TST-008).",
+  "profile": "erp-soap-basic",
+  "invocations": [
+    {"call_id": "sf1", "correlation_id": "corr-bbb", "tenant_id": "t-1", "operation": "GetAccountBalance",
+     "args": {"account_id": "A-9"}, "at_ms": 0,
+     "wire_script": [{"result": "status", "status_code": 500, "latency_ms": 60, "soap_fault": {"role": "Sender", "code": "InvalidAccount"}}]}
+  ],
+  "expect": {
+    "sf1": {"result": "fault", "fault_class": "UPSTREAM_4XX", "status_code": 500, "retryable": false}
+  }
+}
