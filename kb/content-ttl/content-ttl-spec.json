@@ -1,0 +1,108 @@
+{
+  "$comment": "WBS 6.1.5 — Bayatlama/işaretleme (content TTL) (FR-KB-008). Bilgi Tabanı & RAG OFFLINE indeksleme hattının (SAD §10.1, Control/Analytics Plane — hot-path DEĞİL) bayatlama/işaretleme katmanıdır. 6.1.3 (parse→chunk→embed→index + versiyonlama) bir dokümanı INDEXLER ve tazelik ATALARINI üretir (version_no, indexed_at, content_hash); 6.1.2 connector kaynak last_modified/eTag (delta) taşır; DB.md §5.3 kb_document.content_ttl_at açık dokümanlık deadline'ı tutar (migration 0010, ix_kbdoc_ttl partial index). 6.1.5 bu tazelik metadata'sını TÜKETİR ve bir TARAMA anında (sanal saat 'now') her dokümanı taze/bayat/süresi-dolmuş/pinned olarak SINIFLAR ve otomatik 'stale' İŞARETLER. Çekirdek değer FR-KB-008: 'Güncelliğini yitirmiş içerik otomatik işaretlenebilmelidir.' SR-KB-008 (yöntem T): 'Güncelliğini yitirmiş içerik otomatik işaretlenir (content TTL).' TC-KB-008: 'TTL aşan içerik \"stale\" işaretlenir.' — bu modülün başlık kanıtı (G1). KARAR metadata-only (içerik/embedding/ağ YOK); deterministik (sanal saat — Date.now/rastgele YOK). Bu modül yalnız İŞARETLER (mark): işaretin retrieval'e etkisi (bayat içeriği bastırma/önceliklendirme) → 6.2.1; yeniden-ingest tetikleme → 6.1.2/6.1.3; fiziksel content_ttl_at kolonu/tarama indeksi → 1.1.7 (migration 0010); hassas no-log → 6.2.4. Vendor-neutral (ADR-001/002): karar policy + doküman metadata'sına dayanır, sağlayıcıya değil. Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (TTL kararı metadata-only — içerik tutmaz; fixture sentetik FR-TST-008). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "6.1.5",
+  "phase": "F2",
+  "priority": "Should",
+  "trace": {
+    "fr": ["FR-KB-008", "FR-KB-003", "FR-KB-002", "FR-TEN-002", "FR-TST-008"],
+    "nfr": [],
+    "srs": ["SR-KB-008"],
+    "rtm": ["TC-KB-008"],
+    "sad": ["§10.1 (offline indeksleme: bayatlama — içerik TTL/işaretleme FR-KB-008)", "§10.2 (retrieval: bayat işaret retrieval'de TÜKETİLİR — 6.2.1)", "§12.1 (kb_document content_ttl_at metadata)"],
+    "brd": ["§9.9 (Bilgi Tabanı ve RAG — FR-KB-008)", "§13 (anti-hallucination — bayat/yanlış içerik yanıta sızmamalı)", "§16 (KB Document varlık 13 — content_ttl_at/version_no)"],
+    "adr": ["ADR-001 (orchestrator SPI bağımsızlığı — karar policy+metadata'ya dayanır)", "ADR-002 (vendor-neutral — TTL kararı sağlayıcıdan bağımsız)"],
+    "db": ["DB.md §5.3 kb_document.content_ttl_at (FR-KB-008) — 1.1.7 / migration 0010", "DB.md ix_kbdoc_ttl partial index (content_ttl_at IS NOT NULL) — bayatlama taraması"],
+    "consumes": ["6.1.3 IndexedDocument tazelik atası (version_no/indexed_at/active)", "6.1.2 kaynak last_modified/eTag (source-drift)", "DB.md §5.3 kb_document.content_ttl_at (açık deadline)"],
+    "consumed_by": ["6.2.1 vector search (bayat/expired işaret retrieval'de bastırma/önceliklendirme)", "6.1.2/6.1.3 yeniden-ingest tetikleme (stale → re-sync)"],
+    "observability": ["kb_documents_marked_stale_total{reason} / kb_documents_expired_total / kb_freshness_scan_total{state} → BRD §15 → 0.4.7 (tenant_id/document_id/kb_id YÜKSEK kardinalite → yalnız trace/exemplar/audit; PII label YASAK)"]
+  },
+
+  "placement": {
+    "$comment": "Bayatlama taraması OFFLINE çalışır (SAD §10.1, Control/Analytics Plane) — voice runtime hot-path'ine (SAD §20 gecikme bütçesi) GİRMEZ. Periyodik tarama (cron/scheduled) veya re-index sonrası tetiklenir: kb_document'ların tazelik metadata'sını okur, 'now'a göre durum hesaplar, durum geçişlerini (fresh→stale/expired) İŞARETLER (kb_document.content_ttl_at + bir durum kolonu — fiziksel şema 1.1.7). Retrieval-zamanı (6.2.1) bu işaretleri TÜKETİR (bayat içerik bastırılır/önceliği düşürülür) ama TTL kararını YENİDEN HESAPLAMAZ → hot-path'e yük binmez. KARAR ucuz (metadata-only: zaman damgası karşılaştırması; içerik/embedding/ağ YOK). Vendor-neutral (ADR-001/002): TTL policy + doküman metadata'sına dayanır; pgvector/OpenSearch fark etmez.",
+    "plane": "control/analytics (offline batch/scheduled scan)",
+    "hot_path": false,
+    "decision_cost": "metadata-only (zaman damgası karşılaştırması; içerik/embedding/ağ YOK)",
+    "trigger": ["scheduled/cron scan", "post-reindex (6.1.3 sonrası)", "post-source-sync (6.1.2 delta sonrası)"],
+    "behind_spi": true,
+    "decision_depends_on_metadata_only": true,
+    "trace": "SAD §10.1, ADR-001, ADR-002, DB.md §5.3"
+  },
+
+  "freshness_metadata": {
+    "$comment": "Bir kb_document'ın tazelik bağlamı (6.1.3 indeks + 6.1.2 connector + DB.md content_ttl_at'ten TÜRETİLİR; karar YALNIZ bu + policy'den verilir). Alanlar: document_id; tenant_id (zorunlu — FR-TEN-002 tarama kapsamı); kb_id; version_no (6.1.3 provenance); classification (policy max_age'i seçer); indexed_at (epoch-sn — 6.1.3'ün son (re)index ATASI, birincil tazelik referansı); source_last_modified (epoch-sn — 6.1.2 kaynak last_modified/eTag; > indexed_at ise kaynak DEĞİŞTİ ama yeniden ingest edilmedi → drift); content_ttl_at (epoch-sn — DB.md §5.3 AÇIK dokümanlık deadline; varsa policy'yi EZER — most-specific-wins); pinned (no_expire — operatör 'kanonik/yasal' beyanı → otomatik bayatlamadan MUAF); prev_state (mevcut işaret — geçiş tespiti). EKSİK tazelik atası (indexed_at/content_ttl_at yok, drift hesaplanamaz) + require_freshness → muhafazakâr STALE (asla sessizce taze değil — G9). Zaman birimi epoch-saniye (deterministik tam sayı); gerçek 'now' tarama anında verilir (Date.now YOK).",
+    "required_fields": ["document_id", "tenant_id", "classification"],
+    "freshness_anchors": ["indexed_at", "content_ttl_at", "source_last_modified"],
+    "optional_fields": ["kb_id", "version_no", "source_last_modified", "content_ttl_at", "pinned", "prev_state"],
+    "explicit_overrides_policy": true,
+    "trace": "FR-KB-008, FR-KB-003, FR-KB-002, FR-TEN-002, DB.md §5.3"
+  },
+
+  "ttl_model": {
+    "$comment": "İki katmanlı bayatlama. (1) SOFT TTL (stale): içerik eskidi → 'stale' işaretlenir; retrieval (6.2.1) hâlâ kullanabilir ama önceliği düşürülür/uyarı verilir. Soft deadline = content_ttl_at (varsa, EZER) AKSİ indexed_at + max_age(classification). (2) HARD EXPIRY (expired): içerik kesinlikle çok eski → 'expired'; retrieval BASTIRMALI. Hard deadline = soft + ext, ext = max_age*(expire_after_factor-1) (factor>1; hard_expiry_enabled). max_age yok ⇒ hard tier yok (yalnız soft). (3) SOURCE DRIFT (stale): respect_source_drift ve source_last_modified > indexed_at ⇒ yaş içinde olsa bile 'stale' (kaynak değişti, yeniden ingest gerek — 6.1.2/6.1.3). ŞİDDET SIRASI: pinned > expired > stale(drift/ttl) > missing(require) > fresh. Tüm eşikler MÜHENDİSLİK varsayılanı; gerçek değerler tenant compliance profile (DPIA cp.retention.*) + retention policy ile bağlanır (counsel doğrulamasına tabi).",
+    "soft_deadline_rule": "content_ttl_at if set else indexed_at + max_age(classification)",
+    "hard_deadline_rule": "soft + max_age*(expire_after_factor-1) (hard_expiry_enabled, max_age set, ext>0)",
+    "source_drift_rule": "respect_source_drift and source_last_modified > indexed_at",
+    "severity_order": ["pinned", "expired", "stale", "fresh"],
+    "trace": "FR-KB-008, FR-KB-002, FR-KB-003, DB.md §5.3, DPIA cp.retention"
+  },
+
+  "states": {
+    "$comment": "Doküman tazelik durumu (işaretlenen). fresh: TTL içinde, kullanılabilir. stale: SOFT TTL aşıldı / drift / eksik-tazelik (require) → işaretli, retrieval önceliği düşer. expired: HARD deadline aşıldı → retrieval bastırır. pinned: no_expire, otomatik bayatlamadan muaf. marked = state ∈ {stale, expired} (otomatik 'stale' işareti — SR-KB-008/TC-KB-008). transitioned = state != prev_state.",
+    "values": ["fresh", "stale", "expired", "pinned"],
+    "marked_states": ["stale", "expired"],
+    "trace": "FR-KB-008, SR-KB-008, TC-KB-008"
+  },
+
+  "reason_taxonomy": {
+    "$comment": "Durum gerekçe kodları (deterministik, yapısal). fresh: WITHIN_TTL (deadline gelecekte), NO_TTL_POLICY (policy TTL istemiyor + atası yok — require_freshness kapalı). stale: TTL_EXCEEDED (policy soft deadline geçti), EXPLICIT_TTL_PASSED (content_ttl_at geçti — most-specific), SOURCE_DRIFT (kaynak indeksten yeni), MISSING_FRESHNESS (atası yok + require_freshness → muhafazakâr), MALFORMED_METADATA (bozuk/eksik → fail-closed muhafazakâr stale, exception KAÇMAZ). expired: HARD_EXPIRED. pinned: PINNED_NO_EXPIRE.",
+    "fresh": ["WITHIN_TTL", "NO_TTL_POLICY"],
+    "stale": ["TTL_EXCEEDED", "EXPLICIT_TTL_PASSED", "SOURCE_DRIFT", "MISSING_FRESHNESS", "MALFORMED_METADATA"],
+    "expired": ["HARD_EXPIRED"],
+    "pinned": ["PINNED_NO_EXPIRE"],
+    "trace": "FR-KB-008, SR-KB-008"
+  },
+
+  "audit": {
+    "$comment": "Her bayatlama kararı YAPISAL kayıt üretir (geçiş ve durum): {document_id, tenant_id, kb_id, version_no, prev_state, state, reason, now, soft_deadline, hard_deadline, age, overdue_by}. Audit'e HAM İÇERİK / HAM PII YAZILMAZ — TTL kararı metadata-only (içeriğe hiç dokunmaz) → kayıt doğal PII'sız. Metrikler: kb_documents_marked_stale_total{reason}/kb_documents_expired_total/kb_freshness_scan_total{state}. 0.4.7 label politikası: tenant_id/document_id/kb_id yüksek kardinalite → metrik label DEĞİL, yalnız trace/audit/exemplar (BRD §17.7/FR-REC-004).",
+    "record_fields": ["document_id", "tenant_id", "kb_id", "version_no", "prev_state", "state", "reason", "now", "soft_deadline", "hard_deadline", "age", "overdue_by"],
+    "raw_content_in_audit_forbidden": true,
+    "raw_pii_in_audit_forbidden": true,
+    "trace": "BRD §15, BRD §17.7, FR-REC-004"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (G1–G10). max_unmarked_overdue=0: soft deadline geçen (drift/missing-require dahil) doküman 'fresh' KALMAZ — otomatik stale işaretlenir (SR-KB-008/TC-KB-008 başlık). max_false_stale=0: TTL içinde (deadline gelecekte) doküman yanlışlıkla bayat İŞARETLENMEZ (yanlış-pozitif yok — taze içerik kullanılır). require_explicit_precedence: content_ttl_at policy'yi EZER (most-specific-wins). require_source_drift: kaynak indeksten yeni → stale (yeniden ingest sinyali). require_pinned_never_expires: pinned doküman yaştan bağımsız asla bayat/expired. require_hard_expiry_distinct: hard deadline aşılan → expired (soft stale'den AYRI; retrieval bastırır). require_deterministic: aynı girdi+now → aynı işaret. require_tenant_scope: tarama tenant_filter ile kapsamlı; kapsam dışı doküman İŞARETLENMEZ (FR-TEN-002). require_fail_closed_unknown: eksik tazelik (require_freshness) → stale, asla sessizce taze; bozuk metadata exception KAÇMAZ. require_decision_auditable: her karar yapısal reason; ham içerik/PII kayda girmez. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler tenant compliance profile (DPIA cp.retention.*) ile ayarlanır.",
+    "max_unmarked_overdue": 0,
+    "max_false_stale": 0,
+    "require_explicit_precedence": true,
+    "require_source_drift": true,
+    "require_pinned_never_expires": true,
+    "require_hard_expiry_distinct": true,
+    "require_deterministic": true,
+    "require_tenant_scope": true,
+    "require_fail_closed_unknown": true,
+    "require_decision_auditable": true,
+    "trace": "FR-KB-008, SR-KB-008, TC-KB-008, FR-TEN-002, FR-KB-002, FR-KB-003"
+  },
+
+  "pii": {
+    "$comment": "Bu SPEC/config/sample DESCRIPTOR'ları sır/credential ve gerçek PII DEĞERİ TUTMAZ (TTL kararı metadata-only — doküman İÇERİĞİNE hiç dokunmaz; fixture sentetik FR-TST-008). Tazelik metadata'sı (zaman damgası/sınıf/versiyon) PII değildir. Audit kaydı ham içerik/PII içermez. Spec/config'te uzun rakam dizisi (kart/TCKN) yasak.",
+    "raw_pii_in_spec_forbidden": true,
+    "decision_touches_content": false,
+    "trace": "FR-KB-008, BRD §14, BRD §17.7, FR-REC-004"
+  },
+
+  "invariants": [
+    { "id": "G1", "desc": "TTL EXCEEDED → STALE (BAŞLIK — SR-KB-008/TC-KB-008): soft deadline geçen (content_ttl_at veya indexed_at+max_age), SOURCE_DRIFT olan ve require_freshness altında tazelik-atası eksik HER doküman otomatik 'stale'/'expired' işaretlenir; bayat doküman asla 'fresh' kalmaz. unmarked_overdue=0. Karar her zaman policy+metadata'dan (vendor-neutral).", "trace": "FR-KB-008, SR-KB-008, TC-KB-008" },
+    { "id": "G2", "desc": "FRESH PRESERVED: deadline GELECEKTE olan (now < soft deadline), drift'siz, eksik-değil doküman yanlışlıkla bayat İŞARETLENMEZ (yanlış-pozitif=0) — taze içerik kullanılabilir kalır (FR-KB-008 yalnız 'güncelliğini yitirmiş' içeriği işaretler).", "trace": "FR-KB-008" },
+    { "id": "G3", "desc": "EXPLICIT PRECEDENCE (most-specific-wins): content_ttl_at varsa soft deadline = content_ttl_at (policy max_age EZİLİR); açık TTL geçmişse EXPLICIT_TTL_PASSED stale, açık TTL gelecekteyse policy'ye göre bayat olsa bile FRESH. DB.md §5.3 kb_document.content_ttl_at otoritedir.", "trace": "FR-KB-008, DB.md §5.3" },
+    { "id": "G4", "desc": "SOURCE DRIFT: respect_source_drift ve source_last_modified > indexed_at ⇒ doküman yaş-TTL içinde olsa bile SOURCE_DRIFT stale (kaynak değişti, yeniden ingest gerek — 6.1.2 last_modified/eTag tüketilir; 6.1.3 re-index sinyali). pinned/hard-expired daha şiddetli → onlar kazanır.", "trace": "FR-KB-008, FR-KB-002" },
+    { "id": "G5", "desc": "PINNED NEVER EXPIRES: pinned (no_expire) doküman yaştan/deadline'dan/drift'ten bağımsız asla bayat/expired işaretlenmez (state=pinned, marked=false) — operatör-beyanlı kanonik/yasal içerik otomatik bayatlamadan MUAF (yeniden ingest yine 6.1.3 ile günceller).", "trace": "FR-KB-008" },
+    { "id": "G6", "desc": "HARD EXPIRY DISTINCT: hard deadline (soft + ext) aşılan doküman 'expired' (HARD_EXPIRED) — soft 'stale'den AYRI durum; retrieval (6.2.1) stale'i önceliklendirebilir ama expired'ı BASTIRIR. Monoton: expired olan aynı zamanda soft-deadline'ı da geçmiştir.", "trace": "FR-KB-008, SAD §10.2" },
+    { "id": "G7", "desc": "DETERMINISTIC: aynı doküman seti + aynı 'now' + aynı policy → birebir aynı işaret kümesi (sanal saat; Date.now/rastgele YOK). Tarama tekrar koşturulabilir/denetlenebilir.", "trace": "FR-KB-008, FR-TST-008" },
+    { "id": "G8", "desc": "TENANT SCOPE (FR-TEN-002): tarama tenant_filter ile kapsamlandığında YALNIZ o tenant'ın dokümanları işaretlenir; kapsam dışı tenant dokümanı taranmaz/işaretlenmez (cross_tenant_marked=0). Üretilen kayıt sayısı = kapsam içi doküman sayısı.", "trace": "FR-TEN-002, FR-KB-008" },
+    { "id": "G9", "desc": "FAIL-CLOSED ON UNKNOWN: tazelik atası eksik (indexed_at/content_ttl_at yok, drift hesaplanamaz) + require_freshness ⇒ MISSING_FRESHNESS stale (asla sessizce 'fresh'); bozuk/eksik metadata hiçbir exception KAÇIRMAZ → muhafazakâr stale (MALFORMED_METADATA) + yapısal reason. require_freshness kapalıysa NO_TTL_POLICY fresh (bilinçli — policy TTL istemiyor).", "trace": "FR-KB-008, SR-KB-008" },
+    { "id": "G10", "desc": "AUDITABLE + SCOPE BOUNDARY: kapsam içi her doküman tam BİR kayıt üretir; her durum/reason taksonomide; kayıt ham içerik/PII İÇERMEZ (TTL kararı metadata-only). KAPSAM: 6.1.5 yalnız İŞARETLER; işaretin retrieval'e etkisi (bayat bastırma/önceliklendirme) → 6.2.1; yeniden-ingest tetikleme → 6.1.2/6.1.3; fiziksel content_ttl_at kolonu/tarama indeksi → 1.1.7 (migration 0010); chunk/embed/version → 6.1.3 (TÜKETİR); hassas no-log → 6.2.4. Sır/credential üretmez.", "trace": "6.1.3, 6.2.1, 6.1.2, 1.1.7, BRD §17.7" }
+  ]
+}

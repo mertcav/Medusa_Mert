@@ -1,0 +1,18 @@
+{
+  "$comment": "WBS 6.1.5 source-drift — pilot-default. 6.1.2 connector last_modified/eTag TÜKETİLİR: source_last_modified > indexed_at ise kaynak DEĞİŞTİ ama yeniden ingest edilmedi → yaş-TTL içinde olsa bile stale SOURCE_DRIFT (yeniden ingest sinyali — 6.1.3). Şiddet sırası: drift + hard-expired → expired kazanır. Sentetik (FR-TST-008).",
+  "scenario": "source-drift-detection",
+  "profile": "pilot-default",
+  "now": 1000000000,
+  "expect_gate": "pass",
+  "documents": [
+    {"document_id": "doc-drift", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 4,
+     "classification": "internal", "indexed_at": 999568000, "source_last_modified": 999913600,
+     "expect": {"state": "stale", "reason": "SOURCE_DRIFT", "marked": true}},
+    {"document_id": "doc-no-drift", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 4,
+     "classification": "internal", "indexed_at": 999568000, "source_last_modified": 999481600,
+     "expect": {"state": "fresh", "reason": "WITHIN_TTL", "marked": false}},
+    {"document_id": "doc-drift-but-expired", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 1,
+     "classification": "internal", "indexed_at": 965440000, "source_last_modified": 999913600,
+     "expect": {"state": "expired", "reason": "HARD_EXPIRED", "marked": true}}
+  ]
+}

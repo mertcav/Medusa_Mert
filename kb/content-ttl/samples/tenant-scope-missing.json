@@ -1,0 +1,19 @@
+{
+  "$comment": "WBS 6.1.5 tenant-scope + missing — pilot-default, tenant_filter=t-a. Tarama YALNIZ t-a kapsamında (FR-TEN-002, G8): t-b dokümanı taranmaz/işaretlenmez (out_of_scope). Tazelik atası eksik doküman + require_freshness → muhafazakâr stale MISSING_FRESHNESS (asla sessizce fresh, G9). Sentetik (FR-TST-008).",
+  "scenario": "tenant-scope-and-missing-freshness",
+  "profile": "pilot-default",
+  "now": 1000000000,
+  "tenant_filter": "t-a",
+  "expect_gate": "pass",
+  "documents": [
+    {"document_id": "doc-ta-stale", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 1,
+     "classification": "internal", "indexed_at": 991360000,
+     "expect": {"state": "stale", "reason": "TTL_EXCEEDED", "marked": true}},
+    {"document_id": "doc-ta-missing", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 1,
+     "classification": "internal",
+     "expect": {"state": "stale", "reason": "MISSING_FRESHNESS", "marked": true}},
+    {"document_id": "doc-tb-stale", "tenant_id": "t-b", "kb_id": "kb-9", "version_no": 1,
+     "classification": "internal", "indexed_at": 965440000,
+     "expect": {"out_of_scope": true}}
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "$comment": "WBS 6.1.5 happy — pilot-default profil. now=1000000000 (sanal). Gün=86400. Karışık tazelik: TTL içinde fresh / SOFT TTL aşan stale (TTL_EXCEEDED — SR-KB-008/TC-KB-008 başlık) / HARD deadline aşan expired. Vektör/içerik YOK — TTL kararı metadata-only. Sentetik (FR-TST-008).",
+  "scenario": "ttl-happy-fresh-stale-expired",
+  "profile": "pilot-default",
+  "now": 1000000000,
+  "expect_gate": "pass",
+  "documents": [
+    {"document_id": "doc-fresh", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 3,
+     "classification": "internal", "indexed_at": 999136000,
+     "expect": {"state": "fresh", "reason": "WITHIN_TTL", "marked": false}},
+    {"document_id": "doc-stale-age", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 1,
+     "classification": "internal", "indexed_at": 991360000,
+     "expect": {"state": "stale", "reason": "TTL_EXCEEDED", "marked": true}},
+    {"document_id": "doc-expired", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 1,
+     "classification": "internal", "indexed_at": 965440000,
+     "expect": {"state": "expired", "reason": "HARD_EXPIRED", "marked": true}},
+    {"document_id": "doc-restricted-stale", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 2,
+     "classification": "restricted", "indexed_at": 998272000,
+     "expect": {"state": "stale", "reason": "TTL_EXCEEDED", "marked": true}}
+  ]
+}

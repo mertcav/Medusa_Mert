@@ -1,0 +1,18 @@
+{
+  "$comment": "WBS 6.1.5 explicit+pinned — pilot-default. content_ttl_at (DB.md §5.3 kb_document AÇIK deadline) policy max_age'i EZER (most-specific-wins, G3): açık TTL gelecekteyse policy'ye göre bayat olsa bile FRESH; açık TTL geçmişse policy'ye göre taze olsa bile STALE. pinned (no_expire) doküman yaştan bağımsız asla bayat (G5). Sentetik (FR-TST-008).",
+  "scenario": "explicit-ttl-precedence-and-pinned",
+  "profile": "pilot-default",
+  "now": 1000000000,
+  "expect_gate": "pass",
+  "documents": [
+    {"document_id": "doc-explicit-passed", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 1,
+     "classification": "internal", "indexed_at": 999913600, "content_ttl_at": 999999999,
+     "expect": {"state": "stale", "reason": "EXPLICIT_TTL_PASSED", "marked": true}},
+    {"document_id": "doc-explicit-future", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 1,
+     "classification": "internal", "indexed_at": 982720000, "content_ttl_at": 1002592000,
+     "expect": {"state": "fresh", "reason": "WITHIN_TTL", "marked": false}},
+    {"document_id": "doc-pinned", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 7,
+     "classification": "internal", "indexed_at": 913600000, "pinned": true,
+     "expect": {"state": "pinned", "reason": "PINNED_NO_EXPIRE", "marked": false}}
+  ]
+}

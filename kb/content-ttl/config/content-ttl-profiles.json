@@ -1,0 +1,46 @@
+{
+  "$comment": "WBS 6.1.5 — Bayatlama/içerik TTL profilleri (FR-KB-008). TTL/bayatlama davranış parametreleri; sağlayıcı-nötr (ADR-002): karar policy + doküman tazelik metadata'sına dayanır. Sır/credential YOK. Zaman birimi epoch-SANİYE (gün = 86400). Eşikler/varsayılanlar MÜHENDİSLİK varsayılanı; gerçek değerler tenant compliance profile (DPIA cp.retention.* — most-restrictive-wins) + retention policy ile bağlanır (counsel doğrulamasına tabi). max_age_by_classification: sınıf başına SOFT TTL (yaş eşiği) saniye. default_max_age: sınıf eşleşmezse. expire_after_factor (>1): HARD deadline = soft + max_age*(factor-1) → expired (retrieval bastırır). hard_expiry_enabled: hard tier açık/kapalı. require_freshness: tazelik atası eksikse muhafazakâr stale (fail-closed). respect_source_drift: source_last_modified > indexed_at → stale. grace_period: soft deadline'a eklenen tolerans (sn).",
+  "day_seconds": 86400,
+  "profiles": {
+    "pilot-default": {
+      "$comment": "Pilot varsayılan (F1/F2). Dengeli: public 180g / internal 90g / confidential 30g / restricted 14g soft TTL; hard = 2× soft; drift + require_freshness açık.",
+      "max_age_by_classification": {"public": 15552000, "internal": 7776000, "confidential": 2592000, "restricted": 1209600},
+      "default_max_age": 7776000,
+      "expire_after_factor": 2.0,
+      "hard_expiry_enabled": true,
+      "require_freshness": true,
+      "respect_source_drift": true,
+      "grace_period": 0
+    },
+    "regulated-tr": {
+      "$comment": "Regüle TR (finans/sağlık). En SIKI: public 90g / internal 45g / confidential 14g / restricted 7g; hard = 1.5× soft (daha erken expired); drift + require_freshness açık. (counsel doğrulamasına tabi.)",
+      "max_age_by_classification": {"public": 7776000, "internal": 3888000, "confidential": 1209600, "restricted": 604800},
+      "default_max_age": 3888000,
+      "expire_after_factor": 1.5,
+      "hard_expiry_enabled": true,
+      "require_freshness": true,
+      "respect_source_drift": true,
+      "grace_period": 0
+    },
+    "enterprise-eu": {
+      "$comment": "Enterprise EU. public 365g / internal 120g / confidential 60g / restricted 30g; hard = 2× soft; drift + require_freshness açık. (DPIA PROFILE-EU retention overlay'leri canlıda bağlanır.)",
+      "max_age_by_classification": {"public": 31536000, "internal": 10368000, "confidential": 5184000, "restricted": 2592000},
+      "default_max_age": 10368000,
+      "expire_after_factor": 2.0,
+      "hard_expiry_enabled": true,
+      "require_freshness": true,
+      "respect_source_drift": true,
+      "grace_period": 0
+    },
+    "degraded-no-expiry": {
+      "$comment": "NEGATİF profil (yalnız negatif kapı kanıtı için): TTL policy DEVRE DIŞI — max_age yok, hard expiry kapalı, drift yok-sayılır, require_freshness kapalı. Güncelliğini yitirmiş (bayat/expired olması gereken) içerik 'fresh' KALIR → FR-KB-008 ihlali; mark sample'ı expect_state=stale beklediği için BEKLENTİ eler (negatif kanıt). Üretimde KULLANILMAZ.",
+      "max_age_by_classification": {},
+      "default_max_age": null,
+      "expire_after_factor": 1.0,
+      "hard_expiry_enabled": false,
+      "require_freshness": false,
+      "respect_source_drift": false,
+      "grace_period": 0
+    }
+  }
+}

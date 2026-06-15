@@ -1,0 +1,18 @@
+{
+  "$comment": "WBS 6.1.5 NEGATİF — degraded-no-expiry profil. TTL policy DEVRE DIŞI (max_age yok, hard kapalı, drift yok-sayılır, require_freshness kapalı). Güncelliğini yitirmiş (stale/expired OLMASI gereken) içerik 'fresh' KALIR → FR-KB-008 ihlali. Beklentiler stale/expired bekler → BEKLENTİ eler (expect_gate=fail negatif kanıt: TTL kapatılırsa bayat içerik işaretlenmez). Üretimde KULLANILMAZ. Sentetik (FR-TST-008).",
+  "scenario": "degraded-ttl-disabled-leaves-stale-unmarked",
+  "profile": "degraded-no-expiry",
+  "now": 1000000000,
+  "expect_gate": "fail",
+  "documents": [
+    {"document_id": "doc-should-be-expired", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 1,
+     "classification": "internal", "indexed_at": 965440000,
+     "expect": {"state": "expired", "marked": true}},
+    {"document_id": "doc-should-be-stale", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 1,
+     "classification": "internal", "indexed_at": 991360000,
+     "expect": {"state": "stale", "marked": true}},
+    {"document_id": "doc-missing-should-stale", "tenant_id": "t-a", "kb_id": "kb-1", "version_no": 1,
+     "classification": "internal",
+     "expect": {"state": "stale", "marked": true}}
+  ]
+}
