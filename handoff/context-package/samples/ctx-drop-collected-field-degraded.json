@@ -1,0 +1,20 @@
+{
+  "name": "ctx-drop-collected-field-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). inject drop_collected_field → motor oturumda toplanan bir alanı paketten düşürüyor. P3 ihlali (missing_collected_field>0): FR-HND-005 müşteri aynı bilgileri tekrar vermek zorunda kalmamalı — toplanan alan pakette olmalı. Eksik alan = temsilci müşteriden tekrar ister. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ctx-012",
+  "call_id": "call-ctx-012",
+  "target": {"department": "billing", "skill_group": "sg-billing-tr", "queue": "q-billing-tr", "deliver_to": "q-billing-tr", "match_quality": "exact"},
+  "session": {
+    "summary": "summary-ref-ctx-012",
+    "intent": "billing_dispute",
+    "collected_fields": [
+      {"name": "order_id", "sensitive": false, "value_token": "tok-order-dd"},
+      {"name": "issue_category", "sensitive": false, "value_token": "billing_overcharge"}
+    ],
+    "auth": {"level": "verified", "methods": ["otp"], "step_up": "completed", "secrets_present_in_session": ["otp_code"]}
+  },
+  "inject": ["drop_collected_field"],
+  "expected": {}
+}

@@ -1,0 +1,20 @@
+{
+  "name": "ctx-screenpop-unavailable-degraded",
+  "$comment": "FAIL-SAFE (P8) — screen-pop kanalı (CTI/CRM) kullanılamıyor. Transfer DÜŞMEZ: verbal(whisper)/transkript özeti fallback bağlam (özet+intent) sağlanır, DEGRADED işaretlenir, oturum korunur. DEGRADED ihlal DEĞİL — fail-safe geçerli sonuç. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ctx-003",
+  "call_id": "call-ctx-003",
+  "target": {"department": "billing", "skill_group": "sg-billing-tr", "queue": "q-billing-tr", "deliver_to": "q-billing-tr", "match_quality": "exact"},
+  "session": {
+    "summary": "summary-ref-ctx-003",
+    "intent": "billing_dispute",
+    "collected_fields": [
+      {"name": "order_id", "sensitive": false, "value_token": "tok-order-bb"}
+    ],
+    "auth": {"level": "verified", "methods": ["otp"], "step_up": "completed", "secrets_present_in_session": ["otp_code"]}
+  },
+  "delivery_channels": ["screen_pop", "transcript_summary"],
+  "screen_pop_available": false,
+  "expected": {"terminal": "DEGRADED", "delivered": true, "delivered_to": "q-billing-tr", "auth_level": "verified", "collected_field_count": 1, "masked_count": 0, "fallback": true}
+}

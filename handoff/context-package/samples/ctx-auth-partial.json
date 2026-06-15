@@ -1,0 +1,20 @@
+{
+  "name": "ctx-auth-partial",
+  "$comment": "Kısmi kimlik doğrulama (FR-AUTH-003 step-up). Müşteri yalnız customer_number ile kısmi doğrulanmış, step-up pending. auth_status partial taşınır → temsilci doğrulama durumunu BİLİR (gereksiz tekrar yapmaz ama eksik adımı görür). Hassas alan yok, maske yok. DELIVERED, ihlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ctx-002",
+  "call_id": "call-ctx-002",
+  "target": {"department": "tech", "skill_group": "sg-tech-tr", "queue": "q-tech-a", "deliver_to": "q-tech-a", "match_quality": "exact"},
+  "session": {
+    "summary": "summary-ref-ctx-002",
+    "intent": "tech_support",
+    "collected_fields": [
+      {"name": "device_model", "sensitive": false, "value_token": "tok-device-x"}
+    ],
+    "auth": {"level": "partial", "methods": ["customer_number"], "step_up": "pending"}
+  },
+  "delivery_channels": ["screen_pop", "transcript_summary"],
+  "screen_pop_available": true,
+  "expected": {"terminal": "DELIVERED", "delivered": true, "delivered_to": "q-tech-a", "auth_level": "partial", "collected_field_count": 1, "masked_count": 0, "fallback": false}
+}

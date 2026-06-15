@@ -1,0 +1,151 @@
+{
+  "$comment": "WBS 9.6 — Bağlam paketi (özet + intent + toplanan alanlar + auth durumu) + screen-pop (BRD §9.12 İnsan Temsilciye Aktarım / SAD §7.3 Human Handoff Akışı). 9. workstream'in (İnsan Temsilciye Aktarım) ALTINCI modülü ve F1-Must aktarım çekirdeği. FR-HND-004 ('Temsilciye görüşme özeti ve toplanan bilgiler aktarılmalıdır') + FR-HND-005 ('Müşteri aynı bilgileri tekrar vermek zorunda bırakılmamalıdır') BAĞLAM PAKETİNİ + SCREEN-POP TESLİMİNİ SAHİPLENİR. SAD §7.3'teki 'Orchestrator (transfer kararı) │ bağlam paketi: özet + intent + toplanan alanlar + auth durumu' satırı + 'Bağlam paketi CC'ye hem ekran-pop (screen-pop) verisi (CTI/CRM üzerinden) hem de transkript özeti olarak iletilir (FR-HND-004/005)' cümlesinin SAHİBİDİR. 9.4 (tetikleyiciler) NE ZAMAN/NEDEN, 9.5 (hedef seçimi) NEREYE kararını üretir; bu modül aktarımla birlikte temsilciye NE GÖSTERİLECEĞİNİ (bağlam paketi) üretir ve teslim eder; 9.1/9.2/9.3 (cold/warm/whisper) taşıma sırasında bu paketi (warm/whisper whisper brifing özeti dahil) TÜKETİR. Modül bir BAĞLAM PAKETİ DERLEYİCİSİ + TESLİM MOTORUdur (deterministik): TransferContext{session(summary, intent, collected_fields[], auth), target(9.5'ten department/skill_group/queue/deliver_to), delivery_channels[]} alır → DÖRT ZORUNLU BİLEŞEN (summary + intent + collected_fields + auth_status) derler → REDACTION uygular (hassas alan maskeleme + auth durumu YALNIZ-statü, ham sır düşürülür) → screen-pop (CTI/CRM) + transkript özeti olarak hedef temsilciye teslim eder → ContextPackage{components, redactions, delivered_to, channels, evidence} üretir. ÇEKİRDEK INVARIANT: paket dört bileşeni DE taşır (P2 missing_component=0, FR-HND-004); oturumda toplanan alanlar pakette iletilir → müşteri tekrar vermek zorunda kalmaz (P3 missing_collected_field=0, FR-HND-005); auth_status doğrulama SEVİYESİ+yöntem+step-up taşır ama ham doğrulama sırrı (OTP kodu/parola/KBA cevabı/tam PAN) PAKETTE YOK (P4 auth_secret_leak=0, FR-AUTH-005); screen-pop'a giden hassas alanlar maskelenir (P5 unmasked_sensitive=0, FR-AUTH-005); paket YALNIZ 9.5'in seçtiği hedefe teslim edilir (P6 mis_delivery=0); paket bu tenant'ın oturumundan kurulur+bu tenant'a teslim edilir (P7 cross_tenant=0, FR-TEN-002); screen-pop kanalı yoksa transfer DÜŞMEZ, verbal/transkript fallback bağlam sağlanır (P8 fail-safe, oturum korunur); her paket kanıt taşır (P9); her teslim audit'e yazılır (P10, FR-IAM-006); metrikler düşük-kardinalite + müşteri PII/transkript metrikte yok (P11); spec/config/sample ham PII/sır tutmaz (P12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): aktarım MEKANİZMASI (cold SIP REFER → 9.1; warm köprüleme → 9.2; whisper konferans → 9.3 — bu modül PAKETİ ÜRETİR/TESLİM EDER, taşımayı DEĞİL; warm/whisper whisper brifing METNİ 9.2/9.3'te seslendirilir, bu modül whisper özet BİLEŞENİNİ sağlar); aktarım TETİKLEME kararı → 9.4 (TÜKETİLİR); hedef SEÇİMİ → 9.5 (target'ı TÜKETİR, ÜRETMEZ); temsilci-yok callback/voicemail/ticket → 9.7 (FR-HND-007); aktarım başarısı+bekleme raporlama → 9.8 (FR-HND-008); özet ÜRETİMİ (transcript→summary) → LLM/diyalog özetleme (3.x/6.x; bu modül özet REFERANSINI TÜKETİR); intent/niyet sınıflandırması → NLU (3.x; TÜKETİLİR); KİMLİK DOĞRULAMA İŞLEMİ (OTP/KBA/step-up yürütme) → auth modülü (FR-AUTH-001..007; bu modül auth DURUMUNU TÜKETİR, doğrulamayı YAPMAZ); alan toplama (slot-filling) → diyalog (3.x; toplanan alanları TÜKETİR); CRM/CTI screen-pop KANAL ENTEGRASYONU (gerçek CTI pop) → CC entegrasyonu (11.x; bu modül teslim SÖZLEŞMESİNİ üretir); audit STORE → 7.1.6/12.1.8; gözlemlenebilirlik omurgası → 0.4.7 (metrik ÜRETİR). Spec/config/sample'larda sır/credential ve gerçek PII (müşteri adı/telefon/hesap no tam değeri / ham transkript metni / OTP kodu / parola) YOK — yalnız yapısal KİMLİKLER (alan ADLARI, departman/skill_group/kuyruk/intent kimlikleri) + değer-sınıfı etiketleri + maskelenmiş-değer tokenları (son-4 vb.) + auth seviye/yöntem kodları + redaction politikası + sanal zaman. KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS esastır.",
+  "version": "1.0",
+  "wbs": "9.6",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-HND-004", "FR-HND-005", "FR-AUTH-005", "FR-AUTH-003", "FR-TEN-002", "FR-IAM-006", "FR-REC-004", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-HND-004", "SR-HND-005"],
+    "rtm": ["TC-HND-004", "TC-HND-005"],
+    "brd": [
+      "§9.12 (İnsan Temsilciye Aktarım — FR-HND-004 görüşme özeti+toplanan bilgiler aktarımı; FR-HND-005 tekrar-sormama)",
+      "§9.11 (Kimlik Doğrulama — FR-AUTH-005 hassas bilgiler tam tekrar edilmez; FR-AUTH-003 step-up; bu modül auth DURUMUNU taşır, doğrulamayı yürütmez)",
+      "§14 (Mahremiyet & uyumluluk — screen-pop'ta PII minimizasyonu/maskeleme; müşteri verisi tenant-scoped)",
+      "§16/§24 (Call / Transcript / Audit Log varlıkları — paket kaynak oturumdan kurulur, teslim audit'lenir)",
+      "§8.1 (CC entegrasyonu — bağlam paketi CTI/CRM screen-pop + transkript özeti olarak iletilir)"
+    ],
+    "sad": [
+      "§7.3 (Human Handoff Akışı — 'Orchestrator (transfer kararı) │ bağlam paketi: özet + intent + toplanan alanlar + auth durumu' + 'Bağlam paketi CC'ye hem ekran-pop (screen-pop) verisi (CTI/CRM üzerinden) hem de transkript özeti olarak iletilir (FR-HND-004/005)' — bu modül BAĞLAM PAKETİ noktasıdır)",
+      "§13.3 (correlation/tenant context propagation — paket correlation_id+tenant taşır)",
+      "§14 (güvenlik tasarımı — fail-safe: screen-pop yoksa verbal/transkript fallback; oturum DÜŞMEZ; PII minimizasyonu/maskeleme)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — bağlam paketi orkestratör/handoff manager'da derlenir; CTI/CRM'e doğrudan bağlanmaz, teslim SÖZLEŞMESİ üretir)",
+      "ADR-002 (vendor-neutral — screen-pop teslim modeli CTI/CRM sağlayıcı bağımsız; aynı paket sözleşmesi arkasına gerçek CTI entegrasyonu)"
+    ],
+    "threat_model": [
+      "TM-I-* (bilgi sızıntısı — auth sırrı/ham PII screen-pop'ta YOK; hassas alanlar maskelenir; FR-AUTH-005)",
+      "TM-T-* (tenant izolasyonu — paket yalnız bu tenant oturumundan kurulur+bu tenant'a teslim; cross-tenant red, FR-TEN-002)",
+      "TM-R-* (inkâr — her paket teslimi + bileşen sayımı + redaction kaydı audit'e yazılır)",
+      "TM-D-* (DoS/dayanıklılık — screen-pop kanalı yoksa fail-safe verbal/transkript fallback; oturum düşmez)"
+    ],
+    "consumes": [
+      "9.5 hedef seçimi (FR-TEL-008/FR-HND-003) — TargetSelection{department, skill_group, queue, deliver_to}'ı teslim hedefi olarak TÜKETİR",
+      "9.4 transfer tetikleyiciler (FR-HND-001/002) — transfer reason'ını bağlam notu olarak TÜKETİR",
+      "Diyalog/NLU intent (FR-...) — paket intent bileşenini TÜKETİR (ÜRETMEZ)",
+      "Diyalog slot-filling (toplanan alanlar) — collected_fields'ı TÜKETİR (ÜRETMEZ)",
+      "Özetleme (LLM/diyalog, 3.x/6.x) — görüşme özetini (summary referansı) TÜKETİR (ÜRETMEZ)",
+      "Auth modülü (FR-AUTH-001..007) — auth DURUMUNU (level/methods/step_up) TÜKETİR; doğrulama YÜRÜTMEZ; ham sırrı TÜKETMEZ"
+    ],
+    "consumed_by": [
+      "9.1 cold transfer (FR-TEL-007) — paketi REFER ile birlikte CC screen-pop'a iletir (oturum kapanır)",
+      "9.2 warm transfer (FR-HND-006) — paket özetini whisper brifing olarak seslendirir + screen-pop teslim eder",
+      "9.3 whisper transfer (FR-TEL-007) — paket özetini per-leg whisper brifing olarak seslendirir + screen-pop teslim eder",
+      "9.8 aktarım raporlama (FR-HND-008) — teslim outcome/redaction sayımını TÜKETİR",
+      "7.1.6 + 12.1.8 audit store (FR-IAM-006) — paket teslim kaydını kalıcılaştırır",
+      "CC entegrasyonu (11.x) — paket teslim sözleşmesini gerçek CTI/CRM screen-pop'a bağlar",
+      "0.4.7 gözlemlenebilirlik — handoff_context_* metriklerini tüketir"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Bağlam paketi derleyicisi orkestratör/handoff manager içinde bir TESLİM fonksiyonudur (SAD §7.3 'Orchestrator (transfer kararı) │ bağlam paketi' satırı): 9.4 transfer kararını + 9.5 hedefini alınca, bu motor oturumun durumundan (summary/intent/collected_fields/auth) dört bileşenli paketi derler, redaction uygular ve hedef temsilciye (CTI/CRM screen-pop + transkript özeti) teslim eder. Paket warm/whisper transferde (9.2/9.3) whisper brifing özeti olarak da seslendirilir. Motor hot-path'i BLOKLAMAZ — paket derleme O(alan-sayısı) deterministik; sanal zaman. Vendor-neutral (ADR-001/002): teslim sözleşmesi CTI/CRM sağlayıcı bağımsız; canlı CC entegrasyonunda (11.x) aynı paket sözleşmesi arkasına gerçek screen-pop motoru.",
+    "plane": "voice-runtime orchestrator (handoff manager — bağlam paketi derleyici/teslim motoru)",
+    "owns": "SAD §7.3 BAĞLAM PAKETİ noktası: TransferContext → dört bileşen (summary + intent + collected_fields + auth_status) derleme + redaction (hassas alan maskeleme + auth yalnız-statü) + hedef-kapsamlı teslim (screen-pop + transkript özeti) + teslim audit",
+    "delegates": "aktarım taşıması → 9.1/9.2/9.3; tetikleme → 9.4; hedef seçimi → 9.5; temsilci-yok fallback → 9.7; raporlama → 9.8; özet ÜRETİMİ → LLM özetleme (3.x/6.x); intent ÜRETİMİ → NLU (3.x); alan toplama → diyalog (3.x); auth YÜRÜTME → auth modülü (FR-AUTH); gerçek CTI pop → CC (11.x); audit store → 7.1.6/12.1.8",
+    "deterministic": true,
+    "trace": "SAD §7.3, ADR-001, ADR-002"
+  },
+
+  "states": {
+    "$comment": "Bağlam paketi durum makinesi (P1). ASSEMBLING→REDACTING→DELIVERING→{DELIVERED|DEGRADED}. ASSEMBLING: oturum durumundan dört bileşen toplanır. REDACTING: hassas alanlar maskelenir, auth durumu yalnız-statüye indirgenir (ham sır düşürülür). DELIVERING: hedef temsilciye (screen-pop CTI/CRM + transkript özeti) teslim. DELIVERED (terminal): screen-pop dahil tüm kanallar teslim edildi. DEGRADED (terminal): screen-pop kanalı kullanılamadı (CTI/CRM down) → fail-safe verbal(whisper)/transkript fallback bağlam sağlandı, oturum DÜŞMEDİ (P8). Her iki terminal de geçerli teslim — DEGRADED ihlal değil, fail-safe sonuç. Terminal durumlar IMMUTABLE.",
+    "flow": ["ASSEMBLING", "REDACTING", "DELIVERING", "DELIVERED", "DEGRADED"],
+    "non_terminal": ["ASSEMBLING", "REDACTING", "DELIVERING"],
+    "terminal": ["DELIVERED", "DEGRADED"],
+    "terminal_delivered": ["DELIVERED"],
+    "terminal_degraded": ["DEGRADED"]
+  },
+
+  "transitions": {
+    "$comment": "İzinli geçişler + kapı koşulu. Paket derleyici fail-safe: screen-pop kanalı varsa DELIVERED; yoksa DEGRADED'e gider (verbal/transkript fallback, oturum korunur). Sıra: bileşen-derle → redaction-uygula → hedef-kapsamlı-teslim. Her iki terminal de paket + audit üretir (oturum düşmez).",
+    "edges": [
+      {"from": "ASSEMBLING", "to": "REDACTING", "gate": "E1", "cond": "dört bileşen (summary/intent/collected_fields/auth_status) oturum durumundan toplandı"},
+      {"from": "REDACTING", "to": "DELIVERING", "gate": "E2", "cond": "hassas alanlar maskelendi + auth durumu yalnız-statüye indirgendi (ham sır düşürüldü)"},
+      {"from": "DELIVERING", "to": "DELIVERED", "gate": "E3", "cond": "screen-pop (CTI/CRM) + transkript özeti hedef temsilciye teslim edildi → paket + audit"},
+      {"from": "DELIVERING", "to": "DEGRADED", "gate": "E4", "cond": "screen-pop kanalı kullanılamadı → fail-safe verbal(whisper)/transkript fallback bağlam (özet+intent) sağlandı; oturum DÜŞMEZ → paket + audit"}
+    ],
+    "on_delivered": "EMIT eylemi: ContextPackage{components[summary,intent,collected_fields,auth_status], redactions[], delivered_to, channels[screen_pop,transcript_summary], evidence} → hedef temsilci/CC; teslim audit'e yazılır (P10)",
+    "on_degraded": "FAILSAFE eylemi: ContextPackage{degraded=true, fallback_context{summary,intent}, channels[transcript_summary,whisper]} → hedef temsilci verbal/transkript ile bağlam alır; oturum düşmez; teslim audit'e yazılır (P10)"
+  },
+
+  "package_components": {
+    "$comment": "FR-HND-004 dört zorunlu bileşen. Paket DÖRDÜNÜ DE taşır (P2 missing_component=0). summary = görüşme özeti (LLM/diyalog özetleme ÜRETİR, bu modül TÜKETİR — referans token, ham transkript DEĞİL); intent = niyet (NLU ÜRETİR); collected_fields = oturumda toplanan alanlar (slot-filling ÜRETİR; FR-HND-005 tekrar-sormama — alanlar pakette iletilir, hassas olanlar maskeli); auth_status = kimlik doğrulama DURUMU (level/methods/step_up — auth modülü ÜRETİR; FR-AUTH-005 ham sır YOK). Alan ADI yapısal kimliktir; değer maskeli/token'dır.",
+    "components": ["summary", "intent", "collected_fields", "auth_status"],
+    "auth_status_shape": ["level", "methods", "step_up"],
+    "auth_levels": ["none", "partial", "verified"],
+    "trace": "FR-HND-004, FR-HND-005, FR-AUTH-005, FR-AUTH-003"
+  },
+
+  "redaction": {
+    "$comment": "PII minimizasyonu / maskeleme (P4/P5; FR-AUTH-005, BRD §14). Hassas işaretli alanlar (kart no/hesap no/kimlik no) screen-pop'a maskelenmiş gider (son-4 vb.; masked=true). auth_status YALNIZ-statüdür: level/methods/step_up taşır, ham doğrulama sırrı (auth_secret_fields: OTP kodu/parola/KBA cevabı/tam PAN/CVV/güvenlik cevabı) PAKETE GİRMEZ. Hassas-olmayan alanlar token olarak iletilir. Redaction kaydı kanıt+audit'e yazılır.",
+    "mask_sensitive": true,
+    "auth_status_only": true,
+    "auth_secret_fields": ["otp_code", "password", "kba_answer", "pan", "cvv", "security_answer", "pin"],
+    "trace": "FR-AUTH-005, BRD §14, FR-REC-004"
+  },
+
+  "delivery": {
+    "$comment": "Teslim kanalları (SAD §7.3 'CTI/CRM screen-pop + transkript özeti'). screen_pop = CTI/CRM ekran-pop (paket yapısal alanlar); transcript_summary = transkript özeti; whisper = warm/whisper transferde temsilciye seslendirilen özet (9.2/9.3 TÜKETİR). Paket YALNIZ 9.5'in seçtiği hedefe (deliver_to=queue) teslim edilir (P6 mis_delivery=0); bu tenant'ın hedefine (P7 cross_tenant=0). screen-pop yoksa fail-safe verbal/transkript fallback (DEGRADED, P8).",
+    "channels": ["screen_pop", "transcript_summary", "whisper"],
+    "primary": ["screen_pop", "transcript_summary"],
+    "fallback": ["transcript_summary", "whisper"],
+    "target_scoped": true,
+    "trace": "FR-HND-004, FR-HND-005, FR-TEN-002, SAD §7.3"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli; bir senaryoda ihlal varsa kapı eler. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1/F2 canlı CC/CTI entegrasyonu + pilot tenant verisinde doğrulanır.",
+    "max_missing_component": 0,
+    "max_missing_collected_field": 0,
+    "max_auth_secret_leak": 0,
+    "max_unmasked_sensitive": 0,
+    "max_mis_delivery": 0,
+    "max_cross_tenant": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "Bağlam paketi derleyici her teslim için BRD §15 + handoff metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. handoff_context_delivered_total{tenant,department,outcome,channel} → teslim sayımı (department/outcome/channel DÜŞÜK kardinalite); handoff_context_degraded_total{tenant,reason} → screen-pop fallback sayımı (CTI/CRM down erken-uyarı); handoff_context_redaction_total{tenant,field_class} → maskelenmiş hassas alan sayımı (PII minimizasyonu kanıtı); handoff_context_cross_tenant_blocked_total → engellenen cross-tenant teslim (güvenlik). tenant_id+department+outcome+channel+field_class DÜŞÜK kardinalite (label uygun); call_id/correlation_id/queue_id/alan-değerleri YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Müşteri adı/telefon/hesap no/ham transkript/auth sırrı metriklerde VE log'da YOK (FR-REC-004). degraded oranı ani artışı (CTI/CRM erişilemez) → alarm ≤2dk (SAD §17.2, NFR 10.1).",
+    "metrics": ["handoff_context_delivered_total", "handoff_context_degraded_total", "handoff_context_redaction_total", "handoff_context_cross_tenant_blocked_total"],
+    "low_cardinality_labels": ["tenant_id", "department", "outcome", "channel", "field_class"],
+    "high_cardinality_trace_only": ["call_id", "correlation_id", "queue_id", "field_value"],
+    "alarm": "degraded (screen-pop fallback) oranı ani artışı (CTI/CRM erişilemez) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "P1", "desc": "Paket tamlığı/determinizm: her TransferContext tanımlı kenarlar boyunca ilerler ve bir terminal teslime {DELIVERED|DEGRADED} ulaşır; aynı girdi → aynı çıktı; stuck/tanımsız durum yok. stuck_state=0.", "trace": "SAD §7.3, SR-HND-004"},
+    {"id": "P2", "desc": "Dört zorunlu bileşen (FR-HND-004): paket summary + intent + collected_fields + auth_status DÖRDÜNÜ DE taşır; eksik bileşenli paket yok. missing_component=0.", "trace": "FR-HND-004, SR-HND-004"},
+    {"id": "P3", "desc": "Tekrar-sormama (FR-HND-005): oturumda toplanan her alan pakette temsilciye iletilir (hassas olanlar maskeli ama MEVCUT); paketten düşürülen toplanan alan yok → temsilci tekrar istemez. missing_collected_field=0.", "trace": "FR-HND-005, SR-HND-005"},
+    {"id": "P4", "desc": "Auth durumu yalnız-statü (FR-AUTH-005/FR-AUTH-003): auth_status doğrulama level/methods/step_up taşır; ham doğrulama sırrı (OTP kodu/parola/KBA cevabı/tam PAN/CVV) PAKETTE YOK. auth_secret_leak=0.", "trace": "FR-AUTH-005, FR-AUTH-003"},
+    {"id": "P5", "desc": "Hassas alan maskeleme (FR-AUTH-005, BRD §14): screen-pop'a giden hassas işaretli alanlar maskeleme politikasına göre maskelenir (son-4 vb.); ham tam-değer screen-pop'ta yok. unmasked_sensitive=0.", "trace": "FR-AUTH-005, BRD §14, FR-REC-004"},
+    {"id": "P6", "desc": "Hedef-kapsamlı teslim: paket YALNIZ 9.5'in seçtiği hedefe (deliver_to=queue) teslim edilir; yanlış hedefe screen-pop yok. mis_delivery=0.", "trace": "FR-HND-003, FR-HND-004"},
+    {"id": "P7", "desc": "Tenant izolasyonu (FR-TEN-002): paket yalnız bu tenant'ın oturumundan kurulur ve bu tenant'ın hedefine teslim edilir; cross-tenant kaynak/teslim reddedilir. cross_tenant=0.", "trace": "FR-TEN-002, FR-HND-004"},
+    {"id": "P8", "desc": "Fail-safe teslim: screen-pop kanalı kullanılamazsa transfer DÜŞMEZ; minimal verbal(whisper)/transkript özeti fallback bağlam (özet+intent) sağlanır + DEGRADED işaretlenir; oturum korunur; daima terminal üretilir.", "trace": "SAD §14, FR-HND-007"},
+    {"id": "P9", "desc": "Kanıt: her paket kaynak oturum referansı + teslim edilen bileşen listesi + redaction kaydı + hedef kuyruk (9.5) taşır; kanıtsız teslim yok. missing_evidence=0.", "trace": "FR-HND-008, FR-IAM-006"},
+    {"id": "P10", "desc": "Audit: her teslim (DELIVERED veya DEGRADED) → audit {delivered_to, delivered_components, redaction_count, auth_level, channels, correlation_id, tenant_id} (FR-IAM-006). missing_audit=0.", "trace": "FR-IAM-006, 0.4.7 label_policy"},
+    {"id": "P11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (department/outcome/channel/field_class); müşteri adı/telefon/hesap no/ham transkript/auth sırrı/alan-değerleri metrikte VE log'da yok; call_id/correlation_id/queue_id yalnız trace. (0.4.7 label_policy, FR-REC-004).", "trace": "FR-REC-004, 0.4.7 label_policy"},
+    {"id": "P12", "desc": "Sır/PII yok: spec/config/sample müşteri adı/telefon/hesap no tam değeri/ham transkript/OTP kodu/parola/credential tutmaz; yalnız yapısal kimlikler (alan adları, departman/skill_group/kuyruk/intent kimlikleri) + değer-sınıfı etiketleri + maskelenmiş-değer tokenları (son-4) + auth seviye/yöntem kodları + redaction politikası + sanal zaman. secret_or_pii=0.", "trace": "BRD §14, BRD §16, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar müşteri ADI, TELEFON numarası tam değeri, HESAP/KART numarası tam değeri, ham TRANSKRİPT METNİ, OTP KODU, PAROLA, KBA CEVABI, PII DEĞERİ veya credential TUTMAZ — yalnız yapısal KİMLİKLER (alan ADLARI [account_number bir alan ADIdır, değeri değil], departman/skill_group/kuyruk/intent kimlikleri) + değer-SINIFI etiketleri (örn. value_class: account_number) + MASKELENMİŞ-değer tokenları (son-4, örn. ****-4321) + auth seviye/yöntem kodları (verified/otp) + redaction politikası + sanal zaman. Alan ADI ve değer-sınıfı PII DEĞİLDİR; maskelenmiş token (yalnız son-4) tasarımca PII-olmayandır; auth seviye/yöntem kodu durum bilgisidir, sır değildir.",
+    "forbids": ["customer_name", "customer_phone_value", "account_number_value", "card_number_value", "transcript_text", "otp_code_value", "password_value", "kba_answer_value", "credential", "secret", "pii_value"]
+  }
+}

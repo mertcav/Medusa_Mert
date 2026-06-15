@@ -1,0 +1,29 @@
+{
+  "$comment": "WBS 9.6 bağlam paketi + screen-pop teslim politika konfigürasyonu (vendor-neutral, credential-free). Dört zorunlu bileşen + redaction (hassas alan maskeleme + auth yalnız-statü) + teslim kanalları (CTI/CRM screen-pop + transkript özeti) burada parametrelenir. Özet/intent/toplanan-alan ÜRETİMİ başka modüllerde (LLM özetleme / NLU / diyalog slot-filling); bu config paket derleyicinin TÜKETTİĞİ teslim+redaction kurallarını tutar. Sır/credential ve PII (müşteri adı/telefon/hesap no tam değeri/ham transkript/OTP kodu/parola) YOK — yalnız bileşen adları + auth_secret_fields (yasaklı sır ALANLARI, değer değil) + maskeleme politikası + kanal listesi. Değerler MÜHENDİSLİK varsayılanı; pilot tenant + CC/CTI entegrasyonu (11.x) verisiyle kalibre edilir (BRD §22 açık karar).",
+  "version": "1.0",
+  "wbs": "9.6",
+  "required_components": ["summary", "intent", "collected_fields", "auth_status"],
+  "auth_status_shape": ["level", "methods", "step_up"],
+  "auth_levels": ["none", "partial", "verified"],
+  "redaction": {
+    "$comment": "Hassas alanlar (sensitive=true) screen-pop'a maskeli gider; auth_secret_fields paket bileşenlerine GİRMEZ (FR-AUTH-005). Bu alan ADLARIdır (değer değil) — yasaklı liste.",
+    "mask_sensitive": true,
+    "auth_status_only": true,
+    "auth_secret_fields": ["otp_code", "password", "kba_answer", "pan", "cvv", "security_answer", "pin"],
+    "mask_rule": "last4"
+  },
+  "delivery": {
+    "$comment": "Teslim kanalları. primary screen-pop yoksa fallback verbal(whisper)/transkript (DEGRADED, fail-safe). Paket yalnız 9.5 hedefine teslim edilir (target.deliver_to=queue).",
+    "channels": ["screen_pop", "transcript_summary", "whisper"],
+    "primary": ["screen_pop", "transcript_summary"],
+    "fallback": ["transcript_summary", "whisper"],
+    "target_scoped": true
+  },
+  "emit_to": ["9.1", "9.2", "9.3"],
+  "report_to": "9.8",
+  "observability": {
+    "metric_prefix": "handoff_context_",
+    "alarm_on_degraded_rate": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

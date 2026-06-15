@@ -1,0 +1,18 @@
+{
+  "name": "ctx-unauthenticated",
+  "$comment": "Doğrulanmamış arayan (FR-AUTH-001 caller-ID tek başına yetmez). auth_status level=none taşınır → temsilci hassas işlem ÖNCESİ kendi doğrulamasını yapması gerektiğini BİLİR (paket auth durumunu dürüstçe taşır). Hassas alan yok. DELIVERED, ihlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ctx-005",
+  "call_id": "call-ctx-005",
+  "target": {"department": "general", "skill_group": "sg-general", "queue": "q-general", "deliver_to": "q-general", "match_quality": "general_fallback"},
+  "session": {
+    "summary": "summary-ref-ctx-005",
+    "intent": "general_inquiry",
+    "collected_fields": [],
+    "auth": {"level": "none", "methods": [], "step_up": "none"}
+  },
+  "delivery_channels": ["screen_pop", "transcript_summary"],
+  "screen_pop_available": true,
+  "expected": {"terminal": "DELIVERED", "delivered": true, "delivered_to": "q-general", "auth_level": "none", "collected_field_count": 0, "masked_count": 0, "fallback": false}
+}

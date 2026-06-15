@@ -1,0 +1,22 @@
+{
+  "name": "ctx-happy-path",
+  "$comment": "Mutlu yol (FR-HND-004/005). Dört bileşen (summary+intent+collected_fields+auth_status) derlenir; hassas alan account_number maskeli (son-4); auth_status verified yalnız-statü (ham OTP yok); paket 9.5 hedefi q-billing-tr'ye screen-pop+transkript özeti ile teslim edilir. Müşteri toplanan alanları tekrar vermez. DELIVERED, ihlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ctx-001",
+  "call_id": "call-ctx-001",
+  "target": {"department": "billing", "skill_group": "sg-billing-tr", "queue": "q-billing-tr", "deliver_to": "q-billing-tr", "match_quality": "exact"},
+  "session": {
+    "summary": "summary-ref-ctx-001",
+    "intent": "billing_dispute",
+    "collected_fields": [
+      {"name": "order_id", "sensitive": false, "value_token": "tok-order-aa"},
+      {"name": "account_number", "sensitive": true, "masked_value": "****-4321"},
+      {"name": "issue_category", "sensitive": false, "value_token": "billing_overcharge"}
+    ],
+    "auth": {"level": "verified", "methods": ["otp", "customer_number"], "step_up": "completed", "secrets_present_in_session": ["otp_code"]}
+  },
+  "delivery_channels": ["screen_pop", "transcript_summary"],
+  "screen_pop_available": true,
+  "expected": {"terminal": "DELIVERED", "delivered": true, "delivered_to": "q-billing-tr", "auth_level": "verified", "collected_field_count": 3, "masked_count": 1, "fallback": false}
+}

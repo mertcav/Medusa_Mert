@@ -1,0 +1,17 @@
+{
+  "name": "ctx-drop-component-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). inject drop_component → motor zorunlu bir bileşeni (summary) paketten çıkarıyor. P2 ihlali (missing_component>0): FR-HND-004 paket dört bileşeni DE taşımalı. Eksik bileşen = temsilci görüşme bağlamını eksik alır. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ctx-011",
+  "call_id": "call-ctx-011",
+  "target": {"department": "billing", "skill_group": "sg-billing-tr", "queue": "q-billing-tr", "deliver_to": "q-billing-tr", "match_quality": "exact"},
+  "session": {
+    "summary": "summary-ref-ctx-011",
+    "intent": "billing_dispute",
+    "collected_fields": [{"name": "order_id", "sensitive": false, "value_token": "tok-order-cc"}],
+    "auth": {"level": "verified", "methods": ["otp"], "step_up": "completed", "secrets_present_in_session": ["otp_code"]}
+  },
+  "inject": ["drop_component"],
+  "expected": {}
+}

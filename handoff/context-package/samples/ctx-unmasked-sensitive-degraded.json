@@ -1,0 +1,19 @@
+{
+  "name": "ctx-unmasked-sensitive-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). inject unmasked_sensitive → motor hassas alanı (account_number) maskelemeden ham referansla screen-pop'a koyuyor. P5 ihlali (unmasked_sensitive>0): FR-AUTH-005/BRD §14 hassas alanlar screen-pop'a maskeli (son-4) gitmeli; ham tam-değer ekranda olmamalı. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-globex",
+  "correlation_id": "corr-ctx-014",
+  "call_id": "call-ctx-014",
+  "target": {"department": "billing", "skill_group": "sg-billing-tr", "queue": "q-billing-tr", "deliver_to": "q-billing-tr", "match_quality": "exact"},
+  "session": {
+    "summary": "summary-ref-ctx-014",
+    "intent": "payment",
+    "collected_fields": [
+      {"name": "account_number", "sensitive": true, "masked_value": "****-4321", "raw_ref": "RAW::account_number"}
+    ],
+    "auth": {"level": "verified", "methods": ["otp"], "step_up": "completed", "secrets_present_in_session": ["otp_code"]}
+  },
+  "inject": ["unmasked_sensitive"],
+  "expected": {}
+}

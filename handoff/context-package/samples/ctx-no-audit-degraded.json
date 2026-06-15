@@ -1,0 +1,17 @@
+{
+  "name": "ctx-no-audit-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). inject no_audit → motor paket teslimini audit'e yazmıyor. P10 ihlali (missing_audit>0): FR-IAM-006 kullanıcı/sistem işlemleri değiştirilemez audit log'a yazılmalı — bağlam paketi teslimi (kim hangi hedefe ne aldı) iz bırakmalı (TM-R-*). Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ctx-017",
+  "call_id": "call-ctx-017",
+  "target": {"department": "billing", "skill_group": "sg-billing-tr", "queue": "q-billing-tr", "deliver_to": "q-billing-tr", "match_quality": "exact"},
+  "session": {
+    "summary": "summary-ref-ctx-017",
+    "intent": "billing_dispute",
+    "collected_fields": [{"name": "order_id", "sensitive": false, "value_token": "tok-order-hh"}],
+    "auth": {"level": "verified", "methods": ["otp"], "step_up": "completed", "secrets_present_in_session": ["otp_code"]}
+  },
+  "inject": ["no_audit"],
+  "expected": {}
+}

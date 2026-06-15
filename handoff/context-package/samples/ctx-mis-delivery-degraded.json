@@ -1,0 +1,17 @@
+{
+  "name": "ctx-mis-delivery-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). inject mis_delivery → motor paketi 9.5'in seçtiği hedef (q-billing-tr) yerine başka kuyruğa teslim ediyor. P6 ihlali (mis_delivery>0): paket YALNIZ 9.5 hedefine teslim edilmeli — yanlış hedefe screen-pop = bağlam yanlış temsilciye sızar. Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ctx-015",
+  "call_id": "call-ctx-015",
+  "target": {"department": "billing", "skill_group": "sg-billing-tr", "queue": "q-billing-tr", "deliver_to": "q-billing-tr", "match_quality": "exact"},
+  "session": {
+    "summary": "summary-ref-ctx-015",
+    "intent": "billing_dispute",
+    "collected_fields": [{"name": "order_id", "sensitive": false, "value_token": "tok-order-ff"}],
+    "auth": {"level": "verified", "methods": ["otp"], "step_up": "completed", "secrets_present_in_session": ["otp_code"]}
+  },
+  "inject": ["mis_delivery"],
+  "expected": {}
+}

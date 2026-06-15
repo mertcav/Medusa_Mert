@@ -1,0 +1,17 @@
+{
+  "name": "ctx-cross-tenant-degraded",
+  "$comment": "DEGRADE (kasıtlı KIRMIZI). inject cross_tenant → motor paketi başka tenant'ın oturumundan kurup/başka tenant hedefine teslim ediyor. P7 ihlali (cross_tenant>0): FR-TEN-002 tenant izolasyonu — paket yalnız bu tenant'ın oturumundan kurulmalı ve bu tenant'a teslim edilmeli. Cross-tenant = veri sınırı ihlali (TM-T-*). Gate ELER.",
+  "expect": "fail",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ctx-016",
+  "call_id": "call-ctx-016",
+  "target": {"department": "billing", "skill_group": "sg-billing-tr", "queue": "q-billing-tr", "deliver_to": "q-billing-tr", "match_quality": "exact"},
+  "session": {
+    "summary": "summary-ref-ctx-016",
+    "intent": "billing_dispute",
+    "collected_fields": [{"name": "order_id", "sensitive": false, "value_token": "tok-order-gg"}],
+    "auth": {"level": "verified", "methods": ["otp"], "step_up": "completed", "secrets_present_in_session": ["otp_code"]}
+  },
+  "inject": ["cross_tenant"],
+  "expected": {}
+}

@@ -1,0 +1,22 @@
+{
+  "name": "ctx-sensitive-masked",
+  "$comment": "Hassas alan maskeleme (P5, FR-AUTH-005). Birden çok hassas alan (account_number, card_last4) screen-pop'a maskeli (son-4) gider; tam değer yok. auth verified, ham sır pakette yok (P4). DELIVERED, masked_count=2, ihlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-globex",
+  "correlation_id": "corr-ctx-004",
+  "call_id": "call-ctx-004",
+  "target": {"department": "billing", "skill_group": "sg-billing-premium-tr", "queue": "q-billing-premium-tr", "deliver_to": "q-billing-premium-tr", "match_quality": "exact"},
+  "session": {
+    "summary": "summary-ref-ctx-004",
+    "intent": "payment",
+    "collected_fields": [
+      {"name": "account_number", "sensitive": true, "masked_value": "****-7788"},
+      {"name": "card_reference", "sensitive": true, "masked_value": "card ****-0042"},
+      {"name": "amount_band", "sensitive": false, "value_token": "tier-high"}
+    ],
+    "auth": {"level": "verified", "methods": ["otp", "kba"], "step_up": "completed", "secrets_present_in_session": ["otp_code", "kba_answer"]}
+  },
+  "delivery_channels": ["screen_pop", "transcript_summary"],
+  "screen_pop_available": true,
+  "expected": {"terminal": "DELIVERED", "delivered": true, "delivered_to": "q-billing-premium-tr", "auth_level": "verified", "collected_field_count": 3, "masked_count": 2, "fallback": false}
+}

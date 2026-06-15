@@ -1,0 +1,21 @@
+{
+  "name": "ctx-warm-whisper-summary",
+  "$comment": "Warm/whisper transfer bağlam paketi (9.2/9.3 TÜKETİR). Paket özeti whisper brifing olarak da seslendirilir; screen-pop+transkript+whisper kanalları. Dört bileşen tam, hassas alan maskeli, auth verified. DELIVERED, ihlal yok. Geçer.",
+  "expect": "pass",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-ctx-006",
+  "call_id": "call-ctx-006",
+  "target": {"department": "tech", "skill_group": "sg-tech-tr", "queue": "q-tech-z", "deliver_to": "q-tech-z", "match_quality": "exact"},
+  "session": {
+    "summary": "summary-ref-ctx-006",
+    "intent": "tech_support",
+    "collected_fields": [
+      {"name": "ticket_ref", "sensitive": false, "value_token": "tok-tic-9"},
+      {"name": "account_number", "sensitive": true, "masked_value": "****-1199"}
+    ],
+    "auth": {"level": "verified", "methods": ["otp"], "step_up": "completed", "secrets_present_in_session": ["otp_code"]}
+  },
+  "delivery_channels": ["screen_pop", "transcript_summary", "whisper"],
+  "screen_pop_available": true,
+  "expected": {"terminal": "DELIVERED", "delivered": true, "delivered_to": "q-tech-z", "auth_level": "verified", "collected_field_count": 2, "masked_count": 1, "fallback": false}
+}
