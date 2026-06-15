@@ -1,0 +1,27 @@
+{
+  "name": "maker-checker-violation — onaylayan = talep eden → DENIED + onay reddi → DENIED (K6/FR-IAM-005)",
+  "$comment": "İki workflow: (a) onaylayan aktör talep eden ile AYNI → DENIED(MAKER_CHECKER_VIOLATION) (talep eden ≠ onaylayan, FR-IAM-005); (b) onay reddedildi → DENIED(APPROVAL_REJECTED). İkisinde de EXECUTE yok. Sentetik.",
+  "workflows": [
+    {"workflow_id": "wf-mc1", "correlation_id": "corr-mc1", "tenant_id": "t-1", "call_id": "call-mc1",
+     "initiator": "operator-3",
+     "operation": {"name": "limit_ustu_iade", "risk_class": "over_limit_refund", "critical": true,
+                   "params": {"amount": 8500, "currency": "TRY"}},
+     "events": [
+       {"type": "auth", "level": "strong", "methods": ["otp"], "step_up": true, "at_ms": 0},
+       {"type": "confirm", "value": "yes", "at_ms": 3000},
+       {"type": "approval", "decision": "approved", "actor": "operator-3", "at_ms": 10000}
+     ]},
+    {"workflow_id": "wf-mc2", "correlation_id": "corr-mc2", "tenant_id": "t-1", "call_id": "call-mc2",
+     "initiator": "agent",
+     "operation": {"name": "limit_ustu_iade", "risk_class": "over_limit_refund", "critical": true},
+     "events": [
+       {"type": "auth", "level": "strong", "methods": ["otp"], "step_up": true, "at_ms": 0},
+       {"type": "confirm", "value": "yes", "at_ms": 3000},
+       {"type": "approval", "decision": "rejected", "actor": "supervisor-1", "at_ms": 10000}
+     ]}
+  ],
+  "expect": {
+    "wf-mc1": {"final_state": "DENIED", "reason": "MAKER_CHECKER_VIOLATION"},
+    "wf-mc2": {"final_state": "DENIED", "reason": "APPROVAL_REJECTED"}
+  }
+}

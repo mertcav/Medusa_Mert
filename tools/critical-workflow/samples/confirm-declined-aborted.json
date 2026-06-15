@@ -1,0 +1,15 @@
+{
+  "name": "confirm-declined — müşteri teyit vermedi (hayır) → ABORTED, EXECUTE yok (K5/SR-TOOL-006)",
+  "$comment": "Teyit alınmadan kritik işlem YÜRÜTÜLMEZ (SR-TOOL-006). Müşteri 'hayır' → ABORTED(CUSTOMER_DECLINED); execute olayı verilse bile yok sayılır (K8). Sentetik.",
+  "workflows": [
+    {"workflow_id": "wf-d1", "correlation_id": "corr-d1", "tenant_id": "t-1", "call_id": "call-d1",
+     "initiator": "agent",
+     "operation": {"name": "banka_hesabi_degistir", "risk_class": "bank_account_change", "critical": true},
+     "events": [
+       {"type": "auth", "level": "strong", "methods": ["otp"], "step_up": true, "at_ms": 0},
+       {"type": "confirm", "value": "no", "at_ms": 3000},
+       {"type": "execute", "outcome": "ok", "at_ms": 4000}
+     ]}
+  ],
+  "expect": {"wf-d1": {"final_state": "ABORTED", "reason": "CUSTOMER_DECLINED"}}
+}

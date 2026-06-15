@@ -1,0 +1,171 @@
+{
+  "$comment": "WBS 7.3.1 — Kritik işlem workflow durum makinesi (auth→kural→özet→teyit→onay→audit) (BRD §13 'Konuşma Güvenliği ve Davranış Kuralları'). 7.3 'Deterministic workflow engine' workstream'inin İLK modülü. BRD §13 şunu emreder: agent kredi/sigorta uygunluğu, sağlık teşhisi, hukuki tavsiye, sözleşme iptali, yüksek tutarlı ödeme, iletişim bilgisi değişikliği, banka hesabı değişikliği, hassas PII açıklaması, limit üstü iade/ödeme gibi işlemlerde SERBEST KARAR VERMEMELİDİR; bu işlemler için ZORUNLU 6 ADIM: (1) kimlik doğrulama, (2) kurallı workflow, (3) müşteriye özet, (4) açık teyit, (5) gerekirse insan onayı, (6) audit log. Bu modül o 6 adımı bir DETERMINISTIK DURUM MAKİNESİ olarak gerçekler. 7.2.5 (reference-integration) zincirindeki tek-atımlık 'policy_gate' (confirmation∧step_up boolean) YERİNE bu modül kritik-işlem akışının TAM çok-adımlı stateful FSM'ini SAHİPLENİR (7.2.5 bunu açıkça 'kritik-işlem TAM durum makinesi→7.3.1/7.3.2' diye erteledi). FSM EXECUTE'a ulaştığında gerçek tool eylemini 7.2.5/7.x tool zincirine DELEGE eder; bu modül o zincirin tükettiği teyit/step-up/onay KARARLARINI ÜRETİR. INVARIANT (BRD §13 + SR-TOOL-006/007 kabul ölçütü): kritik işlem auth→kural→özet→teyit→onay sırasında her gerekli kapı geçilmeden EXECUTE'a ULAŞILAMAZ (K1 fail-closed), teyit alınmadan kritik işlem yürütülmez (K5; SR-TOOL-006), para/sözleşme/PII değişikliğinde ek doğrulama (step-up) zorunlu (K7; SR-TOOL-007), gerekli insan onayı maker-checker (talep≠onay) gelmeden yürütülmez (K6; FR-IAM-005), her terminal sonuç değiştirilemez audit'e yazılır (K10; BRD §13 adım 6, FR-IAM-006). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): kimlik doğrulama MEKANİZMALARI (OTP/KBA/step-up üreteci) → 8.x (FR-AUTH-001..005; bu modül auth SONUCUNU/seviyesini TÜKETİR, üretmez); müşteri teyidi TOPLAMA + ek doğrulama AYRINTILARI (teyit ifadesi tanıma, ek-doğrulama meydan okuması) → 7.3.2 (FR-TOOL-006/007; bu modül teyit/onay KAPILARINI sürer, hook'ları çağırır); gerçek tool dispatch/transport → 7.2.x (7.2.5 zinciri [1]→[7]); idempotency/allowlist/schema/retry → 7.1.x/7.2.3; müşteriye hata METNİ kataloğu → 7.1.5; audit STORE/correlation zenginleştirme → 7.1.6 + 12.1.8 (bu modül audit KAYDINI üretir); maker-checker panel UI → 12.1.7; output guard (BRD §13 yasak içerik üretimi) → 3.3.x (FR-LLM-009). Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (fixture'lar sentetik — FR-TST-008). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "7.3.1",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TOOL-006", "FR-TOOL-007", "FR-IAM-005", "FR-IAM-006", "FR-AUTH-003", "FR-LLM-008", "FR-LLM-009", "FR-TEN-002", "FR-TST-008"],
+    "nfr": ["NFR 10.6"],
+    "srs": ["SR-TOOL-006", "SR-TOOL-007", "SR-IAM-005", "SR-IAM-006", "SR-AUTH-003"],
+    "rtm": ["TC-TOOL-006", "TC-TOOL-007"],
+    "brd": [
+      "§13 (Konuşma Güvenliği ve Davranış Kuralları — kritik işlem 6 adım: auth→kural→özet→teyit→onay→audit; agent serbest karar VERMEZ)",
+      "§8.1 (Inbound: 'işlemi müşteriye teyit ettirir')",
+      "§9.10 (Tool ve İş Süreci Yönetimi — FR-TOOL-006/007)",
+      "§9.2 (IAM — FR-IAM-005 maker-checker / FR-IAM-006 audit)",
+      "§9.11 (Kimlik Doğrulama — FR-AUTH-003 step-up)",
+      "§16/§24 (Tool Execution / Audit Log varlıkları — kritik işlem kaydı)"
+    ],
+    "sad": [
+      "§11.1 (Tool Yürütme Hattı — bu FSM adım [3] policy gate'in TAM gerçeklemesi; EXECUTE [5] dispatch'e delege)",
+      "§11.3 (Deterministic actions — kritik işlem serbest-metin değil kurallı workflow)",
+      "§6.1 (turn state machine — kritik işlem turn'leri ACT/SPEAK'te ilerler; FSM turn-üstü oturum durumu)",
+      "§13.3 (correlation/tenant context propagation)",
+      "§14 (güvenlik tasarımı — fail-closed, audit)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — workflow engine STT/LLM/TTS'e doğrudan bağlanmaz)",
+      "ADR-002 (vendor-neutral — kural tablosu/karar mantığı sağlayıcı bağımsız)",
+      "ADR-012 (RBAC sabit bundle — maker-checker onay rolü; talep eden ≠ onaylayan)"
+    ],
+    "threat_model": [
+      "TM-E-* (yetki yükseltme — kritik işlem auth/onay kapısı atlanamaz)",
+      "TM-R-* (inkâr — her terminal audit'e yazılır, WORM)",
+      "SEC (fail-closed: belirsiz/eksik durum asla EXECUTE'a dönmez)"
+    ],
+    "consumes": [
+      "8.x kimlik doğrulama (FR-AUTH-001..005) — auth seviyesi/step-up SONUCUNU tüketir (üretmez)",
+      "7.3.2 müşteri teyidi + ek doğrulama (FR-TOOL-006/007) — teyit/ek-doğrulama olay HOOK'larını tüketir",
+      "7.2.5 tool zinciri (FR-TOOL-001..012) — EXECUTE outcome'unu (committed/failed) tüketir"
+    ],
+    "consumed_by": [
+      "7.2.5 reference-integration policy_gate — bu FSM'in ürettiği {confirmation, step_up, approval} kararlarını tüketir",
+      "7.1.5 hata normalizasyonu (FR-TOOL-008) — DENIED/ABORTED/EXPIRED → müşteriye teknik-detaysız metin",
+      "7.1.6 + 12.1.8 audit store (FR-TOOL-010/FR-IAM-006) — workflow audit kaydını kalıcılaştırır",
+      "12.1.7 maker-checker panel (FR-IAM-005) — APPROVAL durumundaki workflow'ları operatöre sunar"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Kritik işlem FSM'i orkestratör turn döngüsünün ÜSTÜNDE bir oturum-durumu makinesidir: bir kritik tool çağrısı niyeti algılanınca (LLM schema-doğrulamalı tool call, FR-LLM-008) FSM başlatılır; agent her kapıyı sürdükçe (auth iste → özetle → teyit iste → gerekirse onay bekle) turn'ler ilerler; EXECUTE'a ulaşınca eylem 7.2.x tool zincirine DELEGE edilir, sonuç FSM'e döner, AUDIT yazılır. FSM hot-path turn'ünü BLOKLAMAZ — bekleyen durumlar (CONFIRM/APPROVAL) oturum belleğinde tutulur (deadline'lı, K9). Vendor-neutral (ADR-001/002): kural tablosu + olay arayüzü bir politika noktası; referans deterministik FSM; canlıda gerçek auth/teyit/onay sinyalleri AYNI olay sözleşmesi arkasına.",
+    "plane": "voice-runtime orchestrator (oturum-durumu FSM) + control-plane (maker-checker onay kuyruğu)",
+    "owns": "BRD §13 6-adım kritik-işlem kompozisyonu + kapı sıralaması + fail-closed geçiş + audit kaydı",
+    "delegates": "EXECUTE → 7.2.x tool zinciri; auth → 8.x; teyit/ek-doğrulama ayrıntısı → 7.3.2; audit store → 7.1.6/12.1.8",
+    "deterministic": true,
+    "trace": "SAD §11.1, SAD §11.3, SAD §6.1, ADR-001, ADR-002"
+  },
+
+  "states": {
+    "$comment": "Durum makinesi (K1). Sıra BRD §13 6 adımıyla BİREBİR: AUTH(1)→RULE(2)→SUMMARY(3)→CONFIRM(4)→APPROVAL(5)→EXECUTE→AUDIT(6). Her geçiş kapısı fail-closed; gerekli kapı geçilmeden sonraki duruma GEÇİLMEZ. Terminal durumlar IMMUTABLE (K8).",
+    "all": ["INIT", "AUTH", "RULE", "SUMMARY", "CONFIRM", "APPROVAL", "EXECUTE", "AUDIT", "COMMITTED", "FAILED", "DENIED", "ABORTED", "EXPIRED", "ERROR"],
+    "step_states": ["AUTH", "RULE", "SUMMARY", "CONFIRM", "APPROVAL", "EXECUTE", "AUDIT"],
+    "terminal": ["COMMITTED", "FAILED", "DENIED", "ABORTED", "EXPIRED", "ERROR"],
+    "waiting_states": ["AUTH", "CONFIRM", "APPROVAL"],
+    "brd13_step_map": {
+      "AUTH": "1 — kimlik doğrulama (FR-AUTH-001..003)",
+      "RULE": "2 — kurallı workflow (kural tablosu; agent serbest karar vermez)",
+      "SUMMARY": "3 — işlem müşteriye özetlenir (maskelenmiş; FR-AUTH-005)",
+      "CONFIRM": "4 — açık teyit (FR-TOOL-006)",
+      "APPROVAL": "5 — gerekirse insan onayı (FR-IAM-005 maker-checker)",
+      "EXECUTE": "— deterministic action (7.2.x'e delege)",
+      "AUDIT": "6 — işlem sonucu değiştirilemez audit'e yazılır (FR-IAM-006)"
+    },
+    "transitions": {
+      "INIT": ["AUTH", "ERROR"],
+      "AUTH": ["RULE", "DENIED", "EXPIRED", "ERROR"],
+      "RULE": ["SUMMARY", "DENIED", "ERROR"],
+      "SUMMARY": ["CONFIRM", "ERROR"],
+      "CONFIRM": ["APPROVAL", "EXECUTE", "ABORTED", "EXPIRED", "ERROR"],
+      "APPROVAL": ["EXECUTE", "DENIED", "EXPIRED", "ERROR"],
+      "EXECUTE": ["AUDIT", "ERROR"],
+      "AUDIT": ["COMMITTED", "FAILED", "DENIED", "ABORTED", "EXPIRED"],
+      "COMMITTED": [], "FAILED": [], "DENIED": [], "ABORTED": [], "EXPIRED": [], "ERROR": []
+    },
+    "trace": "BRD §13, FR-TOOL-006/007, tool_execution WORM (DB.md §6.5, 1.1.3)"
+  },
+
+  "auth_levels": {
+    "$comment": "Kimlik doğrulama seviyesi (K2). caller_id TEK BAŞINA güçlü sayılmaz (FR-AUTH-001): yalnız caller_id metodu → seviye en çok 'basic'e SABİTLENİR. step_up ayrı bir boolean (hassas işlem ek doğrulaması, FR-AUTH-003/FR-TOOL-007). Mekanizma 8.x'te; bu modül seviyeyi TÜKETİR.",
+    "order": ["none", "basic", "strong"],
+    "rank": {"none": 0, "basic": 1, "strong": 2},
+    "caller_id_only_cap": "basic",
+    "strong_methods_examples": ["otp", "kba", "customer_no", "step_up"],
+    "trace": "FR-AUTH-001, FR-AUTH-003, FR-TOOL-007"
+  },
+
+  "rule_evaluation": {
+    "$comment": "RULE durumu (K3) — kural tablosu (config/workflow-policies.json) DETERMINISTIK olarak risk_class'tan etkin gereksinim setini hesaplar: {min_auth_level, requires_step_up, requires_confirmation, requires_human_approval}. DİNAMİK ESKALASYON: (a) forbidden_autonomous=true (BRD §13 'serbest karar vermez': kredi/sigorta uygunluğu, sağlık teşhisi, hukuki tavsiye) → requires_human_approval ZORLANIR true; (b) params.amount > amount_threshold (escalate_human_above_threshold) → requires_human_approval true. risk_class kural tablosunda YOKSA → fail-closed DENIED(UNKNOWN_RISK_CLASS). disallowed=true → DENIED(RULE_BLOCKED). Agent bu kararları ASLA kendi üretmez (BRD §13).",
+    "effective_fields": ["min_auth_level", "requires_step_up", "requires_confirmation", "requires_human_approval"],
+    "escalation": {
+      "forbidden_autonomous": "requires_human_approval := true (BRD §13 serbest-karar yasağı)",
+      "amount_over_threshold": "requires_human_approval := true (yüksek tutarlı ödeme / limit üstü)"
+    },
+    "fail_closed": ["UNKNOWN_RISK_CLASS → DENIED", "RULE_BLOCKED → DENIED"],
+    "trace": "BRD §13, FR-TOOL-007, ADR-002"
+  },
+
+  "events": {
+    "$comment": "FSM girdi olayları (deterministik, sanal saat at_ms ile sıralı). Her olay ilgili kapıda tüketilir. Eksik/geç olay → fail-closed terminal (auth eksik→DENIED, teyit eksik→ABORTED, onay eksik→DENIED; deadline aşımı→EXPIRED, K9).",
+    "types": {
+      "auth": {"fields": ["level (none|basic|strong)", "methods[]", "step_up (bool)", "at_ms"], "consumed_at": "AUTH"},
+      "confirm": {"fields": ["value (yes|no|ambiguous)", "at_ms"], "consumed_at": "CONFIRM"},
+      "approval": {"fields": ["decision (approved|rejected)", "actor", "at_ms"], "consumed_at": "APPROVAL"},
+      "execute": {"fields": ["outcome (ok|fault)", "fault_class", "result_ref", "at_ms"], "consumed_at": "EXECUTE"}
+    },
+    "trace": "BRD §13, 7.3.2 (teyit/ek-doğrulama hook), 7.2.x (execute outcome)"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal sonuç sınıfları + audit'e yazılan sonuç. COMMITTED yalnız tüm gerekli kapı geçti ∧ execute ok. FAILED execute fault (7.2.x dispatch hatası). DENIED kapı reddi (auth/rule/onay/maker-checker). ABORTED müşteri teyit vermedi. EXPIRED deadline. ERROR iç/geçersiz.",
+    "values": ["COMMITTED", "FAILED", "DENIED", "ABORTED", "EXPIRED", "ERROR"],
+    "deny_reasons": ["AUTH_INSUFFICIENT", "STEP_UP_REQUIRED", "UNKNOWN_RISK_CLASS", "RULE_BLOCKED", "APPROVAL_REQUIRED", "APPROVAL_REJECTED", "MAKER_CHECKER_VIOLATION"],
+    "abort_reasons": ["CUSTOMER_DECLINED", "CONFIRMATION_NOT_OBTAINED"],
+    "execute_fault_alignment": "7.1.4 fault_taxonomy (FAILED.fault_class)",
+    "trace": "BRD §13, FR-TOOL-006/007, FR-IAM-005"
+  },
+
+  "deadline": {
+    "$comment": "K9 — her bekleyen durum (AUTH/CONFIRM/APPROVAL) deadline_ms taşır; başlangıçtan itibaren geçen süre deadline'ı aşarsa → EXPIRED (fail-closed; EXECUTE'a ASLA dönmez). Zombie workflow yok; insan onayı sonsuza beklemez.",
+    "default_ms": 120000,
+    "applies_to": ["AUTH", "CONFIRM", "APPROVAL"],
+    "on_exceed": "EXPIRED",
+    "trace": "BRD §13, NFR 10.6"
+  },
+
+  "summary_masking": {
+    "$comment": "K11 — SUMMARY (adım 3) müşteriye sunulurken hassas değerler TAM tekrarlanmaz (FR-AUTH-005): banka hesabı/kart/kimlik no/telefon yalnız son 4 hane; uzun rakam dizileri maskelenir. Müşteri yüzeyi metni sızıntı tarayıcısından geçer.",
+    "mask_last_n": 4,
+    "masked_param_kinds": ["account", "card", "iban", "national_id", "phone"],
+    "trace": "FR-AUTH-005, BRD §13 adım 3"
+  },
+
+  "invariants": [
+    {"id": "K1", "desc": "Sıralı fail-closed kapı geçişi: FSM BRD §13 sırasını (auth→rule→summary→confirm→approval→execute→audit) zorlar; hiçbir durum atlanamaz; EXECUTE yalnız önceki TÜM gerekli kapılar 'pass' ise erişilebilir. Eksik/belirsiz durum → terminal red, asla EXECUTE."},
+    {"id": "K2", "desc": "Auth ön-koşulu: yeterli kimlik doğrulaması (seviye ≥ risk-class tabanı ∧ gerekiyorsa step_up) olmadan EXECUTE'a ulaşılmaz; caller_id TEK BAŞINA güçlü sayılmaz (FR-AUTH-001) → 'basic'e sabitlenir; hassas işlem step-up ister (FR-AUTH-003)."},
+    {"id": "K3", "desc": "Kural-güdümlü gereksinim: RULE durumu etkin kapı setini kural tablosundan DETERMINISTIK hesaplar; agent BRD §13 işlemlerinde serbest karar VERMEZ; forbidden_autonomous → insan onayı ZORLANIR; bilinmeyen risk_class → fail-closed DENIED."},
+    {"id": "K4", "desc": "Özet-önce-teyit: teyit kapısı (CONFIRM) işlem müşteriye ÖZETLENMEDEN (SUMMARY emitted) erişilemez/kabul edilemez (FR-TOOL-006 'öncesinde müşteri teyidi' — özet teyidin ön-koşulu)."},
+    {"id": "K5", "desc": "Açık olumlu teyit: yalnız açık olumlu teyit (value=yes) ilerletir; hayır → ABORTED(CUSTOMER_DECLINED); belirsiz/eksik → ABORTED(CONFIRMATION_NOT_OBTAINED); teyit alınmadan kritik işlem YÜRÜTÜLMEZ (SR-TOOL-006)."},
+    {"id": "K6", "desc": "Gerekli insan onayı (maker-checker): requires_human_approval ise EXECUTE yalnız decision=approved ∧ onaylayan ≠ talep eden (actor ≠ initiator) ile erişilir; reddedilen → DENIED(APPROVAL_REJECTED); aynı aktör → DENIED(MAKER_CHECKER_VIOLATION); eksik → DENIED(APPROVAL_REQUIRED) (FR-IAM-005)."},
+    {"id": "K7", "desc": "Ek doğrulama (para/sözleşme/PII): para, sözleşme veya kişisel veri değişikliği işlemleri step_up (ek doğrulama) ZORUNLU kılar; step_up kaydı olmadan EXECUTE'a ulaşılmaz (FR-TOOL-007/SR-TOOL-007 → SR-AUTH-003 köprüsü)."},
+    {"id": "K8", "desc": "Terminal-immutable: terminal duruma (COMMITTED/FAILED/DENIED/ABORTED/EXPIRED/ERROR) ulaşan workflow bir daha durum değiştirmez; sonraki olaylar yok sayılır (tool_execution WORM 1.1.3 hizalı)."},
+    {"id": "K9", "desc": "Deadline/zombie yok: bekleyen durum (AUTH/CONFIRM/APPROVAL) deadline_ms aşılırsa → EXPIRED; workflow sonsuza beklemez; EXPIRED EXECUTE'a dönmez (fail-closed)."},
+    {"id": "K10", "desc": "Terminalde daima audit: her terminal sonuç değiştirilemez audit kaydı üretir (BRD §13 adım 6; FR-IAM-006); kayıt tam kapı-verdict izini + risk_class + etkin gereksinim setini + sonucu taşır; no_log (ham PII/secret yok, düşük kardinalite)."},
+    {"id": "K11", "desc": "Hassas veri sesli tam tekrarlanmaz: SUMMARY/müşteri-yüzeyi metninde hassas değerler maskeli (son 4 hane); sızıntı tarayıcısı ham hesap/kart/kimlik/uzun-rakam yakalar (FR-AUTH-005)."},
+    {"id": "K12", "desc": "Determinizm: tohumlu sanal saat (at_ms); aynı request → birebir aynı workflow trace. Date.now/gerçek-rastgele YOK."}
+  ],
+
+  "audit": {
+    "$comment": "Kritik işlem workflow audit kaydı (BRD §13 adım 6; FR-IAM-006/FR-TOOL-010 → 7.1.6/12.1.8 store'a köprü). no_log: ham PII/secret/tam-hassas-değer İÇERMEZ — yalnız workflow_id, correlation_id, tenant_id, operation(adı), risk_class, etkin gereksinim seti, kapı-verdict izi, final_state, deny/abort reason, approver(aktör kimliği), result_ref. Değiştirilemez (WORM).",
+    "no_log": true,
+    "fields": ["workflow_id", "correlation_id", "tenant_id", "operation", "risk_class", "requirements", "step_verdicts", "final_state", "reason", "approver", "result_ref", "no_log"],
+    "immutable": true,
+    "trace": "BRD §13 adım 6, FR-IAM-006, FR-TOOL-010, →7.1.6, →12.1.8, NFR 10.7"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Modülün girdi/yapılandırma bütünlüğü hataları (workflow terminal sonuçlarından AYRI — isteğin işlenmeden reddini doğurur).",
+    "classes": ["MISSING_POLICY_CONFIG", "INVALID_POLICY", "INVALID_REQUEST", "NOT_CRITICAL", "NON_MONOTONIC_CLOCK", "INTERNAL_ERROR"],
+    "trace": "FR-TST-008, BRD §13"
+  }
+}

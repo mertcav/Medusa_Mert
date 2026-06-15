@@ -1,0 +1,24 @@
+{
+  "name": "auth-insufficient — yetersiz kimlik (basic) + caller_id-only → DENIED (K2/FR-AUTH-001)",
+  "$comment": "İki workflow: (a) basic seviye yetersiz → DENIED(AUTH_INSUFFICIENT); (b) yalnız caller_id güçlü sayılmaz (FR-AUTH-001) → basic'e sabitlenir → DENIED. İkisinde de EXECUTE'a ulaşılmaz (K2). Sentetik.",
+  "workflows": [
+    {"workflow_id": "wf-a1", "correlation_id": "corr-a1", "tenant_id": "t-1", "call_id": "call-a1",
+     "initiator": "agent",
+     "operation": {"name": "banka_hesabi_degistir", "risk_class": "bank_account_change", "critical": true},
+     "events": [
+       {"type": "auth", "level": "basic", "methods": ["customer_no"], "step_up": true, "at_ms": 0},
+       {"type": "confirm", "value": "yes", "at_ms": 2000},
+       {"type": "execute", "outcome": "ok", "at_ms": 3000}
+     ]},
+    {"workflow_id": "wf-a2", "correlation_id": "corr-a2", "tenant_id": "t-1", "call_id": "call-a2",
+     "initiator": "agent",
+     "operation": {"name": "banka_hesabi_degistir", "risk_class": "bank_account_change", "critical": true},
+     "events": [
+       {"type": "auth", "level": "strong", "methods": ["caller_id"], "step_up": true, "at_ms": 0}
+     ]}
+  ],
+  "expect": {
+    "wf-a1": {"final_state": "DENIED", "reason": "AUTH_INSUFFICIENT"},
+    "wf-a2": {"final_state": "DENIED", "reason": "AUTH_INSUFFICIENT"}
+  }
+}

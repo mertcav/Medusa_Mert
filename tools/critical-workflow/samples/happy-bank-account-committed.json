@@ -1,0 +1,16 @@
+{
+  "name": "happy-bank-account — strong auth + step-up + açık teyit → COMMITTED (BRD §13 mutlu yol)",
+  "$comment": "Banka hesabı değişikliği (kritik, FR-TOOL-007). Sırayla: auth(strong+step_up) → kural → özet → teyit(yes) → execute(ok) → audit → COMMITTED. İnsan onayı gerekmez (bank_account_change requires_human_approval=false). Sentetik (FR-TST-008).",
+  "workflows": [
+    {"workflow_id": "wf-h1", "correlation_id": "corr-h1", "tenant_id": "t-1", "call_id": "call-h1",
+     "initiator": "agent",
+     "operation": {"name": "banka_hesabi_degistir", "risk_class": "bank_account_change", "critical": true,
+                   "params": {"masked": {"yeni_iban": "TR330006100519786457841326"}}},
+     "events": [
+       {"type": "auth", "level": "strong", "methods": ["otp", "customer_no"], "step_up": true, "at_ms": 0},
+       {"type": "confirm", "value": "yes", "at_ms": 4000},
+       {"type": "execute", "outcome": "ok", "result_ref": "obj://tenant/exec/bank-1", "at_ms": 5000}
+     ]}
+  ],
+  "expect": {"wf-h1": {"final_state": "COMMITTED", "reason": null, "result_ref": "obj://tenant/exec/bank-1"}}
+}

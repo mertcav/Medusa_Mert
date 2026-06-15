@@ -1,0 +1,15 @@
+{
+  "name": "step-up-required — PII değişikliği ek doğrulama olmadan → DENIED (K7/FR-TOOL-007)",
+  "$comment": "Müşteri iletişim bilgisi değişikliği (PII, FR-TOOL-007). Strong auth var AMA step_up yok → DENIED(STEP_UP_REQUIRED); para/sözleşme/PII değişikliği ek doğrulama (step-up) ZORUNLU. Sentetik.",
+  "workflows": [
+    {"workflow_id": "wf-s1", "correlation_id": "corr-s1", "tenant_id": "t-1", "call_id": "call-s1",
+     "initiator": "agent",
+     "operation": {"name": "iletisim_bilgisi_degistir", "risk_class": "contact_info_change", "critical": true,
+                   "params": {"masked": {"yeni_telefon": "5331234567"}}},
+     "events": [
+       {"type": "auth", "level": "strong", "methods": ["otp"], "step_up": false, "at_ms": 0},
+       {"type": "confirm", "value": "yes", "at_ms": 2000}
+     ]}
+  ],
+  "expect": {"wf-s1": {"final_state": "DENIED", "reason": "STEP_UP_REQUIRED"}}
+}

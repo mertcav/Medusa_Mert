@@ -1,0 +1,63 @@
+{
+  "$comment": "WBS 7.3.1 — Kritik işlem kural tablosu (BRD §13 'agent serbest karar vermemelidir' listesi → risk_class → etkin kapı seti). Bu config RULE durumunun (adım 2 'kurallı workflow') DETERMINISTIK girdisidir; agent bu kararları kendi ÜRETMEZ (BRD §13). Her risk_class BRD §13 madde işaretine eşlenir (brd13). forbidden_autonomous=true → agent ASLA tek başına karar vermez, insan onayı ZORLANIR (kredi/sigorta uygunluğu, sağlık teşhisi, hukuki tavsiye). amount_threshold + escalate_human_above_threshold → eşik üstü tutar insan onayına eskale edilir. min_auth_level/requires_step_up/requires_confirmation/requires_human_approval RULE'da etkin gereksinim setini verir. Değerler MÜHENDİSLİK VARSAYILANI (BRD §22 açık karar: eşikler/regüle profil counsel + tenant compliance profile ile sıkılaşır — most-restrictive-wins, DPIA `cp.*`). Sentetik; sır/PII YOK.",
+  "version": "1.0",
+  "defaults": {
+    "$comment": "Bilinmeyen risk_class fail-closed reddedilir (RULE → DENIED UNKNOWN_RISK_CLASS); bu defaults yalnız alan tamamlama içindir.",
+    "min_auth_level": "strong",
+    "requires_step_up": true,
+    "requires_confirmation": true,
+    "requires_human_approval": false,
+    "forbidden_autonomous": false,
+    "disallowed": false,
+    "deadline_ms": 120000
+  },
+  "risk_classes": {
+    "bank_account_change": {
+      "brd13": "Banka hesabı değişikliği",
+      "min_auth_level": "strong", "requires_step_up": true, "requires_confirmation": true,
+      "requires_human_approval": false
+    },
+    "high_value_payment": {
+      "brd13": "Yüksek tutarlı ödeme",
+      "min_auth_level": "strong", "requires_step_up": true, "requires_confirmation": true,
+      "requires_human_approval": false,
+      "amount_threshold": {"currency": "TRY", "value": 10000},
+      "escalate_human_above_threshold": true
+    },
+    "over_limit_refund": {
+      "brd13": "Limit üstü iade veya ödeme kararı",
+      "min_auth_level": "strong", "requires_step_up": true, "requires_confirmation": true,
+      "requires_human_approval": true
+    },
+    "contact_info_change": {
+      "brd13": "Müşteri iletişim bilgilerinin değiştirilmesi",
+      "min_auth_level": "strong", "requires_step_up": true, "requires_confirmation": true,
+      "requires_human_approval": false
+    },
+    "sensitive_pii_disclosure": {
+      "brd13": "Hassas kişisel veri açıklanması",
+      "min_auth_level": "strong", "requires_step_up": true, "requires_confirmation": true,
+      "requires_human_approval": false
+    },
+    "contract_cancellation": {
+      "brd13": "Sözleşme iptali",
+      "min_auth_level": "strong", "requires_step_up": true, "requires_confirmation": true,
+      "requires_human_approval": true
+    },
+    "credit_insurance_eligibility": {
+      "brd13": "Kredi veya sigorta uygunluk kararı",
+      "min_auth_level": "strong", "requires_step_up": true, "requires_confirmation": true,
+      "requires_human_approval": true, "forbidden_autonomous": true
+    },
+    "health_diagnosis": {
+      "brd13": "Sağlık teşhisi",
+      "min_auth_level": "strong", "requires_step_up": true, "requires_confirmation": true,
+      "requires_human_approval": true, "forbidden_autonomous": true
+    },
+    "legal_advice": {
+      "brd13": "Hukuki tavsiye",
+      "min_auth_level": "strong", "requires_step_up": true, "requires_confirmation": true,
+      "requires_human_approval": true, "forbidden_autonomous": true
+    }
+  }
+}

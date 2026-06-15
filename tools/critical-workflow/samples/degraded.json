@@ -1,0 +1,17 @@
+{
+  "name": "degraded — maskeleme kapalı: özet ham IBAN + audit ham PII → K11/K10 tarayıcısı yakalar (BEKLENEN ELEME)",
+  "$comment": "KASITLI BOZUK fixture: unsafe_summary müşteri özetine ham IBAN koyar (FR-AUTH-005 ihlali) + unsafe_audit_detail audit'e ham e-posta+kart koyar (no-log ihlali). K11 (özet sızıntısı) + K10 (audit no-log) tarayıcıları YAKALAMALI → expect_gate_fail=true (probe exit 0; eleme BEKLENEN, tarayıcının gerçek kapı olduğunu kanıtlar). Sentetik; gerçek değer değil.",
+  "expect_gate_fail": true,
+  "workflows": [
+    {"workflow_id": "wf-deg", "correlation_id": "corr-deg", "tenant_id": "t-1", "call_id": "call-deg",
+     "initiator": "agent",
+     "operation": {"name": "banka_hesabi_degistir", "risk_class": "bank_account_change", "critical": true},
+     "unsafe_summary": "Hesabınız TR330006100519786457841326 olarak güncellenecek, onaylıyor musunuz?",
+     "unsafe_audit_detail": "caller customer john.doe@example.com card 4111111111111111",
+     "events": [
+       {"type": "auth", "level": "strong", "methods": ["otp"], "step_up": true, "at_ms": 0},
+       {"type": "confirm", "value": "yes", "at_ms": 3000},
+       {"type": "execute", "outcome": "ok", "at_ms": 4000}
+     ]}
+  ]
+}

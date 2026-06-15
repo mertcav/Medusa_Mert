@@ -1,0 +1,16 @@
+{
+  "name": "human-approval — sözleşme iptali, maker-checker onayı (farklı aktör) → COMMITTED (K6/FR-IAM-005)",
+  "$comment": "Sözleşme iptali (requires_human_approval=true). auth→özet→teyit(yes)→onay(approved, onaylayan ≠ talep eden)→execute(ok)→COMMITTED. Onaylayan supervisor-12, talep eden agent (maker-checker; FR-IAM-005). Sentetik.",
+  "workflows": [
+    {"workflow_id": "wf-ap1", "correlation_id": "corr-ap1", "tenant_id": "t-1", "call_id": "call-ap1",
+     "initiator": "agent",
+     "operation": {"name": "sozlesme_iptal", "risk_class": "contract_cancellation", "critical": true},
+     "events": [
+       {"type": "auth", "level": "strong", "methods": ["otp", "kba"], "step_up": true, "at_ms": 0},
+       {"type": "confirm", "value": "yes", "at_ms": 5000},
+       {"type": "approval", "decision": "approved", "actor": "supervisor-12", "at_ms": 30000},
+       {"type": "execute", "outcome": "ok", "result_ref": "obj://tenant/exec/cancel-9", "at_ms": 31000}
+     ]}
+  ],
+  "expect": {"wf-ap1": {"final_state": "COMMITTED", "approver": "supervisor-12"}}
+}

@@ -1,0 +1,15 @@
+{
+  "name": "execute-fault — tüm kapılar geçti, dispatch hata (7.2.x) → FAILED + audit (BRD §13 adım 6)",
+  "$comment": "auth+teyit geçti, EXECUTE 7.2.x'e delege edildi ama upstream 5xx → FAILED(UPSTREAM_5XX). Sonuç yine de değiştirilemez audit'e yazılır (K10). fault_class 7.1.4 taksonomisiyle hizalı; müşteri metni 7.1.5'e delege. Sentetik.",
+  "workflows": [
+    {"workflow_id": "wf-ef1", "correlation_id": "corr-ef1", "tenant_id": "t-1", "call_id": "call-ef1",
+     "initiator": "agent",
+     "operation": {"name": "banka_hesabi_degistir", "risk_class": "bank_account_change", "critical": true},
+     "events": [
+       {"type": "auth", "level": "strong", "methods": ["otp"], "step_up": true, "at_ms": 0},
+       {"type": "confirm", "value": "yes", "at_ms": 3000},
+       {"type": "execute", "outcome": "fault", "fault_class": "UPSTREAM_5XX", "at_ms": 4000}
+     ]}
+  ],
+  "expect": {"wf-ef1": {"final_state": "FAILED", "reason": "UPSTREAM_5XX"}}
+}

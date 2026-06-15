@@ -1,0 +1,24 @@
+{
+  "name": "forbidden-autonomous — kredi uygunluğu/sağlık teşhisi: agent serbest karar vermez → insan onayı zorlanır (K3/BRD §13)",
+  "$comment": "BRD §13 'agent serbest karar vermemelidir': kredi/sigorta uygunluğu + sağlık teşhisi forbidden_autonomous=true → requires_human_approval ZORLANIR. İnsan onayı olayı yok → DENIED(APPROVAL_REQUIRED); agent bu kararı TEK BAŞINA veremez. Sentetik.",
+  "workflows": [
+    {"workflow_id": "wf-fa1", "correlation_id": "corr-fa1", "tenant_id": "t-1", "call_id": "call-fa1",
+     "initiator": "agent",
+     "operation": {"name": "kredi_uygunluk", "risk_class": "credit_insurance_eligibility", "critical": true},
+     "events": [
+       {"type": "auth", "level": "strong", "methods": ["otp", "kba"], "step_up": true, "at_ms": 0},
+       {"type": "confirm", "value": "yes", "at_ms": 4000}
+     ]},
+    {"workflow_id": "wf-fa2", "correlation_id": "corr-fa2", "tenant_id": "t-1", "call_id": "call-fa2",
+     "initiator": "agent",
+     "operation": {"name": "saglik_teshis", "risk_class": "health_diagnosis", "critical": true},
+     "events": [
+       {"type": "auth", "level": "strong", "methods": ["otp"], "step_up": true, "at_ms": 0},
+       {"type": "confirm", "value": "yes", "at_ms": 4000}
+     ]}
+  ],
+  "expect": {
+    "wf-fa1": {"final_state": "DENIED", "reason": "APPROVAL_REQUIRED"},
+    "wf-fa2": {"final_state": "DENIED", "reason": "APPROVAL_REQUIRED"}
+  }
+}

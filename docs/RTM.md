@@ -132,24 +132,24 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 
 | FR-ID | SR-ID(ler) | Test Case (yöntem) | WBS Görev(leri) |
 |-------|------------|--------------------|-----------------|
-| FR-IAM-008 | SR-IAM-008 | TC-IAM-008 (T) | 12.2.4 |
-| FR-IAM-009 | SR-IAM-009 | TC-IAM-009 (T) | 12.3.1, 12.3.2, 12.3.3 |
-| FR-IAM-010 | SR-IAM-010 | TC-IAM-010 (I) | 12.3.4 |
-| FR-IAM-011 | SR-IAM-001, SR-IAM-011 | TC-IAM-001 (T), TC-IAM-011 (I) | 12.1.1, 12.1.3 |
+| FR-IAM-008 | SR-IAM-008 | TC-IAM-008 (T) | 1.1.1, 1.1.6, 6.1.4, 12.2.4 |
+| FR-IAM-009 | SR-IAM-009 | TC-IAM-009 (T) | 6.1.4, 12.3.1, 12.3.2, 12.3.3 |
+| FR-IAM-010 | SR-IAM-010 | TC-IAM-010 (I) | 6.1.4, 12.3.4 |
+| FR-IAM-011 | SR-IAM-001, SR-IAM-011 | TC-IAM-001 (T), TC-IAM-011 (I) | 1.1.1, 12.1.1, 12.1.3 |
 | FR-IAM-001 | SR-IAM-001 | TC-IAM-001 (T) | 12.1.1 |
 | FR-IAM-002 | SR-IAM-002 | TC-IAM-002 (T) | 12.1.4 |
 | FR-IAM-003 | SR-IAM-003 | TC-IAM-003 (T) | 12.1.5 |
 | FR-IAM-004 | SR-IAM-004 | TC-IAM-004 (I) | 12.1.1, 12.1.2 *(örtük)* |
-| FR-IAM-005 | SR-IAM-005 | TC-IAM-005 (T) | 12.1.7 |
-| FR-IAM-006 | SR-IAM-006 | TC-IAM-006 (T) | 12.1.8 |
+| FR-IAM-005 | SR-IAM-005 | TC-IAM-005 (T) | 7.3.1, 12.1.7 |
+| FR-IAM-006 | SR-IAM-006 | TC-IAM-006 (T) | 4.2.6, 7.3.1, 12.1.8 |
 | FR-IAM-007 | SR-IAM-007 | TC-IAM-007 (T) | 12.1.6 |
 
 #### FR-TEN-* — Tenant & Organizasyon
 
 | FR-ID | SR-ID(ler) | Test Case (yöntem) | WBS Görev(leri) |
 |-------|------------|--------------------|-----------------|
-| FR-TEN-001 | SR-TEN-001 | TC-TEN-001 (D) | 12.4.1 |
-| FR-TEN-002 | SR-TEN-002 | TC-TEN-002 (T) | 1.2.1, 12.2.3 |
+| FR-TEN-001 | SR-TEN-001 | TC-TEN-001 (D) | 1.1.1, 12.4.1 |
+| FR-TEN-002 | SR-TEN-002 | TC-TEN-002 (T) | 0.2.5, 1.1.7, 1.1.9, 1.2.1, 2.1.5, 3.1.5, 3.2.1, 4.2.6, 12.2.3 |
 | FR-TEN-003 | SR-TEN-003 | TC-TEN-003 (T) | 12.4.3 |
 | FR-TEN-004 | SR-TEN-004 | TC-TEN-004 (T) | 12.4.4 |
 | FR-TEN-005 | SR-TEN-005 | TC-TEN-005 (I) | 12.4.2 |
@@ -160,12 +160,12 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 
 | FR-ID | SR-ID(ler) | Test Case (yöntem) | WBS Görev(leri) |
 |-------|------------|--------------------|-----------------|
-| FR-AGT-001 | SR-AGT-001 | TC-AGT-001 (D) | 13.4.4 |
+| FR-AGT-001 | SR-AGT-001 | TC-AGT-001 (D) | 1.1.2, 13.4.4 |
 | FR-AGT-002 | SR-AGT-002 | TC-AGT-002 (T) | 13.4.7 |
-| FR-AGT-003 | SR-AGT-003 | TC-AGT-003 (T) | 3.2.4, 13.4.5 |
-| FR-AGT-004 | SR-AGT-004 | TC-AGT-004 (I) | 13.4.6 |
+| FR-AGT-003 | SR-AGT-003 | TC-AGT-003 (T) | 1.1.2, 3.2.4, 13.4.5 |
+| FR-AGT-004 | SR-AGT-004 | TC-AGT-004 (I) | 3.2.3, 13.4.6 |
 | FR-AGT-005 | SR-AGT-005 | TC-AGT-005 (D) | 0.4.6, 20.1 |
-| FR-AGT-006 | SR-AGT-006 | TC-AGT-006 (T) | 13.4.17, 20.1 |
+| FR-AGT-006 | SR-AGT-006 | TC-AGT-006 (T) | 1.1.2, 13.4.17, 20.1 |
 | FR-AGT-007 | SR-AGT-007 | TC-AGT-007 (T) | 13.4.4, 20.1 *(örtük)* |
 | FR-AGT-008 | SR-AGT-008 | TC-AGT-008 (T) | 20.2 |
 | FR-AGT-009 | SR-AGT-009 | TC-AGT-009 (T) | 3.3.5 |
@@ -178,18 +178,18 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 | FR-TEL-001 | SR-TEL-001 | TC-TEL-001 (D) | 2.1.2 |
 | FR-TEL-002 | SR-TEL-002 | TC-TEL-002 (T) | 2.1.1, 2.1.3, 2.1.4, 4.2.5 |
 | FR-TEL-003 | SR-TEL-003 | TC-TEL-003 (D) | — (YENİ GÖREV) *(örtük)* |
-| FR-TEL-004 | SR-TEL-004 | TC-TEL-004 (T) | 2.1.5 |
-| FR-TEL-005 | SR-TEL-005 | TC-TEL-005 (T) | 2.1.5 |
-| FR-TEL-006 | SR-TEL-006 | TC-TEL-006 (T) | 2.1.6 |
-| FR-TEL-007 | SR-TEL-007 | TC-TEL-007 (D) | 9.1, 9.2, 9.3 |
+| FR-TEL-004 | SR-TEL-004 | TC-TEL-004 (T) | 2.1.5, 4.2.5 |
+| FR-TEL-005 | SR-TEL-005 | TC-TEL-005 (T) | 2.1.5, 4.2.5 |
+| FR-TEL-006 | SR-TEL-006 | TC-TEL-006 (T) | 2.1.6, 4.2.5 |
+| FR-TEL-007 | SR-TEL-007 | TC-TEL-007 (D) | 4.2.5, 9.1, 9.2, 9.3 |
 | FR-TEL-008 | SR-TEL-008 | TC-TEL-008 (T) | 9.5 |
 | FR-TEL-009 | SR-TEL-009 | TC-TEL-009 (T) | 2.1.8 |
-| FR-TEL-010 | SR-TEL-010 | TC-TEL-010 (T) | 2.1.9 |
+| FR-TEL-010 | SR-TEL-010 | TC-TEL-010 (T) | 2.1.9, 4.2.5 |
 | FR-TEL-011 | SR-TEL-011 | TC-TEL-011 (D) | 2.1.9 |
-| FR-TEL-012 | SR-TEL-012 | TC-TEL-012 (I) | 2.1.7 |
-| FR-TEL-013 | SR-TEL-013, SR-OUT-004 | TC-TEL-013 (T), TC-OUT-004 (T) | 10.2.3 |
-| FR-TEL-014 | SR-TEL-014 | TC-TEL-014 (T) | 10.2.2 |
-| FR-TEL-015 | SR-TEL-015 | TC-TEL-015 (T) | 10.2.4 |
+| FR-TEL-012 | SR-TEL-012 | TC-TEL-012 (I) | 2.1.7, 4.2.5 |
+| FR-TEL-013 | SR-TEL-013, SR-OUT-004 | TC-TEL-013 (T), TC-OUT-004 (T) | 2.1.5, 2.1.7, 2.1.8, 2.1.9, 10.2.3 |
+| FR-TEL-014 | SR-TEL-014 | TC-TEL-014 (T) | 2.1.5, 2.1.7, 2.1.8, 2.1.9, 10.2.2 |
+| FR-TEL-015 | SR-TEL-015 | TC-TEL-015 (T) | 2.1.7, 10.2.4 |
 
 #### FR-RTC-* — Gerçek Zamanlı Konuşma Motoru
 
@@ -199,9 +199,9 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 | FR-RTC-002 | SR-RTC-002 | TC-RTC-002 (T) | 2.2.7, 3.1.3 |
 | FR-RTC-003 | SR-RTC-003 | TC-RTC-003 (T) | 3.1.3 |
 | FR-RTC-004 | SR-RTC-004 | TC-RTC-004 (T) | 2.2.3 |
-| FR-RTC-005 | SR-RTC-005 | TC-RTC-005 (T) | 2.2.4 |
+| FR-RTC-005 | SR-RTC-005 | TC-RTC-005 (T) | 2.2.1, 2.2.4 |
 | FR-RTC-006 | SR-RTC-006 | TC-RTC-006 (T) | 2.2.4 |
-| FR-RTC-007 | SR-RTC-007 | TC-RTC-007 (T) | 3.1.3, 2.2.3 *(örtük)* |
+| FR-RTC-007 | SR-RTC-007 | TC-RTC-007 (T) | 3.1.3 |
 | FR-RTC-008 | SR-RTC-008 | TC-RTC-008 (T) | 2.2.8 |
 | FR-RTC-009 | SR-RTC-009 | TC-RTC-009 (T) | 3.4.1 |
 | FR-RTC-010 | SR-RTC-010 | TC-RTC-010 (T) | 3.3.6 |
@@ -214,28 +214,28 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 | FR-ID | SR-ID(ler) | Test Case (yöntem) | WBS Görev(leri) |
 |-------|------------|--------------------|-----------------|
 | FR-STT-001 | SR-STT-001 | TC-STT-001 (T) | 0.2.2, 4.2.1 |
-| FR-STT-002 | SR-STT-002 | TC-STT-002 (T) | 2.2.5 |
+| FR-STT-002 | SR-STT-002 | TC-STT-002 (T) | 0.2.2, 2.2.5, 4.3.1 |
 | FR-STT-003 | SR-STT-003 | TC-STT-003 (T) | 4.2.1 *(örtük)* |
 | FR-STT-004 | SR-STT-004 | TC-STT-004 (T) | 4.2.1 |
 | FR-STT-005 | SR-STT-005 | TC-STT-005 (T) | 4.2.2 |
-| FR-STT-006 | SR-STT-006 | TC-STT-006 (I) | 4.2.1 |
-| FR-STT-007 | SR-STT-007 | TC-STT-007 (T) | 3.3.6, 4.2.1 *(örtük)* |
-| FR-STT-008 | SR-STT-008 | TC-STT-008 (T) | 4.3.1 |
+| FR-STT-006 | SR-STT-006 | TC-STT-006 (I) | 0.2.2, 4.2.1 |
+| FR-STT-007 | SR-STT-007 | TC-STT-007 (T) | 0.2.2 |
+| FR-STT-008 | SR-STT-008 | TC-STT-008 (T) | 0.3.1, 4.3.1 |
 
 #### FR-TTS-* — TTS
 
 | FR-ID | SR-ID(ler) | Test Case (yöntem) | WBS Görev(leri) |
 |-------|------------|--------------------|-----------------|
 | FR-TTS-001 | SR-TTS-001 | TC-TTS-001 (T) | 0.2.3, 4.2.3 |
-| FR-TTS-002 | SR-TTS-002 | TC-TTS-002 (T) | 0.2.3 |
-| FR-TTS-003 | SR-TTS-003 | TC-TTS-003 (T) | 4.2.3, 13.4.7 *(örtük)* |
-| FR-TTS-004 | SR-TTS-004 | TC-TTS-004 (T) | 4.2.3 |
-| FR-TTS-005 | SR-TTS-005 | TC-TTS-005 (T) | 4.2.3 |
+| FR-TTS-002 | SR-TTS-002 | TC-TTS-002 (T) | 0.2.3, 4.2.3 |
+| FR-TTS-003 | SR-TTS-003 | TC-TTS-003 (T) | 0.2.3 |
+| FR-TTS-004 | SR-TTS-004 | TC-TTS-004 (T) | 0.2.3, 4.2.3 |
+| FR-TTS-005 | SR-TTS-005 | TC-TTS-005 (T) | 4.2.3, 4.3.2 |
 | FR-TTS-006 | SR-TTS-006 | TC-TTS-006 (D) | 4.2.6 |
 | FR-TTS-007 | SR-TTS-007 | TC-TTS-007 (I) | 4.2.6 |
-| FR-TTS-008 | SR-TTS-008 | TC-TTS-008 (T) | 4.3.2 |
-| FR-TTS-009 | SR-TTS-009 | TC-TTS-009 (A) | 4.3.2 |
-| FR-TTS-010 | SR-TTS-010 | TC-TTS-010 (A) | 16.1 *(örtük)* |
+| FR-TTS-008 | SR-TTS-008 | TC-TTS-008 (T) | 4.2.3, 4.3.2 |
+| FR-TTS-009 | SR-TTS-009 | TC-TTS-009 (A) | 4.2.3, 4.2.6, 4.3.2 |
+| FR-TTS-010 | SR-TTS-010 | TC-TTS-010 (A) | 0.2.3, 4.2.3 |
 
 #### FR-LLM-* — LLM Orkestrasyonu
 
@@ -244,16 +244,16 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 | FR-LLM-001 | SR-LLM-001 | TC-LLM-001 (T) | 0.2.4, 4.2.4 |
 | FR-LLM-002 | SR-LLM-002 | TC-LLM-002 (T) | 5.5 |
 | FR-LLM-003 | SR-LLM-003 | TC-LLM-003 (A) | 5.1 |
-| FR-LLM-004 | SR-LLM-004 | TC-LLM-004 (A) | 4.2.4 |
-| FR-LLM-005 | SR-LLM-005 | TC-LLM-005 (T) | 3.2.2 |
-| FR-LLM-006 | SR-LLM-006 | TC-LLM-006 (T) | 3.2.3 |
-| FR-LLM-007 | SR-LLM-007 | TC-LLM-007 (T) | 3.3.1 |
-| FR-LLM-008 | SR-LLM-008 | TC-LLM-008 (T) | 5.6 |
-| FR-LLM-009 | SR-LLM-009 | TC-LLM-009 (T) | 3.3.2 |
-| FR-LLM-010 | SR-LLM-010 | TC-LLM-010 (T) | 4.3.3 |
-| FR-LLM-011 | SR-LLM-011 | TC-LLM-011 (I) | 5.7 |
-| FR-LLM-012 | SR-LLM-012 | TC-LLM-012 (I) | 0.2.4, 5.8 |
-| FR-LLM-013 | SR-LLM-013 | TC-LLM-013 (A) | 5.2 |
+| FR-LLM-004 | SR-LLM-004 | TC-LLM-004 (A) | 0.2.4, 4.2.4 |
+| FR-LLM-005 | SR-LLM-005 | TC-LLM-005 (T) | 3.2.1, 3.2.2 |
+| FR-LLM-006 | SR-LLM-006 | TC-LLM-006 (T) | 3.2.3, 4.2.4, 4.3.3 |
+| FR-LLM-007 | SR-LLM-007 | TC-LLM-007 (T) | 3.2.3, 3.3.1 |
+| FR-LLM-008 | SR-LLM-008 | TC-LLM-008 (T) | 0.2.4, 4.2.4, 4.3.3, 5.6 |
+| FR-LLM-009 | SR-LLM-009 | TC-LLM-009 (T) | 3.3.2, 7.3.1 |
+| FR-LLM-010 | SR-LLM-010 | TC-LLM-010 (T) | 4.2.4, 4.3.3 |
+| FR-LLM-011 | SR-LLM-011 | TC-LLM-011 (I) | 3.2.3, 4.2.4, 4.3.3, 5.7 |
+| FR-LLM-012 | SR-LLM-012 | TC-LLM-012 (I) | 0.2.4, 1.1.2, 3.2.2, 4.2.4, 4.3.3, 5.8 |
+| FR-LLM-013 | SR-LLM-013 | TC-LLM-013 (A) | 0.2.4, 4.2.4, 5.2 |
 | FR-LLM-014 | SR-LLM-014 | TC-LLM-014 (T) | 5.4 |
 
 #### FR-KB-* — Bilgi Tabanı & RAG
@@ -262,44 +262,44 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 |-------|------------|--------------------|-----------------|
 | FR-KB-001 | SR-KB-001 | TC-KB-001 (T) | 6.1.1 |
 | FR-KB-002 | SR-KB-002 | TC-KB-002 (D) | 6.1.2 |
-| FR-KB-003 | SR-KB-003 | TC-KB-003 (I) | 6.1.3 |
-| FR-KB-004 | SR-KB-004 | TC-KB-004 (T) | 1.1.7 |
-| FR-KB-005 | SR-KB-005 | TC-KB-005 (T) | 6.1.4 |
-| FR-KB-006 | SR-KB-006 | TC-KB-006 (I) | 6.2.3 |
-| FR-KB-007 | SR-KB-007 | TC-KB-007 (T) | 3.3.4 |
-| FR-KB-008 | SR-KB-008 | TC-KB-008 (T) | 6.1.5 |
+| FR-KB-003 | SR-KB-003 | TC-KB-003 (I) | 1.1.7, 6.1.3 |
+| FR-KB-004 | SR-KB-004 | TC-KB-004 (T) | 0.2.5, 1.1.7, 6.2.1 |
+| FR-KB-005 | SR-KB-005 | TC-KB-005 (T) | 0.2.5, 1.1.7, 6.1.4, 6.2.1 |
+| FR-KB-006 | SR-KB-006 | TC-KB-006 (I) | 6.2.1, 6.2.3 |
+| FR-KB-007 | SR-KB-007 | TC-KB-007 (T) | 3.3.4, 6.2.1, 6.2.2 |
+| FR-KB-008 | SR-KB-008 | TC-KB-008 (T) | 1.1.7, 6.1.5 |
 | FR-KB-009 | SR-KB-009 | TC-KB-009 (T) | 6.2.5 |
-| FR-KB-010 | SR-KB-010 | TC-KB-010 (I) | 6.2.4 |
-| FR-KB-011 | SR-KB-011 | TC-KB-011 (A) | 6.2.2 |
+| FR-KB-010 | SR-KB-010 | TC-KB-010 (I) | 0.2.5, 1.1.7, 4.2.3, 4.2.4, 4.3.1, 4.3.3, 6.2.4 |
+| FR-KB-011 | SR-KB-011 | TC-KB-011 (A) | 6.2.1, 6.2.2 |
 
 #### FR-TOOL-* — Tool & Entegrasyon
 
 | FR-ID | SR-ID(ler) | Test Case (yöntem) | WBS Görev(leri) |
 |-------|------------|--------------------|-----------------|
 | FR-TOOL-001 | SR-TOOL-001 | TC-TOOL-001 (T) | 7.2.1, 7.2.2, 7.2.5 |
-| FR-TOOL-002 | SR-TOOL-002 | TC-TOOL-002 (T) | 7.1.1 |
-| FR-TOOL-003 | SR-TOOL-003 | TC-TOOL-003 (T) | 7.1.4 |
-| FR-TOOL-004 | SR-TOOL-004 | TC-TOOL-004 (T) | 7.1.2 |
-| FR-TOOL-005 | SR-TOOL-005 | TC-TOOL-005 (I) | 7.1.2 |
-| FR-TOOL-006 | SR-TOOL-006 | TC-TOOL-006 (T) | 7.3.2 |
-| FR-TOOL-007 | SR-TOOL-007 | TC-TOOL-007 (T) | 7.3.2 |
-| FR-TOOL-008 | SR-TOOL-008 | TC-TOOL-008 (T) | 7.1.5 |
-| FR-TOOL-009 | SR-TOOL-009 | TC-TOOL-009 (T) | 7.1.3 |
-| FR-TOOL-010 | SR-TOOL-010 | TC-TOOL-010 (A) | 7.1.6 |
-| FR-TOOL-011 | SR-TOOL-011 | TC-TOOL-011 (T) | 7.2.4 |
-| FR-TOOL-012 | SR-TOOL-012 | TC-TOOL-012 (T) | 7.2.3 |
+| FR-TOOL-002 | SR-TOOL-002 | TC-TOOL-002 (T) | 7.1.1, 7.2.5 |
+| FR-TOOL-003 | SR-TOOL-003 | TC-TOOL-003 (T) | 7.1.4, 7.2.5 |
+| FR-TOOL-004 | SR-TOOL-004 | TC-TOOL-004 (T) | 7.1.2, 7.2.5 |
+| FR-TOOL-005 | SR-TOOL-005 | TC-TOOL-005 (I) | 7.1.2, 7.2.5 |
+| FR-TOOL-006 | SR-TOOL-006 | TC-TOOL-006 (T) | 7.2.5, 7.3.1, 7.3.2 |
+| FR-TOOL-007 | SR-TOOL-007 | TC-TOOL-007 (T) | 7.2.5, 7.3.1, 7.3.2 |
+| FR-TOOL-008 | SR-TOOL-008 | TC-TOOL-008 (T) | 4.2.3, 4.2.4, 4.2.5, 4.3.1, 4.3.3, 7.1.5, 7.2.5 |
+| FR-TOOL-009 | SR-TOOL-009 | TC-TOOL-009 (T) | 1.1.3, 4.3.3, 7.1.3, 7.1.4, 7.2.4, 7.2.5 |
+| FR-TOOL-010 | SR-TOOL-010 | TC-TOOL-010 (A) | 3.1.5, 7.1.5, 7.1.6, 7.2.5 |
+| FR-TOOL-011 | SR-TOOL-011 | TC-TOOL-011 (T) | 7.2.4, 7.2.5 |
+| FR-TOOL-012 | SR-TOOL-012 | TC-TOOL-012 (T) | 7.2.1, 7.2.2, 7.2.3, 7.2.5 |
 
 #### FR-AUTH-* — Çağrı-içi Kimlik Doğrulama
 
 | FR-ID | SR-ID(ler) | Test Case (yöntem) | WBS Görev(leri) |
 |-------|------------|--------------------|-----------------|
-| FR-AUTH-001 | SR-AUTH-001 | TC-AUTH-001 (I) | 8.1 |
+| FR-AUTH-001 | SR-AUTH-001 | TC-AUTH-001 (I) | 2.1.5, 7.3.1, 8.1 |
 | FR-AUTH-002 | SR-AUTH-002 | TC-AUTH-002 (T) | 8.2 |
-| FR-AUTH-003 | SR-AUTH-003 | TC-AUTH-003 (T) | 8.3 |
+| FR-AUTH-003 | SR-AUTH-003 | TC-AUTH-003 (T) | 7.3.1, 8.3 |
 | FR-AUTH-004 | SR-AUTH-004 | TC-AUTH-004 (T) | 8.4 |
-| FR-AUTH-005 | SR-AUTH-005 | TC-AUTH-005 (T) | 8.5 |
-| FR-AUTH-006 | SR-AUTH-006 | TC-AUTH-006 (I) | 8.6 |
-| FR-AUTH-007 | SR-AUTH-007 | TC-AUTH-007 (I) | 8.6 |
+| FR-AUTH-005 | SR-AUTH-005 | TC-AUTH-005 (T) | 7.3.1, 8.5 |
+| FR-AUTH-006 | SR-AUTH-006 | TC-AUTH-006 (I) | 4.2.6, 8.6 |
+| FR-AUTH-007 | SR-AUTH-007 | TC-AUTH-007 (I) | 4.2.6, 8.6 |
 
 #### FR-HND-* — İnsan Temsilciye Aktarım
 
@@ -307,7 +307,7 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 |-------|------------|--------------------|-----------------|
 | FR-HND-001 | SR-HND-001 | TC-HND-001 (D) | 9.4 |
 | FR-HND-002 | SR-HND-002 | TC-HND-002 (T) | 9.4 |
-| FR-HND-003 | SR-HND-003 | TC-HND-003 (T) | 9.5 |
+| FR-HND-003 | SR-HND-003 | TC-HND-003 (T) | 4.2.5, 9.5 |
 | FR-HND-004 | SR-HND-004 | TC-HND-004 (D) | 9.6 |
 | FR-HND-005 | SR-HND-005 | TC-HND-005 (D) | 9.6 |
 | FR-HND-006 | SR-HND-006 | TC-HND-006 (D) | 9.2 |
@@ -320,12 +320,12 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 |-------|------------|--------------------|-----------------|
 | FR-OUT-001 | SR-OUT-001 | TC-OUT-001 (T) | 10.1.1 |
 | FR-OUT-002 | SR-OUT-002 | TC-OUT-002 (T) | 10.1.2 |
-| FR-OUT-003 | SR-OUT-003 | TC-OUT-003 (T) | 10.2.1 |
+| FR-OUT-003 | SR-OUT-003 | TC-OUT-003 (T) | 2.1.8, 2.1.9, 10.2.1 |
 | FR-OUT-004 | SR-OUT-004 | TC-OUT-004 (T) | 10.2.3 |
-| FR-OUT-005 | SR-OUT-005 | TC-OUT-005 (T) | 10.1.3 |
-| FR-OUT-006 | SR-OUT-006 | TC-OUT-006 (T) | 10.2.2 |
-| FR-OUT-007 | SR-OUT-007 | TC-OUT-007 (T) | 10.2.6 |
-| FR-OUT-008 | SR-OUT-008 | TC-OUT-008 (I) | 10.1.5 |
+| FR-OUT-005 | SR-OUT-005 | TC-OUT-005 (T) | 2.1.8, 10.1.3 |
+| FR-OUT-006 | SR-OUT-006 | TC-OUT-006 (T) | 2.1.8, 10.2.2 |
+| FR-OUT-007 | SR-OUT-007 | TC-OUT-007 (T) | 2.1.8, 10.2.6 |
+| FR-OUT-008 | SR-OUT-008 | TC-OUT-008 (I) | 2.1.9, 10.1.5 |
 | FR-OUT-009 | SR-OUT-009 | TC-OUT-009 (I) | 10.1.6 |
 | FR-OUT-010 | SR-OUT-010 | TC-OUT-010 (D) | 10.1.7 |
 | FR-OUT-011 | SR-OUT-011 | TC-OUT-011 (A) | 10.1.5 |
@@ -338,30 +338,30 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 | FR-REC-001 | SR-REC-001 | TC-REC-001 (I) | 11.1 |
 | FR-REC-002 | SR-REC-002 | TC-REC-002 (T) | 11.1 |
 | FR-REC-003 | SR-REC-003 | TC-REC-003 (I) | 11.2 |
-| FR-REC-004 | SR-REC-004 | TC-REC-004 (T) | 11.4 |
-| FR-REC-005 | SR-REC-005 | TC-REC-005 (T) | 11.5 |
-| FR-REC-006 | SR-REC-006 | TC-REC-006 (T) | 1.2.3 |
-| FR-REC-007 | SR-REC-007 | TC-REC-007 (T) | 1.2.4 |
+| FR-REC-004 | SR-REC-004 | TC-REC-004 (T) | 1.1.9, 2.1.6, 3.1.5, 3.2.1, 3.2.2, 11.4 |
+| FR-REC-005 | SR-REC-005 | TC-REC-005 (T) | 1.1.9, 2.1.6, 3.2.1, 3.2.2, 7.1.5, 11.5 |
+| FR-REC-006 | SR-REC-006 | TC-REC-006 (T) | 1.1.6, 1.1.9, 1.2.3, 3.2.1, 4.2.6 |
+| FR-REC-007 | SR-REC-007 | TC-REC-007 (T) | 1.1.6, 1.2.4 |
 | FR-REC-008 | SR-REC-008 | TC-REC-008 (T) | 13.4.11, 13.4.12, 11.6 *(örtük)* |
-| FR-REC-009 | SR-REC-009 | TC-REC-009 (A) | 11.6 |
-| FR-REC-010 | SR-REC-010 | TC-REC-010 (T) | 1.2.3 |
+| FR-REC-009 | SR-REC-009 | TC-REC-009 (A) | 4.2.6, 11.6 |
+| FR-REC-010 | SR-REC-010 | TC-REC-010 (T) | 1.1.6, 1.1.9, 1.2.3 |
 
 #### FR-ANA-* — Analitik & Kalite
 
 | FR-ID | SR-ID(ler) | Test Case (yöntem) | WBS Görev(leri) |
 |-------|------------|--------------------|-----------------|
 | FR-ANA-001 | SR-ANA-001 | TC-ANA-001 (A) | 14.2.1 |
-| FR-ANA-002 | SR-ANA-002 | TC-ANA-002 (A) | 14.2.2 |
+| FR-ANA-002 | SR-ANA-002 | TC-ANA-002 (A) | 2.1.7, 14.2.2 |
 | FR-ANA-003 | SR-ANA-003 | TC-ANA-003 (A) | 14.2.3 |
 | FR-ANA-004 | SR-ANA-004 | TC-ANA-004 (T) | 14.2.4 |
 | FR-ANA-005 | SR-ANA-005 | TC-ANA-005 (A) | 14.2.2, 14.1.2 *(örtük)* |
-| FR-ANA-006 | SR-ANA-006 | TC-ANA-006 (A) | 14.1.2 *(örtük)* |
+| FR-ANA-006 | SR-ANA-006 | TC-ANA-006 (A) | 1.1.9 |
 | FR-ANA-007 | SR-ANA-007 | TC-ANA-007 (A) | 14.2.9 |
 | FR-ANA-008 | SR-ANA-008 | TC-ANA-008 (T) | 14.2.5 |
 | FR-ANA-009 | SR-ANA-009 | TC-ANA-009 (D) | 14.2.6 |
-| FR-ANA-010 | SR-ANA-010 | TC-ANA-010 (A) | 14.2.7 |
+| FR-ANA-010 | SR-ANA-010 | TC-ANA-010 (A) | 1.1.9, 14.2.7 |
 | FR-ANA-011 | SR-ANA-011 | TC-ANA-011 (T) | 14.2.8 |
-| FR-ANA-012 | SR-ANA-012 | TC-ANA-012 (T) | 13.4.2, 14.1.6 |
+| FR-ANA-012 | SR-ANA-012 | TC-ANA-012 (T) | 0.4.7, 13.4.2, 14.1.6 |
 | FR-ANA-013 | SR-ANA-013 | TC-ANA-013 (A) | 13.4.15, 14.1.3 |
 
 #### FR-TST-* — Test & Simülasyon
@@ -375,7 +375,7 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 | FR-TST-005 | SR-TST-005 | TC-TST-005 (T) | 18.4 |
 | FR-TST-006 | SR-TST-006 | TC-TST-006 (T) | 0.4.8, 18.5 |
 | FR-TST-007 | SR-TST-007 | TC-TST-007 (T) | 18.7 |
-| FR-TST-008 | SR-TST-008 | TC-TST-008 (I) | 18.3 |
+| FR-TST-008 | SR-TST-008 | TC-TST-008 (I) | 0.3.1, 0.3.2, 0.3.3, 0.3.4, 0.4.8, 2.1.3, 2.1.4, 2.1.5, 2.1.6, 2.1.7, 2.1.8, 2.1.9, 2.2.1, 2.2.2, 2.2.3, 3.1.3, 3.1.4, 3.1.5, 3.2.1, 3.2.2, 3.2.3, 4.2.3, 4.2.4, 4.2.5, 4.2.6, 4.3.1, 4.3.2, 4.3.3, 5.8, 6.1.1, 6.1.2, 6.1.3, 6.1.4, 6.1.5, 6.2.1, 6.2.2, 7.1.4, 7.1.5, 7.2.1, 7.2.2, 7.2.3, 7.2.4, 7.2.5, 7.3.1, 18.3 |
 | FR-TST-009 | SR-TST-009 | TC-TST-009 (T) | 18.6 |
 
 #### FR-BIL-* — Faturalama & Kullanım
@@ -383,7 +383,7 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 | FR-ID | SR-ID(ler) | Test Case (yöntem) | WBS Görev(leri) |
 |-------|------------|--------------------|-----------------|
 | FR-BIL-001 | SR-BIL-001 | TC-BIL-001 (A) | 15.1 |
-| FR-BIL-002 | SR-BIL-002 | TC-BIL-002 (A) | 4.1.3, 15.2 |
+| FR-BIL-002 | SR-BIL-002 | TC-BIL-002 (A) | 3.1.5, 4.1.3, 4.2.3, 4.2.4, 4.2.5, 4.3.1, 15.2 |
 | FR-BIL-003 | SR-BIL-003 | TC-BIL-003 (T) | 15.3 |
 | FR-BIL-004 | SR-BIL-004 | TC-BIL-004 (T) | 15.4 |
 | FR-BIL-005 | SR-BIL-005 | TC-BIL-005 (A) | 15.6 |
@@ -395,21 +395,21 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 | FR-ID | SR-ID(ler) | Test Case (yöntem) | WBS Görev(leri) |
 |-------|------------|--------------------|-----------------|
 | FR-RES-001 | SR-RES-001 | TC-RES-001 (I) | 3.1.1 |
-| FR-RES-002 | SR-RTC-001, SR-RES-002 | TC-RTC-001 (A), TC-RES-002 (A) | 2.2.1, 3.1.1 *(örtük)* |
+| FR-RES-002 | SR-RTC-001, SR-RES-002 | TC-RTC-001 (A), TC-RES-002 (A) | 4.2.3, 4.2.4 |
 | FR-RES-003 | SR-TTS-010, SR-RES-003 | TC-TTS-010 (A), TC-RES-003 (A) | 16.1 |
 | FR-RES-004 | SR-LLM-014, SR-RES-004 | TC-LLM-014 (T), TC-RES-004 (T) | 5.4 |
-| FR-RES-005 | SR-LLM-013, SR-RES-005 | TC-LLM-013 (A), TC-RES-005 (A) | 5.3 |
-| FR-RES-006 | SR-RES-006 | TC-RES-006 (A) | 4.1.6 |
+| FR-RES-005 | SR-LLM-013, SR-RES-005 | TC-LLM-013 (A), TC-RES-005 (A) | 3.2.2, 5.3 |
+| FR-RES-006 | SR-RES-006 | TC-RES-006 (A) | 4.1.6, 7.1.4, 7.2.1, 7.2.2 |
 | FR-RES-007 | SR-RES-007 | TC-RES-007 (T) | 16.4 |
-| FR-RES-008 | SR-RES-008 | TC-RES-008 (A) | 2.2.2 |
-| FR-RES-009 | SR-RTC-013, SR-RES-009 | TC-RTC-013 (A), TC-RES-009 (A) | 2.2.6 |
-| FR-RES-010 | SR-LLM-005, SR-KB-011, SR-RES-010 | TC-LLM-005 (T), TC-KB-011 (A), TC-RES-010 (A) | 3.2.2, 6.2.2 |
+| FR-RES-008 | SR-RES-008 | TC-RES-008 (A) | 2.1.6, 2.2.1, 2.2.2, 2.2.3, 4.2.3, 4.2.5 |
+| FR-RES-009 | SR-RTC-013, SR-RES-009 | TC-RTC-013 (A), TC-RES-009 (A) | 0.2.3, 2.2.3, 2.2.6, 4.2.3, 4.2.4, 4.3.3 |
+| FR-RES-010 | SR-LLM-005, SR-KB-011, SR-RES-010 | TC-LLM-005 (T), TC-KB-011 (A), TC-RES-010 (A) | 3.1.4, 3.2.1, 3.2.2, 6.2.2 |
 | FR-RES-011 | SR-RES-011 | TC-RES-011 (I) | 16.7 |
-| FR-RES-012 | SR-RES-012 | TC-RES-012 (I) | 14.1.4 |
-| FR-RES-013 | SR-RES-013 | TC-RES-013 (T) | 16.3 |
-| FR-RES-014 | SR-RES-014 | TC-RES-014 (T) | 16.5 |
+| FR-RES-012 | SR-RES-012 | TC-RES-012 (I) | 3.1.5, 14.1.4 |
+| FR-RES-013 | SR-RES-013 | TC-RES-013 (T) | 0.4.8, 16.3 |
+| FR-RES-014 | SR-RES-014 | TC-RES-014 (T) | 0.4.8, 2.1.8, 2.2.1, 3.1.4, 16.5 |
 | FR-RES-015 | SR-RES-015 | TC-RES-015 (I) | 16.9 |
-| FR-RES-016 | SR-RES-016 | TC-RES-016 (T) | 3.1.4 |
+| FR-RES-016 | SR-RES-016 | TC-RES-016 (T) | 0.3.3, 2.2.1, 3.1.4, 3.2.1 |
 
 <!-- END-AUTOGEN forward FR -->
 
@@ -566,7 +566,7 @@ görevlerine bağlanır (Faz 1 inbound altkümesi için WBS Ek A esastır).
 | 4 | Birincil kesintide fallback | SR-STT-008, SR-TTS-008, SR-LLM-010 | TC-STT-008, TC-TTS-008, TC-LLM-010 | 4.3.1, 4.3.2, 4.3.3 |
 | 5 | Inbound+outbound tamamlanır | SR-TEL-001 | TC-TEL-001 | 2.1.2 |
 | 6 | Warm+cold transfer | SR-TEL-007, SR-HND-004 | TC-TEL-007, TC-HND-004 | 9.1, 9.2, 9.3, 9.6 |
-| 7 | CRM oku + kontrollü işlem | SR-TOOL-001, SR-TOOL-006 | TC-TOOL-001, TC-TOOL-006 | 7.2.1, 7.2.2, 7.2.5, 7.3.2 |
+| 7 | CRM oku + kontrollü işlem | SR-TOOL-001, SR-TOOL-006 | TC-TOOL-001, TC-TOOL-006 | 7.2.1, 7.2.2, 7.2.5, 7.3.1, 7.3.2 |
 | 8 | Prompt injection sızıntı yok | SR-LLM-007 | TC-LLM-007 | 3.3.1 |
 | 9 | Tenant izolasyonu | SR-TEN-002 | TC-TEN-002 | 1.2.1, 12.2.3 |
 | 10 | P95 gecikme | SR-PERF-002 | TC-PERF-002 | §0.3 / §18 / §19 |
@@ -575,7 +575,7 @@ görevlerine bağlanır (Faz 1 inbound altkümesi için WBS Ek A esastır).
 | 13 | PII redaction | SR-REC-004, SR-REC-005 | TC-REC-004, TC-REC-005 | 11.4, 11.5 |
 | 14 | Outbound consent/opt-out | SR-OUT-003, SR-OUT-006, SR-TEL-014 | TC-OUT-003, TC-OUT-006, TC-TEL-014 | 10.2.1, 10.2.2 |
 | 15 | Agent rollback | SR-AGT-006 | TC-AGT-006 | 13.4.17, 20.1 |
-| 16 | Kritik işlemler audit'te | SR-IAM-006, SR-TOOL-010 | TC-IAM-006, TC-TOOL-010 | 4.2.6, 12.1.8, 3.1.5, 7.1.5, 7.1.6, 7.2.5 |
+| 16 | Kritik işlemler audit'te | SR-IAM-006, SR-TOOL-010 | TC-IAM-006, TC-TOOL-010 | 4.2.6, 7.3.1, 12.1.8, 3.1.5, 7.1.5, 7.1.6, 7.2.5 |
 | 17 | DR senaryosu | SR-DR-002 | TC-DR-002 | §0.3 / §18 / §19 |
 | 18 | Temsilciye özet/bağlam | SR-HND-004, SR-HND-005 | TC-HND-004, TC-HND-005 | 9.6 |
 | 19 | Regression production öncesi | SR-TST-004, SR-TST-005 | TC-TST-004, TC-TST-005 | 18.4 |

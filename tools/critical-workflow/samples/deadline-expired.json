@@ -1,0 +1,16 @@
+{
+  "name": "deadline-expired — insan onayı zamanında gelmedi → EXPIRED, zombie yok (K9)",
+  "$comment": "Sözleşme iptali; teyit alındı, insan onayı deadline_ms (120000) sonra geldi → EXPIRED (fail-closed; EXECUTE'a ASLA dönmez). Bekleyen workflow sonsuza beklemez. Sentetik.",
+  "workflows": [
+    {"workflow_id": "wf-ex1", "correlation_id": "corr-ex1", "tenant_id": "t-1", "call_id": "call-ex1",
+     "initiator": "agent", "deadline_ms": 120000,
+     "operation": {"name": "sozlesme_iptal", "risk_class": "contract_cancellation", "critical": true},
+     "events": [
+       {"type": "auth", "level": "strong", "methods": ["otp"], "step_up": true, "at_ms": 0},
+       {"type": "confirm", "value": "yes", "at_ms": 5000},
+       {"type": "approval", "decision": "approved", "actor": "supervisor-12", "at_ms": 600000},
+       {"type": "execute", "outcome": "ok", "at_ms": 601000}
+     ]}
+  ],
+  "expect": {"wf-ex1": {"final_state": "EXPIRED"}}
+}
