@@ -1,0 +1,10 @@
+{
+  "name": "erp-appointment-async-pending — ERP SOAP async randevu (BRD §8.3) → pending (non-blocking)",
+  "$comment": "Randevu oluştur uzun işlem (BRD §8.3); async tool → 202 accepted → pending; orkestratör BEKLEMEZ (7.2.4/FR-TOOL-011, R12). Sonuç result_ref ile reconcile. Sentetik (FR-TST-008).",
+  "invocations": [
+    {"call_id": "ap1", "correlation_id": "corr-106", "tenant_id": "t-3", "tool": "erp.create_appointment",
+     "granted_scopes": ["erp:write"], "idempotency_key": "idem-ap-1", "allowlist": "PERMIT", "at_ms": 0,
+     "attempt": {"result": "accepted", "status_code": 202, "result_ref": "exec://APPT-EXEC-31"}}
+  ],
+  "expect": {"ap1": {"status": "pending", "async_tool": true, "result_ref": "exec://APPT-EXEC-31"}}
+}

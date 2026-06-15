@@ -1,0 +1,10 @@
+{
+  "name": "crm-create-case-committed — CRM REST write claim/case (BRD §8.4) → committed + Tool Execution",
+  "$comment": "Sigorta hasar bildirimi: claim/case kaydı oluştur → referans numarası (BRD §8.4). REST write idempotent; key var, authz write, allowlist permit, attempt 201. committed → tool_execution (WORM, R9). result_ref referans numarası taşır. Sentetik (FR-TST-008).",
+  "invocations": [
+    {"call_id": "cc1", "correlation_id": "corr-101", "tenant_id": "t-1", "tool": "crm.create_case",
+     "granted_scopes": ["crm:read", "crm:write"], "idempotency_key": "idem-case-aa", "allowlist": "PERMIT", "at_ms": 0,
+     "attempt": {"result": "ok", "status_code": 201, "result_ref": "case://CRM-REF-49217"}}
+  ],
+  "expect": {"cc1": {"status": "committed", "tool_execution_recorded": true, "result_ref": "case://CRM-REF-49217", "operation_class": "write"}}
+}

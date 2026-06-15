@@ -1,0 +1,9 @@
+{
+  "name": "write-missing-idempotency-rejected — write idempotency_key yok (FR-TOOL-009) → rejected",
+  "$comment": "Write tool idempotency_key olmadan → IDEMPOTENCY_REQUIRED, dispatch OLMAZ (R5). Duplicate işlem önleme. Müşteri CANNOT_COMPLETE. Sentetik (FR-TST-008).",
+  "invocations": [
+    {"call_id": "wi1", "correlation_id": "corr-108", "tenant_id": "t-1", "tool": "crm.create_case",
+     "granted_scopes": ["crm:write"], "allowlist": "PERMIT", "at_ms": 0, "attempt": {"result": "ok"}}
+  ],
+  "expect": {"wi1": {"status": "rejected", "fault_class": "IDEMPOTENCY_REQUIRED", "customer_category": "CANNOT_COMPLETE"}}
+}

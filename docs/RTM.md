@@ -276,7 +276,7 @@ kaynak olabilir (ör. `FR-RES-010` → `SR-LLM-005`, `SR-KB-011`); bu satırlard
 
 | FR-ID | SR-ID(ler) | Test Case (yöntem) | WBS Görev(leri) |
 |-------|------------|--------------------|-----------------|
-| FR-TOOL-001 | SR-TOOL-001 | TC-TOOL-001 (T) | 7.2.1, 7.2.2 |
+| FR-TOOL-001 | SR-TOOL-001 | TC-TOOL-001 (T) | 7.2.1, 7.2.2, 7.2.5 |
 | FR-TOOL-002 | SR-TOOL-002 | TC-TOOL-002 (T) | 7.1.1 |
 | FR-TOOL-003 | SR-TOOL-003 | TC-TOOL-003 (T) | 7.1.4 |
 | FR-TOOL-004 | SR-TOOL-004 | TC-TOOL-004 (T) | 7.1.2 |
@@ -566,7 +566,7 @@ görevlerine bağlanır (Faz 1 inbound altkümesi için WBS Ek A esastır).
 | 4 | Birincil kesintide fallback | SR-STT-008, SR-TTS-008, SR-LLM-010 | TC-STT-008, TC-TTS-008, TC-LLM-010 | 4.3.1, 4.3.2, 4.3.3 |
 | 5 | Inbound+outbound tamamlanır | SR-TEL-001 | TC-TEL-001 | 2.1.2 |
 | 6 | Warm+cold transfer | SR-TEL-007, SR-HND-004 | TC-TEL-007, TC-HND-004 | 9.1, 9.2, 9.3, 9.6 |
-| 7 | CRM oku + kontrollü işlem | SR-TOOL-001, SR-TOOL-006 | TC-TOOL-001, TC-TOOL-006 | 7.2.1, 7.2.2, 7.3.2 |
+| 7 | CRM oku + kontrollü işlem | SR-TOOL-001, SR-TOOL-006 | TC-TOOL-001, TC-TOOL-006 | 7.2.1, 7.2.2, 7.2.5, 7.3.2 |
 | 8 | Prompt injection sızıntı yok | SR-LLM-007 | TC-LLM-007 | 3.3.1 |
 | 9 | Tenant izolasyonu | SR-TEN-002 | TC-TEN-002 | 1.2.1, 12.2.3 |
 | 10 | P95 gecikme | SR-PERF-002 | TC-PERF-002 | §0.3 / §18 / §19 |
@@ -575,7 +575,7 @@ görevlerine bağlanır (Faz 1 inbound altkümesi için WBS Ek A esastır).
 | 13 | PII redaction | SR-REC-004, SR-REC-005 | TC-REC-004, TC-REC-005 | 11.4, 11.5 |
 | 14 | Outbound consent/opt-out | SR-OUT-003, SR-OUT-006, SR-TEL-014 | TC-OUT-003, TC-OUT-006, TC-TEL-014 | 10.2.1, 10.2.2 |
 | 15 | Agent rollback | SR-AGT-006 | TC-AGT-006 | 13.4.17, 20.1 |
-| 16 | Kritik işlemler audit'te | SR-IAM-006, SR-TOOL-010 | TC-IAM-006, TC-TOOL-010 | 12.1.8, 7.1.6 |
+| 16 | Kritik işlemler audit'te | SR-IAM-006, SR-TOOL-010 | TC-IAM-006, TC-TOOL-010 | 4.2.6, 12.1.8, 3.1.5, 7.1.5, 7.1.6, 7.2.5 |
 | 17 | DR senaryosu | SR-DR-002 | TC-DR-002 | §0.3 / §18 / §19 |
 | 18 | Temsilciye özet/bağlam | SR-HND-004, SR-HND-005 | TC-HND-004, TC-HND-005 | 9.6 |
 | 19 | Regression production öncesi | SR-TST-004, SR-TST-005 | TC-TST-004, TC-TST-005 | 18.4 |

@@ -1,0 +1,10 @@
+{
+  "name": "erp-get-order-soap-success — ERP SOAP read → succeeded",
+  "$comment": "Sipariş durumu sorgula (BRD §8.1). SOAP read; connector-tipi SOAP kapsama (R2/SR-TOOL-001). Sentetik (FR-TST-008).",
+  "invocations": [
+    {"call_id": "eo1", "correlation_id": "corr-105", "tenant_id": "t-3", "tool": "erp.get_order",
+     "granted_scopes": ["erp:read"], "allowlist": "PERMIT", "at_ms": 0,
+     "attempt": {"result": "ok", "status_code": 200}}
+  ],
+  "expect": {"eo1": {"status": "succeeded", "connector_type": "soap", "pack": "erp"}}
+}

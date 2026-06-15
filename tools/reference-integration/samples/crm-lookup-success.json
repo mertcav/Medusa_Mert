@@ -1,0 +1,10 @@
+{
+  "name": "crm-lookup-success — CRM REST read (BRD §8.1 müşteri bul) → succeeded",
+  "$comment": "Inbound: arayandan müşteriyi bul (BRD §8.1 adım 3). REST read; schema ok, authz read, allowlist permit, attempt 200. SR-TOOL-001 'başarılı çağrı'. Sentetik (FR-TST-008).",
+  "invocations": [
+    {"call_id": "lk1", "correlation_id": "corr-100", "tenant_id": "t-1", "tool": "crm.get_customer",
+     "granted_scopes": ["crm:read"], "allowlist": "PERMIT", "at_ms": 0,
+     "attempt": {"result": "ok", "status_code": 200}}
+  ],
+  "expect": {"lk1": {"status": "succeeded", "pack": "crm", "connector_type": "rest", "tool_execution_recorded": false}}
+}

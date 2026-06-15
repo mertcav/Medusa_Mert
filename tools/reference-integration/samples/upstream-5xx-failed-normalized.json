@@ -1,0 +1,10 @@
+{
+  "name": "upstream-5xx-failed-normalized — dispatch UPSTREAM_5XX (FR-TOOL-008) → failed + müşteri TEMPORARY",
+  "$comment": "7.1.4 retry/breaker sonrası nihai deneme UPSTREAM_5XX → failed; fault → müşteri TEMPORARY (DELEGE 7.1.5); teknik detay SIZMAZ (R7). read → tool_execution YOK. Sentetik (FR-TST-008).",
+  "invocations": [
+    {"call_id": "fx1", "correlation_id": "corr-111", "tenant_id": "t-1", "tool": "crm.list_cases",
+     "granted_scopes": ["crm:read"], "allowlist": "PERMIT", "at_ms": 0,
+     "attempt": {"result": "fault", "fault_class": "UPSTREAM_5XX", "status_code": 503, "retryable": true}}
+  ],
+  "expect": {"fx1": {"status": "failed", "fault_class": "UPSTREAM_5XX", "customer_category": "TEMPORARY", "tool_execution_recorded": false}}
+}

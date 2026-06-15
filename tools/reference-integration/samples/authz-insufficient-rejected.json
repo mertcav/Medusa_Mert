@@ -1,0 +1,10 @@
+{
+  "name": "authz-insufficient-rejected — write tool yalnız read scope (FR-TOOL-004/005) → rejected",
+  "$comment": "Read/write seviye ayrımı (R3): write tool yalnız read scope ile çağrılır → AUTH_FAILED, dispatch OLMAZ. Müşteriye neden sızmaz → NOT_PERMITTED. Sentetik (FR-TST-008).",
+  "invocations": [
+    {"call_id": "az1", "correlation_id": "corr-109", "tenant_id": "t-2", "tool": "ticketing.create_ticket",
+     "granted_scopes": ["ticketing:read"], "idempotency_key": "idem-az-1", "allowlist": "PERMIT", "at_ms": 0,
+     "attempt": {"result": "ok"}}
+  ],
+  "expect": {"az1": {"status": "rejected", "fault_class": "AUTH_FAILED", "customer_category": "NOT_PERMITTED"}}
+}

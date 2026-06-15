@@ -1,0 +1,10 @@
+{
+  "name": "crm-update-contact-committed — kritik PII teyit+step-up sağlandı → committed",
+  "$comment": "Aynı kritik PII değişikliği; müşteri teyidi + step-up sağlandı (FR-TOOL-006/007) → policy gate geçer → committed + tool_execution. Sentetik (FR-TST-008).",
+  "invocations": [
+    {"call_id": "uc2", "correlation_id": "corr-103", "tenant_id": "t-1", "tool": "crm.update_contact",
+     "granted_scopes": ["crm:write:pii"], "idempotency_key": "idem-uc-2", "allowlist": "PERMIT", "at_ms": 0,
+     "confirmation": true, "step_up": true, "attempt": {"result": "ok", "status_code": 200}}
+  ],
+  "expect": {"uc2": {"status": "committed", "tool_execution_recorded": true, "critical": true}}
+}

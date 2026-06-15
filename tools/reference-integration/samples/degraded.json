@@ -1,0 +1,12 @@
+{
+  "name": "degraded — BEKLENEN ELEME: müşteri mesajına teknik detay + audit'e PII sızar (R7/R8)",
+  "$comment": "İki güvenlik kapısını NEGATİF doğrular: (1) failsafe KAPALI → ham exception/host/status müşteri mesajına geçirilir (R7 sızıntı tarayıcısı yakalar); (2) ham PII (email+kart) audit'e sızar (R8 no-log tarayıcısı yakalar). expect_gate_fail=true → kapılar tetiklenirse PASS (tarayıcı gerçek kapı). Sentetik (FR-TST-008).",
+  "expect_gate_fail": true,
+  "invocations": [
+    {"call_id": "dg1", "correlation_id": "corr-112", "tenant_id": "t-1", "tool": "crm.get_customer",
+     "granted_scopes": ["crm:read"], "allowlist": "PERMIT", "at_ms": 0,
+     "attempt": {"result": "fault", "fault_class": "UPSTREAM_5XX"},
+     "unsafe_customer_message": "NullPointerException from salesforce at crm.example.com returned 503",
+     "unsafe_audit_detail": "caller jane.roe@example.com policy 998877665544"}
+  ]
+}

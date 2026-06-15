@@ -1,0 +1,163 @@
+{
+  "$comment": "WBS 7.2.5 — CRM/Ticketing/ERP referans entegrasyonu (pilot) (BRD §6.1 'Kurumsal Entegrasyon: CRM, contact centre, ticketing, ERP'; OBJ-07 'CRM, poliçe, ödeme, randevu ve ticket sistemlerinde gerçek işlem yapmak'). `tools/` workstream'inin yedinci modülü ve 7.x tool hattının PİLOT KAPSTONU: yeni bir transport/SPI EKLEMEZ — daha önce kurulan parçaları (7.1.1 schema / 7.1.2 authz / 7.1.4 timeout+retry+breaker / 7.1.5 error-normalization / 7.2.1 REST connector / 7.2.2 SOAP/GraphQL/webhook connector / 7.2.3 endpoint allowlist / 7.2.4 async workflow) SAD §11.1 Tool Yürütme Hattının ([1]→[7]) BİREBİR sırasında ORKESTRE ederek temsilci (pilot) CRM/Ticketing/ERP sistemlerine karşı UÇTAN UCA gerçek işlem (read+write) gösterir. Bu modül ŞUNU SAHİPLENİR: (a) referans entegrasyon paketleri (CRM/ticketing/erp) + her pakette agent-çağrılabilir REFERANS TOOL TANIMLARI (BRD §8 iş senaryolarına eşli); (b) zincir SIRALAMA + FAIL-CLOSED kompozisyon (ilk eleyen kapı kısa-devre, downstream yan-etki YOK, eksik/bilinmeyen karar → fail-closed RED); (c) kritik-işlem POLICY GATE bağı (FR-TOOL-006/007 — para/sözleşme/PII değişikliği → müşteri teyidi + step-up zorunlu); (d) yapısal fault → müşteri kategorisi DELEGASYONU (7.1.5 kataloğu); (e) Tool Execution audit kaydı üretimi (BRD §16 varlık 24 / DB.md §5.5 WORM). ÇEKİRDEK INVARIANT (SR-TOOL-001 kabul ölçütü 'Her connector tipi başarılı çağrı yapar' + OBJ-07): pilot paketleri REST (CRM/ticketing) + GraphQL (ticketing) + SOAP (ERP) connector tiplerinin her birinde read+write başarılı çağrı yapar ve zincir [1]→[7]'yi fail-closed yürütür. KAPSAM DIŞI (bilinçli — başka modül SAHİBİ): input/output JSON schema doğrulama motoru → 7.1.1 (FR-TOOL-002; bu modül schema_valid kararını TÜKETİR); authz politika motoru → 7.1.2 (FR-TOOL-004/005; bu modül scope kararını TÜKETİR ama read/write seviye bağını UYGULAR); timeout/retry/circuit breaker ORKESTRASYONU → 7.1.4 (FR-TOOL-003; bu modül AttemptOutcome'u TÜKETİR); kanonik istek kurulumu + transport → 7.2.1/7.2.2 (FR-TOOL-001; AYNI SPI arkasında); endpoint allowlist KARARI → 7.2.3 (FR-TOOL-012; bu modül PERMIT/DENY kararını TÜKETİR); idempotency key ÜRETİMİ/store → 7.1.3 (FR-TOOL-009; bu modül key VARLIĞINI write-kapısında ZORUNLU kılar); müşteri hata METNİ kataloğu/tr-TR/en-US → 7.1.5 (FR-TOOL-008; bu modül fault→kategori eşlemesini DELEGE eder); correlation_id audit zenginleştirme/store → 7.1.6 (FR-TOOL-010); async uzun-işlem reconciliation → 7.2.4 (FR-TOOL-011; bu modül async tool'u 'accepted/pending' ile non-blocking devreder); kritik-işlem TAM durum makinesi (auth→kural→özet→teyit→onay→audit) → 7.3.1/7.3.2 (BRD §13; bu modül yalnız policy gate BAĞINI uygular); insan aktarımı → FR-HND; PCI kart akışı → 17.2.6 (BRD §8.5; kart verisi LLM/transkript/kayıt DIŞI). Spec/config/sample'larda sır/credential ve gerçek PII DEĞERİ yok (fixture'lar sentetik — FR-TST-008; host'lar example.com). Bağlayıcı vendor seçimi YOK (ADR-002 vendor-neutral; pilot referans/illüstratif). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır.",
+  "version": "1.0",
+  "wbs": "7.2.5",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TOOL-001", "FR-TOOL-002", "FR-TOOL-004", "FR-TOOL-005", "FR-TOOL-006", "FR-TOOL-007", "FR-TOOL-008", "FR-TOOL-009", "FR-TOOL-010", "FR-TOOL-011", "FR-TOOL-012", "FR-RES-006", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-TOOL-001", "SR-TOOL-006"],
+    "rtm": ["TC-TOOL-001"],
+    "obj": ["OBJ-07 (CRM/poliçe/ödeme/randevu/ticket sistemlerinde gerçek işlem)"],
+    "sad": [
+      "§11.1 (Tool Yürütme Hattı [1]→[7] — bu modül zinciri uçtan uca ORKESTRE eder)",
+      "§11.2 (Integration Gateway: REST/SOAP/GraphQL/webhook FR-TOOL-001; allowlist FR-TOOL-012; async FR-TOOL-011; connection pooling FR-RES-006)",
+      "§11.3 (Deterministic Workflow Engine — kritik işlem policy gate BAĞI; tam durum makinesi 7.3)",
+      "§6.1 (turn state machine ACT durumu — schema-validated tool çağrısı bu zincire iner)",
+      "§13.3 (tenant context propagation — tenant_id+correlation_id zincir boyunca taşınır)"
+    ],
+    "brd": [
+      "§6.1 (Kapsam: CRM, contact centre, ticketing, ERP — bu modülün doğrudan izi)",
+      "§8.1 (Inbound: müşteri bul → API işlem → teyit → CRM'e kaydet)",
+      "§8.3 (Randevu oluşturma — async ERP işlem)",
+      "§8.4 (Sigorta hasar bildirimi — claim/case oluştur → referans numarası)",
+      "§8.6 (Teknik destek — ticket oluştur)",
+      "§13 (Kritik işlem yönetimi — teyit + ek doğrulama)",
+      "§16 (Tool Execution varlığı 24 — audit kaydı)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator/Tool Executor bağımsızlığı — entegrasyon zinciri SPI arkasında)",
+      "ADR-002 (vendor-neutral — connector/sağlayıcı değiştirilebilir; zincir mantığı bağımsız; pilot referans, bağlayıcı seçim YOK)",
+      "ADR-003 (hot-path runtime — non-blocking; async tool turnu bloklamaz)",
+      "ADR-014 (zorunlu egress kontrol — allowlist kararı zincirde pre-flight)"
+    ],
+    "api": ["§ Public Developer API (tool tanımı yüzeyi)", "§11.6 ErrorTaxonomy (fault_class hizalama)", "§10.2 (async result-by-reference)"],
+    "consumes": [
+      "7.1.1 schema-validated tool input/output (FR-TOOL-002) — schema_valid kararını TÜKETİR",
+      "7.1.2 tool authz kararı (FR-TOOL-004/005) — granted_scopes'u TÜKETİR; read/write seviye bağını uygular",
+      "7.1.4 AttemptOutcome (FR-TOOL-003) — retry/breaker SONRASI nihai deneme sonucunu TÜKETİR",
+      "7.2.1/7.2.2 connector dispatch (FR-TOOL-001) — REST/SOAP/GraphQL/webhook AttemptOutcome üreticisi",
+      "7.2.3 allowlist PERMIT/DENY (FR-TOOL-012) — endpoint kararını TÜKETİR",
+      "7.1.3 idempotency key (FR-TOOL-009) — write'ta VARLIĞINI zorunlu kılar; üretmez",
+      "7.1.5 fault→müşteri kategorisi (FR-TOOL-008) — eşlemeyi DELEGE eder",
+      "7.2.4 async execution (FR-TOOL-011) — uzun-işlem tool'u non-blocking devreder"
+    ],
+    "consumed_by": [
+      "7.1.6 correlation_id audit (FR-TOOL-010) — bu modülün Tool Execution kaydını zenginleştirir/store eder",
+      "7.3.1/7.3.2 deterministic workflow (BRD §13) — kritik tool için tam teyit/onay durum makinesi",
+      "Panel A-/T- ekranları (BRD §17) — referans entegrasyon paketleri tenant config'i besler"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Referans entegrasyon, SAD §11.1 Tool Yürütme Hattının TÜMÜNÜ ([1]→[7]) ORKESTRE eden ince bir KOMPOZİSYON katmanıdır; her adımın AĞIR mantığı ilgili modülde (7.1.x/7.2.x). Çağrı zinciri: LLM tool call ─► [1] schema (7.1.1) ─► [2] authz (7.1.2) ─► [3] policy gate (kritik→teyit/step-up; bu modül BAĞLAR, 7.3 SAHİBİ) ─► [4] idempotency (7.1.3) ─► [5] allowlist (7.2.3) + Integration GW {timeout+retry+breaker, 7.1.4} ─► connector.upstream_call (7.2.1/7.2.2) ─► AttemptOutcome ─► [6] output schema (7.1.1) + error normalization (7.1.5) ─► [7] correlation_id audit (7.1.6 + Tool Execution kaydı). Voice-runtime hot-path (orchestrator ACT, SAD §6.1) ama araç çağrısı çoğu turda yok. Vendor-neutral (ADR-001/002): pilot paketleri referans/illüstratif; canlıda AYNI zincir gerçek connector + provider ile dolar (bağlayıcı seçim BRD §22 açık karar).",
+    "plane": "voice-runtime (orchestrator Tool Executor — uçtan uca entegrasyon kompozisyonu)",
+    "hot_path": true,
+    "composes_modules": ["7.1.1", "7.1.2", "7.1.3", "7.1.4", "7.1.5", "7.1.6", "7.2.1", "7.2.2", "7.2.3", "7.2.4"],
+    "owns": [
+      "Referans entegrasyon paketleri (CRM/ticketing/erp) + agent-çağrılabilir referans tool tanımları (BRD §8 senaryo eşli)",
+      "Zincir sıralama + fail-closed kompozisyon (ilk eleyen kapı kısa-devre, downstream yan-etki yok)",
+      "Kritik-işlem policy gate bağı (FR-TOOL-006/007 — teyit + step-up zorunluluğu)",
+      "Tool Execution audit kaydı (BRD §16 varlık 24 / DB.md §5.5 WORM)"
+    ],
+    "trace": "SAD §11.1, SAD §11.2, SAD §11.3, ADR-001, ADR-002, BRD §6.1, BRD §8, OBJ-07"
+  },
+
+  "chain": {
+    "$comment": "SAD §11.1 Tool Yürütme Hattı adımları — bu modülün zincir-yürütücüsü her adımı SIRA ile değerlendirir; ilk eleyen adım kısa-devre yapar (downstream çalışmaz). 'owner' adımın AĞIR mantığını sahiplenen modül; bu modül o adımın KARARINI tüketir/uygular. 'fail_closed': eksik/bilinmeyen karar → adım GEÇEMEZ (RED).",
+    "steps": [
+      {"n": 1, "id": "input_schema", "fr": "FR-TOOL-002", "owner": "7.1.1", "consumes": "schema_valid", "reject_status": "rejected", "reject_fault": "SCHEMA_INVALID"},
+      {"n": 2, "id": "authorization", "fr": "FR-TOOL-004/005", "owner": "7.1.2", "consumes": "granted_scopes", "applies": "tool.required_scope ⊆ granted_scopes; write tool → write-seviye scope", "reject_status": "rejected", "reject_fault": "AUTH_FAILED"},
+      {"n": 3, "id": "policy_gate", "fr": "FR-TOOL-006/007", "owner": "7.3 (bağ bu modül)", "applies": "tool.critical → confirmation ∧ step_up ZORUNLU", "reject_status": "blocked", "reject_fault": "CONFIRMATION_REQUIRED"},
+      {"n": 4, "id": "idempotency", "fr": "FR-TOOL-009", "owner": "7.1.3", "applies": "write tool → idempotency_key VARLIĞI ZORUNLU (üretim 7.1.3)", "reject_status": "rejected", "reject_fault": "IDEMPOTENCY_REQUIRED"},
+      {"n": 5, "id": "allowlist", "fr": "FR-TOOL-012", "owner": "7.2.3", "consumes": "allowlist_decision", "applies": "DENY → dispatch YOK", "reject_status": "rejected", "reject_fault": "ENDPOINT_NOT_ALLOWED"},
+      {"n": 5, "id": "dispatch", "fr": "FR-TOOL-001/003", "owner": "7.1.4 + 7.2.1/7.2.2", "consumes": "attempt (AttemptOutcome)", "applies": "ok → succeeded/committed; async accepted → pending (7.2.4); fault → failed", "reject_status": "failed"},
+      {"n": 6, "id": "output_norm", "fr": "FR-TOOL-008", "owner": "7.1.1 + 7.1.5", "applies": "fault → müşteri kategorisi (DELEGE 7.1.5); teknik detay sızıntısı YOK", "reject_status": "failed"},
+      {"n": 7, "id": "audit", "fr": "FR-TOOL-010", "owner": "7.1.6 (kayıt bu modül)", "applies": "correlation_id audit + Tool Execution kaydı (no-log)", "reject_status": null}
+    ],
+    "trace": "SAD §11.1"
+  },
+
+  "packs": {
+    "$comment": "Pilot referans entegrasyon paketleri (BRD §6.1). Her paket bir connector PROFİLİNE (7.2.1/7.2.2 config'i — burada yalnız ATIF) bağlanır ve agent-çağrılabilir referans tool tanımları taşır. Tool tanımı alanları: tool_id (kanonik), operation (connector op), connector_type (rest|graphql|soap|webhook), operation_class (read|write), critical (FR-TOOL-006/007 para/sözleşme/PII değişikliği), idempotent (write→true), async (uzun işlem FR-TOOL-011→7.2.4), required_scope (7.1.2 permission-key kaynak:eylem), endpoint (kanonik template — allowlist 7.2.3 anahtarı), scenario (BRD §8 izi). Host'lar example.com (sentetik — FR-TST-008).",
+    "crm": {
+      "connector_type": "rest",
+      "connector_profile_ref": "7.2.1/config crm-rest-bearer",
+      "base_host": "crm.example.com",
+      "tools": {
+        "crm.get_customer": {"operation": "get_customer", "operation_class": "read", "critical": false, "idempotent": false, "async": false, "required_scope": "crm:read", "endpoint": "GET https://crm.example.com/v1/customers/{customer_id}", "scenario": "BRD §8.1 adım 3 (arayandan müşteriyi bul)"},
+        "crm.list_cases": {"operation": "list_cases", "operation_class": "read", "critical": false, "idempotent": false, "async": false, "required_scope": "crm:read", "endpoint": "GET https://crm.example.com/v1/customers/{customer_id}/cases", "scenario": "BRD §8.1 adım 5/6 (talebi anla)"},
+        "crm.create_case": {"operation": "create_case", "operation_class": "write", "critical": false, "idempotent": true, "async": false, "required_scope": "crm:write", "endpoint": "POST https://crm.example.com/v1/cases", "scenario": "BRD §8.4 (hasar/claim kaydı → referans numarası)"},
+        "crm.log_call_outcome": {"operation": "log_call_outcome", "operation_class": "write", "critical": false, "idempotent": true, "async": false, "required_scope": "crm:write", "endpoint": "POST https://crm.example.com/v1/calls/{call_id}/outcome", "scenario": "BRD §8.1 adım 8 (sonucu CRM'e kaydet)"},
+        "crm.update_contact": {"operation": "update_contact", "operation_class": "write", "critical": true, "idempotent": true, "async": false, "required_scope": "crm:write:pii", "endpoint": "PATCH https://crm.example.com/v1/customers/{customer_id}", "scenario": "BRD §13/FR-TOOL-007 (PII değişikliği → teyit + step-up)"}
+      }
+    },
+    "ticketing": {
+      "connector_type": "graphql",
+      "connector_profile_ref": "7.2.2/config crm-graphql-bearer (ticketing varyantı)",
+      "base_host": "tickets.example.com",
+      "tools": {
+        "ticketing.get_ticket": {"operation": "getTicket", "operation_class": "read", "critical": false, "idempotent": false, "async": false, "required_scope": "ticketing:read", "endpoint": "POST https://tickets.example.com/graphql#getTicket", "scenario": "BRD §8.6 (mevcut ticket sorgula)"},
+        "ticketing.create_ticket": {"operation": "createTicket", "operation_class": "write", "critical": false, "idempotent": true, "async": false, "required_scope": "ticketing:write", "endpoint": "POST https://tickets.example.com/graphql#createTicket", "scenario": "BRD §8.6 (çözemezse ticket oluştur)"},
+        "ticketing.add_comment": {"operation": "addComment", "operation_class": "write", "critical": false, "idempotent": true, "async": false, "required_scope": "ticketing:write", "endpoint": "POST https://tickets.example.com/graphql#addComment", "scenario": "BRD §8.6 (ticket'a not ekle)"}
+      }
+    },
+    "erp": {
+      "connector_type": "soap",
+      "connector_profile_ref": "7.2.2/config erp-soap-basic",
+      "base_host": "erp.example.com",
+      "tools": {
+        "erp.get_order": {"operation": "GetOrder", "operation_class": "read", "critical": false, "idempotent": false, "async": false, "required_scope": "erp:read", "endpoint": "POST https://erp.example.com/soap/OrderService#GetOrder", "scenario": "BRD §8.1 (sipariş durumu sorgula)"},
+        "erp.get_invoice": {"operation": "GetInvoice", "operation_class": "read", "critical": false, "idempotent": false, "async": false, "required_scope": "erp:read", "endpoint": "POST https://erp.example.com/soap/BillingService#GetInvoice", "scenario": "BRD §8.5 (borç/fatura bilgisi doğrula — kart verisi DIŞI)"},
+        "erp.create_appointment": {"operation": "CreateAppointment", "operation_class": "write", "critical": false, "idempotent": true, "async": true, "required_scope": "erp:write", "endpoint": "POST https://erp.example.com/soap/SchedulingService#CreateAppointment", "scenario": "BRD §8.3 (randevu oluştur — uzun işlem → 7.2.4)"},
+        "erp.post_payment_adjustment": {"operation": "PostPaymentAdjustment", "operation_class": "write", "critical": true, "idempotent": true, "async": false, "required_scope": "erp:write:finance", "endpoint": "POST https://erp.example.com/soap/FinanceService#PostPaymentAdjustment", "scenario": "BRD §13/FR-TOOL-007 (para hareketi → teyit + step-up; kart akışı 17.2.6)"}
+      }
+    },
+    "trace": "BRD §6.1, BRD §8, FR-TOOL-001"
+  },
+
+  "fault_to_category": {
+    "$comment": "Müşteriye dönen kategori DELEGASYONU (7.1.5 fault_map ile hizalı; FR-TOOL-008). Bu modül kendi gate-fault'larını da (zincir reddi) müşteri kategorisine eşler. ENDPOINT_NOT_ALLOWED / AUTH_FAILED → NOT_PERMITTED (neden sızmaz); CONFIRMATION_REQUIRED zincir-içi (müşteriye 'teyit gerekli' akışı, hata değil); IDEMPOTENCY_REQUIRED / SCHEMA_INVALID → CANNOT_COMPLETE.",
+    "map": {
+      "TIMEOUT": "TEMPORARY", "UPSTREAM_5XX": "TEMPORARY", "CONN_RESET": "TEMPORARY", "CONN_REFUSED": "TEMPORARY", "DEADLINE_EXCEEDED": "TEMPORARY", "CIRCUIT_OPEN": "TEMPORARY", "RETRY_EXHAUSTED": "TEMPORARY",
+      "RATE_LIMITED": "BUSY",
+      "UPSTREAM_4XX": "CANNOT_COMPLETE", "SCHEMA_INVALID": "CANNOT_COMPLETE", "IDEMPOTENCY_REQUIRED": "CANNOT_COMPLETE", "INTERNAL_ERROR": "CANNOT_COMPLETE",
+      "NOT_FOUND": "NOT_FOUND",
+      "AUTH_FAILED": "NOT_PERMITTED", "ENDPOINT_NOT_ALLOWED": "NOT_PERMITTED"
+    },
+    "trace": "7.1.5 fault_map, FR-TOOL-008, API §11.6"
+  },
+
+  "result_statuses": {
+    "$comment": "Zincir-yürütücünün ürettiği nihai ToolExecutionResult.status. 'committed' yalnız write+attempt ok → Tool Execution kaydı (WORM). 'pending' async kabul (7.2.4 reconcile eder). 'rejected' pre-dispatch gate (schema/authz/idempotency/allowlist) — dispatch OLMADI. 'blocked' kritik op teyit/step-up eksik — dispatch OLMADI. 'failed' dispatch fault → müşteri kategorisi.",
+    "values": ["succeeded", "committed", "pending", "rejected", "blocked", "failed"]
+  },
+
+  "error_taxonomy": {
+    "$comment": "Modülün yapı/yapılandırma bütünlüğü hataları (zincir-fault'tan AYRI — bunlar sample/spec'in geçersizliğini doğurur, çalıştırma reddi).",
+    "classes": ["UNKNOWN_PACK", "UNKNOWN_TOOL", "INVALID_TOOL_DEF", "INVALID_INVOCATION", "LITERAL_SECRET_IN_CONFIG", "NON_MONOTONIC_CLOCK", "INTERNAL_ERROR"]
+  },
+
+  "invariants": [
+    {"id": "R1", "desc": "Zincir sıralama + fail-closed: adımlar [1]→[7] SIRA ile; ilk eleyen kapı KISA-DEVRE (downstream çalışmaz, yan-etki yok); eksik/bilinmeyen karar (schema_valid, allowlist, attempt yok) → adım GEÇEMEZ (fail-closed RED), default-allow YOK."},
+    {"id": "R2", "desc": "Connector-tipi kapsama (SR-TOOL-001 'Her connector tipi başarılı çağrı yapar' + OBJ-07): pilot paketleri REST (CRM/ticketing) + GraphQL (ticketing) + SOAP (ERP) tiplerinin HER BİRİNDE read+write başarılı uçtan-uca çağrı gösterir."},
+    {"id": "R3", "desc": "Read/write authz seviye ayrımı (FR-TOOL-004/005): tool.required_scope ⊆ granted_scopes; write tool yeterli WRITE-seviye scope ister; eksik/yetersiz → AUTH_FAILED (rejected, dispatch YOK)."},
+    {"id": "R4", "desc": "Kritik-işlem policy gate (FR-TOOL-006/007): tool.critical (para/sözleşme/PII değişikliği) → müşteri teyidi ∧ step-up ZORUNLU; biri eksik → blocked (CONFIRMATION_REQUIRED, dispatch YOK). Tam durum makinesi 7.3."},
+    {"id": "R5", "desc": "Write idempotency (FR-TOOL-009): write tool dispatch'i idempotency_key VARLIĞINI ister; yoksa → IDEMPOTENCY_REQUIRED (rejected, dispatch YOK). Key 7.1.3 üretir, connector'a iletilir."},
+    {"id": "R6", "desc": "Endpoint allowlist (FR-TOOL-012): kanonik endpoint dispatch'ten ÖNCE 7.2.3 ile PERMIT olmalı; DENY → ENDPOINT_NOT_ALLOWED (rejected, dispatch YOK) → müşteri NOT_PERMITTED."},
+    {"id": "R7", "desc": "Müşteriye teknik-detay sızmaz (FR-TOOL-008): fault → müşteri kategorisi (DELEGE 7.1.5); ToolExecutionResult.customer_message'da stack/vendor/status_code/SQL/IP/path/endpoint-host/PII YOK (sızıntı tarayıcısı kapısı)."},
+    {"id": "R8", "desc": "Audit no-log (FR-TOOL-010): çağrı-başı Tool Execution audit yalnız correlation_id+tenant_id+tool_id+pack+operation_class+adım-verdict'leri+final status+fault_class+idempotency_key VARLIĞI (bool); ham istek/body/PII/secret/müşteri serbest-metin YOK."},
+    {"id": "R9", "desc": "Tool Execution kaydı (BRD §16 varlık 24 / DB.md §5.5 WORM): başarılı write → tool_execution kaydı (idempotency_key ile); büyük/async sonuç REFERANSLA (result_ref, 7.2.4). Read başarısı kayıt üretmez (no-op audit)."},
+    {"id": "R10", "desc": "Determinizm: aynı seed+girdi → birebir aynı ToolExecutionResult + adım verdict'leri (sanal saat; Date.now/gerçek-rastgele YOK)."},
+    {"id": "R11", "desc": "Pilot dürüstlüğü: paketler referans/illüstratif (host'lar example.com, sentetik FR-TST-008); bağlayıcı vendor seçimi YOK (ADR-002; BRD §22 açık karar); sır/credential yalnız ${ENV}, literal sır config'te → LITERAL_SECRET_IN_CONFIG."},
+    {"id": "R12", "desc": "Vendor-neutral kompozisyon (ADR-001/002): entegrasyon AYNI SPI seam'leri arkasında composedir; connector/sağlayıcı değişimi zincir mantığını DEĞİŞTİRMEZ; async tool turnu BLOKLAMAZ (ADR-003)."}
+  ],
+
+  "audit": {
+    "$comment": "Çağrı başına Tool Execution audit kaydı (7.1.6 köprü; FR-TOOL-010; BRD §16 varlık 24). no_log: ham istek/body/header değeri/secret/PII/müşteri serbest-metin İÇERMEZ.",
+    "no_log": true,
+    "fields": ["correlation_id", "tenant_id", "tool_id", "pack", "connector_type", "operation_class", "critical", "step_verdicts", "status", "fault_class", "customer_category", "idempotency_present", "result_ref", "no_log"],
+    "trace": "FR-TOOL-010, BRD §16 (24), DB.md §5.5, →7.1.6, BRD §17.7, NFR 10.7"
+  }
+}

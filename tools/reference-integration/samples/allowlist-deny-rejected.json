@@ -1,0 +1,9 @@
+{
+  "name": "allowlist-deny-rejected — onaysız endpoint (FR-TOOL-012) → rejected",
+  "$comment": "Endpoint allowlist DENY (7.2.3) → ENDPOINT_NOT_ALLOWED, dispatch OLMAZ (R6). Müşteri NOT_PERMITTED (neden sızmaz). Sentetik (FR-TST-008).",
+  "invocations": [
+    {"call_id": "al1", "correlation_id": "corr-110", "tenant_id": "t-1", "tool": "crm.get_customer",
+     "granted_scopes": ["crm:read"], "allowlist": "DENY", "at_ms": 0, "attempt": {"result": "ok"}}
+  ],
+  "expect": {"al1": {"status": "rejected", "fault_class": "ENDPOINT_NOT_ALLOWED", "customer_category": "NOT_PERMITTED"}}
+}

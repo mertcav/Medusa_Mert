@@ -1,0 +1,10 @@
+{
+  "name": "ticketing-create-graphql-committed — Ticketing GraphQL mutation (BRD §8.6) → committed",
+  "$comment": "Teknik destek: çözemezse ticket oluştur (BRD §8.6). GraphQL mutation write idempotent → committed. Connector-tipi GraphQL kapsama (R2/SR-TOOL-001). Sentetik (FR-TST-008).",
+  "invocations": [
+    {"call_id": "tk1", "correlation_id": "corr-104", "tenant_id": "t-2", "tool": "ticketing.create_ticket",
+     "granted_scopes": ["ticketing:write"], "idempotency_key": "idem-tk-1", "allowlist": "PERMIT", "at_ms": 0,
+     "attempt": {"result": "ok", "status_code": 200, "result_ref": "ticket://TCK-88120"}}
+  ],
+  "expect": {"tk1": {"status": "committed", "connector_type": "graphql", "tool_execution_recorded": true}}
+}

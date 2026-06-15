@@ -1,0 +1,10 @@
+{
+  "name": "crm-update-contact-blocked — kritik PII değişikliği teyitsiz (FR-TOOL-007) → blocked",
+  "$comment": "PII değişikliği kritik (FR-TOOL-007); müşteri teyidi ∧ step-up ZORUNLU (BRD §13). Teyit yok → blocked, dispatch OLMAZ (R4). Tam teyit/onay durum makinesi 7.3. Sentetik (FR-TST-008).",
+  "invocations": [
+    {"call_id": "uc1", "correlation_id": "corr-102", "tenant_id": "t-1", "tool": "crm.update_contact",
+     "granted_scopes": ["crm:write:pii"], "idempotency_key": "idem-uc-1", "allowlist": "PERMIT", "at_ms": 0,
+     "confirmation": false, "step_up": false, "attempt": {"result": "ok"}}
+  ],
+  "expect": {"uc1": {"status": "blocked", "fault_class": "CONFIRMATION_REQUIRED", "critical": true, "tool_execution_recorded": false}}
+}

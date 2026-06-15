@@ -1,0 +1,10 @@
+{
+  "name": "erp-payment-critical-blocked — para hareketi step-up eksik (FR-TOOL-007) → blocked",
+  "$comment": "ERP finans düzeltmesi para hareketi → kritik (FR-TOOL-007); teyit var ama step-up yok → blocked, dispatch OLMAZ (R4). Kart akışı 17.2.6 PCI (kart verisi LLM/transkript DIŞI, BRD §8.5). Sentetik (FR-TST-008).",
+  "invocations": [
+    {"call_id": "pm1", "correlation_id": "corr-107", "tenant_id": "t-3", "tool": "erp.post_payment_adjustment",
+     "granted_scopes": ["erp:write:finance"], "idempotency_key": "idem-pm-1", "allowlist": "PERMIT", "at_ms": 0,
+     "confirmation": true, "step_up": false, "attempt": {"result": "ok"}}
+  ],
+  "expect": {"pm1": {"status": "blocked", "fault_class": "CONFIRMATION_REQUIRED", "critical": true}}
+}

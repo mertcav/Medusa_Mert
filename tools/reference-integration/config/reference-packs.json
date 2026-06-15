@@ -1,0 +1,36 @@
+{
+  "$comment": "WBS 7.2.5 — Pilot referans entegrasyon paketleri config (BRD §6.1). Her paket bir connector tipine (rest|graphql|soap) bağlanır ve auth YALNIZ ${ENV} referansı taşır (R11; literal sır YOK → LITERAL_SECRET_IN_CONFIG). Bu config connector PROFİLİNİ (7.2.1/7.2.2 spec'i) ATIFLA bağlar ve agent-çağrılabilir referans tool tanımlarının (spec packs ile hizalı) ÇALIŞMA-ZAMANI etkinleştirme/scope bağını verir. Host'lar example.com (sentetik — FR-TST-008). Gerçek sır/credential/PII repoya YAZILMAZ; canlıda auth.ref ortam değişkeninden çözülür, değer asla loglanmaz/audit'lenmez.",
+  "version": "1.0",
+  "packs": {
+    "crm": {
+      "$comment": "CRM paketi — REST connector (7.2.1 crm-rest-bearer). BRD §8.1/§8.4. crm.update_contact PII değişikliği → critical (FR-TOOL-007).",
+      "enabled": true,
+      "connector_type": "rest",
+      "connector_profile": "crm-rest-bearer",
+      "base_url": "https://crm.example.com",
+      "auth": {"type": "bearer", "ref": "${CRM_API_TOKEN}", "header": "Authorization", "scheme": "Bearer"},
+      "pool": {"max_per_host": 8, "keepalive_ms": 30000, "connect_overhead_ms": 40.0},
+      "tools": ["crm.get_customer", "crm.list_cases", "crm.create_case", "crm.log_call_outcome", "crm.update_contact"]
+    },
+    "ticketing": {
+      "$comment": "Ticketing paketi — GraphQL connector (7.2.2 graphql-bearer). BRD §8.6. createTicket/addComment write (idempotent).",
+      "enabled": true,
+      "connector_type": "graphql",
+      "connector_profile": "crm-graphql-bearer",
+      "base_url": "https://tickets.example.com",
+      "auth": {"type": "bearer", "ref": "${TICKETING_API_TOKEN}", "header": "Authorization", "scheme": "Bearer"},
+      "pool": {"max_per_host": 6, "keepalive_ms": 20000, "connect_overhead_ms": 50.0},
+      "tools": ["ticketing.get_ticket", "ticketing.create_ticket", "ticketing.add_comment"]
+    },
+    "erp": {
+      "$comment": "ERP paketi — SOAP connector (7.2.2 erp-soap-basic). BRD §8.3 (randevu, async)/§8.5 (fatura — kart DIŞI). post_payment_adjustment para hareketi → critical (FR-TOOL-007); kart akışı 17.2.6 PCI.",
+      "enabled": true,
+      "connector_type": "soap",
+      "connector_profile": "erp-soap-basic",
+      "base_url": "https://erp.example.com",
+      "auth": {"type": "basic", "ref": "${ERP_SOAP_CREDENTIALS}"},
+      "pool": {"max_per_host": 4, "keepalive_ms": 30000, "connect_overhead_ms": 60.0},
+      "tools": ["erp.get_order", "erp.get_invoice", "erp.create_appointment", "erp.post_payment_adjustment"]
+    }
+  }
+}
