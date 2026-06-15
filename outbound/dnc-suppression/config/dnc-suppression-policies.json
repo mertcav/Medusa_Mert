@@ -1,0 +1,47 @@
+{
+  "$comment": "WBS 10.2.2 Do-not-call / suppression — ülke suppression profilleri (cp.outbound.* türevi; vendor-neutral, credential-free). Bu config, DPIA §5.3 cp.outbound.* parametrelerinin (dnc_lists/consent_registry) bu motorun TÜKETTİĞİ alt kümesini (suppression boyutu) tutar: her ülke için ZORUNLU gerçek zamanlı kaynaklar (required_sources) + ulusal registry adı. Profile ÇÖZÜMLEME (most-restrictive-wins, tenant override) motoru DPIA §5/SAD §19.3'tedir; bu config çözülmüş DEĞERLERİ taşır. İç suppression kaynakları (opt_out/tenant_dnc/campaign_suppression/global_suppression) ülkeden bağımsız HER ZAMAN değerlendirilir; required_sources yalnız DIŞ gerçek zamanlı kaynaklar (national_registry) için fail-closed zorunluluğunu belirler. consent boyutu (amaç/ülke/birey-şirket/kaynak/tarih/kapsam) → 10.2.1; arama saati → 10.1.4 (bu modülde değil). Değerler MÜHENDİSLİK varsayılanı, counsel doğrulamasına tabi (DPIA); pilot tenant + İYS/TPS entegrasyonu (F2) ile kalibre edilir. Sır/credential ve PII (ham telefon/MSISDN) YOK — yalnız enum/parametre/bayrak.",
+  "version": "1.0",
+  "wbs": "10.2.2",
+  "default_profile": "PROFILE-TR",
+  "channel": "voice",
+  "real_time": true,
+  "propagation_lag_seconds": 0,
+  "internal_sources": ["opt_out", "tenant_dnc", "campaign_suppression", "global_suppression"],
+  "profiles": {
+    "PROFILE-TR": {
+      "$comment": "DPIA §5.3 PROFILE-TR: KVKK + ETK; cp.outbound.consent_registry=IYS. İYS izin/iptal kaydı gerçek zamanlı zorunlu — registry doğrulanamazsa fail-closed BLOCK.",
+      "country": "TR",
+      "regime": "KVKK",
+      "registry": "IYS",
+      "required_sources": ["national_registry"]
+    },
+    "PROFILE-UK": {
+      "$comment": "DPIA §5.3 PROFILE-UK: UK_GDPR + PECR/Ofcom; TPS/CTPS (Telephone/Corporate Telephone Preference Service) gerçek zamanlı zorunlu — registry doğrulanamazsa fail-closed BLOCK.",
+      "country": "UK",
+      "regime": "UK_GDPR",
+      "registry": "TPS_CTPS",
+      "required_sources": ["national_registry"]
+    },
+    "PROFILE-EU": {
+      "$comment": "DPIA §5.3 PROFILE-EU: EU_GDPR; merkezi pan-AB DNC registry yok (üye-devlet bazlı). national_registry varsayılan ZORUNLU DEĞİL (overlay ile üye-devlet registry'si eklenebilir); iç suppression kaynakları yine zorunlu.",
+      "country": "EU",
+      "regime": "EU_GDPR",
+      "registry": "none",
+      "required_sources": []
+    },
+    "PROFILE-US-DNC": {
+      "$comment": "İLLÜSTRATİF ABD profili: National DNC Registry gerçek zamanlı zorunlu. Gerçek ABD/eyalet kuralları counsel + overlay gerektirir; burada zorunlu-registry semantiğini göstermek için.",
+      "country": "US",
+      "regime": "DNC_DEMO",
+      "registry": "US_NATIONAL_DNC",
+      "required_sources": ["national_registry"]
+    }
+  },
+  "consume_from": ["DPIA §5.3 cp.outbound.dnc_lists/consent_registry", "SAD §19.3 profile çözümleme", "DB §5.4 contact.do_not_call + consent.state=withdrawn"],
+  "report_to": ["10.2.1-consent", "10.1.x-dialer", "0.4.7"],
+  "observability": {
+    "metric_prefix": "dnc_",
+    "alarm_on_dnc_skip": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

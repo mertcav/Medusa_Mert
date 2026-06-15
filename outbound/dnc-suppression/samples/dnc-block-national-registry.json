@@ -1,0 +1,14 @@
+{
+  "name": "dnc-block-national-registry",
+  "$comment": "FR-TEL-014: İYS ulusal registry status=listed (kullanıcı izni iptal/kayıtlı) → gerçek zamanlı BLOCK national_registry. BLOCK doğru; geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-004", "tenant_id": "t-acme", "correlation_id": "corr-tr-004",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-004", "suppression_key": "sk-tr-004",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "suppression": {
+    "opt_out": null, "tenant_dnc": false,
+    "national_registry": {"status": "listed", "registry": "IYS"},
+    "campaign_suppression": false, "global_suppression": false
+  },
+  "expected": {"terminal": "BLOCK", "allow": false, "suppressed": true, "block_reason": "national_registry", "dnc_ok": false}
+}

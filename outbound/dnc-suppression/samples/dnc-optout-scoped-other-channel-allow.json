@@ -1,0 +1,15 @@
+{
+  "name": "dnc-optout-scoped-other-channel-allow",
+  "$comment": "Kapsamlı opt-out: müşteri yalnız SMS/marketing için opt-out etmiş; bu çağrı voice/support → opt-out kapsam dışı, BLOCK etmez, diğer listeler temiz → ALLOW. Kapsamlı opt-out semantiği. Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-009", "tenant_id": "t-acme", "correlation_id": "corr-tr-009",
+  "campaign_id": "camp-tr-003", "contact_key": "ck-tr-009", "suppression_key": "sk-tr-009",
+  "country": "TR", "call_channel": "voice", "campaign_category": "support", "call_time": "2026-06-15T11:00:00",
+  "suppression": {
+    "opt_out": {"effective_at": "2026-05-01T09:00:00", "scope": {"channels": ["sms"], "categories": ["marketing"]}, "tenant_id": "t-acme"},
+    "tenant_dnc": false,
+    "national_registry": {"status": "not_listed", "registry": "IYS"},
+    "campaign_suppression": false, "global_suppression": false
+  },
+  "expected": {"terminal": "ALLOW", "allow": true, "suppressed": false, "dnc_ok": true}
+}

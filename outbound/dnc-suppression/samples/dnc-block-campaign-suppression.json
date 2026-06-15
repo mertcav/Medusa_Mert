@@ -1,0 +1,14 @@
+{
+  "name": "dnc-block-campaign-suppression",
+  "$comment": "Kampanya bazlı hariç-tutma listesi (bu kampanyada aranmaması işaretli) → BLOCK campaign_suppression. Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-006", "tenant_id": "t-acme", "correlation_id": "corr-tr-006",
+  "campaign_id": "camp-tr-002", "contact_key": "ck-tr-006", "suppression_key": "sk-tr-006",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "suppression": {
+    "opt_out": null, "tenant_dnc": false,
+    "national_registry": {"status": "not_listed", "registry": "IYS"},
+    "campaign_suppression": {"campaign_id": "camp-tr-002", "tenant_id": "t-acme"}, "global_suppression": false
+  },
+  "expected": {"terminal": "BLOCK", "allow": false, "suppressed": true, "block_reason": "campaign_suppression", "dnc_ok": false}
+}

@@ -1,0 +1,161 @@
+{
+  "$comment": "WBS 10.2.2 — Do-not-call / suppression GERÇEK ZAMANLI kontrol (BRD §14.3 Outbound Uyumluluğu / FR-TEL-014 'Do-not-call ve opt-out listeleri gerçek zamanlı kontrol edilmelidir' [Must] + FR-OUT-006 'Müşterinin bir daha aramayın talebi anında uygulanmalıdır' [Must] / SR-TEL-014 [yöntem T — 'Do-not-call ve opt-out listeleri arama anında gerçek zamanlı kontrol edilir'; kabul: 'DNC'deki numaraya çağrı başlatılmaz; %100 bloklama'] + SR-OUT-006 [yöntem T — '\"Bir daha aramayın\" talebi anında uygulanır'; kabul: 'Opt-out sonrası numara DNC'ye eklenir; tekrar aranmaz'] / TC-TEL-014 + TC-OUT-006 / SAD §19.1 Consent Engine 'do-not-call / suppression listesi (gerçek zamanlı)'). 10. workstream'in (Outbound) Consent & uyumluluk motoru alt-bloğunun SUPPRESSION/DNC modülü. FR-TEL-014 + FR-OUT-006 + SR-TEL-014 + SR-OUT-006'nın SUPPRESSION KARARINI sahiplenir: bir outbound çağrı talebinin (contact + kampanya + ülke) HERHANGİ bir bastırma (suppression) listesine düşüp düşmediğine BEŞ KAYNAKTA gerçek zamanlı karar verir — OPT-OUT (müşteri 'bir daha aramayın' / consent.state=withdrawn / contact.do_not_call) ∨ ULUSAL REGISTRY (İYS-iptal / TPS / CTPS, gerçek zamanlı) ∨ TENANT DNC (tenant blokliste) ∨ KAMPANYA SUPPRESSION (kampanya hariç-tutma) ∨ GLOBAL SUPPRESSION (platform şikâyet/dolandırıcılık). Modül 10.2.1 Consent ön-kontrolünün KARDEŞİdir ve onunla AND'lenir: SR-OUT-003 'consent VE suppression' iki kapıdır — consent boyutu 10.2.1, suppression/DNC boyutu BU modül (eligible = consent_ok AND dnc_ok AND hours_ok). Modül bir DETERMİNİSTİK FAIL-CLOSED MOTORUdur: SuppressionCheckRequest{request_id, tenant_id, correlation_id, campaign_id, contact_key, suppression_key, call_channel, campaign_category, country, call_time, suppression{opt_out?, tenant_dnc?, national_registry{status}, campaign_suppression?, global_suppression?}, profile_id?} alır → ülke profilini çözer (required_sources + registry adı) → BEŞ KAYNAĞI gerçek zamanlı değerlendirir → HERHANGİ biri vurursa (any-hit) → bir terminal karar {ALLOW (hiçbir listede yok → DNC boyutu açısından çağrı başlatılabilir) | BLOCK (en az bir listede VAR / zorunlu kaynak doğrulanamadı → çağrı BAŞLATILMAZ, %100 bloklama)} + block_reason taksonomisi üretir. ÇEKİRDEK INVARIANT (SR-TEL-014): DNC kapısı FAIL-CLOSED / ATLANAMAZ — bastırılmış bir numara ASLA çevrilmez (%100 bloklama, K8 dnc_skip=0: gerçek zamanlı kontrol ATLANAMAZ — atlanması BRD §15/SAD §17.2 'suppression atlama' kritik alarmı); ÇEKİRDEK INVARIANT (FR-OUT-006): opt-out ANINDA uygulanır (K2 optout_not_applied=0: effective_at ≤ call_time olan opt-out propagasyon gecikmesi OLMADAN bloklar; eski/stale cache geçersiz). Zorunlu kaynak (national_registry required) doğrulanamazsa fail-closed BLOCK registry_unavailable (K7, fail-open YASAK); opt-out vurursa BLOCK (K2); ulusal registry listed → BLOCK (K3); tenant DNC → BLOCK (K4); kampanya suppression → BLOCK (K5); global suppression → BLOCK (K6); her karar deterministik+terminal (K1); her karar kanıt (K9) + audit (K10); metrik düşük-kardinalite + PII metrikte/log'da yok (K11); spec/config/sample ham PII/sır tutmaz + tenant izolasyonu (K12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): arama öncesi CONSENT kararı (amaç/ülke/birey-şirket/kaynak/tarih/kapsam) → 10.2.1 (FR-OUT-003; bu modül consent BOYUTUNU çözmez, AND'ler); izin verilen arama SAATİ → 10.1.4 (FR-OUT-004/FR-TEL-013); son arama / MAX DENEME → 10.1.3 (FR-OUT-005); Caller ID / numara yönetimi → FR-TEL-004/005; zorunlu açılış metni / AI disclosure → BRD §14.2; kampanya/teklif VERSİYONU → 10.1.6 (FR-OUT-009); kampanya OLUŞTURMA + liste → 10.1.1/10.1.2; compliance profile ÇÖZÜMLEME motoru (most-restrictive-wins, tenant override) → DPIA §5/SAD §19.3 (bu modül çözülmüş required_sources/registry DEĞERLERİNİ tüketir); opt-out KAYDI yazımı (consent.state=withdrawn append-only satır, contact.do_not_call=true) → consent:manage / outbound disposition (bu modül kaydı OKUR/doğrular, yazmaz — yazma çağrı-içi disposition 10.1.5 + DB §5.4'tedir); İYS/TPS registry SENKRONU → registry adapter (ADR-002; bu modül çözülmüş listed/not_listed/unavailable durumunu tüketir, registry'yi senkronlamaz); gerçek audit STORE → 7.1.6/12.1.8; gözlemlenebilirlik omurgası → 0.4.7 (metrik ÜRETİR); dialer ÇEVİRME → 10.1.x (bu modül ALLOW/BLOCK döndürür, çevirmez); panel UI 'consent/suppression' render → L2 A-10. Spec/config/sample'larda sır/credential ve gerçek PII (müşteri adı/TELEFON numarası/hesap no/ham transkript) YOK — yalnız yapısal KİMLİKLER (request/campaign/tenant/contact/correlation kimlikleri + OPAK suppression_key) + ENUM'lar (call_channel/country/registry/status/scope) + GÖRELİ TARİHLER (ISO call_time/effective_at — sentetik) + BAYRAKLAR. KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS/DB/API esastır.",
+  "version": "1.0",
+  "wbs": "10.2.2",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TEL-014", "FR-OUT-006", "FR-OUT-003", "FR-OUT-004", "FR-OUT-009", "FR-TEL-004", "FR-IAM-006", "FR-TEN-002", "FR-REC-004", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "srs": ["SR-TEL-014", "SR-OUT-006", "SR-OUT-003"],
+    "rtm": ["TC-TEL-014", "TC-OUT-006"],
+    "brd": [
+      "§14.3 (Outbound Uyumluluğu — do-not-call kaydı arama öncesi çalıştırılacak kurallardan biri)",
+      "§9.4 (FR-TEL-014 — do-not-call ve opt-out listeleri gerçek zamanlı kontrol)",
+      "§9.13 (Outbound Kampanya Yönetimi — FR-OUT-006 'bir daha aramayın' anında uygulanır)",
+      "§19 (14) (kabul kriteri — Outbound consent ve opt-out kontrolleri doğrulanmalıdır)",
+      "§15 (kritik alarm — suppression/DNC kontrolünün ATLANMASI)",
+      "§16 (Contact/Consent varlıkları — contact.do_not_call + consent.state=withdrawn bu motorun girdisidir)"
+    ],
+    "sad": [
+      "§19.1 (Consent Engine — 'do-not-call / suppression listesi (gerçek zamanlı) [FR-TEL-014]'; bu modül suppression boyutunu somutlaştırır)",
+      "§19 (Compliance by design — Country compliance profiles ile parametrelenir; required_sources + registry)",
+      "§6 (Fail soft / fail-closed — suppressed numara çevrilmez; zorunlu kaynak doğrulanamazsa fail-closed BLOCK)",
+      "§13.3 (correlation/tenant context propagation — karar correlation_id+tenant taşır)",
+      "§14.4 (panel — L2 A-10 'consent/suppression' yüzeyi)",
+      "§17.2 (suppression atlama → kritik alarm ≤2dk)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — Suppression/DNC kapısı kampanya kontrol/uyumluluk düzleminde bir karar fonksiyonu; STT/LLM/TTS'e doğrudan bağlanmaz)",
+      "ADR-002 (vendor-neutral — telephony/dialer/İYS/TPS-registry sağlayıcı bağımsız; aynı karar sözleşmesi arkasına gerçek registry adapter; çözülmüş listed/not_listed/unavailable tüketilir)",
+      "ADR-012 (RBAC — suppression POLİTİKA yönetimi consent:manage; per-call DNC kontrolü otomatik gate)"
+    ],
+    "db": [
+      "DB §5.4 contact.do_not_call BOOLEAN (FR-TEL-014, FR-OUT-006) + ix_contact_dnc partial index WHERE do_not_call=true",
+      "DB §5.4 consent APPEND-ONLY; opt-out = state='withdrawn' yeni satır (anında); ix_consent_lookup (tenant_id,e164,recorded_at DESC) son durum"
+    ],
+    "threat_model": [
+      "TM-T-* (tahrifat — DNC kontrol ATLANAMAZ; bypass=dnc_skip ihlali, K8 = BRD §15 kritik alarm; %100 bloklama)",
+      "TM-T-* (tenant izolasyonu — suppression yalnız aynı tenant'a ait okunur; cross-tenant suppression okuma reddedilir, FR-TEN-002, K12)",
+      "TM-I-* (bilgi ifşası — karar/metrik/log ham PII [ad/telefon] taşımaz; yalnız opak suppression_key+yapısal kimlik+enum+tarih, K11/K12)",
+      "TM-R-* (inkâr — her karar [ALLOW/BLOCK] beş-kaynak değerlendirmesi + block_reason ile audit'e yazılır, K10)"
+    ],
+    "consumes": [
+      "DPIA §5 / SAD §19.3 compliance profile çözümleme — çözülmüş required_sources + registry (cp.outbound.dnc_lists/cp.outbound.consent_registry) DEĞERLERİNİ tüketir (most-restrictive-wins çözümlemeyi yeniden yapmaz)",
+      "DB §5.4 contact.do_not_call + consent.state=withdrawn — opt-out/tenant_dnc durumunu OKUR + doğrular (yazmaz)",
+      "İYS/TPS/CTPS registry adapter (ADR-002) — ulusal listed/not_listed/unavailable durumunu TÜKETİR (senkronlamaz)",
+      "10.1.1 kampanya (FR-OUT-001) — campaign_id + campaign_category + kampanya suppression listesini TÜKETİR",
+      "Outbound dialer çekirdeği (10.1.x) — per-contact SuppressionCheckRequest'i (call_time + suppression_key) gönderir"
+    ],
+    "consumed_by": [
+      "10.2.1 Consent ön-kontrol (FR-OUT-003) — bu modülün dnc_ok sonucu consent_ok ile AND'lenir (eligible = consent_ok AND dnc_ok AND hours_ok); birlikte SR-OUT-003 'consent ve suppression'",
+      "Outbound dialer çekirdeği (10.1.x) — ALLOW ise (dnc boyutu) çevirir, BLOCK ise çağrı BAŞLATMAZ (%100 bloklama)",
+      "10.1.5 disposition / consent:manage — opt-out YAZIMINI (consent.state=withdrawn / contact.do_not_call=true) yapar; bu modül sonraki çağrıda OKUR (FR-OUT-006 anında uygulanır)",
+      "10.1.8 A/B test — eligibility{dnc_ok} SONUCUNU tüketir (yeniden hesaplamaz)",
+      "7.1.6 + 12.1.8 audit store (FR-IAM-006) — suppression kararını kalıcılaştırır",
+      "0.4.7 gözlemlenebilirlik — dnc_* metriklerini tüketir (dnc_skip alarmı dahil)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Suppression/DNC kontrolü, outbound kontrol/uyumluluk düzleminde bir KARAR fonksiyonudur: dialer bir contact'ı çevirmeden ÖNCE (SAD §19.1) bu motora SuppressionCheckRequest gönderir; motor ülke profilini (required_sources + registry) çözer, beş suppression kaynağını gerçek zamanlı değerlendirir (any-hit → BLOCK) ve ALLOW|BLOCK döndürür. Motor hot-path medya işlemez; deterministik kontrol/uyumluluk düzlemi (medya bütçesi dışı). Vendor-neutral (ADR-001/002): İYS/TPS registry sağlayıcı bağımsız; aynı karar sözleşmesi arkasına gerçek registry adapter.",
+    "plane": "outbound compliance control plane (Suppression/DNC gerçek zamanlı kapı — deterministik fail-closed beş-kaynak any-hit suppression kararı)",
+    "owns": "FR-TEL-014/SR-TEL-014 + FR-OUT-006/SR-OUT-006 suppression boyutu: SuppressionCheckRequest → ülke profil çözümü (required_sources + registry) + BEŞ KAYNAK gerçek zamanlı any-hit değerlendirme (opt-out/ulusal-registry/tenant-dnc/kampanya/global) + zorunlu-kaynak fail-closed + terminal karar {ALLOW|BLOCK} + block_reason taksonomisi + karar audit; opt-out ANINDA uygulanır (FR-OUT-006)",
+    "delegates": "arama öncesi CONSENT kararı → 10.2.1 (FR-OUT-003; AND'lenir, çözülmez); arama saati → 10.1.4 (FR-OUT-004); max deneme → 10.1.3 (FR-OUT-005); Caller ID → FR-TEL-004/005; açılış metni → BRD §14.2; versiyon → 10.1.6; profile ÇÖZÜMLEME → DPIA §5/SAD §19.3 (değerleri TÜKETİR); opt-out KAYDI yazımı → 10.1.5 disposition/consent:manage (OKUR, yazmaz); İYS/TPS senkron → registry adapter (TÜKETİR); audit store → 7.1.6/12.1.8; dialer ÇEVİRME → 10.1.x (karar döndürür, çevirmez); panel UI → L2 A-10",
+    "deterministic": true,
+    "fail_closed": true,
+    "trace": "API §A-10, DB.md §5.4 contact/consent, SAD §19.1, SAD §6, ADR-001, ADR-002, ADR-012"
+  },
+
+  "sources": {
+    "$comment": "SR-TEL-014 + SR-OUT-006 ÇEKİRDEK — BEŞ SUPPRESSION KAYNAĞI (BRD §14.3, SAD §19.1). Gerçek zamanlı değerlendirilir; HERHANGİ biri vurursa (any-hit) BLOCK (%100 bloklama). Sıra yalnız block_reason önceliğini belirler; karar (ALLOW/BLOCK) sıradan bağımsız. Her kaynak bir invariant'a (K2–K6) ve bir block_reason'a eşlenir; zorunlu-kaynak doğrulanamazsa K7 fail-closed.",
+    "list": [
+      {"id": "opt_out", "field": "suppression.opt_out{effective_at,scope}", "invariant": "K2", "block_reason": "opt_out",
+       "rule": "müşterinin 'bir daha aramayın' talebi (consent.state=withdrawn / contact.do_not_call); effective_at ≤ call_time ∧ scope çağrı kanalını/kategorisini kapsıyorsa BLOCK — ANINDA uygulanır (FR-OUT-006), propagasyon gecikmesi/stale cache geçersiz"},
+      {"id": "national_registry", "field": "suppression.national_registry{status,registry}", "invariant": "K3", "block_reason": "national_registry",
+       "rule": "ulusal DNC registry (İYS-iptal/TPS/CTPS) gerçek zamanlı; status=listed → BLOCK; status=unavailable ∧ profile.required → fail-closed BLOCK registry_unavailable (K7)"},
+      {"id": "tenant_dnc", "field": "suppression.tenant_dnc", "invariant": "K4", "block_reason": "tenant_dnc",
+       "rule": "tenant'ın kendi blokliste kaydı (contact.do_not_call manuel); vurursa BLOCK"},
+      {"id": "campaign_suppression", "field": "suppression.campaign_suppression", "invariant": "K5", "block_reason": "campaign_suppression",
+       "rule": "kampanya bazlı hariç-tutma listesi; vurursa BLOCK"},
+      {"id": "global_suppression", "field": "suppression.global_suppression", "invariant": "K6", "block_reason": "global_suppression",
+       "rule": "platform seviyesi suppression (şikâyet/dolandırıcılık); vurursa BLOCK"}
+    ],
+    "block_precedence": ["opt_out", "national_registry", "registry_unavailable", "tenant_dnc", "campaign_suppression", "global_suppression"],
+    "evaluation": "any_hit_fail_closed",
+    "trace": "BRD §14.3, SR-TEL-014, SR-OUT-006, SAD §19.1"
+  },
+
+  "decision": {
+    "$comment": "Any-hit fail-closed karar algoritması. Adımlar: (1) ülke profilini çöz (required_sources + registry; bilinmeyen ülke → required boş, iç kaynaklar yine değerlendirilir — DNC iç listeler ülkeden bağımsız). (2) beş kaynağı değerlendir: opt_out (effective_at≤call_time ∧ scope kapsar) / national_registry (listed; required∧unavailable→registry_unavailable) / tenant_dnc / campaign_suppression / global_suppression. (3) HERHANGİ biri vurursa BLOCK (block_precedence sırasıyla block_reason ata). (4) hiçbiri vurmazsa ∧ zorunlu kaynaklar doğrulandıysa → ALLOW. Belirsizlik/zorunlu-kaynak doğrulanamadı → BLOCK (fail-closed; ASLA fail-open). opt-out ANINDA (FR-OUT-006): effective_at≤call_time ise propagasyon gecikmesi olmadan bloklar.",
+    "algorithm": "resolve_profile(required_sources,registry) → eval5(opt_out,national,tenant_dnc,campaign,global) → any_hit ⇒ BLOCK(reason) | required_unavailable ⇒ BLOCK(registry_unavailable) | else ⇒ ALLOW",
+    "default": "BLOCK",
+    "trace": "SR-TEL-014, SR-OUT-006, SAD §19.1, SAD §6"
+  },
+
+  "block_reasons": {
+    "$comment": "BLOCK karar taksonomisi (her kaynak + zorunlu-kaynak yokluğu + tenant izolasyonu). Düşük-kardinalite (metrik label uygun). 'dnc_skip' yalnız BYPASS injection'ında (K8 ihlali) görünür — normal akışta üretilmez.",
+    "list": ["opt_out", "national_registry", "registry_unavailable", "tenant_dnc", "campaign_suppression", "global_suppression", "cross_tenant"]
+  },
+
+  "outcomes": {
+    "$comment": "Terminal karar sonuçları. ALLOW = hiçbir suppression listesinde yok ∧ zorunlu kaynaklar doğrulandı → DNC boyutu açısından çağrı başlatılabilir (consent/saat AYRI kapılar). BLOCK = en az bir listede VAR / zorunlu kaynak doğrulanamadı → çağrı BAŞLATILMAZ (%100 bloklama). İkisi de geçerli terminal — BLOCK ihlal DEĞİL, fail-closed doğru reddetmedir. Her karar audit üretir.",
+    "list": ["ALLOW", "BLOCK"],
+    "terminal": ["ALLOW", "BLOCK"]
+  },
+
+  "authorization": {
+    "$comment": "Per-call DNC/suppression kontrolü bir OTOMATİK gate'tir (dialer tetikler); RBAC kullanıcı-komutu değildir. Suppression POLİTİKASI (required_sources, registry, kampanya suppression listesi) yönetimi consent:manage yetkisi ister (security_compliance_officer/tenant_admin/tenant_owner); opt-out KAYDI yazımı disposition/consent:manage (10.1.5). Per-call check yetki sormaz, fail-closed çalışır. Karar her zaman backend'de.",
+    "policy_permission": "consent:manage",
+    "policy_roles": ["security_compliance_officer", "tenant_admin", "tenant_owner"],
+    "per_call_check": "automatic_gate (RBAC değil; fail-closed)",
+    "decision_at": "backend",
+    "trace": "FR-IAM-011, ADR-012, SAD §27 RBAC, DPIA §5"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli; bir senaryoda ihlal varsa kapı eler. dnc_skip (K8) = BRD §15 kritik 'suppression atlama' alarmı; optout_not_applied (K2) = FR-OUT-006 ihlali (opt-out anında uygulanmadı). Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F2 canlı dialer + İYS/TPS registry entegrasyonu + pilot tenant verisinde doğrulanır (BRD §22 açık karar).",
+    "max_dnc_skip": 0,
+    "max_optout_not_applied": 0,
+    "max_national_leak": 0,
+    "max_tenant_dnc_leak": 0,
+    "max_campaign_leak": 0,
+    "max_global_leak": 0,
+    "max_failopen": 0,
+    "max_cross_tenant": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "Suppression/DNC motoru her karar için BRD §15 + dnc metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. dnc_check_total{tenant,result} → karar sayımı; dnc_block_total{tenant,block_reason} → reddetme nedeni (düşük-kardinalite taksonomi); dnc_skip_total → DNC kontrolü ATLANMASI (K8 ihlal alarmı, 0 olmalı = BRD §15 kritik alarm 'suppression atlama'); optout_applied_total{tenant} → opt-out bloklaması (FR-OUT-006 anında uygulandı sayımı). tenant_id+result+block_reason+registry DÜŞÜK kardinalite (label uygun); request_id/contact_key/suppression_key/campaign_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Müşteri PII (ad/telefon/ham numara) metrikte VE log'da YOK (FR-REC-004, BRD §17.7) — yalnız opak suppression_key. dnc_skip>0 (K8 ihlali) → kritik alarm ≤2dk (SAD §17.2, NFR 10.1, BRD §15).",
+    "metrics": ["dnc_check_total", "dnc_block_total", "dnc_skip_total", "optout_applied_total"],
+    "low_cardinality_labels": ["tenant_id", "result", "block_reason", "registry"],
+    "high_cardinality_trace_only": ["request_id", "contact_key", "suppression_key", "campaign_id", "correlation_id"],
+    "alarm": "dnc_skip>0 (DNC/suppression kontrolü atlandı — K8 ihlali, BRD §15 kritik 'suppression atlama') VEYA dnc_block oranı ani artışı → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "K1", "desc": "Determinizm/tamlık: her SuppressionCheckRequest tanımlı any-hit algoritması boyunca ilerler ve bir terminal karara {ALLOW|BLOCK} ulaşır; aynı girdi → aynı çıktı (deterministik profil çözümü + ISO tarih karşılaştırması, sanal-saat call_time girdisi; Date.now/random YOK); stuck/tanımsız durum yok. stuck_state=0.", "trace": "SR-TEL-014, SAD §19.1"},
+    {"id": "K2", "desc": "Opt-out ANINDA (FR-OUT-006 ÇEKİRDEK): müşterinin 'bir daha aramayın' talebi (opt_out.effective_at ≤ call_time ∧ scope kapsar) propagasyon gecikmesi OLMADAN bloklar (BLOCK opt_out); opt-out görmezden gelinir/stale cache ile kaçırılırsa optout_not_applied ihlali. Opt-out'lu numaraya ALLOW = ihlal. optout_not_applied=0.", "trace": "FR-OUT-006, SR-OUT-006, BRD §14.3, DB §5.4 consent.state=withdrawn"},
+    {"id": "K3", "desc": "Ulusal registry gerçek zamanlı (FR-TEL-014): ulusal DNC registry (İYS-iptal/TPS/CTPS) status=listed ise BLOCK national_registry; arama anında kontrol edilir (stale değil). Listed numaraya ALLOW = ihlal. national_leak=0.", "trace": "FR-TEL-014, SR-TEL-014, SAD §19.1"},
+    {"id": "K4", "desc": "Tenant DNC (FR-TEL-014): tenant'ın kendi blokliste kaydı (contact.do_not_call) vurursa BLOCK tenant_dnc. Tenant-DNC numaraya ALLOW = ihlal. tenant_dnc_leak=0.", "trace": "FR-TEL-014, DB §5.4 contact.do_not_call"},
+    {"id": "K5", "desc": "Kampanya suppression: kampanya bazlı hariç-tutma listesi vurursa BLOCK campaign_suppression. Kampanya-suppress numaraya ALLOW = ihlal. campaign_leak=0.", "trace": "FR-TEL-014, BRD §14.3"},
+    {"id": "K6", "desc": "Global suppression: platform seviyesi suppression (şikâyet/dolandırıcılık) vurursa BLOCK global_suppression. Global-suppress numaraya ALLOW = ihlal. global_leak=0.", "trace": "FR-TEL-014, BRD §14.3"},
+    {"id": "K7", "desc": "Fail-closed zorunlu kaynak (SAD §6): profile.required_sources içindeki bir kaynak (ör. national_registry) status=unavailable ise fail-closed BLOCK registry_unavailable — ASLA fail-open ALLOW. Zorunlu-kaynak doğrulanamadan ALLOW = failopen ihlali. failopen=0.", "trace": "SAD §6, SR-TEL-014, SAD §19.1"},
+    {"id": "K8", "desc": "Fail-closed / ATLANAMAZ + %100 bloklama (SR-TEL-014 ÇEKİRDEK): bastırılmış (herhangi kaynak vuran) bir numara ASLA çevrilmez (BLOCK); DNC kontrolü bypass edilemez — bypass ile suppressed contact 'aranabilir' yapılırsa dnc_skip ihlali (BRD §15 kritik 'suppression atlama' alarmı). dnc_skip=0.", "trace": "SR-TEL-014, BRD §14.3, BRD §15, SAD §17.2"},
+    {"id": "K9", "desc": "Kanıt: her karar request_id + country + resolved_profile + required_sources + beş-kaynak sonuçları + block_reason + suppressed taşır; kanıtsız karar yok. missing_evidence=0.", "trace": "FR-IAM-006"},
+    {"id": "K10", "desc": "Audit: her karar (ALLOW/BLOCK) → audit {result, request_id, campaign_id, contact_key, suppression_key, country, registry, block_reason, correlation_id, tenant_id} (FR-IAM-006); ham PII YOK (suppression_key opak). missing_audit=0.", "trace": "FR-IAM-006, 0.4.7 label_policy"},
+    {"id": "K11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (result/block_reason/registry); request_id/contact_key/suppression_key/campaign_id/correlation_id metrikte yok, yalnız trace; müşteri PII (ad/telefon/ham numara) metrikte VE log'da yok (0.4.7 label_policy, FR-REC-004, BRD §17.7).", "trace": "FR-REC-004, 0.4.7 label_policy"},
+    {"id": "K12", "desc": "Sır/PII yok + tenant izolasyonu: spec/config/sample müşteri adı/TELEFON numarası/hesap no/ham transkript/OTP/credential tutmaz (yalnız opak suppression_key + yapısal kimlikler + enum + göreli ISO tarih + bayrak); suppression yalnız aynı tenant'a ait okunur (ulusal/global registry platform-kapsamlı meşru), cross-tenant tenant-özel suppression okuma → cross_tenant ihlali (FR-TEN-002). secret_or_pii=0 ∧ cross_tenant=0.", "trace": "BRD §14, BRD §16, FR-TEN-002, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar müşteri ADI, TELEFON numarası, HESAP numarası, ham TRANSKRİPT, OTP, PAROLA, PII DEĞERİ veya credential TUTMAZ — yalnız yapısal KİMLİKLER (request/campaign/tenant/contact/correlation kimlikleri ör. req-001 / camp-001 / t-acme / ck-001 / corr-001) + OPAK suppression_key (ör. sk-001; ham telefon DEĞİL — hash/last4 türevi opak anahtar) + ENUM'lar (call_channel ör. voice; country ör. TR/UK/EU; registry ör. IYS/TPS_CTPS; status ör. listed/not_listed/unavailable; scope ör. all) + GÖRELİ ISO TARİHLER (call_time/effective_at — sentetik; gerçek kişiye bağlı değil) + BAYRAKLAR. Kimlik/opak-anahtar/enum/tarih/bayrak PII DEĞİLDİR; tasarımca PII-olmayandır. Telefon numarası HİÇBİR alanda tutulmaz (contact yalnız opak ck-<id>; suppression_key yalnız opak sk-<id>).",
+    "forbids": ["customer_name", "customer_phone_value", "account_number_value", "transcript_text", "otp_code_value", "password_value", "credential", "secret", "pii_value", "raw_msisdn"]
+  }
+}

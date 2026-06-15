@@ -1,0 +1,14 @@
+{
+  "name": "dnc-uk-tps-listed-block",
+  "$comment": "UK: TPS/CTPS listed → gerçek zamanlı BLOCK national_registry. Geçer.",
+  "expect": "pass",
+  "request_id": "req-uk-002", "tenant_id": "t-britco", "correlation_id": "corr-uk-002",
+  "campaign_id": "camp-uk-001", "contact_key": "ck-uk-002", "suppression_key": "sk-uk-002",
+  "country": "UK", "call_channel": "voice", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "suppression": {
+    "opt_out": null, "tenant_dnc": false,
+    "national_registry": {"status": "listed", "registry": "TPS_CTPS"},
+    "campaign_suppression": false, "global_suppression": false
+  },
+  "expected": {"terminal": "BLOCK", "allow": false, "suppressed": true, "block_reason": "national_registry", "dnc_ok": false}
+}

@@ -1,0 +1,14 @@
+{
+  "name": "dnc-block-global-suppression",
+  "$comment": "Platform seviyesi suppression (şikâyet/dolandırıcılık işaretli) → BLOCK global_suppression. Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-007", "tenant_id": "t-acme", "correlation_id": "corr-tr-007",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-007", "suppression_key": "sk-tr-007",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "suppression": {
+    "opt_out": null, "tenant_dnc": false,
+    "national_registry": {"status": "not_listed", "registry": "IYS"},
+    "campaign_suppression": false, "global_suppression": {"reason": "complaint"}
+  },
+  "expected": {"terminal": "BLOCK", "allow": false, "suppressed": true, "block_reason": "global_suppression", "dnc_ok": false}
+}

@@ -1,0 +1,14 @@
+{
+  "name": "dnc-skip-bypass-degraded",
+  "$comment": "DEGRADE (bilinçli): contact tenant DNC'de (BLOCK olmalı) ama skip_dnc ile gerçek zamanlı kontrol ATLANIYOR → suppressed contact 'aranabilir' (ALLOW) yapılıyor. K8 dnc_skip ihlali = BRD §15 kritik 'suppression atlama' alarmı; %100 bloklama bozuldu. Kapı ELER.",
+  "expect": "fail",
+  "request_id": "req-deg-001", "tenant_id": "t-acme", "correlation_id": "corr-deg-001",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-deg-001", "suppression_key": "sk-deg-001",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "suppression": {
+    "opt_out": null, "tenant_dnc": {"added_at": "2026-01-01T00:00:00", "tenant_id": "t-acme"},
+    "national_registry": {"status": "not_listed", "registry": "IYS"},
+    "campaign_suppression": false, "global_suppression": false
+  },
+  "inject": ["skip_dnc"]
+}

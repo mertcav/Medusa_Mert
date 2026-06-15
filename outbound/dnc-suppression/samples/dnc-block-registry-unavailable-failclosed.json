@@ -1,0 +1,14 @@
+{
+  "name": "dnc-block-registry-unavailable-failclosed",
+  "$comment": "K7 fail-closed: TR national_registry ZORUNLU ama status=unavailable (registry doğrulanamadı) → fail-closed BLOCK registry_unavailable (ASLA fail-open). Doğru reddetme; geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-008", "tenant_id": "t-acme", "correlation_id": "corr-tr-008",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-008", "suppression_key": "sk-tr-008",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "suppression": {
+    "opt_out": null, "tenant_dnc": false,
+    "national_registry": {"status": "unavailable", "registry": "IYS"},
+    "campaign_suppression": false, "global_suppression": false
+  },
+  "expected": {"terminal": "BLOCK", "allow": false, "suppressed": true, "block_reason": "registry_unavailable", "dnc_ok": false}
+}

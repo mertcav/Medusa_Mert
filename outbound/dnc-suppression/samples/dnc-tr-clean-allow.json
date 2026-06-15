@@ -1,0 +1,14 @@
+{
+  "name": "dnc-tr-clean-allow",
+  "$comment": "TR: contact hiçbir suppression listesinde değil, İYS not_listed, tenant/kampanya/global temiz → ALLOW (DNC boyutu açısından çağrı başlatılabilir). Geçer.",
+  "expect": "pass",
+  "request_id": "req-tr-001", "tenant_id": "t-acme", "correlation_id": "corr-tr-001",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-001", "suppression_key": "sk-tr-001",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "suppression": {
+    "opt_out": null, "tenant_dnc": false,
+    "national_registry": {"status": "not_listed", "registry": "IYS"},
+    "campaign_suppression": false, "global_suppression": false
+  },
+  "expected": {"terminal": "ALLOW", "allow": true, "suppressed": false, "dnc_ok": true}
+}

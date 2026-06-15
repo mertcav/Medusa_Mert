@@ -1,0 +1,14 @@
+{
+  "name": "dnc-ignore-tenant-degraded",
+  "$comment": "DEGRADE (bilinçli): tenant DNC'de (contact.do_not_call=true) ama ignore_tenant_dnc ile görmezden geliniyor → tenant bloklisteki numara aranabilir. K4 tenant_dnc_leak = FR-TEL-014 ihlali. Kapı ELER.",
+  "expect": "fail",
+  "request_id": "req-deg-005", "tenant_id": "t-acme", "correlation_id": "corr-deg-005",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-deg-005", "suppression_key": "sk-deg-005",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "suppression": {
+    "opt_out": null, "tenant_dnc": {"added_at": "2026-01-01T00:00:00", "tenant_id": "t-acme"},
+    "national_registry": {"status": "not_listed", "registry": "IYS"},
+    "campaign_suppression": false, "global_suppression": false
+  },
+  "inject": ["ignore_tenant_dnc"]
+}

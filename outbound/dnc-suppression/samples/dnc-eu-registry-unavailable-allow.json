@@ -1,0 +1,14 @@
+{
+  "name": "dnc-eu-registry-unavailable-allow",
+  "$comment": "EU: national_registry ZORUNLU DEĞİL (merkezi AB DNC yok); registry unavailable olsa bile iç kaynaklar temiz → ALLOW (K7 yalnız ZORUNLU kaynak için fail-closed). Geçer.",
+  "expect": "pass",
+  "request_id": "req-eu-001", "tenant_id": "t-eurco", "correlation_id": "corr-eu-001",
+  "campaign_id": "camp-eu-001", "contact_key": "ck-eu-001", "suppression_key": "sk-eu-001",
+  "country": "EU", "call_channel": "voice", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "suppression": {
+    "opt_out": null, "tenant_dnc": false,
+    "national_registry": {"status": "unavailable", "registry": "none"},
+    "campaign_suppression": false, "global_suppression": false
+  },
+  "expected": {"terminal": "ALLOW", "allow": true, "suppressed": false, "dnc_ok": true}
+}

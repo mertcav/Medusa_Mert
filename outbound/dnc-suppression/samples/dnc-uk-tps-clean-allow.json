@@ -1,0 +1,14 @@
+{
+  "name": "dnc-uk-tps-clean-allow",
+  "$comment": "UK: TPS/CTPS not_listed, hiçbir iç listede yok → ALLOW. Geçer.",
+  "expect": "pass",
+  "request_id": "req-uk-001", "tenant_id": "t-britco", "correlation_id": "corr-uk-001",
+  "campaign_id": "camp-uk-001", "contact_key": "ck-uk-001", "suppression_key": "sk-uk-001",
+  "country": "UK", "call_channel": "voice", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "suppression": {
+    "opt_out": null, "tenant_dnc": false,
+    "national_registry": {"status": "not_listed", "registry": "TPS_CTPS"},
+    "campaign_suppression": false, "global_suppression": false
+  },
+  "expected": {"terminal": "ALLOW", "allow": true, "suppressed": false, "dnc_ok": true}
+}

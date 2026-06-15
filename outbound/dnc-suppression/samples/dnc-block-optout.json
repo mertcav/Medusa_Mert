@@ -1,0 +1,15 @@
+{
+  "name": "dnc-block-optout",
+  "$comment": "FR-OUT-006 çekirdek: müşteri 'bir daha aramayın' demiş (opt_out.effective_at geçmiş, scope all). Anında uygulanır → BLOCK opt_out (%100 bloklama). BLOCK doğru reddetmedir; senaryo GEÇER.",
+  "expect": "pass",
+  "request_id": "req-tr-002", "tenant_id": "t-acme", "correlation_id": "corr-tr-002",
+  "campaign_id": "camp-tr-001", "contact_key": "ck-tr-002", "suppression_key": "sk-tr-002",
+  "country": "TR", "call_channel": "voice", "campaign_category": "sales", "call_time": "2026-06-15T11:00:00",
+  "suppression": {
+    "opt_out": {"effective_at": "2026-06-10T09:00:00", "scope": "all", "tenant_id": "t-acme"},
+    "tenant_dnc": false,
+    "national_registry": {"status": "not_listed", "registry": "IYS"},
+    "campaign_suppression": false, "global_suppression": false
+  },
+  "expected": {"terminal": "BLOCK", "allow": false, "suppressed": true, "block_reason": "opt_out", "dnc_ok": false}
+}
