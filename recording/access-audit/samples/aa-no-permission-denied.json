@@ -1,0 +1,28 @@
+{
+  "name": "aa-no-permission-denied",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "in_region_storage_required": true,
+  "storage_region": "TR",
+  "home_region": "TR",
+  "audit_sink_available": true,
+  "request_id": "req-008",
+  "call_id": "call-008",
+  "actor_user_id": "u-8",
+  "actor_realm": "tenant",
+  "actor_role": "billing_viewer",
+  "resource_type": "transcript",
+  "access_action": "view",
+  "access_mode": "masked",
+  "actor_permissions": [],
+  "ownership": "other",
+  "$comment": "Yetki yok → DENIED missing_permission; YİNE DE audit'lenir (FR-REC-009 başarısız erişimleri de denetler) → kapı GEÇER (meşru ret)",
+  "expect": "pass",
+  "expected": {
+    "terminal": "DENIED",
+    "deny_reason": "missing_permission",
+    "authorized": false,
+    "access_granted": false,
+    "audit_written": true
+  }
+}

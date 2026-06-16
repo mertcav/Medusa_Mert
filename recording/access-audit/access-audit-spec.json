@@ -1,0 +1,205 @@
+{
+  "$comment": "WBS 11.6 — Kayıt/transkript erişim audit'i (FR-REC-009 'Kayıt ve transkript erişimleri audit edilmelidir'). 11. workstream'in (Kayıt, Transkript & PII Redaction) ERİŞİM AUDIT modülü ve F1-Must temel yeteneği. Bir kayıt (recording) VEYA transkript (transcript) erişim talebini (AccessAuditRequest) alır → DETERMİNİSTİK, FAIL-CLOSED bir erişim-audit KARARI verir: tenant izolasyonu + audit-sink kapısı + yetki (RBAC permission + sahiplik + L0 Tier B break-glass) + ZORUNLU WORM audit (prev_hash→row_hash hash-chained, sha256) + residency; bir terminal {GRANTED | DENIED | BLOCK} kararı döner. Modül FR-REC-009 (erişim audit ÇEKİRDEK) + SR-REC-009 + TC-REC-009 (A) + FR-REC-008 (yetkili kullanıcı dinler/görür) + FR-IAM-006 (WORM audit + bütünlük) + FR-IAM-008/009/010 (L0 ALTIN KURAL: platform tenant iş içeriğini varsayılan göremez + ÜÇ KATMANLI break-glass: Tier A metrik/log break-glass'sız, Tier B transkript/kayıt/PII maker-checker + time-boxed + gerekçe kodu + bildirim) + DB §27 audit_log (WORM append-only + hash chain)'i sahiplenir. Modül 11.1–11.4 İÇERİK ÜRETİM ZİNCİRİNİN aşağı akış ERİŞİM KAPISIDIR: 11.4 redaction TAMAMLANIP transkript görüntülemeye-hazır (access_ready) olduktan sonra, bu modül BİR erişim talebinin yetkili olup olmadığını ve HER erişimin audit'lendiğini güvence altına alır. ÇEKİRDEK: (1) K2 ZORUNLU ERİŞİM AUDIT'i (FR-REC-009 ÇEKİRDEK) — HER erişim kararı (GRANTED ya da DENIED) bir WORM audit kaydı üretir; audit YAZILMADAN erişim VERİLEMEZ (access_granted ⇒ audit_written); audit-sink yoksa fail-closed BLOCK (auditlenemeyen erişim verilmez); audit'siz erişim (unaudited_access) yasak; (2) K3 WORM/HASH-CHAIN BÜTÜNLÜĞÜ (FR-IAM-006, DB §27) — audit kaydı append-only + prev_hash→row_hash zincirli (sha256); tahrifat (audit_tampered: kayıt değişir, hash güncellenmez) / zincir kırılması (chain_break: prev_hash kopar) yasak; (3) K4 YETKİ KAPISI (FR-REC-008 ÇEKİRDEK) — erişim YALNIZ aktör gerekli permission'a (recording→calls:read, transcript→transcript:read, RAW transkript→transcript:manage yükseltilmiş) (+ sahiplik :own) (+ L0 platform Tier B için GEÇERLİ break-glass) sahipse GRANTED; yetkisiz GRANTED (unauthorized_access) yasak; yetkisiz talep DENIED (audit'lenir); (4) K5 ATLANAMAZ / FAIL-CLOSED — audit bypass edilemez (skip_audit yasak — BRD §15 alarmı); audit-sink yoksa erişim VERİLEMEZ (failopen yasak); L0 ALTIN KURALI: platform tenant içeriğine break-glass'sız erişemez (DENIED); (5) K6 BREAK-GLASS DİSİPLİNİ (FR-IAM-009/010) — L0 platform Tier B (recording/transcript) erişimi maker≠checker (talep eden ≠ onaylayan) + time-boxed (varsayılan 60dk, max 240dk, standing access YOK) + zorunlu gerekçe kodu + tenant-kapsamlı grant ister; self-approval/expired/standing-access = break_glass_violation; (6) K8 HAM İÇERİK/PII YOK (BRD §17.7) — audit/kanıt/metrik YALNIZ yapısal kimlik (request/call/tenant/actor/grant) + enum (resource_type/access_action/access_mode/result/realm) + break_glass_id + hash taşır, ASLA ham kayıt byte / transkript metni / PII değeri (pii_leak). Motor bir DETERMİNİSTİK FAIL-CLOSED karar fonksiyonudur: AccessAuditRequest{request_id, tenant_id, correlation_id, call_id, actor_user_id, actor_realm[tenant/platform], actor_role, resource_type[recording/transcript], access_action[listen/view/download/export], access_mode[masked/raw], actor_permissions[], ownership[own/other], break_glass[grant_id/maker/checker/reason_code/tier/expires_state/scope_tenant/time_boxed], in_region_storage_required, storage_region, home_region, served_region, audit_sink_available, prev_chain_hash} alır → tenant izolasyonu doğrula (tenant realm cross-tenant→BLOCK cross_tenant, K12) → malformed (resource/action/realm/kimlik eksik → BLOCK malformed_request) → audit-sink kapısı (yoksa BLOCK no_audit_sink, K2/K5 — auditlenemeyen erişim yok) → L0 platform Tier B break-glass doğrula (maker≠checker + gerekçe + tier=B + geçerli süre + tenant-kapsam; aksi DENIED break_glass_required/break_glass_invalid + break_glass_violation, K6) → yetki kapısı (permission + sahiplik :own; raw→yükseltilmiş; aksi DENIED missing_permission/insufficient_scope, K4) → ZORUNLU WORM audit kaydı (prev_hash→row_hash hash chain, K2/K3/K10) → residency (GRANTED ∧ in_region ⇒ served_region==home_region, K7) → terminal: GRANTED (yetkili + audited, içeriğe erişim) | DENIED (yetkisiz + audited, içerik yok) | BLOCK (cross-tenant/malformed/audit-sink yok ⇒ fail-closed, içerik yok). ÇEKİRDEK INVARIANT (K2): access_granted ⇒ audit_written (auditsiz erişim yok); (K5): audit_sink_available=false ⇒ terminal=BLOCK ∧ access_granted=false (auditlenemeyen erişim verilmez); (K4): terminal=GRANTED ⇒ authorized=true. Audit ATLANAMAZ (K5 skip_audit=0). Residency: sunulan içerik in_region iken home_region'da (K7, NFR 10.7). Her karar deterministik+terminal (K1) + kanıt (K9) + audit (K10); metrik düşük-kardinalite + HAM içerik/PII yok (K11); spec/config/sample ham KAYIT byte / TRANSKRİPT metni / PII DEĞERİ / credential tutmaz — yalnız yapısal kimlik + enum + hash + tenant izolasyonu (K12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): kayıt/içerik KARARI + tamamen kapatma → 11.1 (FR-REC-001/002); kanal/track → 11.2 (FR-REC-003); transkript ÜRETİMİ → 11.3 (FR-REC-008/BRD §8.1); PII redaction (maskeleme PLANI + redaction_state + access_ready) → 11.4 (FR-REC-004; TÜKETİLİR); kart/parola/OTP kayıttan çıkarma → 11.5 (FR-REC-005); break-glass talep/onay AKIŞI (maker-checker workflow + grant ÜRETİMİ + tenant bildirimi) → FR-IAM-009 / API §6 break-glass router (bu modül grant'ı DOĞRULAR/TÜKETİR, üretmez); audit_log FİZİKSEL şeması + WORM depolama + retention → DB §27 / 1.1.x / retention motoru (bu modül audit KAYDINI + hash zincirini ÜRETİR, fiziksel WORM yazımı altyapıda); RBAC permission ATAMASI + rol bundle → FR-IAM-011 / ADR-012 (permission'lar TÜKETİLİR); ham içerik byte SUNUMU (recording stream / transcript view) → SAD §10.2 + panel L2 A-11/A-12/A-13 (KARAR verilir, içerik bu modülde AKMAZ); residency depolama UYGULAMASI → DB §8 / SAD §12.1 (karar verilir). Spec/config/sample'larda sır/credential ve ham içerik (KAYIT byte/ses, TRANSKRİPT metni, PII DEĞERİ telefon/kart/OTP/ad/adres/hesap no) YOK — yalnız yapısal KİMLİKLER (request/call/tenant/actor/correlation/grant kimlikleri) + ENUM'lar (actor_realm/resource_type/access_action/access_mode/result/deny_reason/block_reason) + SAYI + HASH (sha256 onaltılık). KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS/DB/API esastır.",
+  "version": "1.0",
+  "wbs": "11.6",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-REC-009", "FR-REC-008", "FR-IAM-006", "FR-IAM-008", "FR-IAM-009", "FR-IAM-010", "FR-TEN-002", "FR-IAM-011", "FR-TST-008"],
+    "nfr": ["NFR 10.7"],
+    "srs": ["SR-REC-009", "SR-REC-008"],
+    "rtm": ["TC-REC-009"],
+    "brd": [
+      "§9.14 (Çağrı Kayıtları ve Transkript — FR-REC-008 yetkili erişim + FR-REC-009 erişim audit)",
+      "§14.1 (Veri koruma & gizlilik — erişim audit + PII en aza indirme)",
+      "§15 (kritik alarm — erişim audit atlandı [skip_audit/unaudited_access] / yetkisiz erişim [unauthorized_access] / audit tahrifatı [audit_tampered/chain_break] / break-glass ihlali = güvenlik olayı)",
+      "§16 (veri varlıkları — Audit Log, varlık 27: WORM + hash chain bütünlük)",
+      "§17 (panel — L0 altın kural: platform tenant içeriğini varsayılan göremez; L2 A-11/A-12/A-13 dinleme/görüntüleme erişimi; her erişim audit'lenir)",
+      "§17.7 (PII metrik/log'da yok — audit kaydı ham içerik/PII değeri taşımaz)"
+    ],
+    "sad": [
+      "§14.4.2 (L0 iş verisine erişemez + üç katmanlı break-glass Tier A/B + regüle tenant toggle)",
+      "§14.4.3 (RBAC permission-key: transcript:read / calls:read / transcript:manage; backend yetki kararı)",
+      "§12.1/§12.3 (residency + KMS; sunulan içerik home-region'da, NFR 10.7)",
+      "§13.3 (correlation/tenant context propagation)",
+      "§17.2 (erişim audit atlandı / yetkisiz erişim / audit tahrifatı → kritik alarm ≤2dk)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — erişim audit bir karar fonksiyonu; içerik byte'ına bağlanmaz)",
+      "ADR-002 (vendor-neutral — audit sink/RBAC sağlayıcı bağımsız; aynı karar sözleşmesi)",
+      "ADR-011 (iki düzlemli panel dağıtımı — L0 ayrı internal-only; tenant iş verisine break-glass dışında bağlı değil)",
+      "ADR-012 (RBAC immutable bundle + scoped assignment — permission'lar tüketilir; yetki backend'de)",
+      "ADR-013 (üç katmanlı break-glass + regüle tenant onay toggle'ı — bu modül grant'ı doğrular)"
+    ],
+    "db": [
+      "DB §27 audit_log — WORM append-only + prev_hash/row_hash hash chain bütünlük (FR-IAM-006, FR-REC-009): bu modül audit KAYDINI + hash zincirini ÜRETİR; fiziksel WORM partition yazımı altyapıda",
+      "DB §27 audit_log alanları — action ('transcript:read','recording:listen',...), actor_user_id, actor_realm, resource_type, resource_id, break_glass_id, detail; bu modül bu alanları doldurur (ham içerik/PII YOK)",
+      "DB §8/§9 — erişim audit retention (WORM saklama) + residency + KMS (NFR 10.7)"
+    ],
+    "threat_model": [
+      "TM-R-* (inkâr — her erişim [GRANTED/DENIED] WORM audit'e prev_hash→row_hash hash-chained yazılır; auditsiz erişim yok K2; bütünlük K3)",
+      "TM-T-* (tahrifat — audit kaydı değiştirilemez [audit_tampered] / zincir koparılamaz [chain_break]; WORM hash chain K3)",
+      "TM-E-* (yetki yükseltme — L0 altın kural: platform tenant içeriğine break-glass'sız erişemez; break-glass maker-checker + süreli + kapsamlı K4/K6, FR-IAM-008/009)",
+      "TM-I-* (bilgi ifşası — audit kaydı ham içerik/PII değeri taşımaz K8/K11; tenant izolasyonu K12 FR-TEN-002)"
+    ],
+    "consumes": [
+      "11.1/11.2/11.3/11.4 içerik üretim zinciri — kayıt (FR-REC-003) + transkript (FR-REC-008) + redaction tamamlanıp access_ready (FR-REC-004) ÜRETİLDİKTEN sonra, bu modül erişim TALEBİNİN yetkisini + audit'ini güvence altına alır (içerik ÜRETMEZ)",
+      "FR-IAM-011 / ADR-012 RBAC — aktör permission atamalarını (transcript:read/calls:read/transcript:manage/:own) TÜKETİR; rol bundle ÜRETMEZ",
+      "FR-IAM-009 / API §6 break-glass router — L0 Tier B grant'ı (maker/checker/reason_code/tier/expires/scope) DOĞRULAR/TÜKETİR; grant ÜRETMEZ (maker-checker workflow + tenant bildirimi orada)"
+    ],
+    "consumed_by": [
+      "DB §27 audit_log — üretilen WORM audit kaydını + prev_hash/row_hash hash zincirini TÜKETİR (fiziksel append-only partition yazımı + retention)",
+      "0.4.7 gözlemlenebilirlik — access_audit_* metriklerini tüketir (unaudited_access + unauthorized_access + audit_tampered + chain_break + break_glass_violation bütünlük/güvenlik alarmı dahil)",
+      "panel L2 A-11/A-12/A-13 (BRD §17) — GRANTED kararını TÜKETİR (çağrı dinleme/transkript görüntüleme erişimi); DENIED ⇒ 403; içerik byte'ı bu modülde AKMAZ",
+      "tenant security_compliance_officer/tenant_owner bildirimi (FR-IAM-009) — break-glass kullanımı audit'inden beslenir"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Erişim audit, içerik ÜRETİM zincirinin (11.1–11.4) AŞAĞI AKIŞ ERİŞİM KAPISIDIR — bir DETERMİNİSTİK FAIL-CLOSED karar fonksiyonudur. Bir kayıt/transkript erişim talebi geldiğinde, panel/API içeriği SUNMADAN ÖNCE, bu modül (a) talebin yetkili olduğunu (RBAC permission + sahiplik + L0 Tier B break-glass) ve (b) erişimin WORM audit'e (prev_hash→row_hash hash-chained) yazıldığını güvence altına alır ve GRANTED | DENIED | BLOCK döndürür — audit YAZILMADAN erişim VERİLMEZ (K2) + audit-sink yoksa fail-closed BLOCK (K5). Motor ham içerik byte'ını (kayıt sesi / transkript metni / PII değeri) işlemez/görmez/akıtmaz (içerik SAD §10.2 + panel L2; bu modül yalnız KARAR + audit KAYDI üretir); deterministik kontrol düzlemi (Date.now/random YOK; hash chain sha256 deterministik). Vendor-neutral (ADR-001/002/011/012/013): audit sink + RBAC + break-glass router sağlayıcı bağımsız; aynı karar sözleşmesi arkasına gerçek audit_log (DB §27) + IAM.",
+    "plane": "control/analytics plane (erişim audit kapısı — deterministik fail-closed; ZORUNLU WORM audit + yetki + break-glass kararı; içerik byte'ı akmaz)",
+    "owns": "FR-REC-009 erişim audit boyutu: AccessAuditRequest → tenant izolasyonu + malformed kapısı + audit-sink kapısı (auditlenemeyen erişim yok) + L0 Tier B break-glass doğrulama (maker-checker + süreli + gerekçe + kapsam) + yetki kapısı (permission + sahiplik :own + raw yükseltme) + ZORUNLU WORM audit kaydı (prev_hash→row_hash hash chain) + residency + terminal karar {GRANTED (yetkili + audited, erişim) | DENIED (yetkisiz + audited, içerik yok) | BLOCK (cross-tenant/malformed/audit-sink yok ⇒ fail-closed)} + access_granted ⇒ audit_written garantisi (K2) + WORM bütünlük (K3) + L0 altın kural (K5) + karar audit",
+    "delegates": "kayıt/içerik KARARI + tamamen kapatma → 11.1 (FR-REC-001/002); kanal/track → 11.2 (FR-REC-003); transkript ÜRETİMİ → 11.3 (FR-REC-008); PII redaction + access_ready → 11.4 (FR-REC-004; TÜKETİLİR); kart/parola/OTP kayıttan çıkarma → 11.5 (FR-REC-005); break-glass talep/onay AKIŞI + grant ÜRETİMİ + tenant bildirimi → FR-IAM-009 / API §6 (grant DOĞRULANIR); audit_log FİZİKSEL şema + WORM depolama + retention → DB §27 / retention motoru (audit KAYDI üretilir); RBAC permission ATAMASI → FR-IAM-011 / ADR-012 (tüketilir); ham içerik byte SUNUMU → SAD §10.2 + panel L2 A-11/A-12/A-13 (karar verilir, içerik akmaz); residency depolama UYGULAMASI → DB §8 / SAD §12.1",
+    "deterministic": true,
+    "fail_closed": true,
+    "worm_audit": true,
+    "trace": "FR-REC-009, FR-REC-008, FR-IAM-006, FR-IAM-008/009/010, SAD §14.4, DB §27, ADR-011, ADR-012, ADR-013"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ erişim audit uygulaması (FR-REC-009, SAD §14.4, DB §27). Önce tenant izolasyonu (K12) + malformed; sonra audit-sink kapısı (K2/K5 — auditlenemeyen erişim yok); sonra L0 Tier B break-glass disiplini (K6); sonra yetki kapısı (K4); sonra ZORUNLU WORM audit kaydı + hash chain bütünlük (K2/K3); sonra residency (K7); ham içerik/PII yok (K8). Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "mandatory_audit", "field": "HER erişim (GRANTED/DENIED) → WORM audit; access_granted ⇒ audit_written; audit-sink yok ⇒ erişim yok", "invariant": "K2", "outcome": "GRANTED|DENIED",
+       "rule": "her kayıt/transkript erişim kararı (GRANTED ya da DENIED) bir WORM audit kaydı üretmeli (FR-REC-009 'erişimler audit edilmelidir'); audit YAZILMADAN erişim verilemez (access_granted ⇒ audit_written); auditlenemeyen erişim (unaudited_access) = denetim boşluğu = güvenlik ihlali"},
+      {"id": "worm_chain_integrity", "field": "audit append-only + prev_hash→row_hash hash chain; tahrifat/kopma yok", "invariant": "K3", "outcome": "GRANTED|DENIED",
+       "rule": "audit kaydı WORM (append-only) + prev_hash→row_hash hash-chained (sha256) olmalı (FR-IAM-006, DB §27); kayıt değişip hash güncellenmezse (audit_tampered) ya da zincir koparsa (chain_break) bütünlük ihlali"},
+      {"id": "authorization_gate", "field": "GRANTED ⇒ authorized (permission + sahiplik + L0 break-glass); yetkisiz GRANTED yok", "invariant": "K4", "outcome": "GRANTED|DENIED",
+       "rule": "erişim YALNIZ aktör gerekli permission'a (recording→calls:read, transcript→transcript:read, raw→transcript:manage) (+ sahiplik :own) (+ L0 platform Tier B için geçerli break-glass) sahipse GRANTED (FR-REC-008); yetkisiz GRANTED (unauthorized_access) yasak; yetkisiz talep DENIED (audit'lenir)"},
+      {"id": "mandatory_fail_closed", "field": "audit bypass edilemez; audit-sink yok ⇒ BLOCK; L0 altın kural", "invariant": "K5", "outcome": "GRANTED|BLOCK",
+       "rule": "audit bypass edilemez (skip_audit yasak — BRD §15 alarmı); audit-sink yoksa erişim verilemez (failopen yasak — auditlenemeyen erişim yok); L0 ALTIN KURALI: platform tenant içeriğine break-glass'sız erişemez (FR-IAM-008)"},
+      {"id": "break_glass_discipline", "field": "L0 Tier B: maker≠checker + time-boxed + gerekçe + tenant-kapsam", "invariant": "K6", "outcome": "GRANTED|DENIED",
+       "rule": "L0 platform Tier B (recording/transcript) erişimi maker≠checker + time-boxed (varsayılan 60dk, max 240dk, standing access YOK) + zorunlu gerekçe kodu + tenant-kapsamlı grant ister (FR-IAM-009/010); self-approval/expired/standing-access = break_glass_violation"},
+      {"id": "residency_honored", "field": "GRANTED ∧ in_region ⇒ served_region == home_region", "invariant": "K7", "outcome": "GRANTED",
+       "rule": "sunulan içerik home-region'da kalmalı (GRANTED ∧ in_region_storage_required ise served_region == home_region; NFR 10.7 residency); home-region dışı sunum = residency ihlali"},
+      {"id": "no_raw_content", "field": "audit/kanıt/metrik yalnız yapısal kimlik + enum + break_glass_id + hash; ham içerik/PII yok", "invariant": "K8", "outcome": "GRANTED|DENIED",
+       "rule": "audit kaydı + kanıt + metrik YALNIZ yapısal kimlik + enum (resource_type/access_action/result) + break_glass_id + hash taşımalı; ham kayıt byte / transkript metni / PII değeri hiçbir alanda yok (FR-REC-009, BRD §17.7); ham içerik = pii_leak"}
+    ],
+    "evaluation": "tenant_check_then_audit_sink_then_authorize_then_break_glass_then_worm_audit_then_residency_fail_closed",
+    "trace": "FR-REC-009, SR-REC-009, FR-REC-008, FR-IAM-006, SAD §14.4, DB §27, NFR 10.7"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed erişim audit algoritması. Adımlar: (1) tenant izolasyonunu doğrula (tenant realm bind mismatch / cross_tenant inject → BLOCK cross_tenant, K12). (2) malformed (resource_type ∉ {recording,transcript} / access_action geçersiz / actor_realm geçersiz / request_id|actor_user_id eksik → BLOCK malformed_request). (3) audit-sink kapısı (audit_sink_available=false ⇒ BLOCK no_audit_sink — auditlenemeyen erişim verilmez, K2/K5; failopen_audit ile erişim verilirse failopen + unaudited_access). (4) L0 platform Tier B break-glass doğrula: grant yok ⇒ DENIED break_glass_required; maker==checker ⇒ break_glass_violation + DENIED break_glass_invalid; gerekçe yok / tier≠B / expired / standing / kapsam≠tenant ⇒ DENIED break_glass_invalid (K6). (5) yetki kapısı: req_perm çöz (recording→calls:read, transcript masked→transcript:read, transcript raw→transcript:manage); aktör permission taşır ⇒ authorized; yalnız :own + sahiplik=other ⇒ DENIED insufficient_scope; permission yok ⇒ DENIED missing_permission (K4). (6) ZORUNLU WORM audit kaydı (prev_hash→row_hash sha256; K2/K3/K10). (7) residency (GRANTED ∧ in_region ⇒ served_region==home_region; K7). access_granted ⇒ audit_written (K2). Belirsizlik/malformed/audit-sink yok → BLOCK (fail-closed; ASLA fail-open erişim).",
+    "algorithm": "tenant_check ⇒ BLOCK(cross_tenant) → malformed ⇒ BLOCK(malformed_request) → audit_sink yok ⇒ BLOCK(no_audit_sink) → L0 Tier B: grant yok ⇒ DENIED(break_glass_required); geçersiz ⇒ DENIED(break_glass_invalid) → permission yok ⇒ DENIED(missing_permission); :own+other ⇒ DENIED(insufficient_scope) → WORM_audit(prev_hash→row_hash) → residency(home_region) ⇒ GRANTED | DENIED",
+    "default": "BLOCK",
+    "fail_safe_terminal": "no access (terminal=BLOCK ⇒ access_granted=false; audit-sink yok ⇒ BLOCK, auditlenemeyen erişim verilmez)",
+    "trace": "SR-REC-009, FR-REC-008, SAD §14.4, DB §27"
+  },
+
+  "block_reasons": {
+    "$comment": "BLOCK karar taksonomisi (yalnız fail-closed BLOCK durumları). Düşük-kardinalite (metrik label uygun). 'no_audit_sink' = audit yazılamadığı için erişim VERİLMEZ (K2/K5 master — FR-REC-009: auditlenemeyen erişim yok). GRANTED/DENIED terminal sonuçlardır (BLOCK değil); DENIED yetkisiz-ama-audit'li normal sonuçtur (içerik yok), ihlal DEĞİL.",
+    "list": ["cross_tenant", "no_audit_sink", "malformed_request"]
+  },
+
+  "deny_reasons": {
+    "$comment": "DENIED karar taksonomisi (yetkisiz erişim — içerik verilmez ama AUDIT'LENİR; FR-REC-009 başarısız erişimleri de denetler). missing_permission = gerekli RBAC permission yok; insufficient_scope = yalnız :own yetki + sahiplik dışı; break_glass_required = L0 platform Tier B grant'sız; break_glass_invalid = grant geçersiz (self-approval/expired/standing/kapsam/gerekçe/tier).",
+    "list": ["missing_permission", "insufficient_scope", "break_glass_required", "break_glass_invalid"]
+  },
+
+  "outcomes": {
+    "$comment": "Terminal erişim audit sonuçları. GRANTED = aktör yetkili (permission+sahiplik+L0 break-glass) ⇒ WORM audit yazılır + içeriğe erişim (panel/API sunar). DENIED = yetkisiz ⇒ WORM audit yazılır (başarısız erişim de denetlenir, FR-REC-009) + içerik YOK (403). BLOCK = cross-tenant / malformed / audit-sink yok ⇒ fail-closed, içerik YOK; no_audit_sink dışında audit yazılır. Üçü de geçerli terminal — DENIED/BLOCK ihlal DEĞİL. Her GRANTED/DENIED audit üretir; access_granted ⇒ audit_written (K2).",
+    "list": ["GRANTED", "DENIED", "BLOCK"],
+    "terminal": ["GRANTED", "DENIED", "BLOCK"]
+  },
+
+  "resources": {
+    "$comment": "Erişilebilen kaynak türleri + Tier sınıfı + aksiyon + mod. recording (çağrı sesi) + transcript (transkript) = Tier B İÇERİK (transkript/kayıt/PII — FR-IAM-009; L0 platform için break-glass'lı). access_action: listen (kayıt) / view (transkript) / download / export. access_mode: masked (varsayılan; PII maskeli, 11.4) / raw (ham — yükseltilmiş yetki + audit, API §6.x FR-REC-009). Kategori/enum listesi illüstratif değil — DB §27 audit + SAD §14.4 RBAC ile hizalı.",
+    "types": ["recording", "transcript"],
+    "tier_b": ["recording", "transcript"],
+    "actions": ["listen", "view", "download", "export"],
+    "modes": ["masked", "raw"]
+  },
+
+  "break_glass": {
+    "$comment": "L0 platform break-glass disiplini (FR-IAM-009/010; SAD §14.4.2; ADR-013). Üç katmanlı break-glass: Tier A (metrik/log, PII yok) break-glass GEREKMEZ; Tier B (transkript/kayıt/PII) maker-checker (talep eden ≠ onaylayan) + time-boxed (varsayılan 60dk, max 240dk=4sa, otomatik sonlanma, STANDING ACCESS YOK) + zorunlu gerekçe kodu + tenant security_compliance_officer/tenant_owner'a bildirim (bildirim FR-IAM-009 akışında; bu modül grant'ı DOĞRULAR). Regüle tenant: require_tenant_approval=true ise tenant onayı olmadan açılmaz (FR-IAM-010; regulated profile'da default açık, DPA bağlı). Bu modül grant ÜRETMEZ — yalnız maker≠checker + gerekçe + tier=B + geçerli süre + tenant-kapsam DOĞRULAR.",
+    "required_realm": "platform",
+    "tier": "B",
+    "require_maker_checker": true,
+    "require_reason_code": true,
+    "default_minutes": 60,
+    "max_minutes": 240,
+    "standing_access": false,
+    "regulated_tenant_approval_toggle": "require_tenant_approval (FR-IAM-010; regulated profile default açık; DPA bağlı)"
+  },
+
+  "audit_record": {
+    "$comment": "WORM audit kaydı sözleşmesi (DB §27 audit_log). Append-only + prev_hash→row_hash hash chain (sha256). Alanlar: result (GRANTED/DENIED/BLOCK) + request/call/tenant/actor kimlikleri + actor_realm + resource_type + access_action + access_mode + authorized + deny_reason + break_glass_id + correlation_id + prev_hash + row_hash. HAM İÇERİK/PII (kayıt byte/ses, transkript metni, telefon/kart/OTP/ad/adres DEĞERİ) HİÇBİR alanda YOK (FR-REC-009, BRD §17.7) — yalnız yapısal kimlik + enum + hash. Fiziksel WORM partition yazımı + retention DB §27 / retention motoru.",
+    "worm": true,
+    "hash_chain": true,
+    "hash_algo": "sha256",
+    "fields": ["result", "request_id", "call_id", "tenant_id", "actor_user_id", "actor_realm", "actor_role",
+               "resource_type", "access_action", "access_mode", "authorized", "deny_reason", "break_glass_id",
+               "correlation_id", "prev_hash", "row_hash"],
+    "forbidden_fields": ["recording_bytes", "recording_audio", "transcript_text", "segment_text", "raw_audio",
+                         "pii_value", "customer_phone_value", "card_pan_value", "otp_code_value", "password_value",
+                         "customer_name_value", "address_value", "account_number_value", "iban_value"]
+  },
+
+  "authorization": {
+    "$comment": "Erişim audit YETKİ kapısı (FR-REC-008; SAD §14.4.3 RBAC permission-key). Kaynak→gerekli permission: recording→calls:read (sahiplik calls:read:own), transcript→transcript:read (sahiplik transcript:read:own), RAW transkript→transcript:manage (yükseltilmiş — ham maskelenmemiş erişim, API §6.x). L0 ALTIN KURALI (FR-IAM-008): platform realm tenant iş içeriğini (recording/transcript) varsayılan GÖREMEZ; yalnız geçerli break-glass grant ile (Tier B). Yetki kararı HER ZAMAN backend'de (ADR-012). Permission ATAMASI FR-IAM-011 (tüketilir).",
+    "transcript_permission": "transcript:read",
+    "recording_permission": "calls:read",
+    "raw_transcript_permission": "transcript:manage",
+    "own_suffix": ":own",
+    "golden_rule": "L0 altın kural (FR-IAM-008): platform tenant içeriğine (recording/transcript) varsayılan erişemez; yalnız geçerli break-glass grant ile (Tier B)",
+    "decision_at": "backend",
+    "trace": "FR-REC-008, FR-IAM-008, FR-IAM-011, ADR-012, ADR-013, SAD §14.4.3"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. unaudited_access (K2) = audit'siz erişim = FR-REC-009 ihlali = BRD §15 kritik denetim alarmı; unauthorized_access (K4) = yetkisiz GRANTED; audit_tampered (K3) = audit kaydı değişip hash güncellenmedi; chain_break (K3) = hash zinciri koptu; break_glass_violation (K6) = self-approval/expired/standing-access; failopen (K5) = audit-sink yokken erişim verildi; residency_violation (K7) = home-region dışı sunum; pii_leak (K8) = ham içerik/PII audit'te; cross_tenant (K12) = tenant izolasyon ihlali. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1 canlı audit_log (DB §27) + IAM + pilot tenant verisinde doğrulanır.",
+    "max_unaudited_access": 0,
+    "max_unauthorized_access": 0,
+    "max_audit_tampered": 0,
+    "max_chain_break": 0,
+    "max_break_glass_violation": 0,
+    "max_failopen": 0,
+    "max_residency_violation": 0,
+    "max_pii_leak": 0,
+    "max_cross_tenant": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "Erişim audit motoru her karar için BRD §15 + denetim/güvenlik metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. access_audit_decision_total{tenant,result,resource_type,actor_realm} → karar sayımı (result=GRANTED/DENIED/BLOCK); access_audit_break_glass_total{tenant,result} → L0 Tier B break-glass kullanım/red sayımı (FR-IAM-009); access_audit_integrity_violation_total → unaudited_access VEYA unauthorized_access VEYA audit_tampered VEYA chain_break VEYA break_glass_violation VEYA failopen (K2/K3/K4/K5/K6 ihlal alarmı, 0 olmalı). tenant_id+result+resource_type+actor_realm DÜŞÜK kardinalite (label uygun); request_id/call_id/actor_user_id/break_glass_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM İÇERİK/PII (kayıt byte / transkript metni / telefon/kart/OTP DEĞERİ) metrikte VE log'da YOK (FR-REC-009, BRD §17.7). integrity_violation>0 → kritik alarm ≤2dk (SAD §17.2, NFR 10.1, BRD §15).",
+    "metrics": ["access_audit_decision_total", "access_audit_break_glass_total", "access_audit_integrity_violation_total"],
+    "low_cardinality_labels": ["tenant_id", "result", "resource_type", "actor_realm"],
+    "high_cardinality_trace_only": ["request_id", "call_id", "actor_user_id", "break_glass_id"],
+    "alarm": "unaudited_access>0 (auditsiz erişim — K2, FR-REC-009) VEYA unauthorized_access>0 (yetkisiz erişim — K4) VEYA audit_tampered>0 (audit tahrifatı — K3) VEYA chain_break>0 (zincir kırılması — K3) VEYA break_glass_violation>0 (break-glass ihlali — K6) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "K1", "desc": "Determinizm/tamlık: her AccessAuditRequest tanımlı tenant→malformed→audit_sink→break_glass→authorize→worm_audit→residency algoritması boyunca ilerler ve bir terminal karara {GRANTED|DENIED|BLOCK} ulaşır; aynı girdi → aynı çıktı (deterministik; hash chain sha256 kanonik JSON; Date.now/random YOK); stuck/tanımsız durum yok. stuck_state=0.", "trace": "SR-REC-009, SAD §14.4"},
+    {"id": "K2", "desc": "Zorunlu erişim audit'i ÇEKİRDEK (FR-REC-009 'Kayıt ve transkript erişimleri audit edilmelidir'): HER erişim kararı (GRANTED ya da DENIED) bir WORM audit kaydı üretir; audit YAZILMADAN erişim verilemez → access_granted ⇒ audit_written. audit-sink yoksa erişim verilemez (fail-closed BLOCK). audit'siz erişim (unaudited_access) = denetim boşluğu = güvenlik ihlali. unaudited_access=0.", "trace": "FR-REC-009, SR-REC-009, FR-IAM-006, DB §27"},
+    {"id": "K3", "desc": "WORM/hash-chain bütünlüğü ÇEKİRDEK (FR-IAM-006, DB §27 audit_log): audit kaydı append-only + prev_hash→row_hash hash-chained (sha256). Kayıt değiştirilip hash güncellenmezse (audit_tampered = recompute(row_hash) ≠ saklanan) ya da zincir koparsa (chain_break = prev_hash ≠ önceki kaydın hash'i) bütünlük ihlali = audit reddedilemez/değiştirilemez ilkesi bozulur. audit_tampered=0 ∧ chain_break=0.", "trace": "FR-IAM-006, FR-REC-009, DB §27"},
+    {"id": "K4", "desc": "Yetki kapısı ÇEKİRDEK (FR-REC-008 'Yetkili kullanıcı çağrıyı dinleyebilmeli ve transkripti görebilmelidir'): erişim YALNIZ aktör gerekli permission'a (recording→calls:read, transcript→transcript:read, raw→transcript:manage) (+ sahiplik :own) (+ L0 platform Tier B için geçerli break-glass) sahipse GRANTED. Yetkisiz GRANTED (unauthorized_access) = yetkisiz içerik ifşası; yetkisiz talep DENIED (audit'lenir). unauthorized_access=0.", "trace": "FR-REC-008, SR-REC-008, FR-IAM-011, SAD §14.4.3"},
+    {"id": "K5", "desc": "Atlanamaz / fail-closed ÇEKİRDEK (SR-REC-009): audit bypass edilemez — bypass ile audit yazılmadan erişim verilirse skip_audit/unaudited_access ihlali = BRD §15 kritik 'erişim audit atlandı' alarmı. audit-sink yoksa erişim verilemez: audit_sink_available=false ⇒ terminal=BLOCK ∧ access_granted=false (failopen yasak — auditlenemeyen erişim yok). L0 ALTIN KURALI (FR-IAM-008): platform tenant içeriğine break-glass'sız erişemez. failopen=0.", "trace": "SR-REC-009, FR-IAM-008, BRD §15, SAD §17.2"},
+    {"id": "K6", "desc": "Break-glass disiplini (FR-IAM-009/010; ADR-013): L0 platform Tier B (recording/transcript) erişimi maker≠checker (talep eden ≠ onaylayan) + time-boxed (varsayılan 60dk, max 240dk, STANDING ACCESS YOK) + zorunlu gerekçe kodu + tenant-kapsamlı grant ister. self-approval (maker==checker) / expired (süre dolmuş) / standing-access (süresiz) = break_glass_violation; grant yok ⇒ DENIED break_glass_required; geçersiz ⇒ DENIED break_glass_invalid. Regüle tenant: require_tenant_approval toggle (FR-IAM-010). break_glass_violation=0.", "trace": "FR-IAM-009, FR-IAM-010, ADR-013, SAD §14.4.2"},
+    {"id": "K7", "desc": "Residency korunur (NFR 10.7): GRANTED durumunda in_region_storage_required ise served_region == home_region — sunulan içerik home-region'da kalır. Home-region dışı sunum = residency_violation. residency_violation=0.", "trace": "NFR 10.7, SAD §12.3, DB §8"},
+    {"id": "K8", "desc": "Ham içerik/PII sızıntısı yok ÇEKİRDEK (FR-REC-009, BRD §17.7): audit kaydı + kanıt + metrik YALNIZ yapısal kimlik (request/call/tenant/actor/grant) + enum (resource_type/access_action/access_mode/result/realm) + break_glass_id + hash taşır; ham kayıt byte / transkript metni / PII değeri (telefon/kart/OTP/ad/adres/hesap no DEĞERİ) hiçbir alanda yok — audit içeriği değil ERİŞİMİ kaydeder. pii_leak=0.", "trace": "FR-REC-009, BRD §17.7, 0.4.7 label_policy"},
+    {"id": "K9", "desc": "Kanıt: her karar request_id + actor_realm + resource_type + access_action + access_mode + authorized + access_granted + audit_written + break_glass_id + deny_reason/block_reason + served_region taşır; kanıtsız karar yok. missing_evidence=0.", "trace": "FR-IAM-006"},
+    {"id": "K10", "desc": "Audit: her erişim kararı (GRANTED/DENIED + auditlenebilir BLOCK) → WORM audit {result, request_id, call_id, tenant_id, actor_user_id, actor_realm, resource_type, access_action, access_mode, authorized, deny_reason, break_glass_id, correlation_id, prev_hash, row_hash} (FR-IAM-006, FR-REC-009); ham içerik/PII DEĞERİ YOK. no_audit_sink BLOCK dışında audit zorunlu. missing_audit=0.", "trace": "FR-IAM-006, FR-REC-009, DB §27, 0.4.7 label_policy"},
+    {"id": "K11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (result/resource_type/actor_realm); request_id/call_id/actor_user_id/break_glass_id metrikte yok, yalnız trace; HAM İÇERİK/PII (kayıt byte / transkript metni / telefon/kart/OTP DEĞERİ) metrikte VE log'da yok (0.4.7 label_policy, FR-REC-009, BRD §17.7).", "trace": "FR-REC-009, 0.4.7 label_policy"},
+    {"id": "K12", "desc": "Sır/içerik yok + tenant izolasyonu: spec/config/sample HAM KAYIT byte/ses / TRANSKRİPT metni / PII (telefon/kart/OTP/parola/ad/adres/hesap no DEĞERİ) / credential tutmaz (yalnız yapısal kimlikler ör. req-001/call-001/t-acme/u-1/bg-1 + enum + hash); erişim yalnız aynı tenant kaynağına izin verilir, cross-tenant (tenant realm) → cross_tenant ihlali (FR-TEN-002). secret_or_pii=0 ∧ cross_tenant=0.", "trace": "BRD §14, BRD §16, FR-TEN-002, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar HAM KAYIT byte/ses, TRANSKRİPT metni, PII (TELEFON numarası, KART [PAN/CVV], OTP kodu, PAROLA, müşteri ADI, ADRES, HESAP/IBAN numarası DEĞERİ) veya credential TUTMAZ — yalnız yapısal KİMLİKLER (request/call/tenant/actor/correlation/grant kimlikleri ör. req-001 / call-001 / t-acme / u-1 / corr-001 / bg-1) + ENUM'lar (actor_realm ör. tenant/platform; resource_type ör. recording/transcript; access_action ör. listen/view/download/export; access_mode ör. masked/raw; result ör. GRANTED/DENIED/BLOCK; deny_reason/block_reason) + SAYI + HASH (sha256 onaltılık zincir hash'i). Kimlik/enum/sayı/hash PII DEĞİLDİR; tasarımca PII-olmayandır. Ham içerik/PII DEĞERİ HİÇBİR alanda tutulmaz — bu modül içeriği DEĞİL ERİŞİMİ kaydeder (içerik DB §27 dışı; audit yalnız kim/ne/ne zaman/sonuç + hash zinciri).",
+    "forbids": ["recording_bytes", "recording_audio", "transcript_text", "segment_text", "raw_audio", "raw_value", "pii_value", "customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "customer_name_value", "address_value", "account_number_value", "iban_value", "credential", "secret"]
+  }
+}

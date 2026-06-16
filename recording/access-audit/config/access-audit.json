@@ -1,0 +1,29 @@
+{
+  "$comment": "WBS 11.6 — Kayıt/transkript erişim audit'i (FR-REC-009 / SR-REC-009 / TC-REC-009 / FR-REC-008 / FR-IAM-006 WORM audit / FR-IAM-008/009/010 L0 altın kural + break-glass / DB §27 audit_log) yapılandırması. MÜHENDİSLİK varsayılanı. resource_permission: kaynak türü → gerekli RBAC permission (base) + sahiplik (own) + RAW yükseltilmiş (raw_permission) + Tier sınıfı. recording→calls:read (sahiplik calls:read:own; çağrı sesi = Tier B içerik); transcript→transcript:read (sahiplik transcript:read:own; raw maskelenmemiş→transcript:manage yükseltilmiş, API §6.x FR-REC-009; Tier B içerik). tier_b_resources: L0 platform için break-glass'lı içerik (transkript/kayıt/PII — FR-IAM-009). break_glass: L0 Tier B grant disiplini (maker≠checker + time-boxed 60dk default/240dk max + standing access YOK + gerekçe kodu; FR-IAM-009/010; ADR-013). audit: WORM (append-only) + hash_chain (prev_hash→row_hash sha256; DB §27). Permission ATAMASI FR-IAM-011/ADR-012 (tüketilir); break-glass grant ÜRETİMİ FR-IAM-009/API §6 (doğrulanır). Sır/credential/HAM içerik/PII YOK — yalnız permission-key + enum + sayı.",
+  "version": "1.0",
+  "wbs": "11.6",
+  "resource_permission": {
+    "recording":  {"base_permission": "calls:read",      "own_permission": "calls:read:own",      "tier": "B"},
+    "transcript": {"base_permission": "transcript:read", "own_permission": "transcript:read:own", "raw_permission": "transcript:manage", "tier": "B"}
+  },
+  "tier_b_resources": ["recording", "transcript"],
+  "access_actions": ["listen", "view", "download", "export"],
+  "access_modes": ["masked", "raw"],
+  "actor_realms": ["tenant", "platform"],
+  "break_glass": {
+    "required_realm": "platform",
+    "tier": "B",
+    "require_maker_checker": true,
+    "require_reason_code": true,
+    "default_minutes": 60,
+    "max_minutes": 240,
+    "standing_access": false,
+    "regulated_tenant_approval_toggle": "require_tenant_approval"
+  },
+  "audit": {
+    "worm": true,
+    "hash_chain": true,
+    "hash_algo": "sha256",
+    "chain_fields": ["prev_hash", "row_hash"]
+  }
+}

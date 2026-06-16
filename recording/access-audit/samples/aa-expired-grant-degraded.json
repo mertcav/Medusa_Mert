@@ -1,0 +1,34 @@
+{
+  "name": "aa-expired-grant-degraded",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "in_region_storage_required": true,
+  "storage_region": "TR",
+  "home_region": "TR",
+  "audit_sink_available": true,
+  "request_id": "req-106",
+  "call_id": "call-106",
+  "actor_user_id": "u-d",
+  "actor_realm": "platform",
+  "actor_role": "platform_sre",
+  "resource_type": "transcript",
+  "access_action": "view",
+  "access_mode": "masked",
+  "actor_permissions": [],
+  "ownership": "other",
+  "$comment": "K6: break-glass süresi dolmuş → break_glass_violation; kapı ELER",
+  "inject": [
+    "expired_grant"
+  ],
+  "expect": "fail",
+  "break_glass": {
+    "grant_id": "bg-001",
+    "maker": "u-a",
+    "checker": "u-b",
+    "reason_code": "INVEST-01",
+    "tier": "B",
+    "expires_state": "valid",
+    "scope_tenant": "t-acme",
+    "time_boxed": true
+  }
+}

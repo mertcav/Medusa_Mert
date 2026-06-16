@@ -1,0 +1,26 @@
+{
+  "name": "aa-failopen-audit-degraded",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "in_region_storage_required": true,
+  "storage_region": "TR",
+  "home_region": "TR",
+  "audit_sink_available": false,
+  "request_id": "req-108",
+  "call_id": "call-108",
+  "actor_user_id": "u-d",
+  "actor_realm": "tenant",
+  "actor_role": "qa_analyst",
+  "resource_type": "transcript",
+  "access_action": "view",
+  "access_mode": "masked",
+  "actor_permissions": [
+    "transcript:read"
+  ],
+  "ownership": "other",
+  "$comment": "K5: audit-sink yokken erişim verildi (fail-open) → failopen + unaudited_access; kapı ELER",
+  "inject": [
+    "failopen_audit"
+  ],
+  "expect": "fail"
+}

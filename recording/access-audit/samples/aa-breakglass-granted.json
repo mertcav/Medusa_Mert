@@ -1,0 +1,37 @@
+{
+  "name": "aa-breakglass-granted",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "in_region_storage_required": true,
+  "storage_region": "TR",
+  "home_region": "TR",
+  "audit_sink_available": true,
+  "request_id": "req-005",
+  "call_id": "call-005",
+  "actor_user_id": "u-p1",
+  "actor_realm": "platform",
+  "actor_role": "platform_sre",
+  "resource_type": "transcript",
+  "access_action": "view",
+  "access_mode": "masked",
+  "actor_permissions": [],
+  "ownership": "other",
+  "break_glass": {
+    "grant_id": "bg-001",
+    "maker": "u-a",
+    "checker": "u-b",
+    "reason_code": "INVEST-01",
+    "tier": "B",
+    "expires_state": "valid",
+    "scope_tenant": "t-acme",
+    "time_boxed": true
+  },
+  "$comment": "L0 platform Tier B erişimi GEÇERLİ break-glass grant ile (maker≠checker+gerekçe+süreli+kapsam) → GRANTED; break_glass_id audit'te (FR-IAM-008/009)",
+  "expect": "pass",
+  "expected": {
+    "terminal": "GRANTED",
+    "authorized": true,
+    "audit_written": true,
+    "break_glass_id": "bg-001"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "aa-transcript-raw-granted",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "in_region_storage_required": true,
+  "storage_region": "TR",
+  "home_region": "TR",
+  "audit_sink_available": true,
+  "request_id": "req-004",
+  "call_id": "call-004",
+  "actor_user_id": "u-4",
+  "actor_realm": "tenant",
+  "actor_role": "security_compliance_officer",
+  "resource_type": "transcript",
+  "access_action": "view",
+  "access_mode": "raw",
+  "actor_permissions": [
+    "transcript:read",
+    "transcript:manage"
+  ],
+  "ownership": "other",
+  "$comment": "Ham (maskelenmemiş) transkript yükseltilmiş yetki ister (transcript:manage; API §6.x FR-REC-009) → GRANTED",
+  "expect": "pass",
+  "expected": {
+    "terminal": "GRANTED",
+    "authorized": true,
+    "audit_written": true
+  }
+}

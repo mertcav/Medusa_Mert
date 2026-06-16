@@ -1,0 +1,36 @@
+{
+  "name": "aa-breakglass-scope-denied",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "in_region_storage_required": true,
+  "storage_region": "TR",
+  "home_region": "TR",
+  "audit_sink_available": true,
+  "request_id": "req-011",
+  "call_id": "call-011",
+  "actor_user_id": "u-p3",
+  "actor_realm": "platform",
+  "actor_role": "platform_owner",
+  "resource_type": "transcript",
+  "access_action": "view",
+  "access_mode": "masked",
+  "actor_permissions": [],
+  "ownership": "other",
+  "break_glass": {
+    "grant_id": "bg-001",
+    "maker": "u-a",
+    "checker": "u-b",
+    "reason_code": "INVEST-01",
+    "tier": "B",
+    "expires_state": "valid",
+    "scope_tenant": "t-other",
+    "time_boxed": true
+  },
+  "$comment": "break-glass grant'ı BAŞKA tenant kapsamında → DENIED break_glass_invalid + audit (kapsam dışı; FR-IAM-009)",
+  "expect": "pass",
+  "expected": {
+    "terminal": "DENIED",
+    "deny_reason": "break_glass_invalid",
+    "audit_written": true
+  }
+}
