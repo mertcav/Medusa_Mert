@@ -1,0 +1,63 @@
+{
+  "name": "sso-saml2-ops-grant",
+  "request_id": "req-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "actor_realm": "tenant",
+  "protocol": "saml2",
+  "now": 1000,
+  "assertion": {
+    "issuer": "idp-acme",
+    "audience": "sp-acme",
+    "subject_ref": "u-1",
+    "signature_valid": true,
+    "issued_at": 950,
+    "not_before": 950,
+    "expires_at": 1300,
+    "assertion_id": "aid-1",
+    "groups": [
+      "voiceai-ops-manager"
+    ]
+  },
+  "idp_config": {
+    "tenant_id": "t-acme",
+    "realm": "tenant",
+    "trusted_issuer": "idp-acme",
+    "expected_audience": "sp-acme",
+    "signature_required": true,
+    "clock_skew_seconds": 120,
+    "max_assertion_age_seconds": 300,
+    "group_role_map": {
+      "voiceai-ops-manager": [
+        {
+          "role": "operations_manager",
+          "scope": {
+            "brand": [
+              "brand-x"
+            ]
+          }
+        }
+      ],
+      "voiceai-qa": [
+        {
+          "role": "qa_analyst",
+          "scope": {}
+        }
+      ],
+      "voiceai-designer": [
+        {
+          "role": "conversation_designer",
+          "scope": {}
+        }
+      ]
+    }
+  },
+  "seen_assertion_ids": [],
+  "$comment": "SAD §14.4.4 örneği: SAML2; grup 'voiceai-ops-manager' → operations_manager@brand-x. İmzalı+güvenilir issuer+geçerli audience+süre+replaysiz → authenticate → eşleme → GRANT {role,scope} (12.1.3'e). S2/S3.",
+  "expect": "pass",
+  "expected": {
+    "terminal": "GRANT",
+    "authenticated": true,
+    "granted": true
+  }
+}

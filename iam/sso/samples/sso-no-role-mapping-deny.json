@@ -1,0 +1,64 @@
+{
+  "name": "sso-no-role-mapping-deny",
+  "request_id": "req-005",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-005",
+  "actor_realm": "tenant",
+  "protocol": "saml2",
+  "now": 1000,
+  "assertion": {
+    "issuer": "idp-acme",
+    "audience": "sp-acme",
+    "subject_ref": "u-1",
+    "signature_valid": true,
+    "issued_at": 950,
+    "not_before": 950,
+    "expires_at": 1300,
+    "assertion_id": "aid-1",
+    "groups": [
+      "foreign-group-x"
+    ]
+  },
+  "idp_config": {
+    "tenant_id": "t-acme",
+    "realm": "tenant",
+    "trusted_issuer": "idp-acme",
+    "expected_audience": "sp-acme",
+    "signature_required": true,
+    "clock_skew_seconds": 120,
+    "max_assertion_age_seconds": 300,
+    "group_role_map": {
+      "voiceai-ops-manager": [
+        {
+          "role": "operations_manager",
+          "scope": {
+            "brand": [
+              "brand-x"
+            ]
+          }
+        }
+      ],
+      "voiceai-qa": [
+        {
+          "role": "qa_analyst",
+          "scope": {}
+        }
+      ],
+      "voiceai-designer": [
+        {
+          "role": "conversation_designer",
+          "scope": {}
+        }
+      ]
+    }
+  },
+  "seen_assertion_ids": [],
+  "$comment": "default_deny: hiçbir grup eşleşmez ('foreign-group-x') → authenticate olur ama yetki YOK → DENY no_role_mapping. Meşru DENY (ihlal yok).",
+  "expect": "pass",
+  "expected": {
+    "terminal": "DENY",
+    "deny_reason": "no_role_mapping",
+    "authenticated": true,
+    "granted": false
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "name": "sso-degrade-untrusted-issuer-accept",
+  "request_id": "req-102",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-102",
+  "actor_realm": "tenant",
+  "protocol": "saml2",
+  "now": 1000,
+  "assertion": {
+    "issuer": "idp-evil",
+    "audience": "sp-acme",
+    "subject_ref": "u-1",
+    "signature_valid": true,
+    "issued_at": 950,
+    "not_before": 950,
+    "expires_at": 1300,
+    "assertion_id": "aid-1",
+    "groups": [
+      "voiceai-ops-manager"
+    ]
+  },
+  "idp_config": {
+    "tenant_id": "t-acme",
+    "realm": "tenant",
+    "trusted_issuer": "idp-acme",
+    "expected_audience": "sp-acme",
+    "signature_required": true,
+    "clock_skew_seconds": 120,
+    "max_assertion_age_seconds": 300,
+    "group_role_map": {
+      "voiceai-ops-manager": [
+        {
+          "role": "operations_manager",
+          "scope": {
+            "brand": [
+              "brand-x"
+            ]
+          }
+        }
+      ],
+      "voiceai-qa": [
+        {
+          "role": "qa_analyst",
+          "scope": {}
+        }
+      ],
+      "voiceai-designer": [
+        {
+          "role": "conversation_designer",
+          "scope": {}
+        }
+      ]
+    }
+  },
+  "seen_assertion_ids": [],
+  "inject": [
+    "untrusted_issuer_accept"
+  ],
+  "$comment": "S2/S5 degrade: güvenilmez issuer ('idp-evil') KABUL edilir → untrusted_accepted>0 → kapı eler.",
+  "expect": "fail"
+}
