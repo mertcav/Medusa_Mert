@@ -1,0 +1,9 @@
+{
+  "name": "rbac-ops-campaign-manage",
+  "request_id": "req-002", "tenant_id": "t-acme", "correlation_id": "corr-002",
+  "actor_user_id": "u-2", "actor_realm": "tenant", "actor_roles": ["operations_manager"],
+  "required_permission": "campaign:manage", "ownership": "other",
+  "$comment": "operations_manager supervisor bundle → campaign:manage GRANT",
+  "expect": "pass",
+  "expected": {"terminal": "GRANT", "granted": true}
+}

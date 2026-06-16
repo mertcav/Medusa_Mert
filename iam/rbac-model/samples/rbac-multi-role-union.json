@@ -1,0 +1,9 @@
+{
+  "name": "rbac-multi-role-union",
+  "request_id": "req-008", "tenant_id": "t-acme", "correlation_id": "corr-008",
+  "actor_user_id": "u-6", "actor_realm": "tenant", "actor_roles": ["qa_analyst", "conversation_designer"],
+  "required_permission": "flow:edit", "ownership": "other",
+  "$comment": "Çoklu rol → effective bundle birleşimi; flow:edit conversation_designer'dan → GRANT (K3)",
+  "expect": "pass",
+  "expected": {"terminal": "GRANT", "granted": true}
+}

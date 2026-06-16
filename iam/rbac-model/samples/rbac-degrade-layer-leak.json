@@ -1,0 +1,9 @@
+{
+  "name": "rbac-degrade-layer-leak",
+  "request_id": "req-104", "tenant_id": "t-acme", "correlation_id": "corr-104",
+  "actor_user_id": "u-p1", "actor_realm": "platform", "actor_roles": ["platform_sre"],
+  "required_permission": "transcript:read", "ownership": "other",
+  "inject": ["layer_leak"],
+  "$comment": "K7 degrade: L0 platform_sre'ye tenant içerik key'i (transcript:read) sızdırılır (L0 altın kural ihlali) → kapı eler (FR-IAM-008)",
+  "expect": "fail"
+}

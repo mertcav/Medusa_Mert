@@ -1,0 +1,9 @@
+{
+  "name": "rbac-qa-transcript-read",
+  "request_id": "req-001", "tenant_id": "t-acme", "correlation_id": "corr-001",
+  "actor_user_id": "u-1", "actor_realm": "tenant", "actor_roles": ["qa_analyst"],
+  "required_permission": "transcript:read", "ownership": "other",
+  "$comment": "qa_analyst bundle'ı transcript:read taşır → GRANT (FR-IAM-001; SAD §14.4.3)",
+  "expect": "pass",
+  "expected": {"terminal": "GRANT", "authorized": true, "granted": true}
+}

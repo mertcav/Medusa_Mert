@@ -1,0 +1,111 @@
+{
+  "$comment": "WBS 12.1.1 — RBAC MODELİ (rol → permission-key bundle, IMMUTABLE). Bu dosya 12. workstream'in (IAM & Erişim) RBAC çekirdek MODELİDİR: BRD §17.2 rol seti + SAD §14.4.3 rol→permission-key bundle haritası, makine-okunur ve DEĞİŞMEZ (frozen) biçimde. Roller IMMUTABLE permission bundle'lardır (FR-IAM-011/SR-IAM-011/ADR-012); v1'de custom permission-builder YOK. Her rol bir katmana (L0/L1/L2/L1+L2) ve bir realm'e (platform/tenant) bağlıdır; platform rolleri (L0) tenant rollerinden tamamen ayrıdır (FR-IAM-008). permission-key formatı 'kaynak:eylem' (12.1.2 kataloğuna conform; ':own' sahiplikle sınırlı). Bu modül permission'ları TÜKETİR/EŞLER; permission-key GRAMER+TAM KATALOĞU 12.1.2'nin, scoped assignment (departman/marka/kampanya filtresi) 12.1.3'ün, backend guard 12.2.x'in, break-glass 12.3.x'in, WORM audit 12.1.8'in işidir. Ham içerik/PII/credential YOK — yalnız rol adları + permission-key'ler + enum + yapısal kimlik. KAYNAK DOĞRULUK; çelişkide BRD §17.2 / SAD §14.4.3 esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "custom_permission_builder": false,
+  "permission_key_format": "kaynak:eylem",
+  "own_suffix": ":own",
+  "realms": ["platform", "tenant"],
+  "layers": ["L0", "L1", "L2", "L1+L2"],
+
+  "layer_realm": {
+    "L0": "platform",
+    "L1": "tenant",
+    "L2": "tenant",
+    "L1+L2": "tenant"
+  },
+
+  "$catalog_comment": "permission-key evreni katman bazında (12.1.2 kataloğunun bu modüldeki kapanışı). Her bundle key'i bu evrene aittir (K5). tenant_content_keys = Tier B iş içeriği (kayıt/transkript/canlı çağrı); L0 rolleri bu key'leri TAŞIYAMAZ (L0 altın kuralı, FR-IAM-008; K7).",
+  "permission_key_universe": {
+    "L0": ["tenant:provision", "tenant:suspend", "resource:quota:manage", "provider:health:read",
+           "provider:routing:manage", "platform:billing:manage", "policy:global:manage",
+           "platform:audit:read", "release:manage", "incident:manage"],
+    "L1": ["tenant:dashboard:read", "org:manage", "user:manage", "role:assign", "number:manage",
+           "number:read", "integration:manage", "apikey:manage", "compliance:manage", "retention:manage",
+           "consent:manage", "tenant:billing:read", "tenant:audit:read", "quota:read"],
+    "L2": ["agent:read", "agent:build", "flow:edit", "prompt:edit", "voice:edit", "kb:manage", "tool:bind",
+           "campaign:manage", "calls:read", "calls:read:own", "transcript:read", "transcript:read:own",
+           "transcript:manage", "qa:score", "analytics:read", "cost:read", "test:run",
+           "agent:version:manage", "livecalls:manage", "livecalls:read:own"]
+  },
+
+  "tenant_content_keys": ["calls:read", "calls:read:own", "transcript:read", "transcript:read:own",
+                          "transcript:manage", "livecalls:manage", "livecalls:read:own"],
+
+  "$roles_comment": "Rol → IMMUTABLE permission bundle (SAD §14.4.3). Her rol: layer + realm + permissions[] (frozen). BRD §17.2 ile birebir; permission set'ler SAD §14.4.3 'Temsilî permission set' tablosundan türetilir.",
+  "roles": {
+    "platform_owner": {
+      "layer": "L0", "realm": "platform",
+      "description": "Tüm platform kontrolü; tenant yaşam döngüsü, global politika",
+      "permissions": ["tenant:provision", "tenant:suspend", "resource:quota:manage", "provider:health:read",
+                      "provider:routing:manage", "platform:billing:manage", "policy:global:manage",
+                      "platform:audit:read", "release:manage", "incident:manage"]
+    },
+    "platform_sre": {
+      "layer": "L0", "realm": "platform",
+      "description": "Kapasite, kaynak, sağlayıcı sağlığı, release, incident (iş içeriği görmez)",
+      "permissions": ["resource:quota:manage", "provider:health:read", "provider:routing:manage",
+                      "release:manage", "incident:manage", "platform:audit:read"]
+    },
+    "platform_billing": {
+      "layer": "L0", "realm": "platform",
+      "description": "Platform geneli faturalandırma ve rate-card",
+      "permissions": ["platform:billing:manage", "provider:health:read"]
+    },
+    "tenant_owner": {
+      "layer": "L1+L2", "realm": "tenant",
+      "description": "Tenant'ın tüm kontrolü (admin + uygulama)",
+      "permissions": ["tenant:dashboard:read", "org:manage", "user:manage", "role:assign", "number:manage",
+                      "number:read", "integration:manage", "apikey:manage", "compliance:manage",
+                      "retention:manage", "consent:manage", "tenant:billing:read", "tenant:audit:read",
+                      "quota:read", "agent:read", "agent:build", "flow:edit", "prompt:edit", "voice:edit",
+                      "kb:manage", "tool:bind", "campaign:manage", "calls:read", "transcript:read",
+                      "transcript:manage", "qa:score", "analytics:read", "cost:read", "test:run",
+                      "agent:version:manage", "livecalls:manage"]
+    },
+    "tenant_admin": {
+      "layer": "L1", "realm": "tenant",
+      "description": "Kullanıcı/rol, entegrasyon, numara/SIP, konfigürasyon",
+      "permissions": ["org:manage", "user:manage", "role:assign", "number:manage", "integration:manage",
+                      "apikey:manage", "quota:read"]
+    },
+    "security_compliance_officer": {
+      "layer": "L1", "realm": "tenant",
+      "description": "Compliance, retention, consent, audit, PII erişim kontrolü",
+      "permissions": ["compliance:manage", "retention:manage", "consent:manage", "tenant:audit:read",
+                      "transcript:read"]
+    },
+    "billing_viewer": {
+      "layer": "L1", "realm": "tenant",
+      "description": "Tenant kullanım, fatura ve maliyet görünümü",
+      "permissions": ["tenant:billing:read", "quota:read", "tenant:dashboard:read"]
+    },
+    "operations_manager": {
+      "layer": "L2", "realm": "tenant",
+      "description": "Canlı operasyon, kampanya, tüm agent'lar, analitik (supervisor)",
+      "permissions": ["campaign:manage", "calls:read", "transcript:manage", "qa:score", "analytics:read",
+                      "livecalls:manage", "cost:read"]
+    },
+    "conversation_designer": {
+      "layer": "L2", "realm": "tenant",
+      "description": "Agent builder, flow/prompt, knowledge base, test/sim",
+      "permissions": ["agent:build", "flow:edit", "prompt:edit", "voice:edit", "kb:manage", "tool:bind",
+                      "test:run", "agent:version:manage"]
+    },
+    "qa_analyst": {
+      "layer": "L2", "realm": "tenant",
+      "description": "Çağrı kayıtları, transkript, QA skorlama, analitik (okuma)",
+      "permissions": ["calls:read", "transcript:read", "qa:score", "analytics:read"]
+    },
+    "human_agent": {
+      "layer": "L2", "realm": "tenant",
+      "description": "Aktarılan çağrıyı bağlamıyla devralma (yalnız kendi çağrıları)",
+      "permissions": ["calls:read:own", "transcript:read:own", "livecalls:read:own"]
+    },
+    "api_developer": {
+      "layer": "L1+L2", "realm": "tenant",
+      "description": "API key/webhook, tool tanımı, sandbox",
+      "permissions": ["apikey:manage", "integration:manage", "tool:bind", "number:read"]
+    }
+  }
+}

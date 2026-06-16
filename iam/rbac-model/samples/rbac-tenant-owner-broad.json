@@ -1,0 +1,9 @@
+{
+  "name": "rbac-tenant-owner-broad",
+  "request_id": "req-007", "tenant_id": "t-acme", "correlation_id": "corr-007",
+  "actor_user_id": "u-5", "actor_realm": "tenant", "actor_roles": ["tenant_owner"],
+  "required_permission": "user:manage", "ownership": "other",
+  "$comment": "tenant_owner L1+L2 geniş bundle → user:manage GRANT",
+  "expect": "pass",
+  "expected": {"terminal": "GRANT", "granted": true}
+}

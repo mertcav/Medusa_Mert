@@ -1,0 +1,9 @@
+{
+  "name": "rbac-human-agent-own",
+  "request_id": "req-003", "tenant_id": "t-acme", "correlation_id": "corr-003",
+  "actor_user_id": "u-3", "actor_realm": "tenant", "actor_roles": ["human_agent"],
+  "required_permission": "calls:read", "ownership": "own",
+  "$comment": "human_agent calls:read:own + ownership=own → GRANT (BRD §17.7 :own kuralı; K6)",
+  "expect": "pass",
+  "expected": {"terminal": "GRANT", "authorized": true}
+}

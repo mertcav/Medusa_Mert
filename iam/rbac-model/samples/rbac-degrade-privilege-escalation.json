@@ -1,0 +1,9 @@
+{
+  "name": "rbac-degrade-privilege-escalation",
+  "request_id": "req-108", "tenant_id": "t-acme", "correlation_id": "corr-108",
+  "actor_user_id": "u-4", "actor_realm": "tenant", "actor_roles": ["tenant_admin"],
+  "required_permission": "tenant:provision", "ownership": "other",
+  "inject": ["privilege_escalation"],
+  "$comment": "K7 degrade: tenant_admin'e bundle dışı platform-seviyesi yetki yükseltilir → kapı eler",
+  "expect": "fail"
+}
