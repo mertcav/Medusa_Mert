@@ -1,0 +1,38 @@
+{
+  "actor_role": "platform_owner",
+  "target_tenant_id": "t-acme",
+  "tier": "B",
+  "resource_type": "transcript",
+  "data_class": "tenant_content",
+  "access_decision": "GRANT_TIER_B",
+  "reason_code": "rc-data-subject-request",
+  "now": 100,
+  "request_id": "req-004",
+  "correlation_id": "corr-004",
+  "break_glass_id": "bg-004",
+  "recipients": [
+    {
+      "role": "security_compliance_officer",
+      "tenant_id": "t-acme",
+      "delivered": true,
+      "delivered_at": 100
+    },
+    {
+      "role": "tenant_owner",
+      "tenant_id": "t-acme",
+      "delivered": true,
+      "delivered_at": 101
+    }
+  ],
+  "expect": "pass",
+  "expected": {
+    "terminal": "NOTIFY",
+    "delivered": true,
+    "notified_roles": [
+      "security_compliance_officer",
+      "tenant_owner"
+    ]
+  },
+  "$comment": "PASS: açık recipients — her iki rol, target_tenant, teslim, SLA içinde (delivered_at 100/101 ≤ now+1). N4/N5/N6/N7 doğru.",
+  "name": "tbn-pass-notify-dsr-explicit-recipients"
+}

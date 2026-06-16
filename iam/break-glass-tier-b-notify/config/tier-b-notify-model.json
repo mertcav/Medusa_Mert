@@ -1,0 +1,84 @@
+{
+  "$comment": "WBS 12.3.3 — TIER B BREAK-GLASS: ZORUNLU GEREKÇE KODU (reason code) SEMANTİĞİ + tenant security_compliance_officer/tenant_owner ANLIK BİLDİRİMİ modeli. Bu dosya 12. workstream'in (IAM & Erişim) ÜÇ KATMANLI BREAK-GLASS'ın İÇERİK/PII KATMANININ (Tier B) gerekçe-kodu + bildirim yüzeyinin DEĞİŞMEZ (frozen) KAYNAK DOĞRULUĞUDUR: BRD §17.7 / §17 ('Tier B — transkript/kayıt/PII: ... + ZORUNLU GEREKÇE KODU + tenant'ın security_compliance_officer ve tenant_owner rollerine ANLIK BİLDİRİM') + SAD §14.4.2 ('... → zorunlu gerekçe kodu → tenant security_compliance_officer + tenant_owner'a anlık bildirim') + FR-IAM-009 (üç katmanlı break-glass Tier B) + FR-IAM-006/FR-REC-009 (tüm break-glass erişimi audit). ALTIN KURAL (BRD §17): L0 (platform) tenant'ın iş içeriğini VARSAYILAN GÖREMEZ — Tier B yalnız DAR, SÜRELİ, ONAYLI, TAM-AUDIT'li kapıyı açar; bu modül o kapının (1) GEREKÇE-KODU ZORUNLULUĞUNU (semantik: kontrollü kelime dağarcığı) ve (2) TENANT'A ANLIK BİLDİRİMİNİ sahiplenir — böylece tenant kendi içeriğine platform erişimini DERHAL öğrenir (sessiz break-glass YOK). Bu modül 12.3.2'nin GRANT_TIER_B/PENDING/DENY kararını TÜKETİR; bir BreakGlassTierBNotifyEvent için DETERMİNİSTİK, FAIL-CLOSED bir karar verir: NOTIFY (erişim verildi + geçerli gerekçe kodu + her iki tenant rolüne anlık+teslim bildirim) | NO_NOTIFY (erişim verilmedi [PENDING/DENY] → içerik okunmadı → bildirim gerekmez; DOĞRU) | BLOCK (gerekçe kodu eksik/geçersiz → fail-closed; erişim geçersiz). ÇEKİRDEK: (1) N2 GEREKÇE KODU ZORUNLU — GRANT_TIER_B gerekçe kodu OLMADAN ilerleyemez (missing_reason_code=0); (2) N3 GEREKÇE KODU SEMANTİĞİ — reason_code kontrollü kataloğdan OLMALI (serbest-metin/bilinmeyen → BLOCK; invalid_reason_code=0); (3) N4 HER İKİ ROL — bildirim security_compliance_officer VE tenant_owner'a gider (incomplete_recipients=0); (4) N5 ANLIK — bildirim SLA içinde (delayed_notification=0); (5) N6 SESSİZ DEĞİL — her Tier B GRANT teslim edilen bildirim üretir (notification_dropped=0). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): Tier B maker-checker + time-boxed token + token-binding + replay + WORM audit kararı → 12.3.2 (TÜKETİLİR); regüle tenant require_tenant_approval toggle + DPA → 12.3.4; Tier sınıflandırma + ESCALATE → 12.3.1; rol→permission-key/scope → 12.1.2/12.1.3; append-only/WORM audit hash-zinciri → 12.1.8 (TÜKETİLİR). Bu dosya FROZEN — değiştirilemez gerekçe-kodu zorunluluğu + katalog + zorunlu alıcı roller (model_hash sha256 ile audit edilebilir). ÇELİŞKİDE BRD §17.7 / SAD §14.4.2 / FR-IAM-009 esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+
+  "$tier_comment": "Üç katmanlı break-glass'ın İÇERİK/PII katmanı (Tier B). Bu modül YALNIZ Tier B GRANT_TIER_B kararına eşlik eden GEREKÇE-KODU ZORUNLULUĞUNU + TENANT BİLDİRİMİNİ sahiplenir. Erişim-verme kararı (maker-checker + time-boxed token) 12.3.2'nin; bu modül 12.3.2'nin access_decision çıktısını TÜKETİR. PENDING/DENY (içerik okunmadı) → bildirim GEREKMEZ (NO_NOTIFY; DOĞRU, ihlal değil).",
+  "tier": "B",
+  "data_class": "tenant_content",
+
+  "$reason_comment": "ÇEKİRDEK gerekçe-kodu semantiği (FR-IAM-009 'zorunlu gerekçe kodu'; SAD §14.4.2). require_reason_code: her Tier B GRANT bir reason_code TAŞIMAK ZORUNDA — eksik gerekçe kodu ile GRANT fail-closed BLOCK'lanır (missing_reason_code ÇEKİRDEK ihlal). controlled_vocabulary: reason_code SERBEST-METİN DEĞİL, kontrollü kataloğdan (reason_code_catalog) bir OPAK kod OLMALI — bilinmeyen/serbest-metin gerekçe BLOCK'lanır (invalid_reason_code ÇEKİRDEK ihlal). reason_code_catalog opak kodlardır (PII DEĞİL): operasyonel/uyumluluk break-glass nedenleri. Bu katalog mühendislik varsayılanıdır; tenant/compliance profili genişletebilir (yalnız-ekleme, audit'li) — F1/F2 kod aşaması.",
+  "reason_code_policy": {
+    "require_reason_code": true,
+    "controlled_vocabulary": true,
+    "free_text_forbidden": true,
+    "reason_code_catalog": [
+      "rc-incident-debug",
+      "rc-quality-review",
+      "rc-security-investigation",
+      "rc-legal-hold",
+      "rc-data-subject-request",
+      "rc-compliance-audit",
+      "rc-customer-escalation"
+    ]
+  },
+
+  "$notification_comment": "ÇEKİRDEK tenant bildirimi (FR-IAM-009 'tenant'ın security_compliance_officer + tenant_owner rollerine ANLIK bildirim'; SAD §14.4.2). required_recipient_roles: bildirim HER İKİ tenant rolüne gitmek ZORUNDA — security_compliance_officer VE tenant_owner (12.1.1 RESİPROKAL; tenant realm L1 rolleri). Eksik herhangi bir zorunlu rol = incomplete_recipients ÇEKİRDEK ihlal. immediate (anlık): bildirim notify_sla_ticks içinde gönderilir/teslim edilir (sanal-saat dakika); SLA dışı = delayed_notification. require_delivery: her Tier B GRANT TESLİM edilen bir bildirim üretir — sessiz/bastırılmış bildirim YOK (notification_dropped = sessiz break-glass = ÇEKİRDEK ihlal). tenant_bound: tüm alıcılar target_tenant'a aittir; cross-tenant alıcı = notification_misroute (tenant A içeriği erişimini tenant B'ye sızdırma). pii_free: bildirim yükü ham içerik/PII/token TAŞIMAZ (yalnız actor_role + data_class + resource_type + reason_code + break_glass_id + occurred_tick).",
+  "notification_policy": {
+    "required_recipient_roles": ["security_compliance_officer", "tenant_owner"],
+    "recipient_realm": "tenant",
+    "trigger_on": "GRANT_TIER_B",
+    "immediate": true,
+    "notify_sla_ticks": 1,
+    "require_delivery": true,
+    "no_silent_access": true,
+    "tenant_bound": true,
+    "pii_free": true,
+    "reciprocal": "12.1.1 rbac-roles (security_compliance_officer + tenant_owner — tenant realm L1 alıcı rolleri)"
+  },
+
+  "$idempotency_comment": "İdempotent + replay-güvenli: bir break-glass grant için TEK bildirim üretilir (idempotent; aynı break_glass_id için tekrar bildirim diriltilemez). Çözülmüş/teslim edilmiş bildirimin bayat kararla yeniden gönderimi (alarm yorgunluğu / sahte tetik) = notify_replay. Kararlar deterministik (Date.now/random YOK; sanal-saat tick).",
+  "concurrency_policy": {
+    "idempotent_notification": true,
+    "single_notification_per_grant": true,
+    "no_replay_resolved_notification": true,
+    "resolved_states": ["DELIVERED", "ACKNOWLEDGED"]
+  },
+
+  "$actor_comment": "L0 (platform) RBAC aktör rolleri (12.1.1 rbac-model RESİPROKAL; BRD §17.2). Tier B break-glass erişimini YAPAN aktör platform realm rolüdür (actor_role). Bildirim ALICILARI ise tenant realm rolleridir (security_compliance_officer/tenant_owner) — platform aktöründen AYRI realm. actor_realm = 'platform'; recipient_realm = 'tenant'.",
+  "actor_roles": ["platform_owner", "platform_sre", "platform_billing"],
+  "actor_realm": "platform",
+
+  "$audit_comment": "ÇEKİRDEK tam-audit (BRD §17.7, SAD §14.4.2 'tam-audit'li break-glass router', FR-IAM-009/006/FR-REC-009): HER bildirim kararı (NOTIFY / NO_NOTIFY / BLOCK) DEĞİŞMEZ (append-only/WORM) bir audit kaydı üretir — SESSİZ bildirim YOKTUR. Audit DEĞİŞMEZLİĞİ + hash-zincir 12.1.8 worm-audit'e RESİPROKAL (row_hash=sha256(kanonik); UPDATE/DELETE reddedilir). Audit kaydı PII'siz: yalnız opak actor_role + actor_realm + target_tenant_ref + data_class + resource_type + tier + decision + reason_code (opak enum) + notified_roles + delivered + occurred_tick + break_glass_id + row_hash. HAM PII (transcript/recording/contact DEĞERİ) ve HAM TOKEN audit'e/bildirime YAZILMAZ (FR-REC-004, BRD §17.7).",
+  "audit": {
+    "required_for_every_decision": true,
+    "worm": true,
+    "append_only": true,
+    "hash_algo": "sha256",
+    "no_raw_pii": true,
+    "no_raw_token": true,
+    "reciprocal": "12.1.8 worm-audit (append-only/WORM + hash-zincir; row_hash)",
+    "record_fields": ["record_id", "break_glass_id", "correlation_id", "actor_role", "actor_realm", "target_tenant_ref", "data_class", "resource_type", "tier", "decision", "reason_code", "notified_roles", "delivered", "occurred_tick", "row_hash"]
+  },
+
+  "$delegation_comment": "KAPSAM AYRIMI (bilinçli). Bu modül YALNIZ Tier B GEREKÇE-KODU ZORUNLULUĞU + SEMANTİĞİ + tenant security_compliance_officer/tenant_owner ANLIK BİLDİRİMİ kararını sahiplenir. Tier B erişim-verme (maker-checker + time-boxed token + token-binding + replay + WORM audit) 12.3.2'nin (TÜKETİLİR); regüle tenant require_tenant_approval toggle + DPA 12.3.4'e; Tier sınıflandırma + ESCALATE 12.3.1'e; rol→permission-key/scope 12.1.2/12.1.3'e; WORM audit hash-zinciri 12.1.8'e DELEGE/TÜKETİLİR.",
+  "delegates": {
+    "tier_b_access_decision": "12.3.2 (maker-checker + time-boxed token + token-binding + replay + WORM audit — access_decision TÜKETİLİR)",
+    "regulated_tenant_toggle": "12.3.4 (regüle tenant require_tenant_approval toggle + DPA bağı; controller=tenant/processor=RMC)",
+    "tier_classification_escalate": "12.3.1 (Tier A/B/forbidden sınıflandırma + ESCALATE_TIER_B)",
+    "rbac_role_scope": "12.1.2/12.1.3 (rol→permission-key bundle + scope kararı)",
+    "worm_audit_chain": "12.1.8 (append-only/WORM audit + hash-zincir)"
+  },
+
+  "consumes": {
+    "$comment": "RESİPROKAL bağlantılar. 12.3.2 tier-b-model.json: access_decision (GRANT_TIER_B/PENDING/DENY) + reason_code'un var/yok TAŞINMASI (semantiği bu modülde) + break_glass_id (RESİPROKAL). 12.1.1 rbac-roles.json: alıcı tenant rolleri (security_compliance_officer/tenant_owner) + L0 aktör rolleri (RESİPROKAL). 12.1.8 worm-audit-model.json: audit DEĞİŞMEZLİĞİ (append-only/WORM + hash-zincir) RESİPROKAL.",
+    "tier_b_model": "12.3.2 ../break-glass-tier-b/config/tier-b-model.json (access_decision + reason_code taşıma + break_glass_id RESİPROKAL)",
+    "rbac_model": "12.1.1 ../rbac-model/config/rbac-roles.json (security_compliance_officer + tenant_owner alıcı rolleri + L0 aktör rolleri RESİPROKAL)",
+    "worm_audit_model": "12.1.8 ../worm-audit/config/worm-audit-model.json (append-only/WORM + hash-zincir RESİPROKAL)"
+  },
+
+  "terminal": ["NOTIFY", "NO_NOTIFY", "BLOCK"],
+  "default": "BLOCK",
+  "trace": "BRD §17.7, SAD §14.4.2, FR-IAM-009, FR-IAM-006, FR-REC-009, 12.3.2, 12.1.1, 12.1.8"
+}

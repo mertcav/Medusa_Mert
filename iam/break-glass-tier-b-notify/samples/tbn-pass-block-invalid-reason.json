@@ -1,0 +1,20 @@
+{
+  "actor_role": "platform_owner",
+  "target_tenant_id": "t-acme",
+  "tier": "B",
+  "resource_type": "transcript",
+  "data_class": "tenant_content",
+  "access_decision": "GRANT_TIER_B",
+  "reason_code": "just-curious",
+  "now": 100,
+  "request_id": "req-006",
+  "correlation_id": "corr-006",
+  "break_glass_id": "bg-006",
+  "expect": "pass",
+  "expected": {
+    "terminal": "BLOCK",
+    "note": "invalid_reason_code"
+  },
+  "$comment": "PASS (DOĞRU fail-closed): katalog dışı serbest-metin gerekçe → BLOCK (invalid_reason_code). N3 ÇEKİRDEK doğru reddediş.",
+  "name": "tbn-pass-block-invalid-reason"
+}

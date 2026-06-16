@@ -1,0 +1,169 @@
+{
+  "$comment": "WBS 12.3.3 — TIER B BREAK-GLASS: ZORUNLU GEREKÇE KODU (reason code) SEMANTİĞİ + tenant security_compliance_officer/tenant_owner ANLIK BİLDİRİMİ (BRD §17.7/§17, SAD §14.4.2, FR-IAM-009 üç katmanlı break-glass Tier B, FR-IAM-006/FR-REC-009 tüm break-glass erişimi audit). 12. workstream'in (IAM & Erişim) ÜÇ KATMANLI BREAK-GLASS'ın İÇERİK/PII KATMANININ (Tier B) gerekçe-kodu + bildirim modülü ve F2-Must yeteneği. ALTIN KURAL (BRD §17): L0 (platform) tenant'ın iş içeriğini (çağrı kaydı/transkript/müşteri/PII) VARSAYILAN GÖREMEZ — Tier B yalnız DAR, SÜRELİ, ONAYLI, TAM-AUDIT'li kapıyı açar; bu modül o kapıya (1) GEREKÇE-KODU ZORUNLULUĞU (kontrollü kelime dağarcığı semantiği) ve (2) TENANT'A ANLIK BİLDİRİM (security_compliance_officer + tenant_owner) ekler — böylece tenant kendi içeriğine platform erişimini DERHAL öğrenir (sessiz break-glass YOK). Bu modül 12.3.2'nin GRANT_TIER_B/PENDING/DENY (access_decision) çıktısını TÜKETİR; bir BreakGlassTierBNotifyEvent (actor_role[L0] + target_tenant + tier=B + access_decision + reason_code[12.3.3 semantiği] + now[tick] + recipients[opsiyonel] + delivery[opsiyonel]) alır → DETERMİNİSTİK, FAIL-CLOSED bir karar verir: NOTIFY (erişim verildi + GEÇERLİ gerekçe kodu + HER İKİ tenant rolüne ANLIK + TESLİM bildirim + tam-audit) | NO_NOTIFY (erişim verilmedi [PENDING/DENY] → içerik okunmadı → bildirim GEREKMEZ; DOĞRU ara durum) | BLOCK (malformed / gerekçe kodu eksik [missing_reason_code] / gerekçe kodu geçersiz [invalid_reason_code] → fail-closed; erişim geçersiz). ÇEKİRDEK: (1) N2 GEREKÇE KODU ZORUNLU — GRANT_TIER_B gerekçe kodu OLMADAN ilerleyemez (missing_reason_code=0); (2) N3 GEREKÇE KODU SEMANTİĞİ — reason_code kontrollü kataloğdan (serbest-metin/bilinmeyen → BLOCK; invalid_reason_code=0); (3) N4 HER İKİ ROL — bildirim security_compliance_officer VE tenant_owner'a gider (incomplete_recipients=0); (4) N5 ANLIK — bildirim SLA içinde (delayed_notification=0); (5) N6 SESSİZ DEĞİL — her Tier B GRANT teslim edilen bildirim üretir (notification_dropped=0). Motor DETERMİNİSTİK FAIL-CLOSED (Date.now/random YOK; model_hash sha256; tick=dakika sanal-saat). Her karar terminal (N1) + kanıt + model bütünlük manifesti (N10); metrik düşük-kardinalite + ham PII/token yok (N11); model/spec/sample ham içerik/PII/token tutmaz (N12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): Tier B erişim-verme (maker-checker + time-boxed token + token-binding + replay + WORM audit) → 12.3.2 (TÜKETİLİR); regüle tenant require_tenant_approval toggle + DPA → 12.3.4; Tier sınıflandırma + ESCALATE → 12.3.1; rol→permission-key/scope → 12.1.2/12.1.3; WORM audit hash-zinciri → 12.1.8 (TÜKETİLİR). KAYNAK DOĞRULUK; çelişkide BRD §17.7 / SAD §14.4.2 / FR-IAM-009 esastır.",
+  "version": "1.0",
+  "wbs": "12.3.3",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-IAM-009", "FR-IAM-006", "FR-REC-009", "FR-IAM-005", "FR-IAM-008", "FR-REC-004", "FR-TEN-002", "FR-TST-008"],
+    "srs": ["SR-IAM-009", "SR-IAM-006"],
+    "rtm": ["TC-IAM-009"],
+    "brd": [
+      "§17.7 (izolasyon/görünürlük — 'Tier B — transkript/kayıt/PII: ... + zorunlu gerekçe kodu + tenant'ın security_compliance_officer ve tenant_owner rollerine anlık bildirim')",
+      "§17 (üç katmanlı break-glass FR-IAM-009/010 — Tier B gerekçe kodu + tenant bildirimi)",
+      "§5 (kimlik & erişim — platform aktör rolleri tenant alıcı rollerinden ayrı realm)"
+    ],
+    "sad": [
+      "§14.4.2 (Backend — 'Tier B (transkript/kayıt/PII): maker-checker → süreli token → ZORUNLU GEREKÇE KODU → tenant security_compliance_officer + tenant_owner'a ANLIK BİLDİRİM' — bu modülün TEMEL kararı)",
+      "§14.4.2 (Üç katmanlı break-glass FR-IAM-009/010 — erişim-verme 12.3.2, regüle toggle 12.3.4'e DELEGE)",
+      "§14 (Audit — tüm panel erişimleri ve hassas görüntülemeler [özellikle break-glass] audit log'a; FR-IAM-006/FR-REC-009)"
+    ],
+    "adr": [
+      "ADR-013 (üç katmanlı break-glass + regüle tenant onay toggle'ı — Tier B bu kararın içerik/PII katmanı)",
+      "ADR-016 (audit tamper-evidence: hash zinciri — bildirim audit'i WORM/hash-zincir 12.1.8 RESİPROKAL)",
+      "ADR-001 (deterministik karar fonksiyonu deseni)", "ADR-002 (vendor-neutral / credential-free)"
+    ],
+    "threat_model": [
+      "TM-R-xx (sessiz/iz bırakmayan break-glass erişimi — her Tier B GRANT tenant'a ANLIK + TESLİM bildirim + WORM audit üretir; notification_dropped=0/unaudited_notification=0)",
+      "TM-I-02 (L0 platform rolü tenant içeriğini görür — tenant security_compliance_officer + tenant_owner DERHAL haberdar; incomplete_recipients=0)",
+      "TM-I-xx (bildirim cross-tenant sızıntısı — alıcılar yalnız target_tenant; notification_misroute=0)"
+    ],
+    "consumes": [
+      "12.3.2 break-glass-tier-b config/tier-b-model.json (access_decision GRANT_TIER_B/PENDING/DENY + reason_code taşıma + break_glass_id — RESİPROKAL) — TÜKETİLİR",
+      "12.1.1 rbac-model config/rbac-roles.json (security_compliance_officer + tenant_owner alıcı tenant rolleri + L0 platform aktör rolleri — RESİPROKAL) — TÜKETİLİR",
+      "12.1.8 worm-audit config/worm-audit-model.json (append-only/WORM + hash-zincir — bildirim audit DEĞİŞMEZLİĞİ RESİPROKAL) — TÜKETİLİR",
+      "tier-b-notify-model.json (frozen — reason_code_policy[require + controlled_vocabulary + catalog] + notification_policy[required_recipient_roles + immediate + require_delivery + tenant_bound] + concurrency_policy + audit + actor_roles)"
+    ],
+    "consumed_by": [
+      "12.3.4 regüle tenant require_tenant_approval toggle + DPA bağı (bu modülün NOTIFY/BLOCK kararına regüle tenant onay katmanı ekler)",
+      "1.x F1/F2 kod (gerçek FastAPI break-glass router + bildirim dispatch [e-posta/webhook/in-app] + WORM audit yazımı); 0.4.7 gözlemlenebilirlik"
+    ],
+    "delegates": [
+      "12.3.2 (Tier B erişim-verme: maker-checker + time-boxed token + token-binding + replay + WORM audit — access_decision TÜKETİLİR)",
+      "12.3.4 (regüle tenant require_tenant_approval toggle + DPA)",
+      "12.3.1 (Tier sınıflandırma A/B/forbidden + ESCALATE_TIER_B)",
+      "12.1.2 / 12.1.3 (rol→permission-key bundle + scope kararı)",
+      "12.1.8 (WORM audit zinciri)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Tier B, üç katmanlı break-glass'ın İÇERİK/PII katmanıdır (BRD §17.7, SAD §14.4.2). Bu modül o katmanın gerekçe-kodu + bildirim yüzeyini sahiplenir: L0 platform rolü tenant içeriğine (transcript/recording/contact) eriştiğinde (GRANT_TIER_B), erişim (1) ZORUNLU + GEÇERLİ bir gerekçe kodu taşımalı (semantik) ve (2) tenant'ın security_compliance_officer + tenant_owner rollerine ANLIK + TESLİM bildirim tetiklemelidir. Motor yalnız KARARI + bildirim kaydını + PII'siz/token'siz WORM audit kaydını + model bütünlük manifestini üretir (gerçek FastAPI break-glass router + bildirim dispatch F1/F2 kod aşamasında); deterministik kontrol düzlemi (Date.now/random YOK; tick=dakika sanal-saat). Vendor-neutral (ADR-002/013).",
+    "tier": "Tier B (üç katmanlı break-glass'ın içerik/PII katmanı; gerekçe kodu + tenant bildirimi)",
+    "owns": "BRD §17.7 / SAD §14.4.2 TIER B GEREKÇE-KODU + BİLDİRİM KARARI: BreakGlassTierBNotifyEvent → malformed kapısı (fail-closed) + access_decision yönlendirme (PENDING/DENY → NO_NOTIFY [içerik okunmadı]; GRANT_TIER_B → devam) + GEREKÇE-KODU ZORUNLULUĞU (eksik → BLOCK missing_reason_code; N2) + GEREKÇE-KODU SEMANTİĞİ (katalog dışı → BLOCK invalid_reason_code; N3) + BİLDİRİM (her iki tenant rolü? incomplete_recipients N4 + anlık? delayed_notification N5 + teslim? notification_dropped N6 + tenant-bound? notification_misroute N7) + WORM audit (N8) + replay-safe (N9) + terminal {NOTIFY|NO_NOTIFY|BLOCK} + model bütünlük manifesti (N10) + karar kanıtı",
+    "delegates": "Tier B erişim-verme (maker-checker + token) → 12.3.2 (TÜKETİLİR); regüle tenant toggle + DPA → 12.3.4; Tier sınıflandırma + ESCALATE → 12.3.1; rol→permission-key/scope → 12.1.2/12.1.3; WORM audit zinciri → 12.1.8",
+    "deterministic": true,
+    "fail_closed": true,
+    "decision_at": "Tier B break-glass erişim (GRANT_TIER_B) anı gerekçe-kodu doğrulama + tenant bildirim kararı (deterministik kontrol düzlemi; gerçek router + bildirim dispatch + WORM audit yazımı F1/F2 kod)",
+    "trace": "FR-IAM-009, BRD §17.7, SAD §14.4.2, ADR-013"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ Tier B gerekçe-kodu + bildirim kararı. Önce malformed; sonra access_decision yönlendirme (yalnız GRANT_TIER_B bildirim/gerekçe gerektirir); sonra gerekçe-kodu zorunluluğu (eksik → BLOCK); sonra gerekçe-kodu semantiği (katalog dışı → BLOCK); sonra bildirim (her iki rol + anlık + teslim + tenant-bound); sonra audit (WORM/PII-free/immutable) + replay-safe. Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "access_routing", "field": "yalnız GRANT_TIER_B bildirim/gerekçe gerektirir; PENDING/DENY → NO_NOTIFY (içerik okunmadı)", "invariant": "N1", "outcome": "NOTIFY|NO_NOTIFY|BLOCK",
+       "rule": "access_decision 12.3.2'den TÜKETİLİR. GRANT_TIER_B → içerik okundu → gerekçe-kodu + bildirim ZORUNLU. PENDING (onay bekliyor) / DENY (reddedildi) → içerik OKUNMADI → bildirim GEREKMEZ → NO_NOTIFY (DOĞRU, ihlal değil). Tanınmayan access_decision / malformed event → fail-closed BLOCK."},
+      {"id": "reason_code_required", "field": "GRANT_TIER_B gerekçe kodu OLMADAN ilerleyemez", "invariant": "N2", "outcome": "NOTIFY|BLOCK",
+       "rule": "ÇEKİRDEK (FR-IAM-009 'zorunlu gerekçe kodu'; SAD §14.4.2): her Tier B GRANT bir reason_code TAŞIMAK ZORUNDA. reason_code eksik/boş ile GRANT fail-closed BLOCK'lanır (erişim geçersiz). Eksik gerekçe kodu ile bildirim/erişim ilerletmek = missing_reason_code. missing_reason_code=0"},
+      {"id": "reason_code_semantics", "field": "reason_code kontrollü kataloğdan OLMALI (serbest-metin/bilinmeyen → BLOCK)", "invariant": "N3", "outcome": "NOTIFY|BLOCK",
+       "rule": "ÇEKİRDEK gerekçe-kodu SEMANTİĞİ (FR-IAM-009; bu modülün SAHİP olduğu, 12.3.2'nin DELEGE ettiği): reason_code SERBEST-METİN DEĞİL — kontrollü reason_code_catalog'dan bir OPAK koddur. Katalog dışı / serbest-metin / bilinmeyen gerekçe BLOCK'lanır (controlled_vocabulary). Geçersiz/serbest gerekçe ile ilerletmek = invalid_reason_code. invalid_reason_code=0"},
+      {"id": "both_recipient_roles", "field": "bildirim security_compliance_officer VE tenant_owner'a gider", "invariant": "N4", "outcome": "NOTIFY",
+       "rule": "ÇEKİRDEK (FR-IAM-009 'tenant'ın security_compliance_officer ve tenant_owner rollerine bildirim'; 12.1.1 RESİPROKAL): NOTIFY HER İKİ zorunlu tenant rolüne (security_compliance_officer + tenant_owner) gitmek ZORUNDA. Eksik herhangi bir zorunlu rol = incomplete_recipients. incomplete_recipients=0"},
+      {"id": "immediate_notification", "field": "bildirim ANLIK (notify_sla_ticks içinde)", "invariant": "N5", "outcome": "NOTIFY",
+       "rule": "ÇEKİRDEK (FR-IAM-009 'ANLIK bildirim'): bildirim erişim anından itibaren notify_sla_ticks (sanal-saat dakika) içinde gönderilir/teslim edilir. SLA dışı (geç) bildirim = delayed_notification (anlık değil). delayed_notification=0"},
+      {"id": "no_silent_access", "field": "her Tier B GRANT teslim edilen bildirim üretir (sessiz break-glass yok)", "invariant": "N6", "outcome": "NOTIFY",
+       "rule": "ÇEKİRDEK fail-closed (FR-IAM-009; altın kural BRD §17): her Tier B GRANT_TIER_B TESLİM edilen bir bildirim ZORUNLU üretir — sessiz/bastırılmış/düşürülmüş bildirim YOK. Bildirim teslim edilmeden GRANT (sessiz break-glass erişimi) = notification_dropped. notification_dropped=0"},
+      {"id": "notification_tenant_binding", "field": "tüm alıcılar target_tenant'a aittir", "invariant": "N7", "outcome": "NOTIFY",
+       "rule": "Bildirim alıcıları YALNIZ target_tenant'a aittir (least-privilege; FR-TEN-002): başka tenant'a (cross-tenant) bildirim, tenant A'nın içeriği erişimini tenant B'ye SIZDIRIR. recipient.tenant_id ≠ target_tenant_id = notification_misroute. notification_misroute=0"},
+      {"id": "audit_emitted", "field": "her bildirim kararı DEĞİŞMEZ (WORM) audit üretir; PII/token-free + immutable", "invariant": "N8", "outcome": "NOTIFY|NO_NOTIFY|BLOCK",
+       "rule": "ÇEKİRDEK tam-audit (BRD §17.7, SAD §14.4.2, FR-IAM-009/006/FR-REC-009): her karar (NOTIFY/NO_NOTIFY/BLOCK) DEĞİŞMEZ (append-only/WORM) audit üretir (12.1.8 RESİPROKAL; break_glass_id ile). Audit'siz bildirim = unaudited_notification. Audit + bildirim PII-free + token-free (HAM transcript/recording/contact + HAM token DEĞERİ YAZILMAZ; FR-REC-004) = audit_pii. Emitilen kayıt tahrifatı (row_hash uyumsuz) = audit_mutable. unaudited_notification=0, audit_pii=0, audit_mutable=0"},
+      {"id": "replay_safe", "field": "bir grant için tek bildirim; çözülmüş bildirim yeniden gönderilemez", "invariant": "N9", "outcome": "NOTIFY",
+       "rule": "İdempotent + replay-güvenli: bir break-glass grant için TEK bildirim üretilir; çözülmüş (prior_state ∈ {DELIVERED, ACKNOWLEDGED}) bildirim bayat kararla DİRİLTİLEMEZ/yeniden gönderilemez (alarm yorgunluğu / sahte tetik). Çözülmüş bildirimi yeniden gönder = notify_replay. notify_replay=0"},
+      {"id": "model_integrity", "field": "bildirim modeli frozen + model_hash sha256", "invariant": "N10", "outcome": "NOTIFY|NO_NOTIFY|BLOCK",
+       "rule": "model (reason_code_policy/notification_policy/concurrency_policy/audit/actor_roles) frozen; model_hash = sha256(kanonik); çalışma anında tahrif (ör. require_reason_code kapatma / required_recipient_roles'tan rol düşürme / require_delivery kapatma) yeniden-hesaplanan hash'le yakalanır → model_tampered. Gerekçe/bildirim yüzeyi audit edilebilir (ADR-013). model_tampered=0"}
+    ],
+    "evaluation": "malformed_then_access_routing_then_reason_required_then_reason_semantics_then_notification_then_audit_replay",
+    "trace": "FR-IAM-009, BRD §17.7, SAD §14.4.2, ADR-013"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed gerekçe-kodu + bildirim algoritması. Adımlar: (1) malformed (request_id eksik / actor_role L0 değil / target_tenant eksik / tier≠B / access_decision tanınmaz → BLOCK). (2) access routing: access_decision ∈ {PENDING, DENY} → NO_NOTIFY (içerik okunmadı, bildirim gerekmez). (3) GRANT_TIER_B: reason_code eksik → BLOCK (missing_reason_code). (4) reason_code katalog dışı → BLOCK (invalid_reason_code). (5) bildirim üret: zorunlu alıcı roller (security_compliance_officer + tenant_owner), her biri target_tenant, teslim, anlık (≤sla). (6) replay: prior_state çözülmüş → NO_NOTIFY (idempotent, yeniden gönderme). (7) aksi → NOTIFY. (8) audit emit (her karar — DEĞİŞMEZ/WORM). Belirsizlik/malformed/eksik-gerekçe/geçersiz-gerekçe → BLOCK (fail-closed).",
+    "algorithm": "malformed ⇒ BLOCK(malformed) → access_decision ∈ {PENDING,DENY} ⇒ NO_NOTIFY → reason_code eksik ⇒ BLOCK(missing_reason_code) → reason_code ∉ catalog ⇒ BLOCK(invalid_reason_code) → prior_state çözülmüş ⇒ NO_NOTIFY(already_notified) → recipients={security_compliance_officer,tenant_owner}@target_tenant teslim+anlık ⇒ NOTIFY → audit emit (her karar, WORM)",
+    "default": "BLOCK",
+    "fail_safe_terminal": "no access (terminal=BLOCK ⇒ erişim geçersiz / bildirim sessizliği yok; malformed/eksik-gerekçe/geçersiz-gerekçe ⇒ BLOCK; erişim verilmedi [PENDING/DENY] ⇒ NO_NOTIFY)",
+    "trace": "SR-IAM-009, BRD §17.7, SAD §14.4.2"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal kararlar. NOTIFY = içerik erişimi (GRANT_TIER_B) + GEÇERLİ gerekçe kodu + her iki tenant rolüne ANLIK + TESLİM bildirim + tam-audit. NO_NOTIFY = erişim verilmedi (PENDING/DENY) → içerik okunmadı → bildirim GEREKMEZ (DOĞRU ara durum, ihlal değil) VEYA idempotent (zaten bildirilmiş). BLOCK = malformed / gerekçe kodu eksik (missing_reason_code) / gerekçe kodu geçersiz (invalid_reason_code) → fail-closed (erişim geçersiz). Erişim-verilmedi'nin NO_NOTIFY'ı + eksik/geçersiz gerekçenin BLOCK'u DOĞRU çıktıdır (altın kural + zorunlu gerekçe korunur).",
+    "list": ["NOTIFY", "NO_NOTIFY", "BLOCK"],
+    "terminal": ["NOTIFY", "NO_NOTIFY", "BLOCK"]
+  },
+
+  "model": {
+    "$comment": "Bildirim modeli özeti = config/tier-b-notify-model.json (frozen). reason_code_policy (require_reason_code + controlled_vocabulary + reason_code_catalog) + notification_policy (required_recipient_roles=[security_compliance_officer,tenant_owner] + immediate + notify_sla_ticks + require_delivery + tenant_bound + pii_free; 12.1.1 RESİPROKAL) + concurrency_policy (replay-safe) + audit (WORM; PII/token-free; 12.1.8 RESİPROKAL) + actor_roles (L0; 12.1.1 RESİPROKAL).",
+    "frozen": true,
+    "tier": "B",
+    "data_class": "tenant_content",
+    "required_recipient_roles": ["security_compliance_officer", "tenant_owner"],
+    "notify_sla_ticks": 1,
+    "actor_roles": ["platform_owner", "platform_sre", "platform_billing"],
+    "audit": "WORM (append-only); PII/token-free; row_hash sha256; her bildirim kararı audit'lenir (12.1.8 RESİPROKAL; break_glass_id ile)"
+  },
+
+  "enforcement": {
+    "$comment": "Tier B gerekçe-kodu + bildirim enforcement (BRD §17.7, SAD §14.4.2). reason_code — zorunlu + kontrollü katalog; eksik/geçersiz → BLOCK. notification — her GRANT_TIER_B her iki tenant rolüne (security_compliance_officer + tenant_owner) ANLIK + TESLİM bildirim; sessiz/bastırılmış YOK; tenant-bound. audit_layer — her karar DEĞİŞMEZ (WORM) audit (12.1.8 RESİPROKAL; break_glass_id). Karar deterministik kontrol düzlemi.",
+    "reason_code": "her Tier B GRANT zorunlu reason_code taşır + kontrollü reason_code_catalog'dan olmalı; eksik → BLOCK (missing_reason_code), katalog dışı → BLOCK (invalid_reason_code) (FR-IAM-009 'zorunlu gerekçe kodu')",
+    "notification": "her GRANT_TIER_B → tenant security_compliance_officer + tenant_owner rollerine ANLIK (≤notify_sla_ticks) + TESLİM bildirim; sessiz/düşürülmüş bildirim YOK; alıcılar yalnız target_tenant (FR-IAM-009 'anlık bildirim'; 12.1.1 RESİPROKAL)",
+    "audit_layer": "her bildirim kararı DEĞİŞMEZ (append-only/WORM) audit üretir; row_hash sha256 hash-zincir (12.1.8 worm-audit RESİPROKAL; break_glass_id ile); ham PII + ham token yazılmaz (FR-REC-004)",
+    "decision_at": "Tier B break-glass erişim (GRANT_TIER_B) anı (kontrol düzlemi; gerçek router + bildirim dispatch + WORM audit yazımı F1/F2 kod)",
+    "trace": "FR-IAM-009, BRD §17.7, SAD §14.4.2, 12.3.2, 12.1.1, 12.1.8"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. missing_reason_code (N2 ÇEKİRDEK) = gerekçe kodu olmadan ilerleme; invalid_reason_code (N3 ÇEKİRDEK) = katalog dışı/serbest gerekçe ile ilerleme; incomplete_recipients (N4 ÇEKİRDEK) = her iki zorunlu role gitmedi; delayed_notification (N5 ÇEKİRDEK) = SLA dışı bildirim; notification_dropped (N6 ÇEKİRDEK) = sessiz/teslim edilmemiş bildirim (sessiz break-glass); notification_misroute (N7) = cross-tenant alıcı; unaudited_notification (N8) = audit'siz bildirim; audit_pii (N8) = audit/bildirimde ham PII/token; audit_mutable (N8) = emitilen audit tahrif (WORM ihlali); notify_replay (N9) = çözülmüş bildirim yeniden; model_tampered (N10) = model bütünlük manifesti tutmuyor. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1/F2 canlı (FastAPI break-glass router + bildirim dispatch + WORM audit) verisinde doğrulanır.",
+    "max_missing_reason_code": 0,
+    "max_invalid_reason_code": 0,
+    "max_incomplete_recipients": 0,
+    "max_delayed_notification": 0,
+    "max_notification_dropped": 0,
+    "max_notification_misroute": 0,
+    "max_unaudited_notification": 0,
+    "max_audit_pii": 0,
+    "max_audit_mutable": 0,
+    "max_notify_replay": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "Bildirim her karar için metrikleri hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. l0_break_glass_notify_total{actor_role,decision,result} → bildirim karar sayımı; break_glass_notify_violation_total → missing_reason_code VEYA invalid_reason_code VEYA incomplete_recipients VEYA delayed_notification VEYA notification_dropped VEYA notification_misroute VEYA unaudited_notification VEYA audit_pii VEYA audit_mutable VEYA notify_replay VEYA model_tampered (N2..N10 ihlal alarmı, 0 olmalı). actor_role+decision+result+recipient_role DÜŞÜK kardinalite (label uygun); correlation_id/break_glass_id/target_tenant_id/request_id + reason_code (opak ama yüksek-kard) YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM İÇERİK/PII + HAM TOKEN metrikte VE log'da VE bildirim yükünde YOK (BRD §17.7/FR-REC-004). notification_dropped>0 (sessiz break-glass) VEYA incomplete_recipients>0 (tenant haberdar değil) VEYA missing_reason_code>0 VEYA invalid_reason_code>0 VEYA notification_misroute>0 (cross-tenant sızıntı) → kritik alarm ≤2dk (SAD §17.2, NFR 10.1) = break-glass bildirim ihlali güvenlik olayı.",
+    "metrics": ["l0_break_glass_notify_total", "break_glass_notify_violation_total"],
+    "low_cardinality_labels": ["actor_role", "decision", "result", "recipient_role"],
+    "high_cardinality_trace_only": ["correlation_id", "break_glass_id", "target_tenant_id", "request_id", "reason_code"],
+    "alarm": "notification_dropped>0 (sessiz break-glass — N6, FR-IAM-009) VEYA incomplete_recipients>0 (tenant haberdar değil — N4) VEYA missing_reason_code>0 (zorunlu gerekçe yok — N2) VEYA invalid_reason_code>0 (serbest/geçersiz gerekçe — N3) VEYA notification_misroute>0 (cross-tenant sızıntı — N7) VEYA unaudited_notification>0 (sessiz audit — N8) VEYA audit_mutable>0 (WORM ihlali — N8) VEYA model_tampered>0 (N10) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "N1", "desc": "Determinizm/tamlık + kanıt + access routing: her BreakGlassTierBNotifyEvent tanımlı malformed→access_routing→reason_required→reason_semantics→notification→audit/replay algoritması boyunca ilerler ve bir terminal karara {NOTIFY|NO_NOTIFY|BLOCK} ulaşır; aynı girdi → aynı çıktı (deterministik; model_hash sha256 kanonik JSON; tick=dakika sanal-saat; Date.now/random YOK); varsayılan BLOCK (fail-closed); access_decision ∈ {PENDING,DENY} → NO_NOTIFY (içerik okunmadı, bildirim gerekmez — DOĞRU). Her karar kanıt taşır (request_id + actor_role + target_tenant + access_decision + reason_code + tier + terminal + notified_roles + delivered + model_hash). stuck_state=0, missing_evidence=0.", "trace": "SR-IAM-009, BRD §17.7"},
+    {"id": "N2", "desc": "Gerekçe kodu ZORUNLU ÇEKİRDEK (FR-IAM-009 'zorunlu gerekçe kodu'; SAD §14.4.2): her Tier B GRANT_TIER_B bir reason_code TAŞIMAK ZORUNDA. reason_code eksik/boş ile GRANT fail-closed BLOCK'lanır (erişim geçersiz). Eksik gerekçe kodu ile bildirim/erişim ilerletmek = missing_reason_code. missing_reason_code=0.", "trace": "FR-IAM-009, BRD §17.7, SAD §14.4.2"},
+    {"id": "N3", "desc": "Gerekçe kodu SEMANTİĞİ ÇEKİRDEK (FR-IAM-009; bu modülün SAHİP olduğu, 12.3.2'nin DELEGE ettiği): reason_code SERBEST-METİN DEĞİL — kontrollü reason_code_catalog'dan bir OPAK koddur (controlled_vocabulary). Katalog dışı / serbest-metin / bilinmeyen gerekçe ile ilerletmek BLOCK'lanır = invalid_reason_code. invalid_reason_code=0.", "trace": "FR-IAM-009, BRD §17.7, SAD §14.4.2"},
+    {"id": "N4", "desc": "Her iki alıcı rol ÇEKİRDEK (FR-IAM-009 'tenant'ın security_compliance_officer ve tenant_owner rollerine bildirim'; 12.1.1 RESİPROKAL): NOTIFY HER İKİ zorunlu tenant rolüne (security_compliance_officer + tenant_owner) gitmek ZORUNDA. Eksik herhangi bir zorunlu rol = incomplete_recipients. incomplete_recipients=0.", "trace": "FR-IAM-009, SAD §14.4.2"},
+    {"id": "N5", "desc": "Anlık bildirim ÇEKİRDEK (FR-IAM-009 'ANLIK bildirim'): bildirim erişim anından itibaren notify_sla_ticks (sanal-saat dakika) içinde gönderilir/teslim edilir. SLA dışı (geç) bildirim 'anlık' değildir = delayed_notification. delayed_notification=0.", "trace": "FR-IAM-009, BRD §17.7"},
+    {"id": "N6", "desc": "Sessiz break-glass YOK ÇEKİRDEK (FR-IAM-009; altın kural BRD §17): her Tier B GRANT_TIER_B TESLİM edilen bir bildirim ZORUNLU üretir — sessiz/bastırılmış/düşürülmüş bildirim YOK. Bildirim teslim edilmeden GRANT (sessiz break-glass erişimi) = notification_dropped. notification_dropped=0.", "trace": "FR-IAM-009, BRD §17"},
+    {"id": "N7", "desc": "Bildirim tenant-binding (FR-TEN-002): bildirim alıcıları YALNIZ target_tenant'a aittir. Başka tenant'a (cross-tenant) bildirim, tenant A'nın içeriği erişimini tenant B'ye SIZDIRIR. recipient.tenant_id ≠ target_tenant_id = notification_misroute. notification_misroute=0.", "trace": "FR-IAM-009, FR-TEN-002"},
+    {"id": "N8", "desc": "Audit emitted / PII-free / immutable ÇEKİRDEK (BRD §17.7, SAD §14.4.2 'tam-audit'li break-glass router', FR-IAM-009/006/FR-REC-009): her bildirim kararı (NOTIFY/NO_NOTIFY/BLOCK) DEĞİŞMEZ (append-only/WORM) audit üretir (12.1.8 RESİPROKAL; break_glass_id ile). Audit'siz bildirim = unaudited_notification. Audit + bildirim PII-free + token-free (HAM transcript/recording/contact + HAM token DEĞERİ YAZILMAZ; FR-REC-004) = audit_pii. Emitilen kayıt tahrifatı (row_hash uyumsuz) = audit_mutable. unaudited_notification=0, audit_pii=0, audit_mutable=0.", "trace": "FR-IAM-006, FR-REC-009, FR-REC-004, ADR-016, 12.1.8"},
+    {"id": "N9", "desc": "Replay-safe / idempotent: bir break-glass grant için TEK bildirim üretilir; çözülmüş (prior_state ∈ {DELIVERED, ACKNOWLEDGED}) bildirim bayat kararla DİRİLTİLEMEZ/yeniden gönderilemez (alarm yorgunluğu / sahte tetik). Çözülmüş bildirimi yeniden gönder = notify_replay. notify_replay=0.", "trace": "FR-IAM-009, SAD §14.4.2"},
+    {"id": "N10", "desc": "Model bütünlük manifesti: bildirim modeli frozen (reason_code_policy/notification_policy/concurrency_policy/audit/actor_roles) + model_hash = sha256(kanonik) deterministik; çalışma anında tahrif (ör. require_reason_code kapatma / required_recipient_roles'tan rol düşürme / require_delivery kapatma) yeniden-hesaplanan hash tutmaz → model_tampered. Gerekçe/bildirim yüzeyinin değiştirilemez olduğunu test edilebilir kılar (ADR-013). model_tampered=0.", "trace": "FR-IAM-009, ADR-013"},
+    {"id": "N11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (actor_role/decision/result/recipient_role); correlation_id/break_glass_id/target_tenant_id/reason_code metrikte yok, yalnız trace; HAM İÇERİK/PII (transcript/recording/contact DEĞERİ) + HAM TOKEN DEĞERİ metrikte VE log'da VE bildirim yükünde yok (0.4.7 label_policy, BRD §17.7/FR-REC-004).", "trace": "BRD §17.7, 0.4.7 label_policy"},
+    {"id": "N12", "desc": "Sır/içerik yok: model/spec/sample HAM içerik / PII (transcript/recording/contact/telefon/kart/OTP/ad DEĞERİ) / credential (break-glass TOKEN DEĞERİ / DB şifresi) tutmaz — yalnız ACTOR ROL adları (platform_owner) + ALICI ROL adları (security_compliance_officer/tenant_owner) + VERİ-SINIFI enum (tenant_content) + RESOURCE_TYPE adı (transcript) + TIER/DECISION enum (B/NOTIFY) + reason_code enum (rc-* OPAK kod, PII değil) + tick (tamsayı) + yapısal korelasyon/aktör KİMLİK (req-/bg-/t- slug) + HASH. Rol/sınıf/kaynak/tier/karar/reason-kod/kimlik/hash PII DEĞİLDİR. Bu modül Tier B GEREKÇE-KODU + BİLDİRİM KARARINI verir — ham satır içeriği (PII) ve ham token AKMAZ; bildirim yükü de PII'siz + token'sizdir. secret_or_pii=0.", "trace": "BRD §17.7, FR-REC-004, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/model/sample'lar HAM içerik, PII (TRANSCRIPT/RECORDING/CONTACT içeriği, TELEFON numarası, KART [PAN/CVV], OTP kodu, PAROLA, müşteri ADI DEĞERİ) veya credential (break-glass TOKEN / DB şifresi DEĞERİ) TUTMAZ — yalnız ACTOR ROL ADLARI (platform_owner/platform_sre/platform_billing) + ALICI ROL ADLARI (security_compliance_officer/tenant_owner) + VERİ-SINIFI ENUM (tenant_content) + RESOURCE_TYPE ADLARI (transcript/recording/contact) + TIER ENUM (B) + DECISION ENUM (NOTIFY/NO_NOTIFY/BLOCK) + reason_code ENUM (OPAK kontrollü kod ör. rc-incident-debug; serbest-metin DEĞİL, PII DEĞİL) + tick (SANAL-SAAT tamsayı dakika) + yapısal korelasyon/aktör KİMLİK (SENTETİK slug ör. req-001/bg-001/t-acme) + HASH (sha256). Rol/sınıf/kaynak/tier/decision/reason-kod/kimlik/hash PII DEĞİLDİR; tasarımca PII-olmayandır. Bu modül Tier B GEREKÇE-KODU + BİLDİRİM KARARINI verir — ham satır içeriği (transcript/recording/contact PII) + HAM TOKEN DEĞERİ bu modülde AKMAZ; bildirim yükü ve audit kaydı da PII'siz + token'sizdir.",
+    "forbids": ["transcript_text_value", "recording_audio_value", "contact_pii_value", "customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "customer_name_value", "db_password_value", "connection_string_value", "break_glass_token_value", "token_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}
