@@ -1,0 +1,21 @@
+{
+  "$comment": "PASS (DOĞRU RED): tenant realm (L1/L2) tenant lifecycle create dener → REJECT (FR-IAM-008 altın kural; L0-only). İhlal yok; kapı geçer (motor doğru reddetti; COMMIT olsaydı R2 cross_realm_op).",
+  "name": "tp-pass-reject-cross-realm",
+  "expect": "pass",
+  "request_id": "req-011",
+  "op": "create",
+  "actor_realm": "tenant",
+  "plane": "tenant_application_plane",
+  "actor_permissions": ["tenant:provision"],
+  "current_status": null,
+  "tenant_id": "t-011",
+  "tenant_name": "Self Serve",
+  "home_region": "EU",
+  "kms_key_ref": "kms-eu-050",
+  "isolation_mode": "shared",
+  "compliance_profile": "PROFILE-EU",
+  "default_locale": "tr-TR",
+  "timezone": "Europe/Istanbul",
+  "audit_emitted": true,
+  "expected": {"terminal": "REJECT"}
+}

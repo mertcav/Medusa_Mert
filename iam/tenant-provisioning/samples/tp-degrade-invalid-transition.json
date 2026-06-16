@@ -1,0 +1,14 @@
+{
+  "name": "tp-degrade-invalid-transition",
+  "expect": "fail",
+  "request_id": "req-103",
+  "op": "activate",
+  "actor_realm": "platform",
+  "plane": "platform_control_plane",
+  "actor_permissions": ["tenant:provision"],
+  "current_status": "terminated",
+  "tenant_id": "t-003",
+  "audit_emitted": true,
+  "inject": ["invalid_transition"],
+  "$comment": "DEGRADE invalid_transition: terminated→active geçersiz geçiş COMMIT → invalid_transition (R4 terminated TERMİNAL ihlali; DB.md §9)"
+}

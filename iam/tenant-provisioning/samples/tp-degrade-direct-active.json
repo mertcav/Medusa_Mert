@@ -1,0 +1,21 @@
+{
+  "name": "tp-degrade-direct-active",
+  "expect": "fail",
+  "request_id": "req-105",
+  "op": "create",
+  "actor_realm": "platform",
+  "plane": "platform_control_plane",
+  "actor_permissions": ["tenant:provision"],
+  "current_status": null,
+  "tenant_id": "t-022",
+  "tenant_name": "Fast Track",
+  "home_region": "UK",
+  "kms_key_ref": "kms-uk-022",
+  "isolation_mode": "shared",
+  "compliance_profile": "PROFILE-UK",
+  "default_locale": "en-GB",
+  "timezone": "Europe/London",
+  "audit_emitted": true,
+  "inject": ["direct_active"],
+  "$comment": "DEGRADE direct_active: create doğrudan 'active' (provisioning iş akışını atlar) COMMIT → incomplete_provisioning (R5 ilk durum provisioning olmalı)"
+}

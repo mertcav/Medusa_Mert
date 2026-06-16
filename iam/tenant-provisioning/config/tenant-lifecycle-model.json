@@ -1,0 +1,91 @@
+{
+  "$comment": "WBS 12.4.1 — TENANT CRUD + PROVISIONING (L0) modeli (FR-TEN-001 'Platform birden fazla kurumsal müşteriyi tenant bazında yönetmelidir'; tenant yaşam döngüsü işlemleri BRD §17 'Tenant oluşturma/askıya alma/silme, plan atama, kaynak kotası tanımı → Platform Admin Console (L0)'; DB.md §5.1 tenant tablosu status CHECK [provisioning/active/suspended/terminated] + isolation_mode [shared/dedicated] + home_region + kms_key_ref). FROZEN kontrol-düzlemi modeli: tenant yaşam döngüsü L0-only deterministik bir DURUM MAKİNESİ olarak modellenir; CRUD + lifecycle işlemleri (create/read/update/activate/suspend/resume/terminate) yalnız platform realm (FR-IAM-008 L0 ⟂ tenant) + platform_control_plane (ADR-011 internal-only) + gerekli permission-key (tenant:provision / tenant:suspend — 12.1.2 katalog, platform_owner bundle 12.1.1/ADR-012) ile yürütülür. Her yeni tenant TASARIM GEREĞİ kendi izolasyon yüzeyini alır: tenant başına AYRI kms_key_ref (NFR 10.6 'Tenant bazında ayrı encryption key'; FR-TEN-002 izolasyon), valid home_region (NFR 10.7 UK/EU/NA/ME), compliance_profile (BRD §14.4). Provisioning create → status 'provisioning' (doğrudan 'active' DEĞİL); activate ile 'active'. Terminate GERİ DÖNDÜRÜLEMEZ (DB.md §9 retention/crypto-shred) → confirm + gerekçe + WORM audit zorunlu; 'terminated' terminal (çıkış yok). Her mutasyon WORM audit'e (FR-REC-009/FR-IAM-006; 12.1.8). Bu dosya FROZEN — değiştirilemez yaşam döngüsü yüzeyi (model_hash sha256 ile audit edilebilir). Kaynak doğruluk FR-TEN-001/002, BRD §17/§14.4, DB.md §5.1/§9, NFR 10.6/10.7, ADR-011/012; çelişkide onlar esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+  "realm": {
+    "$comment": "Tenant yaşam döngüsü işlemleri YALNIZ L0 platform realm + platform_control_plane'de yürütülür (FR-IAM-008 altın kural — platform rolleri tenant rollerinden tamamen ayrı; ADR-011 L0 internal-only). tenant realm'in (L1/L2) tenant lifecycle yürütmesi cross-realm ihlalidir.",
+    "required_actor_realm": "platform",
+    "required_plane": "platform_control_plane",
+    "valid_realms": ["platform", "tenant"],
+    "valid_planes": ["platform_control_plane", "tenant_application_plane"],
+    "trace": "FR-IAM-008, ADR-011, SAD §14.4.1"
+  },
+  "statuses": {
+    "$comment": "Tenant yaşam döngüsü durumları (DB.md §5.1 tenant.status CHECK). terminated = TERMİNAL (geri döndürülemez; DB.md §9). Default ilk durum create sonrası 'provisioning'.",
+    "list": ["provisioning", "active", "suspended", "terminated"],
+    "initial": "provisioning",
+    "terminal": ["terminated"]
+  },
+  "operations": {
+    "$comment": "CRUD + lifecycle işlemleri. read mutasyon değildir (durum değiştirmez, audit-zorunlu değil). diğerleri mutasyon (WORM audit zorunlu). Her op gerekli permission-key'e bağlanır — anahtarlar 12.1.2 kataloğundan (yeni anahtar İCAT EDİLMEZ): tenant:provision (create/read/update/activate/terminate) + tenant:suspend (suspend/resume); ikisi de platform_owner bundle'ında (12.1.1/ADR-012).",
+    "list": ["create", "read", "update", "activate", "suspend", "resume", "terminate"],
+    "mutating": ["create", "update", "activate", "suspend", "resume", "terminate"],
+    "irreversible": ["terminate"]
+  },
+  "op_permission": {
+    "$comment": "İşlem → gerekli permission-key (resource:action; 12.1.2 katalog). Yetki kararı HER ZAMAN backend'de (BRD §17.7). create/read/update/activate/terminate = tenant:provision (tenant yaşam döngüsü yönetimi); suspend/resume = tenant:suspend (askıya alma yetkisi).",
+    "create": "tenant:provision",
+    "read": "tenant:provision",
+    "update": "tenant:provision",
+    "activate": "tenant:provision",
+    "suspend": "tenant:suspend",
+    "resume": "tenant:suspend",
+    "terminate": "tenant:provision"
+  },
+  "transitions": {
+    "$comment": "Yaşam döngüsü durum makinesi geçişleri (op, from → to). from='none' = henüz tenant yok (create). read/update durum değiştirmez (to=from). Geçerli olmayan geçiş (ör. terminated→active, active→active activate, suspended yokken resume) invalid_transition'dır. terminated'dan ÇIKIŞ YOK (terminal). update yalnız active/suspended'da; provisioning/terminated'da değil. read her durumda (terminated dahil — audit/metadata).",
+    "list": [
+      {"op": "create",    "from": "none",         "to": "provisioning"},
+      {"op": "activate",  "from": "provisioning", "to": "active"},
+      {"op": "suspend",   "from": "active",       "to": "suspended"},
+      {"op": "resume",    "from": "suspended",    "to": "active"},
+      {"op": "terminate", "from": "provisioning", "to": "terminated"},
+      {"op": "terminate", "from": "active",       "to": "terminated"},
+      {"op": "terminate", "from": "suspended",    "to": "terminated"},
+      {"op": "update",    "from": "active",       "to": "active"},
+      {"op": "update",    "from": "suspended",    "to": "suspended"},
+      {"op": "read",      "from": "provisioning", "to": "provisioning"},
+      {"op": "read",      "from": "active",       "to": "active"},
+      {"op": "read",      "from": "suspended",    "to": "suspended"},
+      {"op": "read",      "from": "terminated",   "to": "terminated"}
+    ]
+  },
+  "provisioning": {
+    "$comment": "Create (provision) için zorunlu izolasyon/residency alanları (DB.md §5.1 tenant NOT NULL kolonları + NFR 10.6/10.7 + FR-TEN-002). Eksik/geçersiz alanla provision = incomplete_provisioning. retention_profile/plan_id opsiyonel (sonradan atanır; WBS 12.4.4 / billing WBS 15). Create ilk durumu 'provisioning' OLMALI (doğrudan 'active' DEĞİL — provisioning iş akışı: kms key tahsisi, region kurulumu).",
+    "required_fields": ["tenant_name", "home_region", "kms_key_ref", "isolation_mode", "compliance_profile", "default_locale", "timezone"],
+    "optional_fields": ["retention_profile", "plan_id"],
+    "regions": ["UK", "EU", "NA", "ME"],
+    "isolation_modes": ["shared", "dedicated"],
+    "initial_status_must_be": "provisioning",
+    "trace": "FR-TEN-001/002, DB.md §5.1, NFR 10.6/10.7, BRD §14.4"
+  },
+  "isolation": {
+    "$comment": "Tenant başına izolasyon yüzeyi (FR-TEN-002, NFR 10.6). Her tenant kendi kms_key_ref'ini alır — paylaşılamaz (shared encryption key = izolasyon çökmesi). tenant root row tenant_id = id (DB.md §5.1 self-row; RLS). isolation_mode shared (varsayılan mantıksal izolasyon, RLS) veya dedicated (ayrı namespace/cluster; FR-TEN-005, WBS 12.4.2, ADR-006).",
+    "per_tenant_kms_key": true,
+    "kms_key_shared_forbidden": true,
+    "trace": "FR-TEN-002, NFR 10.6, DB.md §5.1"
+  },
+  "termination": {
+    "$comment": "Terminate GERİ DÖNDÜRÜLEMEZ (DB.md §9 retention motoru + crypto-shredding KMS key sürümü iptali). confirm_irreversible=true + reason_code zorunlu; aksi halde unguarded_termination. terminated TERMİNAL — sonraki geçiş yok. Gerçek silme retention/legal-hold motoruna tabi (FR-REC-007/010; WBS 1.2.3); bu modül lifecycle KARARINI verir, ham veri silmez.",
+    "requires_confirm": true,
+    "requires_reason_code": true,
+    "delegated_data_deletion": "WBS 1.2.3 retention motoru (DB.md §9; FR-REC-010 crypto-shred; legal-hold muafiyeti FR-REC-007)",
+    "trace": "DB.md §9, FR-REC-007/010"
+  },
+  "audit": {
+    "$comment": "Her mutasyon işlemi (create/update/activate/suspend/resume/terminate) WORM append-only audit_log'a yazılır (DB.md §5.1 audit_log WORM + hash chain; FR-IAM-006/FR-REC-009; akış 12.1.8). Audit'siz mutasyon = missing_audit. read audit-zorunlu değil (mutasyon değil; yine de erişim log'lanabilir).",
+    "required_for": ["create", "update", "activate", "suspend", "resume", "terminate"],
+    "worm": true,
+    "delegated_flow": "12.1.8 worm-audit (audit_log; hash chain bütünlük)",
+    "trace": "FR-IAM-006, FR-REC-009, DB.md §5.1"
+  },
+  "data_class": {
+    "$comment": "tenant tablosu veri-sınıfı = platform (L0 yönetişim verisi; 12.2.4 l0-repo-independence table_class_of ile RESİPROKAL). tenant_provisioning_repo platform_control_plane'de PERMIT (12.2.4) — L0 tenant yaşam döngüsünü YÖNETİR; tenant İŞ İÇERİĞİNİ (call/transcript/PII) görmez (FR-IAM-008 altın kural).",
+    "tenant_table_class": "platform",
+    "reciprocal": "12.2.4 ../l0-repo-independence/config/repo-independence-model.json (table_class_of.tenant = platform; tenant_provisioning_repo PERMIT)",
+    "trace": "FR-IAM-008, 12.2.4, DB.md §6.3"
+  },
+  "terminal": ["COMMIT", "REJECT"],
+  "trace": "FR-TEN-001, FR-TEN-002, BRD §17/§14.4, DB.md §5.1/§9, NFR 10.6/10.7, ADR-011/012, 12.1.1/12.1.2/12.2.4/12.1.8"
+}

@@ -1,0 +1,169 @@
+{
+  "$comment": "WBS 12.4.1 — TENANT CRUD + PROVISIONING (L0) (FR-TEN-001 'Platform birden fazla kurumsal müşteriyi tenant bazında yönetmelidir'; BRD §17 'tenant oluşturma/askıya alma/silme, plan atama, kaynak kotası tanımı → Platform Admin Console (L0)'; DB.md §5.1 tenant tablosu + §9 geri döndürülemez silme). 12. workstream'in (IAM & Erişim) TENANT YAŞAM DÖNGÜSÜ modülü ve F1-Must yeteneği. Tenant yaşam döngüsünü DETERMİNİSTİK, FAIL-CLOSED bir DURUM MAKİNESİ + admission kararı olarak modeller: bir TenantOpRequest (op + actor_realm + plane + actor_permissions + current_status + tenant_id + provisioning alanları + kms_key_ref + confirm/reason + audit_emitted) alır → COMMIT (işlem yürütülür; durum geçişi/satır işlenir) | REJECT (işlem reddedilir; fail-closed default). İşlemler: create/read/update/activate/suspend/resume/terminate. ÇEKİRDEK garantiler: (1) R2 REALM İZOLASYONU — tenant yaşam döngüsü YALNIZ platform realm + platform_control_plane (FR-IAM-008 altın kural; ADR-011); tenant realm yürütürse cross_realm_op. (2) R3 YETKİLENDİRME — op gerekli permission-key'i gerektirir (tenant:provision / tenant:suspend; 12.1.2 katalog; platform_owner 12.1.1); yetkisiz commit = unauthorized_op. (3) R4 GEÇERLİ GEÇİŞ — yaşam döngüsü durum makinesi geçişi geçerli olmalı (terminated terminal; provisioning→active→suspended↔active→terminated); geçersiz geçiş commit = invalid_transition. (4) R5 PROVISIONING TAMLIĞI — create tüm zorunlu izolasyon/residency alanlarını taşımalı (name/home_region [NFR 10.7 UK/EU/NA/ME]/kms_key_ref [NFR 10.6]/isolation_mode/compliance_profile/locale/timezone) + ilk durum 'provisioning'; eksik commit = incomplete_provisioning. (5) R6 TENANT-BAŞINA KMS — her tenant kendi kms_key_ref'ini alır (NFR 10.6 'tenant bazında ayrı encryption key'; FR-TEN-002); paylaşılan key commit = shared_kms_key. (6) R7 İDEMPOTENT PROVISION — var olan tenant için ikinci create = duplicate_provision. (7) R8 GERİ DÖNDÜRÜLEMEZ TERMINATE KORUMASI — terminate confirm + gerekçe gerektirir (DB.md §9); korumasız = unguarded_termination. (8) R9 WORM AUDIT — her mutasyon audit_log'a (FR-REC-009/FR-IAM-006; 12.1.8); audit'siz = missing_audit. Motor DETERMİNİSTİK FAIL-CLOSED (Date.now/random YOK; model_hash sha256). Her karar terminal (R1) + kanıt + model bütünlük manifesti (R10); metrik düşük-kardinalite + ham PII yok (R11); model/spec/sample ham içerik/PII/credential (kms key materyali/connection string) tutmaz (R12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): dedicated vs shared izolasyon SINIFI seçimi/sağlanması → 12.4.2; tenant içi org yapısı (marka/departman/ülke/proje) → 12.4.3 (L1); tenant dil/saat/bölge/saklama TERCİHİ (L1) → 12.4.4; HTTP enforce_panel/tenant_scope çalışma-anı guard → 12.2.1; RLS → 12.2.3; rol→permission-key bundle → 12.1.1; permission-key kataloğu → 12.1.2; WORM audit AKIŞI → 12.1.8; repo/grant bağımsızlık → 12.2.4; break-glass → 12.3.x; kaynak kotası (vCPU/bellek/eşzamanlılık) → WBS (FR-TEN-006/007); plan/billing → WBS 15; gerçek veri silme (retention/crypto-shred) → WBS 1.2.3. KAYNAK DOĞRULUK; çelişkide FR-TEN-001 / BRD §17 / DB.md §5.1 esastır.",
+  "version": "1.0",
+  "wbs": "12.4.1",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TEN-001", "FR-TEN-002", "FR-IAM-008", "FR-IAM-006", "FR-REC-009", "FR-TST-008"],
+    "srs": ["SR-TEN-001", "SR-TEN-002"],
+    "rtm": ["TC-TEN-001"],
+    "brd": [
+      "§17 (üç katmanlı panel — 'Tenant yaşam döngüsü işlemleri [tenant oluşturma/askıya alma/silme, plan atama, kaynak kotası tanımı] Platform Admin Console (L0) üzerinden yürütülür')",
+      "§16 (28 ana varlık — Tenant kök varlık)",
+      "§14.4 (panel mimarisi + compliance_profile)",
+      "§17.7 (izolasyon/görünürlük — platform rolleri tenant iş içeriğini varsayılan göremez; yalnız metrik/kaynak)"
+    ],
+    "sad": [
+      "§14.4.1 (iki düzlemli panel — L0 ayrı internal-only Platform Control Plane; tenant lifecycle L0'da)",
+      "§13 (multi-tenant izolasyon — tenant başına KMS key, residency home_region)",
+      "§14.4.3 (permission-key tabanlı RBAC — tenant:provision/tenant:suspend platform bundle)"
+    ],
+    "adr": [
+      "ADR-011 (iki düzlemli panel dağıtımı — L0 internal-only; tenant lifecycle platform_control_plane'de)",
+      "ADR-012 (sabit rol bundle + scoped assignment — platform_owner tenant:provision/tenant:suspend taşır)",
+      "ADR-006 (shared vs dedicated tenant izolasyon — isolation_mode; sağlama 12.4.2'de)",
+      "ADR-001 (deterministik karar fonksiyonu deseni)"
+    ],
+    "threat_model": [
+      "TM-E-04 (tenant IdP'si/realm'i L0 tenant lifecycle yürütür — cross_realm_op; realm izolasyonu R2)",
+      "TM-T-03 (yetkisiz tenant provisioning/terminate — permission-key zorunluluğu R3 + WORM audit R9)",
+      "TM-I-02 (L0⟂tenant iş verisi — tenant tablosu platform-sınıf; içerik 12.2.4'te kapalı)"
+    ],
+    "consumes": [
+      "12.1.2 permission-catalog config/permission-catalog.json (tenant:provision + tenant:suspend permission-key'leri MEVCUT; yeni anahtar icat edilmez) — TÜKETİLİR",
+      "12.1.1 rbac-model config/rbac-roles.json (platform_owner bundle tenant:provision + tenant:suspend taşır; L0 realm) — TÜKETİLİR",
+      "12.2.4 l0-repo-independence config/repo-independence-model.json (table_class_of.tenant = platform; tenant_provisioning_repo platform_control_plane PERMIT — RESİPROKAL) — TÜKETİLİR",
+      "12.1.8 worm-audit config/worm-audit-model.json (mutasyon → WORM audit_log; R9 RESİPROKAL) — TÜKETİLİR",
+      "tenant-lifecycle-model.json (frozen — statuses + operations + op_permission + transitions + provisioning + isolation + termination + audit)"
+    ],
+    "consumed_by": [
+      "12.4.2 dedicated vs shared tenant (isolation_mode sağlanması; ADR-006)",
+      "12.4.3 org yapısı (L1; tenant altında marka/departman/ülke/proje) + 12.4.4 tenant tercihleri (L1)",
+      "1.x F1 kod (gerçek L0 FastAPI tenant router + tenant tablosu repository + KMS key tahsisi + retention motoru bağı)",
+      "WBS 15 billing (plan_id atama) + FR-TEN-006/007 kaynak/kota; 0.4.7 gözlemlenebilirlik"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Tenant CRUD + provisioning, L0 Platform Admin Console (ADR-011 ayrı internal-only Platform Control Plane) tenant yaşam döngüsü iş mantığıdır. Tenant kök varlığını (DB.md §5.1) DETERMİNİSTİK bir durum makinesi + admission kararıyla yönetir: create→provisioning→activate→active→suspend↔resume→terminate(terminal). YALNIZ platform realm + platform_control_plane (FR-IAM-008); op gerekli permission-key gerektirir (tenant:provision/tenant:suspend). Her yeni tenant tasarım gereği kendi izolasyon yüzeyini alır (tenant başına KMS key — NFR 10.6; valid region — NFR 10.7; compliance_profile). Terminate geri döndürülemez (DB.md §9), confirm+gerekçe+WORM audit gerektirir. Motor yalnız KARAR + kanıt + model bütünlük manifesti üretir (gerçek FastAPI router + tenant repository + KMS tahsisi + retention motoru F1 kod aşamasında); deterministik kontrol düzlemi (Date.now/random YOK). Vendor-neutral (ADR-002/011).",
+    "plane": "L0 tenant yaşam döngüsü iş mantığı (platform_control_plane; çalışma-anı guard [12.2.1] + RLS [12.2.3] kararının ÜSTÜNDE, tenant tablosu = platform-sınıf 12.2.4)",
+    "owns": "FR-TEN-001 TENANT CRUD + PROVISIONING (L0): TenantOpRequest → malformed kapısı + realm/plane izolasyonu (platform-only; R2) + yetkilendirme (op→permission-key; R3) + yaşam döngüsü geçiş geçerliliği (durum makinesi; terminated terminal; R4) + provisioning tamlığı (zorunlu izolasyon/residency alanları + ilk durum provisioning; R5) + tenant-başına KMS key (R6) + idempotent provision (R7) + geri döndürülemez terminate koruması (confirm+gerekçe; R8) + WORM audit (R9) + terminal {COMMIT|REJECT} + model bütünlük manifesti (R10) + karar kanıtı",
+    "delegates": "dedicated/shared izolasyon SINIFI → 12.4.2; tenant içi org → 12.4.3; tenant tercih (L1) → 12.4.4; HTTP/RLS guard → 12.2.1/12.2.3; rol bundle → 12.1.1; permission katalog → 12.1.2; WORM audit akışı → 12.1.8; repo/grant bağımsızlık → 12.2.4; kaynak kotası → FR-TEN-006/007; plan/billing → WBS 15; gerçek veri silme → WBS 1.2.3",
+    "deterministic": true,
+    "fail_closed": true,
+    "decision_at": "L0 kontrol düzlemi (deterministik; çalışma-anı yan etkiden BAĞIMSIZ karar)",
+    "trace": "FR-TEN-001, BRD §17, DB.md §5.1, ADR-011"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ L0 tenant yaşam döngüsü kararı. Önce malformed; sonra realm/plane izolasyonu; sonra yetkilendirme; sonra geçiş geçerliliği; sonra provisioning tamlığı; sonra tenant-başına KMS; sonra idempotency; sonra terminate koruması; sonra WORM audit. Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "realm_isolation", "field": "tenant lifecycle YALNIZ platform realm + platform_control_plane", "invariant": "R2", "outcome": "COMMIT|REJECT",
+       "rule": "TenantOpRequest yalnız actor_realm=platform + plane=platform_control_plane ile yürütülür (FR-IAM-008 altın kural: platform rolleri tenant rollerinden tamamen ayrı; ADR-011 L0 internal-only). tenant realm (L1/L2) bir tenant lifecycle op'u commit ederse güven sınırı çöker = cross_realm_op. cross_realm_op=0"},
+      {"id": "authorization", "field": "op gerekli permission-key'i gerektirir (backend kararı)", "invariant": "R3", "outcome": "COMMIT|REJECT",
+       "rule": "her op gerekli permission-key'i taşıyan aktör gerektirir (op_permission: create/read/update/activate/terminate→tenant:provision; suspend/resume→tenant:suspend; 12.1.2 katalog; platform_owner bundle 12.1.1/ADR-012). Yetki kararı HER ZAMAN backend'de (BRD §17.7). Gerekli key olmadan op commit edilirse = unauthorized_op. unauthorized_op=0"},
+      {"id": "transition_validity", "field": "yaşam döngüsü durum makinesi geçişi geçerli olmalı", "invariant": "R4", "outcome": "COMMIT|REJECT",
+       "rule": "op + current_status, transitions tablosundaki geçerli bir (from→to) geçişine eşlenmeli (create: none→provisioning; activate: provisioning→active; suspend: active→suspended; resume: suspended→active; terminate: {provisioning,active,suspended}→terminated; update/read: durum korunur). terminated TERMİNAL (çıkış yok). Geçersiz geçiş (ör. terminated→active, active→active activate) commit = invalid_transition. invalid_transition=0"},
+      {"id": "provisioning_completeness", "field": "create tüm zorunlu izolasyon/residency alanlarını taşımalı + ilk durum provisioning", "invariant": "R5", "outcome": "COMMIT|REJECT",
+       "rule": "create (provision) zorunlu alanları taşımalı: name + home_region (NFR 10.7 ∈ UK/EU/NA/ME) + kms_key_ref (NFR 10.6) + isolation_mode (∈ shared/dedicated) + compliance_profile (BRD §14.4) + default_locale + timezone (DB.md §5.1 NOT NULL); ilk durum 'provisioning' OLMALI (doğrudan 'active' DEĞİL — provisioning iş akışı). Eksik/geçersiz alanla VEYA doğrudan-active ile commit = incomplete_provisioning. incomplete_provisioning=0"},
+      {"id": "per_tenant_kms", "field": "her tenant kendi kms_key_ref'ini alır (paylaşılamaz)", "invariant": "R6", "outcome": "COMMIT|REJECT",
+       "rule": "create her tenant'a AYRI bir kms_key_ref tahsis eder (NFR 10.6 'tenant bazında ayrı encryption key'; FR-TEN-002 izolasyon). kms_key_ref boş VEYA başka tenant'ın anahtarıyla aynı (existing_kms_keys ile çakışma) commit = shared_kms_key — tenant izolasyonu çöker. shared_kms_key=0"},
+      {"id": "idempotent_provision", "field": "var olan tenant için ikinci create yapılmaz", "invariant": "R7", "outcome": "COMMIT|REJECT",
+       "rule": "create idempotent olmalı: aynı kimlik için tenant zaten varsa (tenant_exists) ikinci bir tenant satırı OLUŞTURULMAZ (FR-TEN-001 'tenant bazında yönetim' tekilliği). Var olan tenant için create commit = duplicate_provision. duplicate_provision=0"},
+      {"id": "irreversible_termination_guard", "field": "terminate confirm + gerekçe gerektirir (geri döndürülemez)", "invariant": "R8", "outcome": "COMMIT|REJECT",
+       "rule": "terminate GERİ DÖNDÜRÜLEMEZ (DB.md §9 retention/crypto-shred; gerçek silme WBS 1.2.3'e DELEGE). confirm_irreversible=true + reason_code zorunlu; terminated TERMİNAL (R4 çıkış yok). Korumasız (confirm/gerekçe yok) terminate commit = unguarded_termination. unguarded_termination=0"},
+      {"id": "worm_audit", "field": "her mutasyon WORM audit_log'a yazılır", "invariant": "R9", "outcome": "COMMIT|REJECT",
+       "rule": "her mutasyon op'u (create/update/activate/suspend/resume/terminate) WORM append-only audit_log'a kaydedilir (DB.md §5.1 audit_log WORM + hash chain; FR-IAM-006/FR-REC-009; akış 12.1.8'e DELEGE). read mutasyon değildir (audit-zorunlu değil). Audit'siz mutasyon commit = missing_audit. missing_audit=0"},
+      {"id": "model_integrity", "field": "yaşam döngüsü modeli frozen + model_hash sha256", "invariant": "R10", "outcome": "COMMIT|REJECT",
+       "rule": "model (statuses/operations/op_permission/transitions/provisioning/isolation/termination/audit) frozen; model_hash = sha256(kanonik); çalışma anında tahrif (ör. realm zorunluluğunu kaldırma / terminated'ı terminal olmaktan çıkarma / op_permission boşaltma) yeniden-hesaplanan hash'le yakalanır → model_tampered. Yaşam döngüsü yüzeyi audit edilebilir (ADR-011). model_tampered=0"}
+    ],
+    "evaluation": "malformed_then_realm_isolation_then_authorization_then_transition_validity_then_provisioning_completeness_then_per_tenant_kms_then_idempotency_then_termination_guard_then_worm_audit",
+    "trace": "FR-TEN-001, BRD §17, DB.md §5.1/§9, NFR 10.6/10.7"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed L0 tenant yaşam döngüsü algoritması. Adımlar: (1) malformed (request_id eksik / op geçersiz / actor_realm-plane geçersiz / current_status geçersiz → REJECT malformed). (2) realm/plane: platform-dışı realm veya plane → REJECT (commit edilirse cross_realm_op). (3) yetki: op gerekli permission-key yoksa REJECT (commit edilirse unauthorized_op). (4) geçiş: op+current_status geçersiz geçiş → REJECT (commit edilirse invalid_transition). (5) provisioning (create): eksik alan/doğrudan-active → REJECT (commit edilirse incomplete_provisioning). (6) KMS (create): boş/paylaşılan key → REJECT (commit edilirse shared_kms_key). (7) idempotency (create): tenant_exists → REJECT (commit edilirse duplicate_provision). (8) terminate: confirm/gerekçe yok → REJECT (commit edilirse unguarded_termination). (9) audit (mutasyon): audit yok → REJECT (commit edilirse missing_audit). Tümü geçerse COMMIT. Belirsizlik/malformed → REJECT (fail-closed; ASLA fail-open COMMIT).",
+    "algorithm": "malformed ⇒ REJECT(malformed) → ¬(platform ∧ platform_control_plane) ⇒ REJECT [commit ⇒ cross_realm_op] → required_perm ∉ actor_permissions ⇒ REJECT [commit ⇒ unauthorized_op] → ¬valid_transition(op,current_status) ⇒ REJECT [commit ⇒ invalid_transition] → create ∧ ¬provisioning_complete ⇒ REJECT [commit ⇒ incomplete_provisioning] → create ∧ ¬kms_distinct ⇒ REJECT [commit ⇒ shared_kms_key] → create ∧ tenant_exists ⇒ REJECT [commit ⇒ duplicate_provision] → terminate ∧ ¬guarded ⇒ REJECT [commit ⇒ unguarded_termination] → mutating ∧ ¬audit ⇒ REJECT [commit ⇒ missing_audit] → COMMIT",
+    "default": "REJECT",
+    "fail_safe_terminal": "no op (terminal=REJECT ⇒ işlem yürütülmez; malformed/yetkisiz/geçersiz-geçiş/eksik-provisioning ⇒ REJECT)",
+    "trace": "SR-TEN-001, FR-TEN-001, DB.md §5.1"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal kararlar. COMMIT = işlem yürütülür (durum geçişi uygulanır / tenant satırı işlenir). REJECT = işlem reddedilir (yürütülmez; fail-closed default). Yetkisiz/geçersiz-geçiş/eksik-provisioning op'unun REJECT'i DOĞRU çıktıdır (ihlal değil). İhlal sayaçları YALNIZ unsafe koşul + commit birlikte olunca artar (degrade ispatı).",
+    "list": ["COMMIT", "REJECT"],
+    "terminal": ["COMMIT", "REJECT"]
+  },
+
+  "model": {
+    "$comment": "Yaşam döngüsü modeli özeti = config/tenant-lifecycle-model.json (frozen). statuses (provisioning/active/suspended/terminated; terminated terminal) + operations (create/read/update/activate/suspend/resume/terminate; mutating[6]) + op_permission (tenant:provision/tenant:suspend) + transitions (durum makinesi) + provisioning (zorunlu alanlar + regions UK/EU/NA/ME + isolation_modes shared/dedicated) + isolation (tenant başına KMS) + termination (confirm+gerekçe; geri döndürülemez) + audit (WORM). Karar deterministik (çalışma-anı yan etkiden BAĞIMSIZ).",
+    "frozen": true,
+    "decision_at": "L0 kontrol düzlemi",
+    "statuses": ["provisioning", "active", "suspended", "terminated"],
+    "terminal_statuses": ["terminated"],
+    "operations": ["create", "read", "update", "activate", "suspend", "resume", "terminate"],
+    "mutating_operations": ["create", "update", "activate", "suspend", "resume", "terminate"],
+    "regions": ["UK", "EU", "NA", "ME"],
+    "isolation_modes": ["shared", "dedicated"],
+    "required_actor_realm": "platform",
+    "required_plane": "platform_control_plane"
+  },
+
+  "enforcement": {
+    "$comment": "L0 tenant yaşam döngüsü enforcement (FR-TEN-001, BRD §17, DB.md §5.1). realm_layer: platform realm + platform_control_plane (ADR-011). authz_layer: op→permission-key (12.1.2 katalog; platform_owner 12.1.1). fsm_layer: durum makinesi geçiş tablosu (terminated terminal). provisioning_layer: zorunlu izolasyon/residency alanları + tenant başına KMS (NFR 10.6/10.7). audit_layer: her mutasyon WORM audit_log (12.1.8). Karar deterministik (yan etkiden bağımsız).",
+    "realm_layer": "actor_realm=platform ∧ plane=platform_control_plane (FR-IAM-008 altın kural; ADR-011 L0 internal-only)",
+    "authz_layer": "op_permission[op] ∈ actor_permissions (tenant:provision/tenant:suspend; 12.1.2 katalog; backend kararı BRD §17.7)",
+    "fsm_layer": "transitions tablosu (create→provisioning→activate→active→suspend↔resume→terminate→terminated[terminal])",
+    "provisioning_layer": "create zorunlu alanlar (name/home_region [UK/EU/NA/ME]/kms_key_ref/isolation_mode/compliance_profile/locale/timezone) + ilk durum provisioning + tenant başına AYRI KMS key (NFR 10.6)",
+    "termination_layer": "terminate confirm_irreversible + reason_code (DB.md §9 geri döndürülemez; gerçek silme WBS 1.2.3)",
+    "audit_layer": "her mutasyon → WORM append-only audit_log (FR-REC-009/FR-IAM-006; 12.1.8)",
+    "decision_at": "L0 kontrol düzlemi",
+    "trace": "FR-TEN-001, BRD §17, DB.md §5.1/§9, NFR 10.6/10.7, ADR-011/012"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. cross_realm_op (R2) = tenant realm tenant lifecycle yürüttü; unauthorized_op (R3) = gerekli permission-key olmadan commit; invalid_transition (R4) = geçersiz durum geçişi commit (ör. terminated→active); incomplete_provisioning (R5) = eksik zorunlu alan/doğrudan-active create commit; shared_kms_key (R6) = paylaşılan/boş KMS key commit; duplicate_provision (R7) = var olan tenant için ikinci create commit; unguarded_termination (R8) = confirm/gerekçe yok terminate commit; missing_audit (R9) = mutasyon WORM audit'siz commit; model_tampered (R10) = model bütünlük manifesti tutmuyor. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1 canlı (FastAPI tenant router + tenant repository + KMS tahsisi) verisinde doğrulanır.",
+    "max_cross_realm_op": 0,
+    "max_unauthorized_op": 0,
+    "max_invalid_transition": 0,
+    "max_incomplete_provisioning": 0,
+    "max_shared_kms_key": 0,
+    "max_duplicate_provision": 0,
+    "max_unguarded_termination": 0,
+    "max_missing_audit": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "Tenant yaşam döngüsü her karar için lifecycle metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. tenant_op_decision_total{op,result,isolation_mode,target_status} → karar sayımı (result=COMMIT/REJECT); tenant_lifecycle_violation_total → cross_realm_op VEYA unauthorized_op VEYA invalid_transition VEYA incomplete_provisioning VEYA shared_kms_key VEYA duplicate_provision VEYA unguarded_termination VEYA missing_audit VEYA model_tampered (R2–R10 ihlal alarmı, 0 olmalı). op+result+isolation_mode+target_status+actor_realm DÜŞÜK kardinalite (label uygun); tenant_id/request_id/kms_key_ref YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM İÇERİK/PII/KMS key materyali metrikte VE log'da YOK (BRD §17.7/FR-REC-004). cross_realm_op>0 VEYA unauthorized_op>0 VEYA invalid_transition>0 VEYA shared_kms_key>0 VEYA model_tampered>0 → kritik alarm ≤2dk (SAD §17.2, NFR 10.1) = tenant yaşam döngüsü/izolasyon güvenlik olayı.",
+    "metrics": ["tenant_op_decision_total", "tenant_lifecycle_violation_total"],
+    "low_cardinality_labels": ["op", "result", "isolation_mode", "target_status", "actor_realm"],
+    "high_cardinality_trace_only": ["tenant_id", "request_id", "kms_key_ref"],
+    "alarm": "cross_realm_op>0 (tenant realm L0 lifecycle yürüttü — R2, FR-IAM-008) VEYA unauthorized_op>0 (yetkisiz tenant op — R3) VEYA invalid_transition>0 (geçersiz yaşam döngüsü geçişi — R4) VEYA shared_kms_key>0 (tenant KMS izolasyonu çöktü — R6, NFR 10.6) VEYA model_tampered>0 (R10) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "R1", "desc": "Determinizm/tamlık + kanıt: her TenantOpRequest tanımlı malformed→realm→authz→transition→provisioning→kms→idempotency→termination→audit algoritması boyunca ilerler ve bir terminal karara {COMMIT|REJECT} ulaşır; aynı girdi → aynı çıktı (deterministik; model_hash sha256 kanonik JSON; Date.now/random YOK); varsayılan REJECT (fail-closed; no op); her karar kanıt taşır (request_id + op + actor_realm + plane + current_status + target_status + terminal + model_hash). stuck_state=0, missing_evidence=0.", "trace": "SR-TEN-001, FR-TEN-001"},
+    {"id": "R2", "desc": "Realm/plane izolasyonu (FR-IAM-008 altın kural; ADR-011): tenant yaşam döngüsü YALNIZ actor_realm=platform + plane=platform_control_plane (L0 internal-only) ile yürütülür; tenant realm (L1/L2) bir lifecycle op'u commit ederse = cross_realm_op. cross_realm_op=0.", "trace": "FR-IAM-008, ADR-011, SAD §14.4.1"},
+    {"id": "R3", "desc": "Yetkilendirme (BRD §17.7, ADR-012): her op gerekli permission-key'i taşıyan aktör gerektirir (op_permission: create/read/update/activate/terminate→tenant:provision; suspend/resume→tenant:suspend; 12.1.2 katalog; platform_owner bundle 12.1.1). Yetki kararı her zaman backend'de. Gerekli key olmadan op commit = unauthorized_op. unauthorized_op=0.", "trace": "FR-TEN-001, BRD §17.7, ADR-012, 12.1.1/12.1.2"},
+    {"id": "R4", "desc": "Geçiş geçerliliği ÇEKİRDEK (DB.md §5.1 status CHECK): op+current_status transitions tablosundaki geçerli bir (from→to) geçişine eşlenmeli; terminated TERMİNAL (çıkış yok; DB.md §9 geri döndürülemez). Geçersiz geçiş (terminated→active, active→active activate, suspended-değilken resume vb.) commit = invalid_transition. invalid_transition=0.", "trace": "FR-TEN-001, DB.md §5.1/§9"},
+    {"id": "R5", "desc": "Provisioning tamlığı ÇEKİRDEK (DB.md §5.1, NFR 10.6/10.7, FR-TEN-002): create zorunlu izolasyon/residency alanlarını taşımalı (name/home_region [∈UK/EU/NA/ME]/kms_key_ref/isolation_mode [∈shared/dedicated]/compliance_profile/default_locale/timezone) + ilk durum 'provisioning' olmalı (doğrudan 'active' değil). Eksik/geçersiz alan veya doğrudan-active create commit = incomplete_provisioning. incomplete_provisioning=0.", "trace": "FR-TEN-001/002, DB.md §5.1, NFR 10.7"},
+    {"id": "R6", "desc": "Tenant-başına KMS key ÇEKİRDEK (NFR 10.6 'tenant bazında ayrı encryption key'; FR-TEN-002): her tenant create'te AYRI bir kms_key_ref alır; boş veya başka tenant'ın anahtarıyla aynı (existing_kms_keys çakışması) commit = shared_kms_key — tenant kripto izolasyonu çöker. shared_kms_key=0.", "trace": "FR-TEN-002, NFR 10.6, DB.md §5.1"},
+    {"id": "R7", "desc": "İdempotent provision (FR-TEN-001 tekillik): create idempotent; var olan tenant için (tenant_exists) ikinci tenant satırı oluşturulmaz. Var olan tenant için create commit = duplicate_provision. duplicate_provision=0.", "trace": "FR-TEN-001, DB.md §5.1"},
+    {"id": "R8", "desc": "Geri döndürülemez terminate koruması (DB.md §9): terminate confirm_irreversible=true + reason_code gerektirir (retention/crypto-shred geri döndürülemez; gerçek silme WBS 1.2.3'e delege; legal-hold muafiyeti FR-REC-007). Korumasız terminate commit = unguarded_termination. unguarded_termination=0.", "trace": "DB.md §9, FR-REC-007/010"},
+    {"id": "R9", "desc": "WORM audit (FR-IAM-006/FR-REC-009; DB.md §5.1 audit_log WORM + hash chain): her mutasyon op'u (create/update/activate/suspend/resume/terminate) WORM append-only audit_log'a yazılır (akış 12.1.8'e delege). read mutasyon değildir. Audit'siz mutasyon commit = missing_audit. missing_audit=0.", "trace": "FR-IAM-006, FR-REC-009, DB.md §5.1, 12.1.8"},
+    {"id": "R10", "desc": "Model bütünlük manifesti: yaşam döngüsü modeli frozen (statuses/operations/op_permission/transitions/provisioning/isolation/termination/audit) + model_hash = sha256(kanonik) deterministik; çalışma anında tahrif (ör. realm zorunluluğu kaldırma / terminated'ı terminal olmaktan çıkarma / op_permission boşaltma) yeniden-hesaplanan hash tutmaz → model_tampered. Yaşam döngüsü yüzeyinin değiştirilemez olduğunu test edilebilir kılar (ADR-011). model_tampered=0.", "trace": "FR-TEN-001, ADR-011"},
+    {"id": "R11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (op/result/isolation_mode/target_status/actor_realm); tenant_id/request_id/kms_key_ref metrikte yok, yalnız trace; HAM İÇERİK/PII/KMS key materyali metrikte VE log'da yok (0.4.7 label_policy, BRD §17.7/FR-REC-004).", "trace": "BRD §17.7, 0.4.7 label_policy"},
+    {"id": "R12", "desc": "Sır/içerik yok: model/spec/sample HAM içerik / PII (müşteri ADI/telefon/transcript DEĞERİ) / credential (KMS key MATERYALİ / DB şifresi / connection string DEĞERİ) tutmaz — yalnız OP enum (create/terminate) + STATUS enum (active/terminated) + REALM/PLANE enum (platform/platform_control_plane) + permission-key (tenant:provision) + REGION enum (UK/EU/NA/ME) + isolation_mode enum + yapısal tenant/request KİMLİK (slug; t-001, req-001) + kms_key_ref REFERANSI (key id, materyal DEĞİL) + HASH. Kimlik/enum/key-referansı/hash PII DEĞİLDİR. Bu modül lifecycle KARARINI verir — ham satır içeriği / key materyali AKMAZ. secret_or_pii=0.", "trace": "BRD §17.7, FR-REC-004, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/model/sample'lar HAM içerik, PII (müşteri ADI / TELEFON numarası / TRANSCRIPT değeri) veya credential (KMS KEY MATERYALİ [ham anahtar baytları] / DB şifresi / connection string DEĞERİ) TUTMAZ — yalnız OP ENUM (create/read/update/activate/suspend/resume/terminate) + STATUS ENUM (provisioning/active/suspended/terminated) + REALM ENUM (platform/tenant) + PLANE ENUM (platform_control_plane/tenant_application_plane) + PERMISSION-KEY (tenant:provision/tenant:suspend) + REGION ENUM (UK/EU/NA/ME) + ISOLATION_MODE ENUM (shared/dedicated) + result ENUM (COMMIT/REJECT) + yapısal tenant/request KİMLİK (SENTETİK slug ör. t-001/req-001) + kms_key_ref REFERANSI (anahtar KİMLİĞİ ör. kms-eu-001, anahtar MATERYALİ DEĞİL) + HASH (sha256). Kimlik/enum/key-referansı/hash PII DEĞİLDİR; tasarımca PII-olmayandır. Bu modül lifecycle ADMISSION KARARINI verir — ham satır içeriği / KMS key materyali bu modülde AKMAZ.",
+    "forbids": ["customer_name_value", "customer_phone_value", "transcript_text_value", "kms_key_material_value", "db_password_value", "connection_string_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}
