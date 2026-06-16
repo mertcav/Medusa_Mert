@@ -1,0 +1,12 @@
+{
+  "name": "ta-degrade-skip-audit",
+  "expect": "fail",
+  "request_id": "req-102",
+  "correlation_id": "corr-102",
+  "actor_role": "platform_billing",
+  "action": "read",
+  "resource_type": "usage_record",
+  "occurred_tick": 21,
+  "inject": ["skip_audit"],
+  "$comment": "DEGRADE skip_audit: Tier A erişimi audit ÜRETMEDEN yapılır → unaudited_access (R4 — sessiz L0 erişimi; 'normal L0 erişimi + audit' bozuldu)"
+}

@@ -1,0 +1,12 @@
+{
+  "name": "ta-degrade-drop-escalation",
+  "expect": "fail",
+  "request_id": "req-105",
+  "correlation_id": "corr-105",
+  "actor_role": "platform_sre",
+  "action": "read",
+  "resource_type": "contact",
+  "occurred_tick": 24,
+  "inject": ["drop_escalation"],
+  "$comment": "DEGRADE drop_escalation: contact (tenant_content) escalate yerine SESSİZCE düşürülür (DENY/silent_drop) → escalation_error (R6 — içerik ya escalate ya da hiç; sessiz drop yok)"
+}

@@ -1,0 +1,80 @@
+{
+  "$comment": "WBS 12.3.1 — TIER A (metrik/log, PII YOK) — break-glass'SIZ L0 erişimi + AUDIT modeli. Bu dosya 12. workstream'in (IAM & Erişim) ÜÇ KATMANLI BREAK-GLASS'ın EN DÜŞÜK KATMANININ (Tier A) DEĞİŞMEZ (frozen) KAYNAK DOĞRULUĞUDUR: BRD §17.7 'Tier A — metrik/log (PII yok): Break-glass gerekmez; normal L0 erişimi + audit' + SAD §14.4.2 'Tier A (metrik/log, PII yok): break-glass gerekmez; normal L0 erişimi + audit' + FR-IAM-009 (üç katmanlı break-glass) + FR-IAM-006/FR-REC-009 (tüm L0 erişimi audit'lenir). ALTIN KURAL (BRD §17): L0 (platform) tenant'ın iş içeriğini (çağrı kaydı, transkript, müşteri/PII) VARSAYILAN GÖREMEZ — yalnız metrik/kaynak verisi. Bu modül bir L0AccessRequest için DETERMİNİSTİK, FAIL-CLOSED bir Tier kararı verir: TIER_A_GRANT (PII'siz metrik/log/yönetişim/referans → break-glass'SIZ + ZORUNLU audit) | ESCALATE_TIER_B (içerik/PII → break-glass GEREKİR; akış 12.3.2/3/4'e DELEGE) | DENY (malformed / tenant_config [L0 yolu yok] / sınıflandırılamayan → fail-closed). ÇEKİRDEK: (1) NO PII UNDER TIER A — TIER_A_GRANT YALNIZ PII'siz sınıflar (tenant_metric/platform/global_reference); içerik/PII (tenant_content) ASLA Tier A'da sunulmaz (pii_under_tier_a=0); (2) AUDIT EMITTED / SESSİZ ERİŞİM YOK — her TIER_A_GRANT (ve her L0 erişim kararı) DEĞİŞMEZ (WORM) bir audit kaydı üretir (unaudited_access=0; FR-IAM-009 '+ audit', FR-REC-009, FR-IAM-006; 12.1.8 worm-audit RESİPROKAL); (3) NO BREAK-GLASS BYPASS — içerik/PII Tier A'dan geçemez; break-glass yolunu (12.3.2/3/4) atlayan içerik erişimi yok (break_glass_bypass=0). Tier A break-glass token / maker-checker / gerekçe kodu GEREKTİRMEZ (bunlar Tier B; 12.3.2/3/4) — Tier A'da işlenen bir Tier B artefaktı tier_confusion'dır. Bu dosya FROZEN — değiştirilemez Tier sınıflandırma + audit-zorunluluğu yüzeyi (model_hash sha256 ile audit edilebilir). Kaynak doğruluk BRD §17.7 / SAD §14.4.2 / FR-IAM-009 / FR-REC-009 / 12.2.4 (veri-sınıfı taksonomisi RESİPROKAL) / 12.1.8 (WORM audit RESİPROKAL); çelişkide onlar esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+
+  "$tiers_comment": "Üç katmanlı break-glass'ın katmanları (BRD §17.7, SAD §14.4.2, FR-IAM-009). Bu modül YALNIZ Tier A sahibidir; Tier B akışı (maker-checker + time-boxed token + gerekçe kodu + bildirim) ve regüle tenant onay toggle'ı 12.3.2/12.3.3/12.3.4'e DELEGE edilir. Tier A = break-glass GEREKMEZ + ZORUNLU audit. Tier B = break-glass GEREKİR (içerik/PII).",
+  "tiers": {
+    "A": {"requires_break_glass": false, "requires_audit": true, "data_kind": "metric_log_governance_reference_pii_free", "classes": ["tenant_metric", "platform", "global_reference"], "trace": "BRD §17.7, SAD §14.4.2, FR-IAM-009"},
+    "B": {"requires_break_glass": true, "requires_audit": true, "data_kind": "transcript_recording_pii_content", "classes": ["tenant_content"], "delegated_flow": "12.3.2/12.3.3/12.3.4", "trace": "FR-IAM-009, FR-IAM-010, SAD §14.4.2"}
+  },
+
+  "$class_comment": "Veri-sınıfı → Tier eşlemesi (12.2.4 repo-independence data_classes ile RESİPROKAL). tier_a_classes = PII'siz, L0'ın görebildiği metrik/kaynak + platform yönetişim + salt-okunur referans = 12.2.4 allowed_for_platform. tier_b_content = içerik/PII (transcript/recording/contact) → break-glass GEREKİR. forbidden_classes = tenant_config (tenant işletme verisi): L0 yönetmez, break-glass içerik HEDEFİ DEĞİL — L0'ın yolu YOK → DENY (tasarım izolasyonu 12.2.4 ile tutarlı).",
+  "data_classes": ["tenant_content", "tenant_config", "tenant_metric", "platform", "global_reference"],
+  "tier_a_classes": ["tenant_metric", "platform", "global_reference"],
+  "tier_b_content": ["tenant_content"],
+  "forbidden_classes": ["tenant_config"],
+  "tier_a_classes_note": "PII'siz, L0-görünür: tenant_metric (usage_record kullanım/kaynak), platform (tenant/audit_log/incident/break_glass_grant yönetişim), global_reference (role/permission_key salt-okunur). = 12.2.4 allowed_for_platform",
+  "tier_b_content_note": "tenant_content (çağrı içeriği + PII: transcript/transcript_segment/recording/contact/...) — break-glass GEREKİR; akış 12.3.2/3/4; satır-koşulu 12.2.3 break_glass_read + 12.2.4 break_glass.content_tables RESİPROKAL",
+  "forbidden_classes_note": "tenant_config (agent/prompt/campaign/...): L0 tenant'ın işini yönetmez; break-glass içerik hedefi değil → DENY (12.2.4 forbidden_for_platform; L0 yolu yok)",
+
+  "table_class_of": {
+    "$comment": "BRD §16 / DB.md §6.3 varlık → veri-sınıfı eşlemesi (12.2.4 table_class_of ile RESİPROKAL/aynı). tenant_content (10) + tenant_config (19) + tenant_metric (1) + platform (4) + global_reference (3).",
+    "call": "tenant_content", "call_leg": "tenant_content", "transcript": "tenant_content",
+    "transcript_segment": "tenant_content", "recording": "tenant_content", "call_event": "tenant_content",
+    "tool_execution": "tenant_content", "contact": "tenant_content", "consent": "tenant_content",
+    "call_evaluation": "tenant_content",
+    "organisation_unit": "tenant_config", "app_user": "tenant_config", "agent": "tenant_config",
+    "agent_version": "tenant_config", "prompt": "tenant_config", "conversation_flow": "tenant_config",
+    "voice_profile": "tenant_config", "model_profile": "tenant_config", "stt_profile": "tenant_config",
+    "knowledge_base": "tenant_config", "kb_document": "tenant_config", "kb_chunk": "tenant_config",
+    "tool": "tenant_config", "phone_number": "tenant_config", "sip_trunk": "tenant_config",
+    "campaign": "tenant_config", "retention_policy": "tenant_config", "legal_hold": "tenant_config",
+    "user_role_assignment": "tenant_config",
+    "usage_record": "tenant_metric",
+    "tenant": "platform", "audit_log": "platform", "incident": "platform", "break_glass_grant": "platform",
+    "role": "global_reference", "permission_key": "global_reference", "role_permission": "global_reference"
+  },
+
+  "$actor_comment": "L0 (platform) RBAC rolleri (12.1.1 rbac-model RESİPROKAL; BRD §17.2). Tier A erişimi platform realm rollerine açıktır — hiçbiri tenant iş içeriği görmez (platform_sre 'iş içeriği görmez'). Tier A kararı rol bağımsızdır (yetki/scope kararı 12.1.1/12.1.3 sahibi); bu modül YALNIZ Tier sınıflandırma + audit-zorunluluğunu zorlar. actor_realm her zaman 'platform'.",
+  "actor_roles": ["platform_owner", "platform_sre", "platform_billing"],
+  "actor_realm": "platform",
+
+  "$audit_comment": "ÇEKİRDEK 'normal L0 erişimi + audit' (BRD §17.7, FR-IAM-009): HER L0 erişim kararı (TIER_A_GRANT dahil) DEĞİŞMEZ (append-only/WORM) bir audit kaydı üretir — SESSİZ erişim YOKTUR (FR-IAM-006 'tüm kullanıcı işlemleri', FR-REC-009). Audit DEĞİŞMEZLİĞİ + hash-zincir 12.1.8 worm-audit'e RESİPROKAL (row_hash=sha256(kanonik); UPDATE/DELETE reddedilir). Audit kaydı PII'siz: yalnız opak actor_role + actor_realm + action + data_class enum + resource_type + tier + decision + correlation_id + occurred_tick (sanal-saat) + row_hash. Tier A gerekçe kodu / maker-checker / break-glass token GEREKTİRMEZ (bunlar Tier B; 12.3.2/3/4). HAM PII (transcript/recording/contact değeri) audit'e YAZILMAZ (FR-REC-004, BRD §17.7).",
+  "audit": {
+    "required_for_every_access": true,
+    "worm": true,
+    "append_only": true,
+    "hash_algo": "sha256",
+    "reciprocal": "12.1.8 worm-audit (append-only/WORM + hash-zincir; row_hash + prev_hash)",
+    "record_fields": ["record_id", "correlation_id", "actor_role", "actor_realm", "action", "data_class", "resource_type", "tier", "decision", "occurred_tick", "row_hash"],
+    "no_raw_pii": true,
+    "tier_a_requires_justification": false,
+    "tier_a_requires_maker_checker": false,
+    "tier_a_requires_break_glass_token": false,
+    "trace": "BRD §17.7, FR-IAM-009, FR-IAM-006, FR-REC-009, FR-REC-004, 12.1.8"
+  },
+
+  "$delegation_comment": "KAPSAM AYRIMI (bilinçli). Bu modül YALNIZ Tier A (break-glass'sız + audit) + Tier sınıflandırma + Tier B'ye ESCALATE kararını sahiplenir. Tier B AKIŞI (maker-checker [talep eden ≠ onaylayan] + time-boxed token [60dk default/max 4sa/auto-expiry] + gerekçe kodu + tenant security_compliance_officer/tenant_owner bildirimi + regüle tenant require_tenant_approval toggle) 12.3.2/12.3.3/12.3.4'e DELEGE.",
+  "delegates": {
+    "tier_b_token_maker_checker": "12.3.2 (maker-checker + time-boxed token; 60dk default, max 4sa, auto-expiry)",
+    "tier_b_reason_notify": "12.3.3 (gerekçe kodu + tenant security_compliance_officer/tenant_owner bildirimi)",
+    "tier_b_regulated_toggle": "12.3.4 (regüle tenant require_tenant_approval toggle + DPA bağı)",
+    "rbac_role_scope": "12.1.1/12.1.3 (rol→permission-key bundle + scope kararı)",
+    "design_time_repo_independence": "12.2.4 (L0 ⟂ tenant iş verisi repository/grant bağımsızlığı)",
+    "runtime_http_guard_rls": "12.2.1 (HTTP guard) / 12.2.3 (RLS çalışma-anı backstop)",
+    "worm_audit_chain": "12.1.8 (append-only/WORM audit + hash-zincir)"
+  },
+
+  "consumes": {
+    "$comment": "RESİPROKAL bağlantılar. 12.2.4 repo-independence-model.json: veri-sınıfı taksonomisi (tier_a_classes = allowed_for_platform; tier_b_content = break_glass.content_tables sınıfı tenant_content) RESİPROKAL/aynı. 12.1.8 worm-audit-model.json: audit DEĞİŞMEZLİĞİ (append-only/WORM + hash-zincir) RESİPROKAL.",
+    "repo_independence_model": "12.2.4 ../l0-repo-independence/config/repo-independence-model.json (data_classes/table_class_of + break_glass.content_tables RESİPROKAL)",
+    "worm_audit_model": "12.1.8 ../worm-audit/config/worm-audit-model.json (append-only/WORM + hash-zincir RESİPROKAL)",
+    "rbac_model": "12.1.1 ../rbac-model/config/rbac-roles.json (L0 platform rolleri RESİPROKAL)"
+  },
+
+  "terminal": ["TIER_A_GRANT", "ESCALATE_TIER_B", "DENY"],
+  "default": "DENY",
+  "trace": "BRD §17.7, SAD §14.4.2, FR-IAM-009, FR-IAM-006, FR-REC-009, 12.2.4, 12.1.8, 12.1.1"
+}

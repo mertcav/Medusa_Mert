@@ -1,0 +1,12 @@
+{
+  "name": "ta-pass-metric-usage",
+  "expect": "pass",
+  "request_id": "req-001",
+  "correlation_id": "corr-001",
+  "actor_role": "platform_billing",
+  "action": "read",
+  "resource_type": "usage_record",
+  "occurred_tick": 10,
+  "expected": {"terminal": "TIER_A_GRANT", "tier": "A", "audit_emitted": true},
+  "$comment": "PASS Tier A: platform_billing usage_record (tenant_metric — kullanım/kaynak metriği, PII yok) → TIER_A_GRANT break-glass'sız + ZORUNLU audit (BRD §17.7 'metrik/log [PII yok]: Break-glass gerekmez; normal L0 erişimi + audit')"
+}

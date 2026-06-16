@@ -1,0 +1,12 @@
+{
+  "name": "ta-pass-platform-incident",
+  "expect": "pass",
+  "request_id": "req-003",
+  "correlation_id": "corr-003",
+  "actor_role": "platform_sre",
+  "action": "read",
+  "resource_type": "incident",
+  "occurred_tick": 12,
+  "expected": {"terminal": "TIER_A_GRANT", "tier": "A", "audit_emitted": true},
+  "$comment": "PASS Tier A: platform_sre incident (platform yönetişim — SRE, iş içeriği görmez) → TIER_A_GRANT + audit"
+}

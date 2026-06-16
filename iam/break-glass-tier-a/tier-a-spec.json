@@ -1,0 +1,166 @@
+{
+  "$comment": "WBS 12.3.1 — TIER A (metrik/log, PII YOK): break-glass'SIZ L0 erişimi + AUDIT (BRD §17.7 'Tier A — metrik/log [PII yok]: Break-glass gerekmez; normal L0 erişimi + audit', SAD §14.4.2 aynı, FR-IAM-009 üç katmanlı break-glass, FR-IAM-006/FR-REC-009 tüm L0 erişimi audit'lenir). 12. workstream'in (IAM & Erişim) ÜÇ KATMANLI BREAK-GLASS'ın EN DÜŞÜK KATMANI (Tier A) modülü ve F1-Must yeteneği. ALTIN KURAL (BRD §17): L0 (platform) tenant'ın iş içeriğini (çağrı kaydı/transkript/müşteri/PII) VARSAYILAN GÖREMEZ — yalnız metrik/kaynak verisi. Bir L0AccessRequest (actor_role + action + resource_type/data_class + occurred_tick + [Tier B artefaktları: break_glass_token/justification_code]) alır → DETERMİNİSTİK, FAIL-CLOSED bir Tier kararı verir: TIER_A_GRANT (PII'siz metrik/log/yönetişim/referans → break-glass'SIZ + ZORUNLU audit) | ESCALATE_TIER_B (içerik/PII tenant_content → break-glass GEREKİR; akış 12.3.2/12.3.3/12.3.4'e DELEGE; burada SUNULMAZ) | DENY (malformed / tenant_config [L0 yolu yok] / sınıflandırılamayan → fail-closed). ÇEKİRDEK: (1) R3 NO PII UNDER TIER A — TIER_A_GRANT YALNIZ PII'siz sınıflar (tenant_metric/platform/global_reference); içerik/PII (tenant_content) ASLA Tier A'da sunulmaz (pii_under_tier_a=0; altın kural FR-IAM-008/009); (2) R4 AUDIT EMITTED / SESSİZ ERİŞİM YOK — her TIER_A_GRANT (ve her L0 erişim kararı) DEĞİŞMEZ (WORM) bir audit kaydı üretir (unaudited_access=0; FR-IAM-009 '+ audit', FR-REC-009, FR-IAM-006; 12.1.8 worm-audit RESİPROKAL); (3) R5 NO BREAK-GLASS BYPASS — içerik/PII Tier A'dan geçemez; break-glass yolunu (12.3.2/3/4) atlayan içerik erişimi yok (break_glass_bypass=0). Tier A break-glass token / maker-checker / gerekçe kodu GEREKTİRMEZ (bunlar Tier B; 12.3.2/3/4) — Tier A'da işlenen bir Tier B artefaktı = tier_confusion (R9). Motor DETERMİNİSTİK FAIL-CLOSED (Date.now/random YOK; model_hash sha256; audit occurred_tick sanal-saat tamsayı). Her karar terminal (R1) + kanıt + model bütünlük manifesti (R10); metrik düşük-kardinalite + ham PII yok (R11); model/spec/sample ham içerik/PII/credential tutmaz (R12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): Tier B AKIŞI (maker-checker + time-boxed token + gerekçe kodu + bildirim) → 12.3.2/12.3.3; regüle tenant require_tenant_approval toggle + DPA → 12.3.4; rol→permission-key/scope → 12.1.1/12.1.3; design-time repo/grant bağımsızlığı → 12.2.4; HTTP guard/RLS çalışma-anı → 12.2.1/12.2.3; append-only/WORM audit hash-zinciri → 12.1.8 (CONSUMED RESİPROKAL). KAYNAK DOĞRULUK; çelişkide BRD §17.7 / SAD §14.4.2 / FR-IAM-009 esastır.",
+  "version": "1.0",
+  "wbs": "12.3.1",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-IAM-009", "FR-IAM-006", "FR-REC-009", "FR-IAM-008", "FR-REC-004", "FR-TEN-002", "FR-TST-008"],
+    "srs": ["SR-IAM-009", "SR-IAM-006"],
+    "rtm": ["TC-IAM-009"],
+    "brd": [
+      "§17.7 (izolasyon/görünürlük — 'Tier A — metrik/log [PII yok]: Break-glass gerekmez; normal L0 erişimi + audit'; ALTIN KURAL: L0 tenant iş içeriğini varsayılan göremez, yalnız metrik/kaynak)",
+      "§17 (üç katmanlı panel — L0 Platform Admin / L1 / L2; üç katmanlı break-glass FR-IAM-009/010)",
+      "§5 (kimlik & erişim — platform rolleri tenant rollerinden ayrı)"
+    ],
+    "sad": [
+      "§14.4.2 (Backend — 'Tier A (metrik/log, PII yok): break-glass gerekmez; normal L0 erişimi + audit' — bu modülün TEMEL kararı: en düşük break-glass katmanı)",
+      "§14.4.2 (Üç katmanlı break-glass FR-IAM-009/010 — Tier B maker-checker+token+gerekçe+bildirim 12.3.2/3/4'e DELEGE)",
+      "§14 (Audit — tüm panel erişimleri ve hassas görüntülemeler audit log'a; FR-IAM-006/FR-REC-009)"
+    ],
+    "adr": [
+      "ADR-013 (üç katmanlı break-glass + regüle tenant onay toggle'ı — Tier A bu kararın en düşük katmanı)",
+      "ADR-016 (audit tamper-evidence: hash zinciri — Tier A audit WORM/hash-zincir 12.1.8 RESİPROKAL)",
+      "ADR-001 (deterministik karar fonksiyonu deseni)", "ADR-002 (vendor-neutral / credential-free)"
+    ],
+    "threat_model": [
+      "TM-I-02 (L0 platform rolü tenant içeriğini [transkript/kayıt/PII] görür — altın kural ihlali; Tier A içerik/PII'yi ASLA sunmaz → ESCALATE_TIER_B; pii_under_tier_a=0/break_glass_bypass=0)",
+      "TM-R-xx (sessiz/iz bırakmayan L0 erişimi — her Tier A erişimi WORM audit'lenir; unaudited_access=0)"
+    ],
+    "consumes": [
+      "12.2.4 l0-repo-independence config/repo-independence-model.json (veri-sınıfı taksonomisi — tier_a_classes = allowed_for_platform; tier_b_content sınıfı = break_glass.content_tables sınıfı tenant_content — RESİPROKAL) — TÜKETİLİR",
+      "12.1.8 worm-audit config/worm-audit-model.json (append-only/WORM + hash-zincir bütünlüğü — Tier A audit DEĞİŞMEZLİĞİ RESİPROKAL) — TÜKETİLİR",
+      "12.1.1 rbac-model config/rbac-roles.json (L0 platform rolleri — actor_role RESİPROKAL) — TÜKETİLİR",
+      "tier-a-model.json (frozen — tiers + tier_a_classes + tier_b_content + forbidden_classes + table_class_of + audit + actor_roles)"
+    ],
+    "consumed_by": [
+      "12.3.2 break-glass Tier B maker-checker + time-boxed token (60dk default/max 4sa/auto-expiry) — Tier A bu katmana ESCALATE eder",
+      "12.3.3 break-glass Tier B gerekçe kodu + tenant security_compliance_officer/tenant_owner bildirimi",
+      "12.3.4 regüle tenant require_tenant_approval toggle + DPA bağı",
+      "1.x F1 kod (gerçek FastAPI L0 erişimi + Tier A audit yazımı [WORM] + Tier B break-glass router); 0.4.7 gözlemlenebilirlik"
+    ],
+    "delegates": [
+      "12.3.2 / 12.3.3 (Tier B AKIŞI: maker-checker + time-boxed token + gerekçe kodu + bildirim)",
+      "12.3.4 (regüle tenant require_tenant_approval toggle + DPA)",
+      "12.1.1 / 12.1.3 (rol→permission-key bundle + scope kararı)",
+      "12.2.4 (design-time repo/grant bağımsızlığı) / 12.2.1 / 12.2.3 (çalışma-anı guard/RLS) / 12.1.8 (WORM audit zinciri)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Tier A, üç katmanlı break-glass'ın EN DÜŞÜK katmanıdır (BRD §17.7, SAD §14.4.2). L0 platform rolü PII'siz metrik/log/yönetişim/referans verisine break-glass GEREKMEDEN erişir; ANCAK her erişim DEĞİŞMEZ audit kaydı üretir (sessiz erişim yok). İçerik/PII (transcript/recording/contact) bu katmanda SUNULMAZ — break-glass GEREKİR (ESCALATE_TIER_B; akış 12.3.2/3/4'e DELEGE). Motor yalnız KARAR + PII'siz audit kaydı + model bütünlük manifesti üretir (gerçek FastAPI L0 erişimi + WORM audit yazımı F1 kod aşamasında); deterministik kontrol düzlemi (Date.now/random YOK; audit occurred_tick sanal-saat). Vendor-neutral (ADR-002/013).",
+    "tier": "Tier A (üç katmanlı break-glass'ın en düşük katmanı; PII'siz metrik/log → break-glass'sız + audit)",
+    "owns": "BRD §17.7 / SAD §14.4.2 TIER A KARARI: L0AccessRequest → malformed kapısı + classification coverage (fail-closed; R2) + Tier sınıflandırma (A=PII'siz / B=içerik / forbidden=tenant_config) + admission (A→TIER_A_GRANT no-bg+audit / B→ESCALATE_TIER_B delege / forbidden→DENY) + NO PII UNDER TIER A (R3 altın kural) + AUDIT EMITTED no-silent-access (R4) + NO BREAK-GLASS BYPASS (R5) + escalation correct (R6) + audit PII-free (R7) + audit immutability WORM (R8) + tier separation (R9) + terminal {TIER_A_GRANT|ESCALATE_TIER_B|DENY} + model bütünlük manifesti (R10) + karar kanıtı",
+    "delegates": "Tier B AKIŞI (maker-checker + time-boxed token + gerekçe + bildirim) → 12.3.2/12.3.3; regüle tenant toggle + DPA → 12.3.4; rol→permission-key/scope → 12.1.1/12.1.3; design-time repo/grant → 12.2.4; çalışma-anı guard/RLS → 12.2.1/12.2.3; WORM audit zinciri → 12.1.8",
+    "deterministic": true,
+    "fail_closed": true,
+    "decision_at": "L0 erişim-anı Tier kararı (deterministik kontrol düzlemi; gerçek erişim + WORM audit yazımı F1 kod)",
+    "trace": "FR-IAM-009, BRD §17.7, SAD §14.4.2, ADR-013"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ Tier A kararı. Önce malformed; sonra classification coverage (fail-closed); sonra Tier sınıflandırma + admission; sonra NO PII UNDER TIER A; sonra AUDIT EMITTED; sonra NO BREAK-GLASS BYPASS; sonra escalation correct + audit PII-free + audit immutability + tier separation. Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "classification_coverage", "field": "her erişim bir veri-sınıfına sınıflandırılır; bilinmeyen → fail-closed DENY", "invariant": "R2", "outcome": "TIER_A_GRANT|ESCALATE_TIER_B|DENY",
+       "rule": "her L0AccessRequest bir veri-sınıfına (tenant_content/tenant_config/tenant_metric/platform/global_reference) sınıflandırılmalı (data_class veya table_class_of[resource_type]). Sınıflandırılamayan → FAIL-CLOSED DENY (bilinmeyen = içerik/PII varsay; Tier A'da sunma). Sınıflandırılmamış erişimin Tier A'da kabulü fail-open = unclassified_access. unclassified_access=0"},
+      {"id": "no_pii_under_tier_a", "field": "TIER_A_GRANT yalnız PII'siz sınıflar; içerik/PII Tier A'da ASLA sunulmaz", "invariant": "R3", "outcome": "TIER_A_GRANT|ESCALATE_TIER_B",
+       "rule": "ÇEKİRDEK ALTIN KURAL (BRD §17.7, FR-IAM-008/009): TIER_A_GRANT YALNIZ PII'siz sınıflara (tenant_metric/platform/global_reference) verilir; içerik/PII (tenant_content: transcript/recording/contact) Tier A'da ASLA sunulmaz — break-glass GEREKİR (ESCALATE_TIER_B). İçerik/PII'nin TIER_A_GRANT alması = pii_under_tier_a. pii_under_tier_a=0"},
+      {"id": "audit_emitted", "field": "her TIER_A_GRANT (ve her L0 erişim kararı) DEĞİŞMEZ audit üretir — sessiz erişim yok", "invariant": "R4", "outcome": "TIER_A_GRANT|ESCALATE_TIER_B|DENY",
+       "rule": "ÇEKİRDEK 'normal L0 erişimi + audit' (BRD §17.7, FR-IAM-009): her TIER_A_GRANT (ve her L0 erişim kararı — malformed/deny dahil girişim) DEĞİŞMEZ (append-only/WORM) bir audit kaydı üretir (FR-IAM-006/FR-REC-009; 12.1.8 RESİPROKAL). Audit'siz Tier A erişimi = sessiz erişim = unaudited_access. unaudited_access=0"},
+      {"id": "no_break_glass_bypass", "field": "içerik/PII Tier A'dan geçemez; break-glass yolu atlanamaz", "invariant": "R5", "outcome": "ESCALATE_TIER_B",
+       "rule": "içerik/PII (tenant_content) Tier A'dan SUNULMAZ — break-glass yolunu (12.3.2/3/4 maker-checker+token+gerekçe) atlayan içerik erişimi yoktur. İçeriğin Tier A'da grant alması (break-glass'ı atlaması) = break_glass_bypass (R3 ile birlikte yakalanır — invariant uzayında defense in depth). break_glass_bypass=0"},
+      {"id": "escalation_correct", "field": "içerik/PII → ESCALATE_TIER_B (delege); sessiz düşürme/yanlış yön yok", "invariant": "R6", "outcome": "ESCALATE_TIER_B",
+       "rule": "içerik/PII (tenant_content) erişimi DOĞRU şekilde ESCALATE_TIER_B'e yönlendirilir (akış 12.3.2/12.3.3/12.3.4'e DELEGE) — ne sessizce düşürülür (silent drop) ne de yanlış sunulur. İçeriğin ne escalate ne grant edilmesi (sessiz düşürme) = escalation_error. escalation_error=0"},
+      {"id": "audit_pii_free", "field": "audit kaydı ham içerik/PII tutmaz", "invariant": "R7", "outcome": "TIER_A_GRANT|ESCALATE_TIER_B|DENY",
+       "rule": "audit kaydı PII'siz: yalnız opak actor_role + actor_realm + action + data_class enum + resource_type + tier + decision + correlation_id + occurred_tick + row_hash; HAM içerik/PII (transcript/recording/contact DEĞERİ) audit'e YAZILMAZ (FR-REC-004, BRD §17.7). Audit kaydına ham PII konması = audit_pii. audit_pii=0"},
+      {"id": "audit_immutability", "field": "audit append-only/WORM; emitilen kayıt tahrifatı tespit (hash-zincir)", "invariant": "R8", "outcome": "TIER_A_GRANT|ESCALATE_TIER_B|DENY",
+       "rule": "audit kaydı DEĞİŞMEZ (append-only/WORM; UPDATE/DELETE reddedilir) — row_hash = sha256(kanonik içerik); emitilen kaydın herhangi bir alanı değiştirilirse yeniden-hesaplanan hash uyumsuz → tespit (12.1.8 worm-audit hash-zinciri RESİPROKAL; ADR-016). Emitilen audit kaydının tahrifatı = audit_mutable. audit_mutable=0"},
+      {"id": "tier_separation", "field": "Tier A break-glass token/maker-checker/gerekçe GEREKTİRMEZ (bunlar Tier B)", "invariant": "R9", "outcome": "TIER_A_GRANT",
+       "rule": "Tier A erişimi break-glass token / maker-checker / gerekçe kodu GEREKTİRMEZ — bunlar Tier B artefaktlarıdır (12.3.2/12.3.3). Bir Tier B artefaktının Tier A kararında işlenmesi (Tier karışması) = tier_confusion. tier_confusion=0"},
+      {"id": "model_integrity", "field": "Tier modeli frozen + model_hash sha256", "invariant": "R10", "outcome": "TIER_A_GRANT|ESCALATE_TIER_B|DENY",
+       "rule": "model (tiers/tier_a_classes/tier_b_content/forbidden_classes/table_class_of/actor_roles/audit) frozen; model_hash = sha256(kanonik); çalışma anında tahrif (ör. tenant_content'i tier_a_classes'a sokma / audit required_for_every_access kaldırma) yeniden-hesaplanan hash'le yakalanır → model_tampered. İzolasyon/Tier yüzeyi audit edilebilir (ADR-013). model_tampered=0"}
+    ],
+    "evaluation": "malformed_then_classification_then_tier_then_admission_then_audit_then_pii_bypass_escalation_tier",
+    "trace": "FR-IAM-009, BRD §17.7, SAD §14.4.2, ADR-013"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed Tier A algoritması. Adımlar: (1) malformed (request_id eksik / actor_role L0 rolü değil / data_class+resource_type sınıflandırılamaz → DENY malformed). (2) classification: data_class bilinmiyor → fail-closed DENY; zorla kabul → unclassified_access. (3) Tier: A=tenant_metric/platform/global_reference; B=tenant_content; forbidden=tenant_config. (4) admission: A→TIER_A_GRANT (no-bg + audit); B→ESCALATE_TIER_B (delege 12.3.2/3/4); forbidden→DENY. (5) audit emit (her karar — DEĞİŞMEZ/WORM). (6) NO PII UNDER TIER A: TIER_A_GRANT ∧ içerik → pii_under_tier_a + break_glass_bypass. (7) escalation correct: içerik sessizce düşürülürse → escalation_error. (8) AUDIT EMITTED: TIER_A_GRANT ∧ ¬audit → unaudited_access. (9) audit PII/immutability/tier separation. Belirsizlik/malformed/bilinmeyen-sınıf/tenant_config → DENY (fail-closed; içerik/PII → ESCALATE_TIER_B, ASLA Tier A).",
+    "algorithm": "malformed ⇒ DENY(malformed) → data_class bilinmiyor ⇒ fail-closed DENY; zorla kabul ⇒ unclassified_access → tier (A/B/forbidden) → admission (A→TIER_A_GRANT; B→ESCALATE_TIER_B; forbidden→DENY) → audit emit (her karar, WORM) → TIER_A_GRANT ∧ tenant_content ⇒ pii_under_tier_a + break_glass_bypass → tenant_content ∧ silent-drop ⇒ escalation_error → TIER_A_GRANT ∧ ¬audit ⇒ unaudited_access → audit PII/mutate/tier-artifact kontrolleri",
+    "default": "DENY",
+    "fail_safe_terminal": "no access (terminal=DENY ⇒ erişim yok; malformed/bilinmeyen-sınıf/tenant_config ⇒ DENY; içerik/PII ⇒ ESCALATE_TIER_B — ASLA Tier A'da sunulmaz)",
+    "trace": "SR-IAM-009, BRD §17.7, SAD §14.4.2"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal Tier kararları. TIER_A_GRANT = PII'siz erişim break-glass'sız verilir (ZORUNLU audit ile). ESCALATE_TIER_B = içerik/PII break-glass GEREKİR → akış 12.3.2/3/4'e DELEGE (Tier A'da SUNULMAZ; DOĞRU çıktı, ihlal değil). DENY = malformed / tenant_config (L0 yolu yok) / sınıflandırılamayan (fail-closed default). İçerik/PII'nin ESCALATE_TIER_B'i DOĞRU çıktıdır (altın kural korunur).",
+    "list": ["TIER_A_GRANT", "ESCALATE_TIER_B", "DENY"],
+    "terminal": ["TIER_A_GRANT", "ESCALATE_TIER_B", "DENY"]
+  },
+
+  "model": {
+    "$comment": "Tier A modeli özeti = config/tier-a-model.json (frozen). tiers (A: no break-glass + audit / B: break-glass delege 12.3.2/3/4) + tier_a_classes (PII'siz: tenant_metric/platform/global_reference = 12.2.4 allowed_for_platform) + tier_b_content (tenant_content → break-glass) + forbidden_classes (tenant_config → DENY) + table_class_of (37 varlık; 12.2.4 RESİPROKAL) + audit (WORM; PII'siz; 12.1.8 RESİPROKAL) + actor_roles (L0 platform; 12.1.1 RESİPROKAL).",
+    "frozen": true,
+    "tier_a_classes": ["tenant_metric", "platform", "global_reference"],
+    "tier_b_content": ["tenant_content"],
+    "forbidden_classes": ["tenant_config"],
+    "data_classes": ["tenant_content", "tenant_config", "tenant_metric", "platform", "global_reference"],
+    "actor_roles": ["platform_owner", "platform_sre", "platform_billing"],
+    "audit": "WORM (append-only); PII'siz; row_hash sha256; her L0 erişim kararı audit'lenir (12.1.8 RESİPROKAL)"
+  },
+
+  "enforcement": {
+    "$comment": "Tier A enforcement (BRD §17.7, SAD §14.4.2). tier_a — PII'siz metrik/log/yönetişim/referans break-glass GEREKMEDEN + ZORUNLU audit ile erişilir. tier_b — içerik/PII break-glass GEREKİR → ESCALATE_TIER_B (akış 12.3.2/3/4'e DELEGE). audit_layer — her erişim DEĞİŞMEZ (WORM) audit (12.1.8 RESİPROKAL). no_pii_under_tier_a — içerik/PII ASLA Tier A'da sunulmaz (altın kural). Karar deterministik kontrol düzlemi.",
+    "tier_a": "PII'siz sınıflar (tenant_metric/platform/global_reference) break-glass GEREKMEDEN + ZORUNLU audit ile L0'a açılır (BRD §17.7 'Tier A — metrik/log [PII yok]: Break-glass gerekmez; normal L0 erişimi + audit')",
+    "tier_b": "içerik/PII (tenant_content) break-glass GEREKİR → ESCALATE_TIER_B; akış (maker-checker + time-boxed token + gerekçe + bildirim + regüle toggle) 12.3.2/12.3.3/12.3.4'e DELEGE",
+    "audit_layer": "her L0 erişim kararı DEĞİŞMEZ (append-only/WORM) audit üretir; row_hash sha256 hash-zincir (12.1.8 worm-audit RESİPROKAL); ham PII yazılmaz (FR-REC-004)",
+    "no_pii_under_tier_a": "Tier A içerik/PII'yi ASLA sunmaz (altın kural BRD §17, FR-IAM-008/009); içerik → ESCALATE_TIER_B",
+    "decision_at": "L0 erişim-anı (kontrol düzlemi; gerçek erişim + WORM audit yazımı F1 kod)",
+    "trace": "FR-IAM-009, BRD §17.7, SAD §14.4.2, 12.2.4, 12.1.8"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. pii_under_tier_a (R3 ÇEKİRDEK) = içerik/PII Tier A'da sunuldu (altın kural ihlali); break_glass_bypass (R5) = içerik break-glass yolunu atladı; unaudited_access (R4 ÇEKİRDEK) = Tier A erişimi audit'siz (sessiz erişim); audit_pii (R7) = audit kaydında ham PII; audit_mutable (R8) = emitilen audit tahrif edildi (WORM ihlali); escalation_error (R6) = içerik sessizce düşürüldü (escalate yok); tier_confusion (R9) = Tier A'da Tier B artefaktı; unclassified_access (R2) = sınıflandırılmamış erişim Tier A'da kabul (fail-open); model_tampered (R10) = model bütünlük manifesti tutmuyor. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1 canlı (FastAPI L0 erişimi + WORM audit yazımı) verisinde doğrulanır.",
+    "max_pii_under_tier_a": 0,
+    "max_break_glass_bypass": 0,
+    "max_unaudited_access": 0,
+    "max_audit_pii": 0,
+    "max_audit_mutable": 0,
+    "max_escalation_error": 0,
+    "max_tier_confusion": 0,
+    "max_unclassified_access": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "Tier A her karar için metrikleri hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. l0_tier_a_access_total{actor_role,data_class,tier,decision} → Tier A erişim/karar sayımı; tier_a_violation_total → pii_under_tier_a VEYA break_glass_bypass VEYA unaudited_access VEYA audit_pii VEYA audit_mutable VEYA escalation_error VEYA tier_confusion VEYA model_tampered (R3/R4/R5/R6/R7/R8/R9/R10 ihlal alarmı, 0 olmalı). actor_role+data_class+tier+decision DÜŞÜK kardinalite (label uygun); correlation_id/resource_id/record_id/row_hash YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM İÇERİK/PII metrikte VE log'da YOK (BRD §17.7/FR-REC-004). pii_under_tier_a>0 (içerik Tier A'da — altın kural) VEYA unaudited_access>0 (sessiz L0 erişimi) VEYA break_glass_bypass>0 → kritik alarm ≤2dk (SAD §17.2, NFR 10.1) = break-glass/izolasyon ihlali güvenlik olayı.",
+    "metrics": ["l0_tier_a_access_total", "tier_a_violation_total"],
+    "low_cardinality_labels": ["actor_role", "data_class", "tier", "decision"],
+    "high_cardinality_trace_only": ["correlation_id", "resource_id", "record_id", "row_hash", "request_id"],
+    "alarm": "pii_under_tier_a>0 (içerik/PII Tier A'da sunuldu — altın kural ihlali R3, FR-IAM-008/009) VEYA unaudited_access>0 (sessiz L0 erişimi — R4, FR-IAM-009) VEYA break_glass_bypass>0 (break-glass atlandı — R5) VEYA audit_mutable>0 (WORM ihlali — R8) VEYA model_tampered>0 (R10) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "R1", "desc": "Determinizm/tamlık + kanıt: her L0AccessRequest tanımlı malformed→classification→tier→admission→audit→pii/bypass/escalation/tier algoritması boyunca ilerler ve bir terminal karara {TIER_A_GRANT|ESCALATE_TIER_B|DENY} ulaşır; aynı girdi → aynı çıktı (deterministik; model_hash sha256 kanonik JSON; audit occurred_tick sanal-saat; Date.now/random YOK); varsayılan DENY (fail-closed; no access); her karar kanıt taşır (request_id + actor_role + action + data_class + resource_type + tier + terminal + audit_emitted + model_hash). stuck_state=0, missing_evidence=0.", "trace": "SR-IAM-009, BRD §17.7"},
+    {"id": "R2", "desc": "Classification coverage fail-closed: her L0AccessRequest bir veri-sınıfına (tenant_content/tenant_config/tenant_metric/platform/global_reference) sınıflandırılmalı; sınıflandırılamayan → FAIL-CLOSED DENY (bilinmeyen = içerik/PII varsay; Tier A'da sunma). Sınıflandırılmamış erişimin Tier A'da kabulü = unclassified_access. unclassified_access=0.", "trace": "FR-IAM-009, FR-IAM-008"},
+    {"id": "R3", "desc": "No PII under Tier A ÇEKİRDEK ALTIN KURAL (BRD §17.7, FR-IAM-008/009): TIER_A_GRANT YALNIZ PII'siz sınıflara (tenant_metric/platform/global_reference) verilir; içerik/PII (tenant_content: transcript/recording/contact) Tier A'da ASLA sunulmaz — break-glass GEREKİR (ESCALATE_TIER_B). İçerik/PII'nin TIER_A_GRANT alması = pii_under_tier_a. pii_under_tier_a=0.", "trace": "FR-IAM-008, FR-IAM-009, BRD §17.7"},
+    {"id": "R4", "desc": "Audit emitted / sessiz erişim yok ÇEKİRDEK (BRD §17.7 'normal L0 erişimi + audit', FR-IAM-009): her TIER_A_GRANT (ve her L0 erişim kararı — girişim dahil) DEĞİŞMEZ (append-only/WORM) bir audit kaydı üretir (FR-IAM-006 'tüm kullanıcı işlemleri', FR-REC-009; 12.1.8 RESİPROKAL). Audit'siz Tier A erişimi = sessiz erişim = unaudited_access. unaudited_access=0.", "trace": "FR-IAM-009, FR-IAM-006, FR-REC-009, 12.1.8"},
+    {"id": "R5", "desc": "No break-glass bypass: içerik/PII (tenant_content) Tier A'dan SUNULMAZ — break-glass yolunu (12.3.2/3/4) atlayan içerik erişimi yoktur. İçeriğin Tier A'da grant alması (break-glass atlama) = break_glass_bypass (R3 ile birlikte; invariant uzayında defense in depth). break_glass_bypass=0.", "trace": "FR-IAM-009, BRD §17.7"},
+    {"id": "R6", "desc": "Escalation correct: içerik/PII (tenant_content) DOĞRU şekilde ESCALATE_TIER_B'e yönlendirilir (akış 12.3.2/12.3.3/12.3.4'e DELEGE) — ne sessizce düşürülür ne yanlış sunulur. İçeriğin ne escalate ne grant edilmesi (silent drop) = escalation_error. escalation_error=0.", "trace": "FR-IAM-009, SAD §14.4.2"},
+    {"id": "R7", "desc": "Audit PII-free: audit kaydı PII'siz — yalnız opak actor_role + actor_realm + action + data_class enum + resource_type + tier + decision + correlation_id + occurred_tick + row_hash; HAM içerik/PII (transcript/recording/contact DEĞERİ) audit'e YAZILMAZ (FR-REC-004, BRD §17.7). Audit kaydına ham PII = audit_pii. audit_pii=0.", "trace": "FR-REC-004, BRD §17.7"},
+    {"id": "R8", "desc": "Audit immutability (WORM; ADR-016): audit kaydı DEĞİŞMEZ (append-only; UPDATE/DELETE reddedilir) — row_hash = sha256(kanonik içerik); emitilen kaydın herhangi bir alanı değiştirilirse yeniden-hesaplanan hash uyumsuz → tespit (12.1.8 worm-audit hash-zinciri RESİPROKAL). Emitilen audit tahrifatı = audit_mutable. audit_mutable=0.", "trace": "FR-IAM-006, ADR-016, 12.1.8"},
+    {"id": "R9", "desc": "Tier separation: Tier A erişimi break-glass token / maker-checker / gerekçe kodu GEREKTİRMEZ — bunlar Tier B artefaktlarıdır (12.3.2/12.3.3). Bir Tier B artefaktının Tier A kararında işlenmesi (Tier karışması) = tier_confusion. tier_confusion=0.", "trace": "FR-IAM-009, SAD §14.4.2"},
+    {"id": "R10", "desc": "Model bütünlük manifesti: Tier modeli frozen (tiers/tier_a_classes/tier_b_content/forbidden_classes/table_class_of/actor_roles/audit) + model_hash = sha256(kanonik) deterministik; çalışma anında tahrif (ör. tenant_content'i tier_a_classes'a sokma / audit required_for_every_access kaldırma) yeniden-hesaplanan hash tutmaz → model_tampered. Tier/izolasyon yüzeyinin değiştirilemez olduğunu test edilebilir kılar (ADR-013). model_tampered=0.", "trace": "FR-IAM-009, ADR-013"},
+    {"id": "R11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (actor_role/data_class/tier/decision); correlation_id/resource_id/record_id/row_hash metrikte yok, yalnız trace; HAM İÇERİK/PII (transcript/recording/contact DEĞERİ) metrikte VE log'da yok (0.4.7 label_policy, BRD §17.7/FR-REC-004).", "trace": "BRD §17.7, 0.4.7 label_policy"},
+    {"id": "R12", "desc": "Sır/içerik yok: model/spec/sample HAM içerik / PII (transcript/recording/contact/telefon/kart/OTP/ad DEĞERİ) / credential (token/şifre DEĞERİ) tutmaz — yalnız ACTOR ROL adları (platform_owner) + ACTION (read) + VERİ-SINIFI enum (tenant_metric/platform) + RESOURCE_TYPE adı (usage_record/audit_log) + TIER/DECISION enum (A/TIER_A_GRANT) + yapısal korelasyon KİMLİK (corr-001) + HASH. Rol/action/sınıf/kaynak/tier/kimlik/hash PII DEĞİLDİR. Bu modül Tier KARARINI verir — ham satır içeriği (PII) AKMAZ. secret_or_pii=0.", "trace": "BRD §17.7, FR-REC-004, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/model/sample'lar HAM içerik, PII (TRANSCRIPT/RECORDING/CONTACT içeriği, TELEFON numarası, KART [PAN/CVV], OTP kodu, PAROLA, müşteri ADI DEĞERİ) veya credential (break-glass TOKEN / DB şifresi DEĞERİ) TUTMAZ — yalnız ACTOR ROL ADLARI (platform_owner/platform_sre/platform_billing) + ACTION (read) + VERİ-SINIFI ENUM (tenant_content/tenant_config/tenant_metric/platform/global_reference) + RESOURCE_TYPE ADLARI (usage_record/audit_log/transcript/agent) + TIER ENUM (A/B/forbidden) + DECISION ENUM (TIER_A_GRANT/ESCALATE_TIER_B/DENY) + yapısal korelasyon KİMLİK (SENTETİK slug ör. corr-001) + HASH (sha256). Rol/action/sınıf/kaynak/tier/decision/kimlik/hash PII DEĞİLDİR; tasarımca PII-olmayandır. Bu modül Tier ADMISSION KARARINI verir — ham satır içeriği (transcript/recording/contact PII) bu modülde AKMAZ; audit kaydı da PII'sizdir.",
+    "forbids": ["transcript_text_value", "recording_audio_value", "contact_pii_value", "customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "customer_name_value", "db_password_value", "connection_string_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}

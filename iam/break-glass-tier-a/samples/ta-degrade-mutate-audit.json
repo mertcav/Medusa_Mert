@@ -1,0 +1,12 @@
+{
+  "name": "ta-degrade-mutate-audit",
+  "expect": "fail",
+  "request_id": "req-104",
+  "correlation_id": "corr-104",
+  "actor_role": "platform_owner",
+  "action": "read",
+  "resource_type": "audit_log",
+  "occurred_tick": 23,
+  "inject": ["mutate_audit"],
+  "$comment": "DEGRADE mutate_audit: emitilen audit kaydının alanı değiştirilir → row_hash uyumsuz → audit_mutable (R8 WORM ihlali; 12.1.8 hash-zincir RESİPROKAL)"
+}

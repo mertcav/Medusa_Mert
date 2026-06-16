@@ -1,0 +1,14 @@
+{
+  "name": "ta-degrade-tier-confusion",
+  "expect": "fail",
+  "request_id": "req-106",
+  "correlation_id": "corr-106",
+  "actor_role": "platform_owner",
+  "action": "read",
+  "resource_type": "usage_record",
+  "occurred_tick": 25,
+  "justification_code": "JC-OPS",
+  "break_glass_token": true,
+  "inject": ["tier_b_artifact_at_tier_a"],
+  "$comment": "DEGRADE tier_b_artifact_at_tier_a: Tier A kararında Tier B artefaktı (break_glass_token/justification_code) işlenir → tier_confusion (R9 — Tier A bunları gerektirmez; bunlar 12.3.2/3/4)"
+}

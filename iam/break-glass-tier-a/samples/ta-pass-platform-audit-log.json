@@ -1,0 +1,12 @@
+{
+  "name": "ta-pass-platform-audit-log",
+  "expect": "pass",
+  "request_id": "req-002",
+  "correlation_id": "corr-002",
+  "actor_role": "platform_owner",
+  "action": "read",
+  "resource_type": "audit_log",
+  "occurred_tick": 11,
+  "expected": {"terminal": "TIER_A_GRANT", "tier": "A", "audit_emitted": true},
+  "$comment": "PASS Tier A: platform_owner audit_log (platform — log/yönetişim, PII yok) → TIER_A_GRANT (BRD §17.7 'metrik/log'); erişimin kendisi yine audit'lenir"
+}

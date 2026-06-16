@@ -298,7 +298,7 @@
 - [x] **12.2.4** L0 iş verisi repository bağımsızlığı (tasarımsal izolasyon) — `F1` · `Must` · →FR-IAM-008
 
 ### 12.3 Break-glass (üç katmanlı)
-- [ ] **12.3.1** Tier A (metrik/log, PII yok) — break-glass'sız L0 + audit — `F1` · `Must` · →FR-IAM-009
+- [x] **12.3.1** Tier A (metrik/log, PII yok) — break-glass'sız L0 + audit — `F1` · `Must` · →FR-IAM-009
 - [ ] **12.3.2** Tier B: maker-checker + time-boxed token (60dk default, max 4sa, auto-expiry) — `F2` · `Must` · →FR-IAM-009
 - [ ] **12.3.3** Tier B: gerekçe kodu + tenant security_compliance_officer/tenant_owner bildirimi — `F2` · `Must` · →FR-IAM-009
 - [ ] **12.3.4** Regüle tenant `require_tenant_approval` toggle + DPA bağı — `F2` · `Must` · →FR-IAM-010

@@ -1,0 +1,12 @@
+{
+  "name": "ta-pass-reference-role",
+  "expect": "pass",
+  "request_id": "req-004",
+  "correlation_id": "corr-004",
+  "actor_role": "platform_owner",
+  "action": "read",
+  "resource_type": "role",
+  "occurred_tick": 13,
+  "expected": {"terminal": "TIER_A_GRANT", "tier": "A", "audit_emitted": true},
+  "$comment": "PASS Tier A: role (global_reference — salt-okunur referans, PII yok) → TIER_A_GRANT + audit"
+}

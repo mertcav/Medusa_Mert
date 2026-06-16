@@ -1,0 +1,12 @@
+{
+  "name": "ta-pass-escalate-recording",
+  "expect": "pass",
+  "request_id": "req-007",
+  "correlation_id": "corr-007",
+  "actor_role": "platform_sre",
+  "action": "read",
+  "resource_type": "recording",
+  "occurred_tick": 16,
+  "expected": {"terminal": "ESCALATE_TIER_B", "tier": "B", "audit_emitted": true},
+  "$comment": "PASS (DOĞRU davranış): recording (tenant_content — kayıt/PII) → ESCALATE_TIER_B (break-glass gerekir)"
+}

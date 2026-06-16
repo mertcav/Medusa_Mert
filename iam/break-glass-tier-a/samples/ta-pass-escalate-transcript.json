@@ -1,0 +1,12 @@
+{
+  "name": "ta-pass-escalate-transcript",
+  "expect": "pass",
+  "request_id": "req-006",
+  "correlation_id": "corr-006",
+  "actor_role": "platform_owner",
+  "action": "read",
+  "resource_type": "transcript",
+  "occurred_tick": 15,
+  "expected": {"terminal": "ESCALATE_TIER_B", "tier": "B", "audit_emitted": true},
+  "$comment": "PASS (DOĞRU davranış): transcript (tenant_content — PII/içerik) Tier A'da SUNULMAZ → ESCALATE_TIER_B (break-glass gerekir; akış 12.3.2/3/4'e DELEGE). Altın kural korunur; girişim yine audit'lenir"
+}

@@ -1,0 +1,12 @@
+{
+  "name": "ta-pass-platform-tenant",
+  "expect": "pass",
+  "request_id": "req-005",
+  "correlation_id": "corr-005",
+  "actor_role": "platform_owner",
+  "action": "read",
+  "resource_type": "tenant",
+  "occurred_tick": 14,
+  "expected": {"terminal": "TIER_A_GRANT", "tier": "A", "audit_emitted": true},
+  "$comment": "PASS Tier A: tenant (platform yönetişim — provisioning kaydı, PII yok) → TIER_A_GRANT + audit"
+}

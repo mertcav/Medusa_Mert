@@ -1,0 +1,13 @@
+{
+  "name": "ta-pass-deny-unclassified",
+  "expect": "pass",
+  "request_id": "req-009",
+  "correlation_id": "corr-009",
+  "actor_role": "platform_owner",
+  "action": "read",
+  "resource_type": "mystery_table",
+  "data_class": "bogus",
+  "occurred_tick": 18,
+  "expected": {"terminal": "DENY", "note": "unclassified_fail_closed", "audit_emitted": true},
+  "$comment": "PASS (DOĞRU davranış): sınıflandırılamayan kaynak → fail-closed DENY (bilinmeyen = içerik/PII varsay; Tier A'da sunma). R2"
+}

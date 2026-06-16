@@ -1,0 +1,12 @@
+{
+  "name": "ta-pass-deny-config",
+  "expect": "pass",
+  "request_id": "req-008",
+  "correlation_id": "corr-008",
+  "actor_role": "platform_owner",
+  "action": "read",
+  "resource_type": "agent",
+  "occurred_tick": 17,
+  "expected": {"terminal": "DENY", "tier": "forbidden", "note": "forbidden_no_l0_path", "audit_emitted": true},
+  "$comment": "PASS (DOĞRU davranış): agent (tenant_config — tenant işletme verisi) → DENY (L0 tenant'ın işini yönetmez; break-glass içerik hedefi değil; L0 yolu yok — 12.2.4 forbidden_for_platform). Girişim audit'lenir"
+}
