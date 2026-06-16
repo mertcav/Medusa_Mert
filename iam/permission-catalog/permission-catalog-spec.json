@@ -1,0 +1,76 @@
+{
+  "$comment": "WBS 12.1.2 — Permission-key kataloğu ('kaynak:eylem', '*:own') KAYNAK DOĞRULUK SPEC'i. SAD §14.4.3 grameri + BRD §17.6/§17.7 erişim matrisi/izolasyon → makine-okunur katalog + DETERMİNİSTİK, FAIL-CLOSED key çözüm motoru. Motor bir permission-key string'ini (ör. x-required-permission değeri) alır → gramer ayrıştırır → kataloğa çözer → terminal {VALID | REJECT | UNKNOWN} döner. validate katalog bütünlüğünü + cross-doc conformance'ı (12.1.1 RBAC modeli + API.md x-required-permission) statik doğrular. ÇELİŞKİDE SAD §14.4.3 / BRD §17.6 esastır.",
+  "wbs": "12.1.2",
+  "title": "Permission-key kataloğu (kaynak:eylem, *:own)",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "sad": ["§14.4.3", "§14.4.2"],
+    "brd": ["§17.6", "§17.7"],
+    "fr": ["FR-IAM-001", "FR-IAM-011", "FR-IAM-008"],
+    "sr": ["SR-IAM-001", "SR-IAM-011"],
+    "tc": ["TC-IAM-001", "TC-IAM-011"],
+    "adr": ["ADR-012"],
+    "consumes_from": "12.1.1 (RBAC modeli rol→permission-key bundle — bu katalog bundle key'lerini conform eder)",
+    "consumed_by": ["12.1.3 scoped assignment", "12.2.x backend guard (x-required-permission enforcement)", "12.3.x break-glass"]
+  },
+
+  "outcomes": ["VALID", "REJECT", "UNKNOWN"],
+  "terminal": ["VALID", "REJECT", "UNKNOWN"],
+  "reject_reasons": ["malformed_key", "own_misplaced", "own_not_permitted"],
+  "unknown_reasons": ["unknown_key"],
+  "valid_reasons": ["resolved"],
+
+  "decision_pipeline": [
+    { "step": 1, "name": "grammar",   "desc": "key 'kaynak:eylem' biçiminde mi (≥2 segment, her segment [a-z][a-z0-9_]*)? değilse → REJECT malformed_key" },
+    { "step": 2, "name": "own_place", "desc": "':own' segmenti varsa FINAL segment mi? değilse → REJECT own_misplaced" },
+    { "step": 3, "name": "own_scope", "desc": "':own' varsa de-own'lanmış kaynak own_eligible_resources içinde mi + action=read mi? değilse → REJECT own_not_permitted" },
+    { "step": 4, "name": "resolve",   "desc": "key katalogda mı? değilse → UNKNOWN unknown_key; ise → VALID resolved (+ metadata)" }
+  ],
+
+  "invariants": [
+    { "id": "G1",  "trace": "",            "core": "Determinizm/terminal: aynı girdi→aynı çıktı; catalog_hash sha256 kanonik; Date.now/random YOK; stuck_state=0" },
+    { "id": "G2",  "trace": "SAD §14.4.3", "core": "GRAMER: her katalog key'i 'kaynak:eylem' (≥2 segment, segment [a-z][a-z0-9_]*); action ∈ vocab; malformed_key=0" },
+    { "id": "G3",  "trace": "FR-IAM-001",  "core": "KATALOG TAMLIĞI (cross-doc 12.1.1): RBAC modeli permission_key_universe + tüm rol bundle key'leri ⊆ katalog; dangling_key=0" },
+    { "id": "G4",  "trace": "FR-IAM-011",  "core": "ORPHAN YOK: her katalog key'i ≥1 katman evreninde erişilebilir (RBAC universe); orphan_key=0" },
+    { "id": "G5",  "trace": "BRD §17.7",   "core": "':own' DİSİPLİNİ: own=true ⟺ resource ∈ own_eligible + action=read + ':own' final; own_violation=0" },
+    { "id": "G6",  "trace": "FR-IAM-008",  "core": "TIER/CONTENT TUTARLILIK: content=true ⟺ key ∈ tenant_content_keys + tier=B; L0 key'i ASLA content; content_mismatch=0" },
+    { "id": "G7",  "trace": "BRD §17.6",   "core": "LAYER↔PANEL TUTARLILIK: her key'in layer'ı (L0/L1/L2) RBAC universe layer'ıyla aynı; panel layer'a karşılık; layer_mismatch=0" },
+    { "id": "G8",  "trace": "API.md §13",  "core": "x-required-permission CONFORMANCE: API.md'deki her x-required-permission değeri ∈ katalog; unmapped_permission=0" },
+    { "id": "G9",  "trace": "FR-IAM-006",  "core": "Kanıt: request + parsed(resource/action/own) + resolved metadata + catalog_hash" },
+    { "id": "G10", "trace": "ADR-012",     "core": "KATALOG BÜTÜNLÜK MANİFESTİ: catalog_hash sha256; çalışma-anı tahrifi (catalog_tamper) yakalanır; catalog_tampered=0" },
+    { "id": "G11", "trace": "BRD §17.7",   "core": "Gözlemlenebilirlik düşük-kardinalite + ham içerik/PII yok" },
+    { "id": "G12", "trace": "BRD §17.7",   "core": "Sır/ham-içerik yok; yalnız permission-key + enum + hash; secret_or_pii=0" }
+  ],
+
+  "gates": [
+    { "id": "grammar_conformance",   "invariant": "G2",  "threshold": "malformed_key=0",        "method": "T" },
+    { "id": "catalog_completeness",  "invariant": "G3",  "threshold": "dangling_key=0",         "method": "T" },
+    { "id": "no_orphan_key",         "invariant": "G4",  "threshold": "orphan_key=0",           "method": "A" },
+    { "id": "own_discipline",        "invariant": "G5",  "threshold": "own_violation=0",        "method": "T" },
+    { "id": "tier_content_coherence","invariant": "G6",  "threshold": "content_mismatch=0",     "method": "I" },
+    { "id": "layer_panel_coherence", "invariant": "G7",  "threshold": "layer_mismatch=0",       "method": "I" },
+    { "id": "api_conformance",       "invariant": "G8",  "threshold": "unmapped_permission=0",  "method": "T" },
+    { "id": "catalog_integrity",     "invariant": "G10", "threshold": "catalog_tampered=0",     "method": "T" }
+  ],
+
+  "violation_keys": ["malformed_key", "dangling_key", "orphan_key", "own_violation", "content_mismatch",
+                     "layer_mismatch", "unmapped_permission", "catalog_tampered", "secret_or_pii", "stuck_state"],
+
+  "injections": ["grammar_break", "drop_key", "orphan_key", "own_break", "content_flip", "layer_flip", "unmapped_api", "catalog_tamper"],
+
+  "observability": {
+    "metric_labels_allowed": ["outcome", "reason", "layer", "tier", "action"],
+    "high_cardinality_forbidden_as_label": ["key", "resource", "tenant_id", "user_id"],
+    "pii_in_label": "forbidden (BRD §17.7)"
+  },
+
+  "non_goals": {
+    "rol→permission-key bundle (immutable model)": "12.1.1 (bu katalog bundle'ları conform eder, tanımlamaz)",
+    "scoped assignment (departman/marka/kampanya filtresi)": "12.1.3 (ADR-012)",
+    "backend guard (FastAPI dependency + x-required-permission HTTP enforcement + tenant scope + RLS)": "12.2.x (SAD §14.4.2)",
+    "break-glass (Tier B maker-checker + time-boxed)": "12.3.x (FR-IAM-009/010)",
+    "WORM audit": "12.1.8",
+    "custom permission roller": "Faz 3 (ADR-012; v1 kapsam dışı)"
+  }
+}

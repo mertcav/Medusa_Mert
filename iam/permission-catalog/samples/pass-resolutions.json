@@ -1,0 +1,15 @@
+{
+  "$comment": "12.1.2 — pass: iyi-biçimli, katalogda var → VALID + doğru metadata.",
+  "cases": [
+    { "name": "l0-tenant-provision",   "request": { "key": "tenant:provision" },     "expect": { "outcome": "VALID", "reason": "resolved" } },
+    { "name": "l0-resource-quota",     "request": { "key": "resource:quota:manage" },"expect": { "outcome": "VALID", "reason": "resolved" } },
+    { "name": "l1-role-assign",        "request": { "key": "role:assign" },           "expect": { "outcome": "VALID", "reason": "resolved" } },
+    { "name": "l1-number-read",        "request": { "key": "number:read" },           "expect": { "outcome": "VALID", "reason": "resolved" } },
+    { "name": "l2-campaign-manage",    "request": { "key": "campaign:manage" },       "expect": { "outcome": "VALID", "reason": "resolved" } },
+    { "name": "content-transcript-read","request": { "key": "transcript:read" },      "expect": { "outcome": "VALID", "reason": "resolved" } },
+    { "name": "content-livecalls-mng", "request": { "key": "livecalls:manage" },      "expect": { "outcome": "VALID", "reason": "resolved" } },
+    { "name": "own-calls-read-own",    "request": { "key": "calls:read:own" },        "expect": { "outcome": "VALID", "reason": "resolved" } },
+    { "name": "own-transcript-read-own","request": { "key": "transcript:read:own" },  "expect": { "outcome": "VALID", "reason": "resolved" } },
+    { "name": "agent-version-manage",  "request": { "key": "agent:version:manage" },  "expect": { "outcome": "VALID", "reason": "resolved" } }
+  ]
+}

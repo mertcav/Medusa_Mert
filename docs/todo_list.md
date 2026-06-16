@@ -283,7 +283,7 @@
 
 ### 12.1 IAM çekirdeği
 - [x] **12.1.1** RBAC modeli (rol→permission-key bundle, immutable) — `F1` · `Must` · →FR-IAM-001, FR-IAM-011
-- [ ] **12.1.2** Permission-key kataloğu (`kaynak:eylem`, `*:own`) — `F1` · `Must` · →SAD §14.4.3
+- [x] **12.1.2** Permission-key kataloğu (`kaynak:eylem`, `*:own`) — `F1` · `Must` · →SAD §14.4.3
 - [ ] **12.1.3** Scoped assignment (rol + departman/marka/kampanya filtresi) — `F2` · `Must` · →FR-IAM-011, ADR-012
 - [ ] **12.1.4** SSO: SAML 2.0 + OIDC — `F2` · `Must` · →FR-IAM-002
 - [ ] **12.1.5** MFA — `F1` · `Must` · →FR-IAM-003

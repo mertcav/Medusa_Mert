@@ -1,0 +1,5 @@
+{
+  "$comment": "12.1.2 — degrade: tenant_content_keys'deki bir key'in content flag'i ters çevrilirse G6 eler.",
+  "inject": "content_flip",
+  "cases": [ { "name": "content-flip-G6", "expect_gate_trips": true } ]
+}

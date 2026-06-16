@@ -1,0 +1,5 @@
+{
+  "$comment": "12.1.2 — degrade: own=true ama resource own_eligible değil/action≠read → G5 (':own' disiplini) eler.",
+  "inject": "own_break",
+  "cases": [ { "name": "own-break-G5", "expect_gate_trips": true } ]
+}

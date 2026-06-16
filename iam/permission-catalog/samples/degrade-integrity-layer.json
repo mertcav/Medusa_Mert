@@ -1,0 +1,5 @@
+{
+  "$comment": "12.1.2 — degrade: bir içerik key'i L0'a taşınırsa (L0 altın kuralı / universe layer) G6+G7 eler.",
+  "inject": "layer_flip",
+  "cases": [ { "name": "layer-flip-G7", "expect_gate_trips": true } ]
+}

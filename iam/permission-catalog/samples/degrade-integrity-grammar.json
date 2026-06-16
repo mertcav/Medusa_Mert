@@ -1,0 +1,5 @@
+{
+  "$comment": "12.1.2 — degrade (katalog bütünlük): gramer-dışı key enjekte edilirse G2 kapısı eler.",
+  "inject": "grammar_break",
+  "cases": [ { "name": "grammar-break-G2", "expect_gate_trips": true } ]
+}

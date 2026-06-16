@@ -1,0 +1,86 @@
+{
+  "$comment": "WBS 12.1.2 — PERMISSION-KEY KATALOĞU ('kaynak:eylem', '*:own'). Bu dosya 12. workstream'in (IAM & Erişim) permission-key GRAMERİNİN + TAM KATALOĞUNUN makine-okunur, DEĞİŞMEZ (frozen) KAYNAK DOĞRULUĞUDUR: SAD §14.4.3 'kaynak:eylem' formatı + BRD §17.6/§17.7 erişim matrisi/izolasyon kuralları. Her permission-key: kaynak (resource) + eylem (action) (+ ':own' sahiplik son eki) → katman (L0/L1/L2) + panel + tier (A=metrik/log PII yok, B=içerik/PII) + content (tenant iş içeriği, FR-IAM-008) + own (sahiplik-duyarlı, BRD §17.7). 12.1.1 RBAC modeli bu kataloğu TÜKETİR (rol bundle key'leri buradan conform edilir); 12.1.3 scoped assignment + 12.2.x backend guard (x-required-permission enforcement) + 12.3.x break-glass bu kataloğa karşı doğrular. Ham içerik/PII/credential YOK — yalnız permission-key + enum + yapısal kimlik. ÇELİŞKİDE SAD §14.4.3 / BRD §17.6 esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "source_of_truth": ["SAD §14.4.3", "BRD §17.6", "BRD §17.7"],
+
+  "grammar": {
+    "format": "kaynak:eylem",
+    "segment_regex": "^[a-z][a-z0-9_]*$",
+    "key_regex": "^[a-z][a-z0-9_]*(:[a-z][a-z0-9_]*)+$",
+    "min_segments": 2,
+    "own_suffix": ":own",
+    "own_rule": "':own' son eki YALNIZ final segment olabilir; YALNIZ own_eligible_resources + action=read üzerinde geçerlidir (BRD §17.7 human_agent kuralı). Sahiplik=own ise tam key gibi davranır, sahiplik dışı kaynakta yetki vermez (kapsam daraltma backend guard'da, 12.2.x).",
+    "note": "Eylem (action) = ':own' yoksa son segment, varsa sondan ikinci segment. Kaynak (resource) = ilk segment. Aradaki segment'ler qualifier (ör. resource:QUOTA:manage)."
+  },
+
+  "actions": {
+    "provision": "Sağlama/oluşturma (tenant yaşam döngüsü)",
+    "suspend": "Askıya alma",
+    "manage": "Yönet — tam kontrol (oku + yaz + sil)",
+    "edit": "Düzenle (yapılandırma değişikliği; sil değil)",
+    "build": "Oluştur/yapılandır (agent builder)",
+    "read": "Görüntüle (yalnız okuma)",
+    "assign": "Atama (rol ataması)",
+    "bind": "Bağlama (tool bağlama)",
+    "score": "Skorlama (QA değerlendirme)",
+    "run": "Çalıştırma (test/simülasyon)"
+  },
+
+  "panels": { "L0": "Platform Admin Console", "L1": "Tenant Admin Console", "L2": "Operasyon / Uygulama Paneli" },
+  "tiers": { "A": "metrik/log — PII yok (break-glass gerekmez)", "B": "transkript/kayıt/canlı çağrı — içerik/PII (Tier B break-glass)" },
+
+  "own_eligible_resources": ["calls", "transcript", "livecalls"],
+  "tenant_content_keys": ["calls:read", "calls:read:own", "transcript:read", "transcript:read:own",
+                          "transcript:manage", "livecalls:manage", "livecalls:read:own"],
+
+  "$keys_comment": "TAM KATALOG (44 key). 41 tam key + 3 ':own' varyantı. layer/panel/tier/content/own her key için açık. content=true ⟺ key ∈ tenant_content_keys (tier=B). L0 key'i ASLA content (FR-IAM-008 L0 altın kuralı).",
+  "keys": {
+    "tenant:provision":        { "resource": "tenant",      "action": "provision", "layer": "L0", "panel": "Platform Admin Console",          "tier": "A", "content": false, "own": false, "description": "Tenant sağlama (oluşturma)" },
+    "tenant:suspend":          { "resource": "tenant",      "action": "suspend",   "layer": "L0", "panel": "Platform Admin Console",          "tier": "A", "content": false, "own": false, "description": "Tenant askıya alma" },
+    "resource:quota:manage":   { "resource": "resource",    "action": "manage",    "layer": "L0", "panel": "Platform Admin Console",          "tier": "A", "content": false, "own": false, "description": "Kaynak/kapasite kotası yönetimi" },
+    "provider:health:read":    { "resource": "provider",    "action": "read",      "layer": "L0", "panel": "Platform Admin Console",          "tier": "A", "content": false, "own": false, "description": "Sağlayıcı sağlık görünümü" },
+    "provider:routing:manage": { "resource": "provider",    "action": "manage",    "layer": "L0", "panel": "Platform Admin Console",          "tier": "A", "content": false, "own": false, "description": "Sağlayıcı yönlendirme/fallback yönetimi" },
+    "platform:billing:manage": { "resource": "platform",    "action": "manage",    "layer": "L0", "panel": "Platform Admin Console",          "tier": "A", "content": false, "own": false, "description": "Platform geneli faturalandırma/rate-card" },
+    "policy:global:manage":    { "resource": "policy",      "action": "manage",    "layer": "L0", "panel": "Platform Admin Console",          "tier": "A", "content": false, "own": false, "description": "Global politika yönetimi" },
+    "platform:audit:read":     { "resource": "platform",    "action": "read",      "layer": "L0", "panel": "Platform Admin Console",          "tier": "A", "content": false, "own": false, "description": "Platform audit log görünümü (içerik değil)" },
+    "release:manage":          { "resource": "release",     "action": "manage",    "layer": "L0", "panel": "Platform Admin Console",          "tier": "A", "content": false, "own": false, "description": "Release/sürüm yönetimi" },
+    "incident:manage":         { "resource": "incident",    "action": "manage",    "layer": "L0", "panel": "Platform Admin Console",          "tier": "A", "content": false, "own": false, "description": "Alarm/incident yönetimi" },
+
+    "tenant:dashboard:read":   { "resource": "tenant",      "action": "read",      "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "Tenant dashboard görünümü" },
+    "org:manage":              { "resource": "org",         "action": "manage",    "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "Organizasyon/birim yönetimi" },
+    "user:manage":             { "resource": "user",        "action": "manage",    "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "Kullanıcı yönetimi" },
+    "role:assign":             { "resource": "role",        "action": "assign",    "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "Rol atama (scoped, 12.1.3)" },
+    "number:manage":           { "resource": "number",      "action": "manage",    "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "Numara/SIP yönetimi" },
+    "number:read":             { "resource": "number",      "action": "read",      "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "Numara görünümü (api_developer)" },
+    "integration:manage":      { "resource": "integration", "action": "manage",    "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "Entegrasyon yönetimi" },
+    "apikey:manage":           { "resource": "apikey",      "action": "manage",    "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "API key/webhook yönetimi" },
+    "compliance:manage":       { "resource": "compliance",  "action": "manage",    "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "Compliance profil yönetimi" },
+    "retention:manage":        { "resource": "retention",   "action": "manage",    "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "Retention/saklama politikası yönetimi" },
+    "consent:manage":          { "resource": "consent",     "action": "manage",    "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "Consent/onay yönetimi" },
+    "tenant:billing:read":     { "resource": "tenant",      "action": "read",      "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "Tenant fatura/maliyet görünümü" },
+    "tenant:audit:read":       { "resource": "tenant",      "action": "read",      "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "Tenant audit log görünümü" },
+    "quota:read":              { "resource": "quota",       "action": "read",      "layer": "L1", "panel": "Tenant Admin Console",            "tier": "A", "content": false, "own": false, "description": "Kaynak kotası görünümü" },
+
+    "agent:read":              { "resource": "agent",       "action": "read",      "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "A", "content": false, "own": false, "description": "Agent listesi/yapılandırma görünümü" },
+    "agent:build":             { "resource": "agent",       "action": "build",     "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "A", "content": false, "own": false, "description": "Agent builder (oluştur/yapılandır)" },
+    "flow:edit":               { "resource": "flow",        "action": "edit",      "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "A", "content": false, "own": false, "description": "Konuşma flow düzenleme" },
+    "prompt:edit":             { "resource": "prompt",      "action": "edit",      "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "A", "content": false, "own": false, "description": "Prompt düzenleme" },
+    "voice:edit":              { "resource": "voice",       "action": "edit",      "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "A", "content": false, "own": false, "description": "Ses/model düzenleme" },
+    "kb:manage":               { "resource": "kb",          "action": "manage",    "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "A", "content": false, "own": false, "description": "Knowledge base yönetimi" },
+    "tool:bind":               { "resource": "tool",        "action": "bind",      "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "A", "content": false, "own": false, "description": "Tool bağlama" },
+    "campaign:manage":         { "resource": "campaign",    "action": "manage",    "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "A", "content": false, "own": false, "description": "Outbound kampanya yönetimi" },
+    "calls:read":             { "resource": "calls",       "action": "read",      "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "B", "content": true,  "own": false, "description": "Çağrı kayıtları görünümü (tüm çağrılar)" },
+    "calls:read:own":         { "resource": "calls",       "action": "read",      "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "B", "content": true,  "own": true,  "description": "Yalnız kendi çağrılarının görünümü (human_agent, BRD §17.7)" },
+    "transcript:read":        { "resource": "transcript",  "action": "read",      "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "B", "content": true,  "own": false, "description": "Transkript görünümü (PII; qa_analyst/security_compliance_officer)" },
+    "transcript:read:own":    { "resource": "transcript",  "action": "read",      "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "B", "content": true,  "own": true,  "description": "Yalnız kendi çağrı transkriptinin görünümü (human_agent)" },
+    "transcript:manage":      { "resource": "transcript",  "action": "manage",    "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "B", "content": true,  "own": false, "description": "Transkript yönetimi (PII; operations_manager)" },
+    "qa:score":                { "resource": "qa",          "action": "score",     "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "A", "content": false, "own": false, "description": "QA skorlama" },
+    "analytics:read":          { "resource": "analytics",   "action": "read",      "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "A", "content": false, "own": false, "description": "Analitik görünümü (agregat)" },
+    "cost:read":               { "resource": "cost",        "action": "read",      "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "A", "content": false, "own": false, "description": "Maliyet/kaynak görünümü" },
+    "test:run":                { "resource": "test",        "action": "run",       "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "A", "content": false, "own": false, "description": "Test/simülasyon çalıştırma" },
+    "agent:version:manage":    { "resource": "agent",       "action": "manage",    "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "A", "content": false, "own": false, "description": "Agent sürüm yönetimi/promote" },
+    "livecalls:manage":       { "resource": "livecalls",   "action": "manage",    "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "B", "content": true,  "own": false, "description": "Canlı çağrı yönetimi (monitör/barge; içerik)" },
+    "livecalls:read:own":     { "resource": "livecalls",   "action": "read",      "layer": "L2", "panel": "Operasyon / Uygulama Paneli",     "tier": "B", "content": true,  "own": true,  "description": "Yalnız kendi canlı çağrısının görünümü (human_agent)" }
+  }
+}

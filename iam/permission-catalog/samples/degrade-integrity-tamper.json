@@ -1,0 +1,5 @@
+{
+  "$comment": "12.1.2 — degrade: katalog çalışma-anı tahrifi (metadata değişimi) → G10 catalog_hash farkı eler.",
+  "inject": "catalog_tamper",
+  "cases": [ { "name": "catalog-tamper-G10", "expect_gate_trips": true } ]
+}

@@ -1,0 +1,14 @@
+{
+  "$comment": "12.1.2 — degrade (request seviyesi, FR-TST-008): hatalı/bilinmeyen key'ler beklenen terminalde elenir.",
+  "cases": [
+    { "name": "malformed-single-segment", "request": { "key": "calls" },            "expect": { "outcome": "REJECT",  "reason": "malformed_key" } },
+    { "name": "malformed-uppercase",      "request": { "key": "Calls:Read" },        "expect": { "outcome": "REJECT",  "reason": "malformed_key" } },
+    { "name": "malformed-empty-segment",  "request": { "key": "calls::read" },       "expect": { "outcome": "REJECT",  "reason": "malformed_key" } },
+    { "name": "malformed-trailing-colon", "request": { "key": "calls:" },            "expect": { "outcome": "REJECT",  "reason": "malformed_key" } },
+    { "name": "own-misplaced",            "request": { "key": "calls:own:read" },     "expect": { "outcome": "REJECT",  "reason": "own_misplaced" } },
+    { "name": "own-not-permitted-org",    "request": { "key": "org:manage:own" },     "expect": { "outcome": "REJECT",  "reason": "own_not_permitted" } },
+    { "name": "own-not-permitted-action", "request": { "key": "transcript:manage:own" },"expect": { "outcome": "REJECT", "reason": "own_not_permitted" } },
+    { "name": "unknown-good-form",        "request": { "key": "calls:delete" },       "expect": { "outcome": "UNKNOWN", "reason": "unknown_key" } },
+    { "name": "unknown-resource",         "request": { "key": "ghost:read" },         "expect": { "outcome": "UNKNOWN", "reason": "unknown_key" } }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "$comment": "12.1.2 — degrade: hiçbir role atanmamış (universe dışı) key katalogda olursa G4 (orphan_key) eler.",
+  "inject": "orphan_key",
+  "cases": [ { "name": "orphan-key-G4", "expect_gate_trips": true } ]
+}

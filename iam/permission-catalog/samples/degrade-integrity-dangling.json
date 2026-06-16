@@ -1,0 +1,5 @@
+{
+  "$comment": "12.1.2 — degrade: RBAC modeli (12.1.1) referans verdiği bir key katalogdan düşerse G3 (dangling_key) eler.",
+  "inject": "drop_key",
+  "cases": [ { "name": "drop-key-G3-dangling", "expect_gate_trips": true } ]
+}
