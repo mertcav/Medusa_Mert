@@ -1,0 +1,8 @@
+{
+  "name": "DEGRADE — confirm'siz ağır değişim (residency/retention) commit (R7)",
+  "request_id": "req-d07", "op": "set", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["compliance:manage"],
+  "tenant_id": "t-001", "category": "residency", "value": "UK",
+  "current_region": "EU", "tenant_allowed_regions": ["EU", "UK"], "audit_emitted": true,
+  "inject": ["unsafe_change"], "expect": "fail"
+}

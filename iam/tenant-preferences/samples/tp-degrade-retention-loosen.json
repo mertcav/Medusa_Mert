@@ -1,0 +1,8 @@
+{
+  "name": "DEGRADE — compliance asgari altı retain_days (gevşetme) commit (R6)",
+  "request_id": "req-d06", "op": "set", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["retention:manage"],
+  "tenant_id": "t-001", "category": "retention", "value": 365,
+  "data_class": "recording", "compliance_min_days": 180, "audit_emitted": true,
+  "inject": ["retention_loosen"], "expect": "fail"
+}

@@ -1,0 +1,7 @@
+{
+  "name": "DEGRADE — gerekli permission-key olmadan commit (R3)",
+  "request_id": "req-d03", "op": "set", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["compliance:manage"],
+  "tenant_id": "t-001", "category": "locale", "value": "tr-TR", "audit_emitted": true,
+  "inject": ["drop_permission"], "expect": "fail"
+}

@@ -1,0 +1,7 @@
+{
+  "name": "DEGRADE — model bütünlük manifesti tahrifi (narrowing/floor kaldır) (R9)",
+  "request_id": "req-d09", "op": "set", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["compliance:manage"],
+  "tenant_id": "t-001", "category": "locale", "value": "tr-TR", "audit_emitted": true,
+  "inject": ["model_tamper"], "expect": "fail"
+}

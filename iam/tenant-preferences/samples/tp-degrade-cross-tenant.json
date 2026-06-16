@@ -1,0 +1,7 @@
+{
+  "name": "DEGRADE — başka tenant'ın tercihini uygulayıp commit (R2)",
+  "request_id": "req-d01", "op": "set", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["compliance:manage"],
+  "tenant_id": "t-001", "category": "locale", "value": "en-US", "audit_emitted": true,
+  "inject": ["cross_tenant"], "expect": "fail"
+}

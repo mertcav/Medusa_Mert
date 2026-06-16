@@ -1,0 +1,7 @@
+{
+  "name": "DEGRADE — geçersiz tercih değeri (küme dışı) commit (R4)",
+  "request_id": "req-d04", "op": "set", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["compliance:manage"],
+  "tenant_id": "t-001", "category": "locale", "value": "tr-TR", "audit_emitted": true,
+  "inject": ["invalid_value"], "expect": "fail"
+}

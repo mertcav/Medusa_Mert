@@ -1,0 +1,9 @@
+{
+  "name": "set timezone Europe/Istanbul — L1 tenant saat dilimi tercihi",
+  "request_id": "req-002", "op": "set", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["compliance:manage"],
+  "tenant_id": "t-001", "category": "timezone", "value": "Europe/Istanbul",
+  "audit_emitted": true,
+  "expect": "pass",
+  "expected": {"terminal": "COMMIT", "category": "timezone"}
+}

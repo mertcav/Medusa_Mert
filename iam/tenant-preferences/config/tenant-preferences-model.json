@@ -1,0 +1,88 @@
+{
+  "$comment": "WBS 12.4.4 — TENANT DİL/SAAT DİLİMİ/BÖLGE/SAKLAMA TERCİHİ (L1) tercih modeli (FR-TEN-004 'Tenant bazında dil, saat dilimi, veri bölgesi ve saklama politikası seçilebilmelidir'; DB.md §5.1 tenant [default_locale, timezone, home_region, retention_profile] + §9 retention_policy [tenant + data_class → retain_days; FR-REC-006/007/010]; BRD §17 'tenant'a özel dil/bölge/saklama tercihleri Tenant Admin Console (L1) üzerinden yönetilir'; NFR 10.7 residency UK/EU/NA/ME; DPIA §5.4 cp.residency / §5.5 cp.retention + §8 most-restrictive-wins / tenant-override-yalnız-sıkılaştırır). FROZEN kontrol-düzlemi modeli: tenant'ın KENDİ dil/saat dilimi/veri bölgesi/saklama tercihlerinin uygulanması L1-only deterministik bir BAĞLAMA (binding) kararı olarak modellenir. ÇEKİRDEK: L1 yüzeyidir (tenant realm + tenant_application_plane) — 12.4.1 (tenant CRUD provisioning) ve 12.4.2 (dedicated vs shared) L0 (platform) iken bu L1; aktör YALNIZ KENDİ tenant'ının tercihini uygular (FR-TEN-002 tenant izolasyonu — self-row); tercih kategorisi ∈ {locale,timezone,residency,retention}; değer geçerli (locale ∈ supported BCP-47, timezone ∈ IANA, region ∈ UK/EU/NA/ME, retention data_class CHECK); home_region tenant izinli bölge kümesinde (NFR 10.7; YALNIZ-DARALTIR); retain_days compliance asgari gün tabanında (most-restrictive-wins; tenant override YALNIZ sıkılaştırır — yasal asgarinin altına inemez; DPIA §8); residency değişimi (veri taşıma) VEYA retention kısaltma (geri-döndürülemez silme FR-REC-010) confirm gerektirir; her mutasyon WORM audit'e. İşlemler kategori bazında permission-key gerektirir (12.1.2 katalog; locale/timezone/residency → compliance:manage, retention → retention:manage; tenant_owner/security_compliance_officer bundle 12.1.1/ADR-012). Bu dosya FROZEN — model_hash sha256 ile audit edilebilir. Kaynak doğruluk FR-TEN-004, DB.md §5.1/§9, BRD §17, NFR 10.7, DPIA §8; çelişkide onlar esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+  "realm": {
+    "$comment": "Tenant tercih yönetimi YALNIZ L1 tenant realm + tenant_application_plane'de yürütülür (BRD §17 'tenant'a özel dil/bölge/saklama tercihleri ... Tenant Admin Console (L1) üzerinden yönetilir'). platform realm (L0) tenant tercihini (dil/saat/bölge/saklama) YÖNETMEZ (FR-IAM-008 altın kural — L0 tenant iş içeriğini/konfigürasyonunu görmez/yönetmez); platform realm tercih op'u = cross_tenant_op (yanlış realm). Aktör YALNIZ KENDİ tenant'ının tercihini uygular (FR-TEN-002 self-row; actor tenant_id == target_tenant_id).",
+    "required_actor_realm": "tenant",
+    "required_plane": "tenant_application_plane",
+    "valid_realms": ["platform", "tenant"],
+    "valid_planes": ["platform_control_plane", "tenant_application_plane"],
+    "trace": "BRD §17, FR-IAM-008, FR-TEN-002, SAD §14.4.1"
+  },
+  "categories": {
+    "$comment": "FR-TEN-004 dört tercih kategorisi: locale=dil (DB.md tenant.default_locale; BCP-47), timezone=saat dilimi (DB.md tenant.timezone; IANA tz), residency=veri bölgesi (DB.md tenant.home_region; NFR 10.7 UK/EU/NA/ME), retention=saklama politikası (DB.md §9 retention_policy + tenant.retention_profile; FR-REC-006/007/010). Bu dört kategori dışı = invalid_preference.",
+    "list": ["locale", "timezone", "residency", "retention"]
+  },
+  "operations": {
+    "$comment": "Tercih işlemleri. read mutasyon değildir (tercihi okur; audit-zorunlu değil). set mutasyon (WORM audit zorunlu) — tercih değerini uygular (FR-TEN-004 'seçilebilmelidir'; SR-TEN-004 'runtime'a uygulanır').",
+    "list": ["set", "read"],
+    "mutating": ["set"]
+  },
+  "op_permission": {
+    "$comment": "İşlem+kategori → gerekli permission-key (resource:action; 12.1.2 katalog; yeni anahtar İCAT EDİLMEZ). Tenant-genel tercihler yasal/uyumluluk etkili olduğundan compliance-yetkili/tenant_owner tarafından yönetilir: locale (şeffaflık/AI-disclosure dili — DPIA cp.transparency) + timezone (outbound calling-hours yorumu — DPIA cp.outbound) + residency (cp.residency — DPIA §5.4) → compliance:manage; retention (cp.retention — FR-REC-006/007/010) → retention:manage. tenant_owner ikisini de, security_compliance_officer ikisini de taşır (12.1.1/ADR-012). read aynı kategori permission-key'ini gerektirir (katalogda ayrı tercih-read anahtarı yok). Yetki kararı HER ZAMAN backend'de (BRD §17.7).",
+    "by_category": {
+      "locale": "compliance:manage",
+      "timezone": "compliance:manage",
+      "residency": "compliance:manage",
+      "retention": "retention:manage"
+    }
+  },
+  "tenant_scope": {
+    "$comment": "Tenant izolasyonu (FR-TEN-002; DB.md §5.1 tenant self-row + §9 retention_policy tenant-scoped RLS). Aktör tenant_id'si hedef tenant_id ile eşleşmeli (KENDİ tenant'ının tercihini uygular — self-row); başka tenant'ın tercihini uygulama YASAK. Uyumsuz = cross_tenant_op. 12.2.3 rls-double-check RESİPROKAL (retention_policy/tenant tenant-scoped RLS).",
+    "actor_tenant_must_match_target": true,
+    "trace": "FR-TEN-002, DB.md §5.1/§9, 12.2.3"
+  },
+  "value_validity": {
+    "$comment": "Kategori değeri geçerlilik kümeleri. supported_locales BCP-47 dil etiketleri (MÜHENDİSLİK varsayılanı; F1'de genişler) — DB.md tenant.default_locale. supported_timezones IANA tz adları — DB.md tenant.timezone. regions NFR 10.7 UK/EU/NA/ME — DB.md tenant.home_region. retention_data_classes DB.md §9 retention_policy.data_class CHECK. Küme dışı değer = invalid_preference.",
+    "supported_locales": ["tr-TR", "en-US", "en-GB", "de-DE", "fr-FR", "ar-SA", "nl-NL", "es-ES"],
+    "supported_timezones": ["Europe/Istanbul", "Europe/London", "Europe/Berlin", "Europe/Paris", "Europe/Amsterdam", "America/New_York", "America/Chicago", "Asia/Dubai", "Asia/Riyadh", "UTC"],
+    "regions": ["UK", "EU", "NA", "ME"],
+    "retention_data_classes": ["recording", "transcript", "call_meta", "usage", "audit"],
+    "trace": "FR-TEN-004, DB.md §5.1/§9, NFR 10.7"
+  },
+  "residency": {
+    "$comment": "tenant.home_region = veri bölgesi (DB.md §5.1; NFR 10.7 UK/EU/NA/ME; SAD §12.3). Seçilen home_region tenant'ın izinli bölge kümesinde (tenant_allowed_regions; 12.4.1 provisioning ile tutarlı) olmalı — YALNIZ-DARALTIR (tenant izinli set dışına çıkamaz; DPIA §8 most-restrictive-wins / tenant-override-yalnız-sıkılaştırır). Geçersiz / tenant izinli set dışı region = residency_violation.",
+    "regions": ["UK", "EU", "NA", "ME"],
+    "region_must_be_in_tenant_allowed": true,
+    "narrowing_only": true,
+    "trace": "NFR 10.7, DB.md §5.1, SAD §12.3, DPIA §5.4/§8"
+  },
+  "retention": {
+    "$comment": "retention_policy.retain_days + tenant.retention_profile (DB.md §9; FR-REC-006/007/010). Seçilen retain_days, ilgili data_class için compliance asgari gün tabanından (compliance_min_days; cp.retention.*; DPIA §5.5/§8) AŞAĞI inemez — tenant override YALNIZ sıkılaştırır (most-restrictive-wins; 'retention kısaltma yasal asgarinin altına engellenir' DPIA §8). Asgari altı retain_days = retention_violation. Asgari değer compliance profile çözümlemesinden gelir (girdi; çözümleme DPIA/compliance-profile motoru sahibi).",
+    "retain_days_floor_from_compliance": true,
+    "tenant_override_tightens_only": true,
+    "trace": "FR-REC-006/007/010, DB.md §9, DPIA §5.5/§8"
+  },
+  "change_guard": {
+    "$comment": "Geri-döndürülemez / ağır tercih değişimi confirm gerektirir (sessiz uygulama YASAK): residency home_region değişimi (mevcut bölgeden farklı → veri taşıma/migrasyon; SAD §12.3) VEYA retention kısaltma (yeni retain_days < mevcut → geri-döndürülemez silme tetikler; FR-REC-010 'geri döndürülemez silme'). Korumasız (confirm'siz) ağır değişim = unsafe_change. Gerçek veri taşıma/silme yürütme F1 kod (retention motoru WBS 1.2.3 + residency migrasyon) + ops runbook'a delege.",
+    "residency_region_change_requires_confirm": true,
+    "retention_reduction_requires_confirm": true,
+    "delegated_execution": "F1 kod (retention motoru 1.2.3 + residency migrasyon) + ops runbook; bu modül KARARINI verir",
+    "trace": "FR-REC-010, SAD §12.3, NFR 10.7"
+  },
+  "audit": {
+    "$comment": "Her mutasyon (set) WORM append-only audit_log'a yazılır (DB.md §5.1 audit_log WORM + hash chain; FR-IAM-006/FR-REC-009; akış 12.1.8). read audit-zorunlu değil. Audit'siz mutasyon = missing_audit.",
+    "required_for": ["set"],
+    "worm": true,
+    "delegated_flow": "12.1.8 worm-audit (audit_log; hash chain bütünlük)",
+    "trace": "FR-IAM-006, FR-REC-009, DB.md §5.1"
+  },
+  "compliance_profile_link": {
+    "$comment": "Tercih sınırları (residency izinli bölge + retention asgari gün) tenant'ın etkin compliance profile çözümlemesinden gelir (DPIA §8 ülke profili ⊕ sektörel overlay ⊕ tenant override; most-restrictive-wins; tenant-override-yalnız-sıkılaştırır). cp.residency.home_region/cp.residency.* (DPIA §5.4) + cp.retention.recording_days/transcript_days/audit_days (DPIA §5.5). Bu RESİPROKAL bağ R5 (residency narrowing) + R6 (retention floor) sınırlarının KAYNAĞINI belgeler. Çözümleme (resolver) compliance-profile motoru sahibi (DPIA); bu modül çözülmüş sınırı TÜKETİR (girdi: tenant_allowed_regions, compliance_min_days).",
+    "residency_keys": ["cp.residency.home_region", "cp.residency.in_region_storage_required"],
+    "retention_keys": ["cp.retention.recording_days", "cp.retention.transcript_days", "cp.retention.audit_days"],
+    "resolution": "most-restrictive-wins; tenant override yalnız sıkılaştırır (DPIA §8)",
+    "trace": "DPIA §5.4/§5.5/§8, BRD §14.4, FR-REC-006"
+  },
+  "data_class": {
+    "$comment": "Tercih hedefleri: tenant tercih alanları (default_locale/timezone/home_region/retention_profile) tenant tablosunun SELF-ROW'undadır (DB.md §5.1 tenant root). tenant tablosu repo-sınıfı=platform (L0 sağlar) AMA tercih alt-kümesi tenant'ın KENDİ self-row'unda L1-düzenlenebilir (FR-TEN-002 self-row; RLS tenant_id=id). retention_policy tablosu veri-sınıfı=tenant_config (12.2.4 l0-repo-independence RESİPROKAL — L0 tenant retention politikasını GÖRMEZ/yönetmez; FR-IAM-008 altın kural). L1 (tenant) kendi tercihlerini yönetir; tenant_content (call/transcript/PII) DEĞİL.",
+    "retention_policy_table_class": "tenant_config",
+    "tenant_preference_fields_self_row": ["default_locale", "timezone", "home_region", "retention_profile"],
+    "reciprocal": "12.2.4 ../l0-repo-independence (table_class_of.retention_policy = tenant_config)",
+    "trace": "FR-IAM-008, FR-TEN-002, 12.2.4, DB.md §5.1/§9"
+  },
+  "terminal": ["COMMIT", "REJECT"],
+  "trace": "FR-TEN-004, DB.md §5.1/§9, BRD §17, NFR 10.7, DPIA §5.4/§5.5/§8, FR-TEN-002, FR-REC-006/007/010, 12.4.1/12.2.3/12.1.1/12.1.2/12.2.4/12.1.8"
+}

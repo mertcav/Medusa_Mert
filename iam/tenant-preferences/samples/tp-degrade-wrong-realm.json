@@ -1,0 +1,7 @@
+{
+  "name": "DEGRADE — platform (L0) realm'den L1 tercih op'u commit (R2)",
+  "request_id": "req-d02", "op": "set", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["compliance:manage"],
+  "tenant_id": "t-001", "category": "timezone", "value": "UTC", "audit_emitted": true,
+  "inject": ["wrong_realm"], "expect": "fail"
+}

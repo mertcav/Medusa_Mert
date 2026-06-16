@@ -1,0 +1,7 @@
+{
+  "name": "DEGRADE — mutasyon WORM audit'siz commit (R8)",
+  "request_id": "req-d08", "op": "set", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["compliance:manage"],
+  "tenant_id": "t-001", "category": "locale", "value": "tr-TR", "audit_emitted": true,
+  "inject": ["skip_audit"], "expect": "fail"
+}

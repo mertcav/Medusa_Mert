@@ -1,0 +1,8 @@
+{
+  "name": "DEGRADE — tenant izinli dışı residency commit (R5)",
+  "request_id": "req-d05", "op": "set", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["compliance:manage"],
+  "tenant_id": "t-001", "category": "residency", "value": "EU",
+  "tenant_allowed_regions": ["EU", "UK"], "audit_emitted": true,
+  "inject": ["residency_drift"], "expect": "fail"
+}
