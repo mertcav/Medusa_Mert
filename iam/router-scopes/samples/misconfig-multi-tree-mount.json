@@ -1,0 +1,34 @@
+{
+  "$comment": "MISCONFIG multi_tree_mount (403): aynı endpoint hem L1 hem L2 ağacına mount edilmiş; deploy ENGELLENİR (S2)",
+  "name": "misconfig-multi-tree-mount",
+  "expect": "pass",
+  "request_id": "req-010",
+  "mounts": [
+    {
+      "endpoint": "GET /shared/resource",
+      "declared_panel": "L1",
+      "mounted_tree": "L1"
+    },
+    {
+      "endpoint": "GET /shared/resource",
+      "declared_panel": "L2",
+      "mounted_tree": "L2"
+    }
+  ],
+  "request": {
+    "target_tree": "L1",
+    "arrived_plane": "tenant_application_plane",
+    "arrived_origin": "api.rmcvoice.io",
+    "authenticated": true,
+    "token": {
+      "realm": "tenant",
+      "panel_scope": "panel:L1"
+    }
+  },
+  "expected": {
+    "terminal": "MISCONFIG",
+    "misconfig_reason": "multi_tree_mount",
+    "admitted": false,
+    "http_status": 403
+  }
+}

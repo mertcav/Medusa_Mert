@@ -1,0 +1,85 @@
+{
+  "$comment": "WBS 12.2.2 — ROUTER TOPOLOJİSİ modeli (L0/L1/L2 AYRI router ağaçları + AYRI OAuth scope + AYRI deploy düzlemi; SAD §14.4.2 'Ayrı router/scopes + ayrı deploy: L0 endpoint'leri ayrı bir servis (Platform Control Plane, internal-only) ve ayrı auth realm'de; L1/L2 endpoint'leri Tenant Application Plane'de ayrı router ağaçları ve OAuth scope'larında tanımlanır (ADR-011)'). FROZEN topoloji modeli: 12.2.1 backend-guard'ın PER-REQUEST üç-boyutlu kararının ÖNÜNDEKİ yapısal/dağıtımsal katman — her panel (L0/L1/L2) AYRI bir router ağacına (prefix), AYRI bir OAuth scope'a (router-seviyesi scope dependency, handler'dan ÖNCE) ve bir deploy DÜZLEMİNE bağlıdır. İKİ DÜZLEM (ADR-011): (1) Platform Control Plane — internal-only, ayrı origin/servis/auth realm, VPN/allowlist/private-endpoint arkasında; YALNIZ L0 ağacını barındırır; (2) Tenant Application Plane — multi-tenant, public; L1 ve L2 ağaçlarını AYRI router ağaçları + AYRI OAuth scope ile barındırır. L0 ağacı tenant düzlemine (veya tersi) ASLA mount edilemez (blast-radius izolasyonu). OAuth scope'lar panel başına ANLAŞMAZ (disjoint): panel:L0/L1/L2. Router admission GEREKLİ ama YETERLİ DEĞİL — kabul edilen istek 12.2.1 backend-guard'ın panel+rol+tenant kapısına DEVREDİLİR. SCOPE/REALM kaynak doğruluğu 12.2.1 config/guard-model.json'dur (panel_realm + panel_oauth_scope); bu topoloji onlarla TUTARLI olmalı (yeniden tanımlamaz, S6). Bu dosya FROZEN — değiştirilemez router/scope yüzeyi (model_hash sha256 ile audit edilebilir). Kaynak doğruluk SAD §14.4.2 / ADR-011; çelişkide onlar esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+  "enforce_at": "router (deploy-time mount integrity + request-time router-level OAuth scope dependency; handler'dan ÖNCE)",
+  "scope_disjoint": true,
+
+  "planes": {
+    "$comment": "İki deploy düzlemi (ADR-011). Üç ayrı deploy kaynak israfı; tek deploy + guard ise paylaşılan kod/middleware'de tek bug ile L0'ı açar (blast-radius). İki düzlem güvenlik/maliyet dengesini korur. L0 → AYRI internal-only servis; L1+L2 → birlikte public Tenant Application Plane fakat AYRI router ağaçları + AYRI OAuth scope ile.",
+    "platform_control_plane": {
+      "public": false,
+      "internal_only": true,
+      "origin": "platform.internal.rmcvoice.io",
+      "base_path": "/platform/v1",
+      "auth_realm": "platform",
+      "idp": "platform_idp",
+      "network": "VPN/allowlist/private-endpoint",
+      "hosts_panels": ["L0"]
+    },
+    "tenant_application_plane": {
+      "public": true,
+      "internal_only": false,
+      "origin": "api.rmcvoice.io",
+      "base_path": "/",
+      "auth_realm": "tenant",
+      "idp": "tenant_sso (SAML 2.0 / OIDC federe — FR-IAM-002)",
+      "network": "public",
+      "hosts_panels": ["L1", "L2"]
+    }
+  },
+
+  "router_trees": {
+    "$comment": "Panel başına AYRI router ağacı. Her ağaç: prefix (base path) + bağlı olduğu deploy düzlemi (plane) + auth realm + AYRI OAuth scope (router_scope_dependency=true → handler'dan ÖNCE router-seviyesi dependency olarak zorlanır) + auth scheme. oauth_scope + realm değerleri 12.2.1 guard-model.json (panel_oauth_scope + panel_realm) ile TUTARLI olmalı (S6 — tek kaynak doğruluk). L0 yalnız platform_control_plane'de; L1/L2 yalnız tenant_application_plane'de.",
+    "L0": {
+      "panel": "L0",
+      "prefix": "/platform/v1",
+      "plane": "platform_control_plane",
+      "realm": "platform",
+      "oauth_scope": "panel:L0",
+      "auth_scheme": "oidc_bearer",
+      "public": false,
+      "router_scope_dependency": true
+    },
+    "L1": {
+      "panel": "L1",
+      "prefix": "/admin/v1",
+      "plane": "tenant_application_plane",
+      "realm": "tenant",
+      "oauth_scope": "panel:L1",
+      "auth_scheme": "oidc_bearer",
+      "public": true,
+      "router_scope_dependency": true
+    },
+    "L2": {
+      "panel": "L2",
+      "prefix": "/ops/v1",
+      "plane": "tenant_application_plane",
+      "realm": "tenant",
+      "oauth_scope": "panel:L2",
+      "auth_scheme": "oidc_bearer",
+      "public": true,
+      "router_scope_dependency": true
+    }
+  },
+
+  "http_status": {
+    "$comment": "Topoloji kararı → HTTP durum kodu. ADMIT → istek router ağacına kabul edilir, 12.2.1 backend-guard'a devredilir (2xx kararı orada); REJECT → router-seviyesi reddi (yanlış scope/realm/plane; 401 kimliksiz, aksi 403); MISCONFIG → deploy-time topoloji ihlali (fail-closed; deploy engellenir; 403).",
+    "ADMIT": 200,
+    "REJECT": 403,
+    "unauthenticated": 401,
+    "misconfig": 403
+  },
+
+  "guard_model_ref": "12.2.1 ../backend-guard/config/guard-model.json (panel_realm + panel_oauth_scope — TEK KAYNAK DOĞRULUK; bu topoloji onlarla tutarlı, S6)",
+  "delegates_to": {
+    "per_endpoint_guard": "12.2.1 backend-guard (panel + rol + tenant scope; router admission GEREKLİ ama YETERLİ DEĞİL — kabul edilen istek bu kapıdan geçer)",
+    "tenant_scope_rls": "12.2.3 (PostgreSQL RLS çift kontrol — DB seviyesi)"
+  },
+  "out_of_scope": {
+    "$comment": "Public Developer API (S4 — api.rmcvoice.io/public/v1) AYRI bir router ağacıdır ancak panel DEĞİL — S2/S3'ün kısıtlı, sözleşme-stabil alt kümesi (API.md §2). Bu modül L0/L1/L2 PANEL ağaçlarına odaklanır.",
+    "public_developer_api": "/public/v1 (S4 — panel değil; restricted subset; API.md)"
+  },
+  "trace": "FR-IAM-008, FR-TEN-002, SAD §14.4.2, ADR-011, API.md §2/§4.1/§4.2"
+}

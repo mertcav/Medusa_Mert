@@ -1,0 +1,26 @@
+{
+  "$comment": "REJECT unauthenticated (401): doğrulanmış kimlik yok — router scope dependency'den önce reddedilir",
+  "name": "reject-unauthenticated",
+  "expect": "pass",
+  "request_id": "req-008",
+  "mounts": [
+    {
+      "endpoint": "GET /ops/v1/calls/{id}",
+      "declared_panel": "L2",
+      "mounted_tree": "L2"
+    }
+  ],
+  "request": {
+    "target_tree": "L2",
+    "arrived_plane": "tenant_application_plane",
+    "arrived_origin": "api.rmcvoice.io",
+    "authenticated": false,
+    "token": {}
+  },
+  "expected": {
+    "terminal": "REJECT",
+    "reject_reason": "unauthenticated",
+    "admitted": false,
+    "http_status": 401
+  }
+}

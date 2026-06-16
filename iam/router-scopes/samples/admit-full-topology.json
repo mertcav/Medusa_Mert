@@ -1,0 +1,38 @@
+{
+  "$comment": "ADMIT: üç ağaç birlikte mount (L0 ayrı düzlem, L1+L2 tenant düzlemi); anlaşmaz scope'lar; L2 isteği kabul",
+  "name": "admit-full-topology",
+  "expect": "pass",
+  "request_id": "req-004",
+  "mounts": [
+    {
+      "endpoint": "POST /platform/v1/tenants",
+      "declared_panel": "L0",
+      "mounted_tree": "L0"
+    },
+    {
+      "endpoint": "POST /admin/v1/users",
+      "declared_panel": "L1",
+      "mounted_tree": "L1"
+    },
+    {
+      "endpoint": "GET /ops/v1/calls/{id}",
+      "declared_panel": "L2",
+      "mounted_tree": "L2"
+    }
+  ],
+  "request": {
+    "target_tree": "L2",
+    "arrived_plane": "tenant_application_plane",
+    "arrived_origin": "api.rmcvoice.io",
+    "authenticated": true,
+    "token": {
+      "realm": "tenant",
+      "panel_scope": "panel:L2"
+    }
+  },
+  "expected": {
+    "terminal": "ADMIT",
+    "admitted": true,
+    "http_status": 200
+  }
+}

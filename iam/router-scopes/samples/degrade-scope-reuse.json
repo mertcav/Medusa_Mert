@@ -1,0 +1,26 @@
+{
+  "$comment": "DEGRADE: L2 ağacı panel:L1 scope'unu paylaşıyor (çakışma) + scope_reuse → scope_violation (S4 ÇEKİRDEK)",
+  "name": "degrade-scope-reuse",
+  "expect": "fail",
+  "request_id": "req-013",
+  "mounts": [
+    {
+      "endpoint": "GET /ops/v1/calls/{id}",
+      "declared_panel": "L2",
+      "mounted_tree": "L2"
+    }
+  ],
+  "request": {
+    "target_tree": "L2",
+    "arrived_plane": "tenant_application_plane",
+    "arrived_origin": "api.rmcvoice.io",
+    "authenticated": true,
+    "token": {
+      "realm": "tenant",
+      "panel_scope": "panel:L2"
+    }
+  },
+  "inject": [
+    "scope_reuse"
+  ]
+}

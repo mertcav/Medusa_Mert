@@ -1,0 +1,26 @@
+{
+  "$comment": "DEGRADE: L0 ağacına tenant realm token kabul + realm_cross → realm_violation (S5; L0 ⟂ tenant)",
+  "name": "degrade-realm-cross",
+  "expect": "fail",
+  "request_id": "req-015",
+  "mounts": [
+    {
+      "endpoint": "POST /platform/v1/tenants",
+      "declared_panel": "L0",
+      "mounted_tree": "L0"
+    }
+  ],
+  "request": {
+    "target_tree": "L0",
+    "arrived_plane": "platform_control_plane",
+    "arrived_origin": "platform.internal.rmcvoice.io",
+    "authenticated": true,
+    "token": {
+      "realm": "tenant",
+      "panel_scope": "panel:L0"
+    }
+  },
+  "inject": [
+    "realm_cross"
+  ]
+}

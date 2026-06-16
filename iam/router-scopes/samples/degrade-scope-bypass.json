@@ -1,0 +1,26 @@
+{
+  "$comment": "DEGRADE: L2 ağacına panel:L1 token kabul + scope_bypass → scope_violation (S4 request-time)",
+  "name": "degrade-scope-bypass",
+  "expect": "fail",
+  "request_id": "req-014",
+  "mounts": [
+    {
+      "endpoint": "GET /ops/v1/calls/{id}",
+      "declared_panel": "L2",
+      "mounted_tree": "L2"
+    }
+  ],
+  "request": {
+    "target_tree": "L2",
+    "arrived_plane": "tenant_application_plane",
+    "arrived_origin": "api.rmcvoice.io",
+    "authenticated": true,
+    "token": {
+      "realm": "tenant",
+      "panel_scope": "panel:L1"
+    }
+  },
+  "inject": [
+    "scope_bypass"
+  ]
+}
