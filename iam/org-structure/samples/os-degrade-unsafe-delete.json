@@ -1,0 +1,9 @@
+{
+  "name": "DEGRADE — çocuğu olan birim cascade/confirm'siz silinip commit (R8 — yetim çocuk)",
+  "request_id": "req-d08", "op": "delete", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["org:manage"],
+  "tenant_id": "t-001", "org_unit_id": "ou-d08", "org_unit_tenant_id": "t-001",
+  "name": "Sil-D", "has_children": true, "referenced_by_scope": true,
+  "cascade": false, "confirm": false, "audit_emitted": true,
+  "inject": ["unsafe_delete"], "expect": "fail"
+}

@@ -1,0 +1,86 @@
+{
+  "$comment": "WBS 12.4.3 — ORG YAPISI (marka/departman/ülke/proje) (L1) org-yapısı modeli (FR-TEN-003 'Tenant altında marka, departman, ülke ve proje yapıları oluşturulabilmelidir'; DB.md §5.1 organisation_unit [self-ref hiyerarşi; type CHECK IN brand/country/department/project; region residency override; UNIQUE (tenant_id,parent_id,name)]; BRD §17 'Tenant içi organizasyon yapısı (marka/departman/ülke/proje, FR-TEN-003) ... Tenant Admin Console (L1) üzerinden yönetilir'; SAD §14.4 scoped assignment scope {brand|department|campaign}). FROZEN kontrol-düzlemi modeli: tenant İÇİNDEKİ organizasyon birimlerinin (organisation_unit) oluşturulması/değiştirilmesi/taşınması/silinmesi L1-only deterministik bir BAĞLAMA (binding) kararı olarak modellenir. ÇEKİRDEK: L1 yüzeyidir (tenant realm + tenant_application_plane) — 12.4.1/12.4.2 L0 (platform) iken bu L1; aktör YALNIZ KENDİ tenant'ının org birimlerini yönetir (FR-TEN-002 tenant izolasyonu); tip ∈ {brand,country,department,project} (DB.md §5.1 CHECK); self-ref hiyerarşi DÖNGÜSÜZ + derinlik sınırlı; kardeş benzersizliği (UNIQUE (tenant_id,parent_id,name)); region (residency override) tenant'ın izinli bölge kümesinde (NFR 10.7; yalnız-daraltır); çocuğu/scope-referansı olan birim silme cascade+confirm gerektirir (yetim çocuk / kırık scoped assignment koruması — 12.1.3 RESİPROKAL); her mutasyon WORM audit'e. İşlemler YALNIZ org:manage permission-key (12.1.2 katalog; tenant_owner/tenant_admin bundle 12.1.1/ADR-012). Bu dosya FROZEN — model_hash sha256 ile audit edilebilir. Kaynak doğruluk FR-TEN-003, DB.md §5.1, BRD §17, SAD §14.4, NFR 10.7; çelişkide onlar esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+  "realm": {
+    "$comment": "Org yapısı yönetimi YALNIZ L1 tenant realm + tenant_application_plane'de yürütülür (BRD §17 'Tenant içi organizasyon yapısı ... Tenant Admin Console (L1) üzerinden yönetilir'). platform realm (L0) tenant iş-konfigürasyonunu (org yapısı) YÖNETMEZ (FR-IAM-008 altın kural — L0 tenant iş içeriğini görmez/yönetmez); platform realm org op'u = cross_tenant_op (yanlış realm). Aktör YALNIZ KENDİ tenant'ının org birimlerini yönetir (FR-TEN-002).",
+    "required_actor_realm": "tenant",
+    "required_plane": "tenant_application_plane",
+    "valid_realms": ["platform", "tenant"],
+    "valid_planes": ["platform_control_plane", "tenant_application_plane"],
+    "trace": "BRD §17, FR-IAM-008, FR-TEN-002, SAD §14.4.1"
+  },
+  "org_types": {
+    "$comment": "DB.md §5.1 organisation_unit.type CHECK (brand/country/department/project); FR-TEN-003 'marka, departman, ülke ve proje'. brand=marka, country=ülke, department=departman, project=proje. Bu dört tip dışı = invalid_type.",
+    "list": ["brand", "country", "department", "project"]
+  },
+  "operations": {
+    "$comment": "Org birimi işlemleri. read mutasyon değildir (yapıyı değiştirmez; audit-zorunlu değil). create/update/move/delete mutasyon (WORM audit zorunlu). create = yeni org birimi (FR-TEN-003). update = ad/region güncelle (tip immutable). move = ebeveyn değiştir (reparent; döngü yasak). delete = birim sil (çocuğu/scope-referansı varsa cascade+confirm).",
+    "list": ["create", "update", "move", "delete", "read"],
+    "mutating": ["create", "update", "move", "delete"],
+    "name_setting": ["create", "update", "move"],
+    "parenting": ["create", "move"]
+  },
+  "op_permission": {
+    "$comment": "İşlem → gerekli permission-key (resource:action; 12.1.2 katalog; yeni anahtar İCAT EDİLMEZ). Org yönetimi tek org:manage anahtarıdır (12.1.2 'org:manage' L1 Tenant Admin Console; tenant_owner/tenant_admin bundle 12.1.1/ADR-012). read dahil tüm op'lar org:manage gerektirir (katalogda ayrı org:read yok). Yetki kararı HER ZAMAN backend'de (BRD §17.7).",
+    "create": "org:manage",
+    "update": "org:manage",
+    "move": "org:manage",
+    "delete": "org:manage",
+    "read": "org:manage"
+  },
+  "tenant_scope": {
+    "$comment": "Tenant izolasyonu (FR-TEN-002; DB.md §5.1 organisation_unit tenant-scoped + RLS). Aktör tenant_id'si hedef org biriminin tenant_id'si ile eşleşmeli; create/move'da ebeveyn (parent) AYNI tenant'ta olmalı (org_unit.tenant_id == parent.tenant_id; cross-tenant ebeveyn YASAK). Uyumsuz = cross_tenant_op. 12.2.3 rls-double-check RESİPROKAL (organisation_unit tenant-scoped RLS).",
+    "actor_tenant_must_match_target": true,
+    "parent_must_be_same_tenant": true,
+    "trace": "FR-TEN-002, DB.md §5.1, 12.2.3"
+  },
+  "hierarchy": {
+    "$comment": "organisation_unit self-ref hiyerarşi (DB.md §5.1 parent_id REFERENCES organisation_unit(id)). create/move'da: ebeveyn kendisi olamaz (parent_id != org_unit_id); döngü YASAK (birim, yeni ebeveyninin atası olamaz — self-reference cycle); derinlik max_depth ile sınırlı (sonsuz iç içe geçme önlenir). İhlal = hierarchy_violation.",
+    "no_cycle": true,
+    "parent_not_self": true,
+    "max_depth": 8,
+    "trace": "DB.md §5.1, FR-TEN-003"
+  },
+  "uniqueness": {
+    "$comment": "DB.md §5.1 UNIQUE (tenant_id, parent_id, name) — aynı ebeveyn altında kardeş adları benzersiz. create/update(rename)/move(yeni ebeveyn altında ad çakışması) için ad, hedef ebeveynin mevcut kardeş adları arasında olamaz (kendisi hariç). Çakışma = duplicate_name.",
+    "sibling_name_unique": true,
+    "trace": "DB.md §5.1"
+  },
+  "residency": {
+    "$comment": "organisation_unit.region = residency override (DB.md §5.1; NFR 10.7 UK/EU/NA/ME). region set ise tenant'ın izinli bölge kümesinde (tenant_allowed_regions; 12.4.1/12.4.4 ile tutarlı) olmalı — YALNIZ-DARALTIR (tenant izinli set dışına çıkamaz; en-kısıtlayıcı-kazanır ruhu). region geçersiz / tenant izinli set dışında = residency_violation. region opsiyonel (set değilse tenant home_region devralınır — F1 kod).",
+    "regions": ["UK", "EU", "NA", "ME"],
+    "region_must_be_in_tenant_allowed": true,
+    "narrowing_only": true,
+    "trace": "NFR 10.7, DB.md §5.1, SAD §12.3"
+  },
+  "delete_guard": {
+    "$comment": "Çocuğu (alt birim) VEYA scoped assignment referansı (12.1.3 scope {brand|department|campaign} bu birime atıf) olan org birimi silme cascade + confirm gerektirir (yetim çocuk / kırık scoped role assignment koruması — sessiz silme YASAK). Korumasız silme = unsafe_delete. Gerçek cascade/yeniden-atama F1 kod + ops runbook'a delege.",
+    "requires_cascade_and_confirm_when_referenced": true,
+    "blocking_references": ["children", "scoped_assignment"],
+    "delegated_execution": "F1 kod + ops runbook (gerçek cascade/yeniden-atama); bu modül KARARINI verir",
+    "trace": "DB.md §5.1, FR-IAM-011, 12.1.3"
+  },
+  "audit": {
+    "$comment": "Her mutasyon (create/update/move/delete) WORM append-only audit_log'a yazılır (DB.md §5.1 audit_log WORM + hash chain; FR-IAM-006/FR-REC-009; akış 12.1.8). read audit-zorunlu değil. Audit'siz mutasyon = missing_audit.",
+    "required_for": ["create", "update", "move", "delete"],
+    "worm": true,
+    "delegated_flow": "12.1.8 worm-audit (audit_log; hash chain bütünlük)",
+    "trace": "FR-IAM-006, FR-REC-009, DB.md §5.1"
+  },
+  "scoped_assignment_link": {
+    "$comment": "Org birimleri (brand/department) scoped role assignment kapsam boyutlarıdır (FR-IAM-011; SAD §14.4 scope {brand|department|campaign}; 12.1.3 scope-model dimensions [department/brand/campaign]). SR-TEN-003 'atanan kaynak yalnız ilgili scope'ta görünür'. Bu RESİPROKAL bağ delete_guard'ı (R8) ve org yapısının RBAC tüketimini belgeler. Çözüm 12.1.3'te.",
+    "scope_dimensions": ["department", "brand", "campaign"],
+    "reciprocal": "12.1.3 ../scoped-assignment (dimensions department/brand/campaign)",
+    "trace": "FR-IAM-011, SAD §14.4, 12.1.3"
+  },
+  "data_class": {
+    "$comment": "organisation_unit tenant-scoped iş-konfigürasyon tablosudur → veri-sınıfı = tenant_config (L1 tenant konfigürasyon verisi; 12.2.4 l0-repo-independence ile RESİPROKAL — L0 tenant org yapısını GÖRMEZ/yönetmez; FR-IAM-008 altın kural; tenant_content [call/transcript/PII] DEĞİL). L1 (tenant) org yapısını yönetir.",
+    "org_unit_table_class": "tenant_config",
+    "reciprocal": "12.2.4 ../l0-repo-independence (table_class_of.organisation_unit = tenant_config)",
+    "trace": "FR-IAM-008, 12.2.4, DB.md §6.3"
+  },
+  "terminal": ["COMMIT", "REJECT"],
+  "trace": "FR-TEN-003, DB.md §5.1, BRD §17, SAD §14.4, NFR 10.7, FR-TEN-002, FR-IAM-011, 12.4.1/12.2.3/12.1.1/12.1.2/12.1.3/12.2.4/12.1.8"
+}

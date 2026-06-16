@@ -1,0 +1,10 @@
+{
+  "name": "DEGRADE — aynı ebeveyn altında çakışan ad commit (R6 — UNIQUE ihlali)",
+  "request_id": "req-d06", "op": "create", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["org:manage"],
+  "tenant_id": "t-001", "org_unit_id": "ou-d06", "type": "department", "name": "Pazarlama",
+  "parent_id": "ou-001", "parent_tenant_id": "t-001", "ancestor_ids": ["ou-001"],
+  "sibling_names": ["Pazarlama"], "depth": 2, "region": "EU",
+  "tenant_allowed_regions": ["EU"], "audit_emitted": true,
+  "inject": ["duplicate_name"], "expect": "fail"
+}

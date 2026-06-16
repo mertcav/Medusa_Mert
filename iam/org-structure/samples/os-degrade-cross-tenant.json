@@ -1,0 +1,8 @@
+{
+  "name": "DEGRADE — başka tenant'ın org birimini güncelleyip commit (R2)",
+  "request_id": "req-d01", "op": "update", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["org:manage"],
+  "tenant_id": "t-001", "org_unit_id": "ou-d01", "name": "X", "parent_id": null,
+  "sibling_names": [], "audit_emitted": true,
+  "inject": ["cross_tenant"], "expect": "fail"
+}

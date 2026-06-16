@@ -1,0 +1,8 @@
+{
+  "name": "DEGRADE — tenant izinli dışı bölge (residency override) commit (R7 — NFR 10.7)",
+  "request_id": "req-d07", "op": "create", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["org:manage"],
+  "tenant_id": "t-001", "org_unit_id": "ou-d07", "type": "country", "name": "Ulke-D",
+  "parent_id": null, "region": "EU", "tenant_allowed_regions": ["EU", "UK"], "audit_emitted": true,
+  "inject": ["residency_drift"], "expect": "fail"
+}

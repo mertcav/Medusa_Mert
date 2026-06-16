@@ -1,0 +1,10 @@
+{
+  "name": "DOĞRU REJECT — cross-tenant org birimi güncelleme motor tarafından reddedilir (ihlal yok)",
+  "request_id": "req-011", "op": "update", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["org:manage"],
+  "tenant_id": "t-001", "org_unit_id": "ou-900", "org_unit_tenant_id": "t-999",
+  "name": "Yabanci", "parent_id": null, "sibling_names": [],
+  "audit_emitted": true,
+  "expect": "pass",
+  "expected": {"terminal": "REJECT"}
+}

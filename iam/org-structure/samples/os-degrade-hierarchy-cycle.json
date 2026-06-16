@@ -1,0 +1,9 @@
+{
+  "name": "DEGRADE — birim kendi atasının altına taşınıp döngü oluşturup commit (R5)",
+  "request_id": "req-d05", "op": "move", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["org:manage"],
+  "tenant_id": "t-001", "org_unit_id": "ou-d05", "org_unit_tenant_id": "t-001",
+  "name": "Dolambac", "parent_id": "ou-child", "parent_tenant_id": "t-001",
+  "ancestor_ids": ["ou-d05"], "sibling_names": [], "depth": 3, "audit_emitted": true,
+  "inject": ["hierarchy_cycle"], "expect": "fail"
+}

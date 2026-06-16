@@ -1,0 +1,8 @@
+{
+  "name": "DEGRADE — platform (L0) realm L1 org op'unu commit (R2)",
+  "request_id": "req-d02", "op": "create", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["org:manage"],
+  "tenant_id": "t-001", "org_unit_id": "ou-d02", "type": "brand", "name": "Marka-D",
+  "parent_id": null, "region": "EU", "tenant_allowed_regions": ["EU"], "audit_emitted": true,
+  "inject": ["wrong_realm"], "expect": "fail"
+}

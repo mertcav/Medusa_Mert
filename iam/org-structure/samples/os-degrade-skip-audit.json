@@ -1,0 +1,8 @@
+{
+  "name": "DEGRADE — org birimi mutasyonu WORM audit'siz commit (R9)",
+  "request_id": "req-d09", "op": "create", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["org:manage"],
+  "tenant_id": "t-001", "org_unit_id": "ou-d09", "type": "brand", "name": "Audit-D",
+  "parent_id": null, "region": "EU", "tenant_allowed_regions": ["EU"], "audit_emitted": true,
+  "inject": ["skip_audit"], "expect": "fail"
+}

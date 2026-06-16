@@ -307,7 +307,7 @@
 ### 12.4 Tenant & organizasyon yönetimi
 - [x] **12.4.1** Tenant CRUD + provisioning (L0) — `F1` · `Must` · →FR-TEN-001
 - [x] **12.4.2** Dedicated vs shared tenant — `F2` · `Should` · →FR-TEN-005
-- [ ] **12.4.3** Org yapısı (marka/departman/ülke/proje) (L1) — `F1` · `Must` · →FR-TEN-003
+- [x] **12.4.3** Org yapısı (marka/departman/ülke/proje) (L1) — `F1` · `Must` · →FR-TEN-003
 - [ ] **12.4.4** Tenant dil/saat dilimi/bölge/saklama tercihi (L1) — `F1` · `Must` · →FR-TEN-004
 
 ---

@@ -1,0 +1,8 @@
+{
+  "name": "DEGRADE — geçersiz tip (franchise) commit (R4 — DB.md §5.1 CHECK ihlali)",
+  "request_id": "req-d04", "op": "create", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["org:manage"],
+  "tenant_id": "t-001", "org_unit_id": "ou-d04", "type": "department", "name": "Tip-D",
+  "parent_id": null, "region": "EU", "tenant_allowed_regions": ["EU"], "audit_emitted": true,
+  "inject": ["invalid_type"], "expect": "fail"
+}

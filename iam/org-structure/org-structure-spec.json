@@ -1,0 +1,170 @@
+{
+  "$comment": "WBS 12.4.3 — ORG YAPISI (marka/departman/ülke/proje) (L1) (FR-TEN-003 'Tenant altında marka, departman, ülke ve proje yapıları oluşturulabilmelidir' — Must; DB.md §5.1 organisation_unit [self-ref hiyerarşi; type CHECK IN brand/country/department/project; region residency override; UNIQUE (tenant_id,parent_id,name)]; BRD §17 'Tenant içi organizasyon yapısı (marka/departman/ülke/proje, FR-TEN-003) ... Tenant Admin Console (L1) üzerinden yönetilir'; SAD §14.4 scoped assignment scope {brand|department|campaign}; SR-TEN-003 'Tenant altında marka/departman/ülke/proje hiyerarşisi oluşturulabilir ve agent/kampanya bu birimlere atanabilir'). 12. workstream'in (IAM & Erişim) TENANT İÇİ ORG-YAPISI modülü ve F1-Must yeteneği. ÇEKİRDEK FARK: bu L1 (Tenant Admin Console; tenant realm + tenant_application_plane) yüzeyidir — 12.4.1 (tenant CRUD) ve 12.4.2 (dedicated vs shared) L0 (platform) iken bu L1. Org-yapısını DETERMİNİSTİK, FAIL-CLOSED bir BAĞLAMA (binding) kararı olarak modeller: bir OrgRequest (op + actor_realm + plane + actor_permissions + tenant_id + org_unit_id + type + name + parent_id + parent_tenant_id + org_unit_tenant_id + ancestor_ids + sibling_names + region + tenant_allowed_regions + has_children + referenced_by_scope + cascade + confirm + depth + audit_emitted) alır → COMMIT (org birimi oluşturulur/güncellenir/taşınır/silinir) | REJECT (fail-closed default). İşlemler: create/update/move/delete/read. ÇEKİRDEK garantiler: (1) R2 TENANT İZOLASYONU (FR-TEN-002) — org yönetimi YALNIZ tenant realm + tenant_application_plane (L1); aktör YALNIZ KENDİ tenant'ının org birimlerini yönetir (actor tenant_id == org_unit tenant_id; ebeveyn aynı tenant); aksi cross_tenant_op. (2) R3 YETKİLENDİRME — op org:manage gerektirir (12.1.2 katalog; tenant_owner/tenant_admin 12.1.1); yetkisiz commit = unauthorized_op. (3) R4 TİP GEÇERLİLİĞİ (DB.md §5.1 CHECK) — type ∈ {brand,country,department,project}; geçersiz commit = invalid_type. (4) R5 HİYERARŞİ BÜTÜNLÜĞÜ (self-ref) — ebeveyn kendisi olamaz + döngü yasak + derinlik ≤ max_depth; ihlal commit = hierarchy_violation. (5) R6 KARDEŞ BENZERSİZLİĞİ (UNIQUE (tenant_id,parent_id,name)) — aynı ebeveyn altında ad benzersiz; çakışma commit = duplicate_name. (6) R7 RESIDENCY (NFR 10.7) — region (override) tenant izinli bölge kümesinde + UK/EU/NA/ME; dışında commit = residency_violation. (7) R8 SİLME KORUMASI — çocuğu/scope-referansı olan birim silme cascade+confirm gerektirir; korumasız commit = unsafe_delete. (8) R9 WORM AUDIT — her mutasyon audit_log'a (FR-REC-009/FR-IAM-006; 12.1.8); audit'siz = missing_audit. Motor DETERMİNİSTİK FAIL-CLOSED (Date.now/random YOK; model_hash sha256). Her karar terminal (R1) + kanıt + model bütünlük manifesti (R10); metrik düşük-kardinalite + ham PII yok (R11); model/spec/sample ham içerik/PII/credential tutmaz (R12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): tenant CRUD + yaşam döngüsü → 12.4.1; dedicated vs shared izolasyon sınıfı → 12.4.2; tenant dil/saat/bölge/saklama TERCİHİ (L1) → 12.4.4; scoped role assignment ÇÖZÜMÜ → 12.1.3; PostgreSQL RLS çalışma-anı zorlama/çift-kontrol → 12.2.3; rol→permission-key bundle → 12.1.1; permission katalog → 12.1.2; WORM audit AKIŞI → 12.1.8; repo/grant bağımsızlık → 12.2.4; gerçek cascade/yeniden-atama (delete yürütme) → F1 kod + ops runbook; L1 OpenAPI/UI (T-02 ekran) → 13.3.2. KAYNAK DOĞRULUK; çelişkide FR-TEN-003 / DB.md §5.1 / BRD §17 / SAD §14.4 esastır.",
+  "version": "1.0",
+  "wbs": "12.4.3",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TEN-003", "FR-TEN-002", "FR-IAM-011", "FR-IAM-006", "FR-REC-009", "FR-TST-008"],
+    "srs": ["SR-TEN-003"],
+    "rtm": ["TC-TEN-003"],
+    "brd": [
+      "FR-TEN-003 ('Tenant altında marka, departman, ülke ve proje yapıları oluşturulabilmelidir' — Must)",
+      "§16 (28 ana varlık — Organisation Unit; tenant-scoped self-ref hiyerarşi)",
+      "§17 ('Tenant içi organizasyon yapısı (marka/departman/ülke/proje, FR-TEN-003) ... Tenant Admin Console (L1) üzerinden yönetilir')",
+      "§17.7 (yetki kararı her zaman backend'de)"
+    ],
+    "sad": [
+      "§14.4 (panel mimarisi — org yapısı L1 Tenant Admin Console; T-02 Organizasyon & Yapı)",
+      "§14.4.2 (scoped assignment — atama scope {brand|department|campaign} ile daraltılır; org birimleri kapsam boyutu)",
+      "§13 (tenant izolasyonu — organisation_unit tenant-scoped + RLS)"
+    ],
+    "adr": [
+      "ADR-011 (iki düzlemli panel — L1 tenant_application_plane)",
+      "ADR-012 (sabit rol bundle — tenant_owner/tenant_admin org:manage taşır)",
+      "ADR-001 (deterministik karar fonksiyonu deseni)"
+    ],
+    "threat_model": [
+      "TM-I-05 (cross-tenant org erişimi — tenant izolasyonu R2 cross_tenant_op + RLS 12.2.3)",
+      "TM-T-04 (yetkisiz org yapısı değişimi — permission-key zorunluluğu R3 + WORM audit R9)",
+      "TM-D-03 (org birimi silinince scoped assignment kırılır — delete guard R8 unsafe_delete)"
+    ],
+    "consumes": [
+      "12.1.3 scoped-assignment config/scope-model.json (dimensions department/brand/campaign = org birimleri; delete_guard scope-referansı — RESİPROKAL R8) — TÜKETİLİR",
+      "12.1.2 permission-catalog config/permission-catalog.json (org:manage MEVCUT; yeni anahtar icat edilmez) — TÜKETİLİR",
+      "12.1.1 rbac-model config/rbac-roles.json (tenant_owner/tenant_admin bundle org:manage taşır; L1 realm=tenant) — TÜKETİLİR",
+      "12.2.3 rls-double-check config/rls-model.json (organisation_unit tenant-scoped RLS — RESİPROKAL R2) — TÜKETİLİR",
+      "12.4.1 tenant-provisioning config/tenant-lifecycle-model.json (org birimleri sağlanmış tenant içinde; tenant izinli bölge — RESİPROKAL R7) — TÜKETİLİR",
+      "12.2.4 l0-repo-independence config/repo-independence-model.json (table_class_of.organisation_unit = tenant — RESİPROKAL) — TÜKETİLİR",
+      "org-structure-model.json (frozen — org_types + operations + op_permission + tenant_scope + hierarchy + uniqueness + residency + delete_guard + audit)"
+    ],
+    "consumed_by": [
+      "13.3.2 T-02 Organizasyon & Yapı (L1 UI/OpenAPI) + F1 kod (organisation_unit CRUD + cascade/yeniden-atama)",
+      "12.1.3 scoped-assignment (org birimleri kapsam boyutu — agent/kampanya scope'a atanır; SR-TEN-003)",
+      "12.4.4 tenant tercihleri (L1) + 0.4.7 gözlemlenebilirlik"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Org yapısı (marka/departman/ülke/proje), L1 Tenant Admin Console (ADR-011; T-02 Organizasyon & Yapı) org-yapısı iş mantığıdır. ÇEKİRDEK FARK: 12.4.1/12.4.2 L0 (platform realm + platform_control_plane) iken bu L1 (tenant realm + tenant_application_plane) — tenant KENDİ org yapısını yönetir; L0 görmez (FR-IAM-008 altın kural). Org birimini DETERMİNİSTİK bir BAĞLAMA kararıyla yönetir: tip (brand/country/department/project; DB.md §5.1 CHECK); self-ref hiyerarşi döngüsüz + derinlik sınırlı; kardeş benzersizliği (UNIQUE (tenant_id,parent_id,name)); region (residency override) tenant izinli bölgede; çocuğu/scope-referansı olan birim silme cascade+confirm. YALNIZ tenant realm + tenant_application_plane (FR-TEN-002 tenant izolasyonu — kendi tenant'ı); op org:manage gerektirir. Motor yalnız KARAR + kanıt + model bütünlük manifesti üretir (gerçek organisation_unit CRUD + cascade/yeniden-atama + L1 OpenAPI/UI F1 kod / 13.3.2'de); deterministik kontrol düzlemi (Date.now/random YOK). Vendor-neutral (ADR-002/011).",
+    "plane": "L1 org-yapısı iş mantığı (tenant_application_plane; tenant KENDİ org yapısını yönetir; RLS çalışma-anı zorlama [12.2.3] kararının ÜSTÜNDE; organisation_unit = tenant-sınıf 12.2.4)",
+    "owns": "FR-TEN-003 ORG YAPISI: OrgRequest → malformed kapısı + tenant izolasyonu (kendi tenant'ı; realm/plane=tenant/L1; R2) + yetkilendirme (op→org:manage; R3) + tip geçerliliği (brand/country/department/project; R4) + hiyerarşi bütünlüğü (döngüsüz + derinlik sınırlı; R5) + kardeş benzersizliği (UNIQUE name; R6) + residency (region tenant izinli bölgede; R7) + silme koruması (çocuk/scope-referansı → cascade+confirm; R8) + WORM audit (R9) + terminal {COMMIT|REJECT} + model bütünlük manifesti (R10) + karar kanıtı",
+    "delegates": "tenant CRUD/lifecycle → 12.4.1; dedicated vs shared izolasyon sınıfı → 12.4.2; tenant tercih (L1) → 12.4.4; scoped role assignment ÇÖZÜMÜ → 12.1.3; RLS çalışma-anı çift-kontrol → 12.2.3; rol bundle → 12.1.1; permission katalog → 12.1.2; WORM audit akışı → 12.1.8; repo/grant bağımsızlık → 12.2.4; gerçek cascade/yeniden-atama (delete yürütme) → F1 kod + ops runbook; L1 OpenAPI/UI → 13.3.2",
+    "deterministic": true,
+    "fail_closed": true,
+    "decision_at": "L1 kontrol düzlemi (deterministik; çalışma-anı yan etkiden BAĞIMSIZ karar)",
+    "trace": "FR-TEN-003, DB.md §5.1, BRD §17, SAD §14.4"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ L1 org-yapısı bağlama kararı. Önce malformed; sonra tenant izolasyonu (realm/plane + kendi tenant'ı); sonra yetkilendirme; sonra tip geçerliliği; sonra hiyerarşi bütünlüğü; sonra kardeş benzersizliği; sonra residency; sonra silme koruması; sonra WORM audit. Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "tenant_isolation", "field": "org yönetimi YALNIZ tenant realm + tenant_application_plane (L1); aktör kendi tenant'ı", "invariant": "R2", "outcome": "COMMIT|REJECT",
+       "rule": "OrgRequest yalnız actor_realm=tenant + plane=tenant_application_plane ile yürütülür (BRD §17 org yapısı L1; ADR-011). Aktör YALNIZ KENDİ tenant'ının org birimlerini yönetir: actor tenant_id == hedef org_unit tenant_id; create/move'da ebeveyn AYNI tenant'ta (parent_tenant_id == tenant_id) — cross-tenant ebeveyn YASAK (FR-TEN-002; 12.2.3 RLS RESİPROKAL). Yanlış realm (platform) VEYA cross-tenant op commit = cross_tenant_op. cross_tenant_op=0"},
+      {"id": "authorization", "field": "op gerekli permission-key'i gerektirir (backend kararı)", "invariant": "R3", "outcome": "COMMIT|REJECT",
+       "rule": "her op org:manage permission-key'i taşıyan aktör gerektirir (op_permission; 12.1.2 katalog; tenant_owner/tenant_admin bundle 12.1.1/ADR-012). Yetki kararı HER ZAMAN backend'de (BRD §17.7). Gerekli key olmadan op commit = unauthorized_op. unauthorized_op=0"},
+      {"id": "type_validity", "field": "org birimi tipi geçerli (brand/country/department/project)", "invariant": "R4", "outcome": "COMMIT|REJECT",
+       "rule": "create'de type ∈ {brand,country,department,project} (DB.md §5.1 organisation_unit.type CHECK; FR-TEN-003 'marka, departman, ülke ve proje'). Bu dört tip dışı bir tip commit = invalid_type. invalid_type=0"},
+      {"id": "hierarchy_integrity", "field": "self-ref hiyerarşi döngüsüz + derinlik sınırlı", "invariant": "R5", "outcome": "COMMIT|REJECT",
+       "rule": "create/move'da ebeveyn kendisi olamaz (parent_id != org_unit_id); birim, yeni ebeveyninin atası olamaz (döngü YASAK — org_unit_id ∉ ancestor_ids); derinlik ≤ max_depth (DB.md §5.1 parent_id self-ref; sonsuz iç içe geçme önlenir). Döngü / derinlik aşımı commit = hierarchy_violation. hierarchy_violation=0"},
+      {"id": "sibling_uniqueness", "field": "aynı ebeveyn altında kardeş adları benzersiz", "invariant": "R6", "outcome": "COMMIT|REJECT",
+       "rule": "create/update(rename)/move'da ad, hedef ebeveynin mevcut kardeş adları (sibling_names; kendisi hariç) arasında olamaz (DB.md §5.1 UNIQUE (tenant_id,parent_id,name)). Çakışan ad commit = duplicate_name. duplicate_name=0"},
+      {"id": "residency_consistency", "field": "region (override) tenant izinli bölge kümesinde", "invariant": "R7", "outcome": "COMMIT|REJECT",
+       "rule": "region set ise UK/EU/NA/ME içinde VE tenant izinli bölge kümesinde (tenant_allowed_regions; NFR 10.7; YALNIZ-DARALTIR — tenant izinli set dışına çıkamaz; DB.md §5.1 region residency override). Geçersiz / tenant izinli set dışı region commit = residency_violation. residency_violation=0"},
+      {"id": "delete_guard", "field": "çocuğu/scope-referansı olan birim silme cascade+confirm gerektirir", "invariant": "R8", "outcome": "COMMIT|REJECT",
+       "rule": "delete'te birim çocuğa (has_children) VEYA scoped assignment referansına (referenced_by_scope; 12.1.3 scope {brand|department}) sahipse cascade + confirm zorunlu (yetim çocuk / kırık scoped role assignment koruması — sessiz silme YASAK; SR-TEN-003 'atanan kaynak yalnız ilgili scope'ta görünür'). Korumasız silme commit = unsafe_delete. unsafe_delete=0"},
+      {"id": "worm_audit", "field": "her mutasyon WORM audit_log'a yazılır", "invariant": "R9", "outcome": "COMMIT|REJECT",
+       "rule": "her mutasyon op'u (create/update/move/delete) WORM append-only audit_log'a kaydedilir (DB.md §5.1 audit_log WORM + hash chain; FR-IAM-006/FR-REC-009; akış 12.1.8'e DELEGE). read mutasyon değildir. Audit'siz mutasyon commit = missing_audit. missing_audit=0"},
+      {"id": "model_integrity", "field": "org-yapısı modeli frozen + model_hash sha256", "invariant": "R10", "outcome": "COMMIT|REJECT",
+       "rule": "model (org_types/operations/op_permission/tenant_scope/hierarchy/uniqueness/residency/delete_guard/audit) frozen; model_hash = sha256(kanonik); çalışma anında tahrif (ör. tip CHECK'i kaldırma / cross-tenant ebeveyne izin verme / döngü kontrolünü kapatma) yeniden-hesaplanan hash'le yakalanır → model_tampered. Org-yapısı yüzeyi audit edilebilir (ADR-011). model_tampered=0"}
+    ],
+    "evaluation": "malformed_then_tenant_isolation_then_authorization_then_type_validity_then_hierarchy_integrity_then_sibling_uniqueness_then_residency_consistency_then_delete_guard_then_worm_audit",
+    "trace": "FR-TEN-003, DB.md §5.1, BRD §17, SAD §14.4, FR-TEN-002, NFR 10.7"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed L1 org-yapısı algoritması. Adımlar: (1) malformed (request_id eksik / op geçersiz / actor_realm-plane geçersiz / create'de name eksik → REJECT malformed). (2) tenant izolasyonu: yanlış realm/plane VEYA cross-tenant → REJECT (commit edilirse cross_tenant_op). (3) yetki: org:manage yoksa REJECT (commit edilirse unauthorized_op). (4) tip: geçersiz tip → REJECT (commit edilirse invalid_type). (5) hiyerarşi: döngü/derinlik → REJECT (commit edilirse hierarchy_violation). (6) benzersizlik: ad çakışması → REJECT (commit edilirse duplicate_name). (7) residency: region tenant izinli dışı → REJECT (commit edilirse residency_violation). (8) silme koruması: korumasız silme → REJECT (commit edilirse unsafe_delete). (9) audit (mutasyon): audit yok → REJECT (commit edilirse missing_audit). Tümü geçerse COMMIT. Belirsizlik/malformed → REJECT (fail-closed; ASLA fail-open COMMIT).",
+    "algorithm": "malformed ⇒ REJECT(malformed) → ¬(tenant ∧ tenant_application_plane ∧ own_tenant) ⇒ REJECT [commit ⇒ cross_tenant_op] → org:manage ∉ actor_permissions ⇒ REJECT [commit ⇒ unauthorized_op] → type ∉ {brand,country,department,project} ⇒ REJECT [commit ⇒ invalid_type] → ¬valid_hierarchy(parent,ancestors,depth) ⇒ REJECT [commit ⇒ hierarchy_violation] → name ∈ sibling_names ⇒ REJECT [commit ⇒ duplicate_name] → region ∉ tenant_allowed ⇒ REJECT [commit ⇒ residency_violation] → delete ∧ referenced ∧ ¬(cascade ∧ confirm) ⇒ REJECT [commit ⇒ unsafe_delete] → mutating ∧ ¬audit ⇒ REJECT [commit ⇒ missing_audit] → COMMIT",
+    "default": "REJECT",
+    "fail_safe_terminal": "no op (terminal=REJECT ⇒ org birimi oluşturulmaz/güncellenmez/taşınmaz/silinmez; malformed/cross-tenant/yetkisiz/geçersiz-tip/döngü/ad-çakışması/residency-dışı/korumasız-silme ⇒ REJECT)",
+    "trace": "SR-TEN-003, FR-TEN-003, DB.md §5.1"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal kararlar. COMMIT = org birimi oluşturulur/güncellenir/taşınır/silinir. REJECT = işlem reddedilir (fail-closed default). Geçersiz/korumasız op'un REJECT'i DOĞRU çıktıdır (ihlal değil). İhlal sayaçları YALNIZ unsafe koşul + commit birlikte olunca artar (degrade ispatı).",
+    "list": ["COMMIT", "REJECT"],
+    "terminal": ["COMMIT", "REJECT"]
+  },
+
+  "model": {
+    "$comment": "Org-yapısı modeli özeti = config/org-structure-model.json (frozen). org_types (brand/country/department/project) + operations (create/update/move/delete/read; mutating 4) + op_permission (org:manage) + tenant_scope (kendi tenant + ebeveyn aynı tenant) + hierarchy (döngüsüz + max_depth) + uniqueness (UNIQUE (tenant_id,parent_id,name)) + residency (region tenant izinli; UK/EU/NA/ME) + delete_guard (çocuk/scope → cascade+confirm) + audit (WORM). Karar deterministik (çalışma-anı yan etkiden BAĞIMSIZ).",
+    "frozen": true,
+    "decision_at": "L1 kontrol düzlemi",
+    "org_types": ["brand", "country", "department", "project"],
+    "operations": ["create", "update", "move", "delete", "read"],
+    "mutating_operations": ["create", "update", "move", "delete"],
+    "regions": ["UK", "EU", "NA", "ME"],
+    "max_depth": 8,
+    "required_actor_realm": "tenant",
+    "required_plane": "tenant_application_plane"
+  },
+
+  "enforcement": {
+    "$comment": "L1 org-yapısı enforcement (FR-TEN-003, DB.md §5.1, BRD §17). tenant_layer: tenant realm + tenant_application_plane + kendi tenant'ı (FR-TEN-002; ADR-011). authz_layer: op→org:manage (12.1.2; tenant_owner/tenant_admin 12.1.1). type_layer: type ∈ {brand,country,department,project} (DB.md §5.1 CHECK). hierarchy_layer: döngüsüz + derinlik ≤ max_depth (self-ref). uniqueness_layer: UNIQUE (tenant_id,parent_id,name). residency_layer: region tenant izinli bölgede (NFR 10.7). delete_layer: çocuk/scope-referansı → cascade+confirm. audit_layer: her mutasyon WORM audit_log (12.1.8). Karar deterministik.",
+    "tenant_layer": "actor_realm=tenant ∧ plane=tenant_application_plane ∧ actor tenant_id == org_unit tenant_id (parent aynı tenant) (FR-TEN-002; BRD §17 L1; ADR-011)",
+    "authz_layer": "op_permission[op]=org:manage ∈ actor_permissions (12.1.2 katalog; backend kararı BRD §17.7)",
+    "type_layer": "type ∈ {brand,country,department,project} (DB.md §5.1 organisation_unit.type CHECK; FR-TEN-003)",
+    "hierarchy_layer": "parent_id != org_unit_id ∧ org_unit_id ∉ ancestor_ids ∧ depth ≤ max_depth (DB.md §5.1 self-ref)",
+    "uniqueness_layer": "name ∉ sibling_names (DB.md §5.1 UNIQUE (tenant_id,parent_id,name))",
+    "residency_layer": "region ∈ tenant_allowed_regions ⊆ {UK,EU,NA,ME} (NFR 10.7; DB.md §5.1 region override; yalnız-daraltır)",
+    "delete_layer": "delete ∧ (has_children ∨ referenced_by_scope) ⇒ cascade ∧ confirm (12.1.3 scope-referansı; sessiz silme yasak)",
+    "audit_layer": "her mutasyon → WORM append-only audit_log (FR-REC-009/FR-IAM-006; 12.1.8)",
+    "decision_at": "L1 kontrol düzlemi",
+    "trace": "FR-TEN-003, DB.md §5.1, BRD §17, SAD §14.4, NFR 10.7, FR-TEN-002, ADR-011/012"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. cross_tenant_op (R2) = yanlış realm VEYA cross-tenant org op commit; unauthorized_op (R3) = org:manage olmadan commit; invalid_type (R4) = geçersiz tip commit; hierarchy_violation (R5) = döngü/derinlik aşımı commit; duplicate_name (R6) = çakışan ad commit; residency_violation (R7) = tenant izinli dışı region commit; unsafe_delete (R8) = korumasız silme commit; missing_audit (R9) = mutasyon WORM audit'siz commit; model_tampered (R10) = model bütünlük manifesti tutmuyor. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1 canlı (organisation_unit CRUD + cascade/yeniden-atama) verisinde doğrulanır.",
+    "max_cross_tenant_op": 0,
+    "max_unauthorized_op": 0,
+    "max_invalid_type": 0,
+    "max_hierarchy_violation": 0,
+    "max_duplicate_name": 0,
+    "max_residency_violation": 0,
+    "max_unsafe_delete": 0,
+    "max_missing_audit": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "Org-yapısı her karar için bağlama metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. org_decision_total{op,result,org_type} → karar sayımı (result=COMMIT/REJECT); org_violation_total → cross_tenant_op VEYA unauthorized_op VEYA invalid_type VEYA hierarchy_violation VEYA duplicate_name VEYA residency_violation VEYA unsafe_delete VEYA missing_audit VEYA model_tampered (R2–R10 ihlal alarmı, 0 olmalı). op+result+org_type DÜŞÜK kardinalite (label uygun); tenant_id/org_unit_id/parent_id/request_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM İÇERİK/PII (org birimi adı DEĞERİ müşteri-tanımlı olabilir) metrikte VE log'da label DEĞİL (BRD §17.7/FR-REC-004). cross_tenant_op>0 VEYA unauthorized_op>0 VEYA unsafe_delete>0 VEYA model_tampered>0 → kritik alarm ≤2dk (SAD §17.2, NFR 10.1) = tenant izolasyon/yetki güvenlik olayı.",
+    "metrics": ["org_decision_total", "org_violation_total"],
+    "low_cardinality_labels": ["op", "result", "org_type"],
+    "high_cardinality_trace_only": ["tenant_id", "org_unit_id", "parent_id", "request_id"],
+    "alarm": "cross_tenant_op>0 (cross-tenant org erişimi — R2, FR-TEN-002) VEYA unauthorized_op>0 (yetkisiz org değişimi — R3) VEYA unsafe_delete>0 (korumasız silme — kırık scoped assignment — R8) VEYA model_tampered>0 (R10) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "R1", "desc": "Determinizm/tamlık + kanıt: her OrgRequest tanımlı malformed→tenant_isolation→authz→type→hierarchy→uniqueness→residency→delete_guard→audit algoritması boyunca ilerler ve bir terminal karara {COMMIT|REJECT} ulaşır; aynı girdi → aynı çıktı (deterministik; model_hash sha256 kanonik JSON; Date.now/random YOK); varsayılan REJECT (fail-closed; no op); her karar kanıt taşır (request_id + op + actor_realm + plane + org_type + terminal + model_hash). stuck_state=0, missing_evidence=0.", "trace": "SR-TEN-003, FR-TEN-003"},
+    {"id": "R2", "desc": "Tenant izolasyonu (FR-TEN-002; BRD §17 L1): org yönetimi YALNIZ actor_realm=tenant + plane=tenant_application_plane (Tenant Admin Console) ile yürütülür; aktör YALNIZ KENDİ tenant'ının org birimlerini yönetir (actor tenant_id == org_unit tenant_id; create/move ebeveyn aynı tenant). Yanlış realm (platform) VEYA cross-tenant op commit = cross_tenant_op. 12.2.3 RLS RESİPROKAL. cross_tenant_op=0.", "trace": "FR-TEN-002, BRD §17, ADR-011, 12.2.3"},
+    {"id": "R3", "desc": "Yetkilendirme (BRD §17.7, ADR-012): her op org:manage permission-key'i taşıyan aktör gerektirir (op_permission; 12.1.2 katalog; tenant_owner/tenant_admin bundle 12.1.1). Yetki kararı her zaman backend'de. Gerekli key olmadan op commit = unauthorized_op. unauthorized_op=0.", "trace": "FR-TEN-003, BRD §17.7, ADR-012, 12.1.1/12.1.2"},
+    {"id": "R4", "desc": "Tip geçerliliği ÇEKİRDEK (DB.md §5.1 organisation_unit.type CHECK; FR-TEN-003 'marka, departman, ülke ve proje'): create'de type ∈ {brand,country,department,project}; bu dört tip dışı bir tip commit = invalid_type. invalid_type=0.", "trace": "FR-TEN-003, DB.md §5.1"},
+    {"id": "R5", "desc": "Hiyerarşi bütünlüğü ÇEKİRDEK (DB.md §5.1 parent_id self-ref): create/move'da ebeveyn kendisi olamaz (parent_id != org_unit_id); birim, yeni ebeveyninin atası olamaz (döngü YASAK — org_unit_id ∉ ancestor_ids); derinlik ≤ max_depth (sonsuz iç içe geçme önlenir). Döngü/derinlik aşımı commit = hierarchy_violation. hierarchy_violation=0.", "trace": "FR-TEN-003, DB.md §5.1"},
+    {"id": "R6", "desc": "Kardeş benzersizliği ÇEKİRDEK (DB.md §5.1 UNIQUE (tenant_id,parent_id,name)): create/update(rename)/move'da ad, hedef ebeveynin mevcut kardeş adları (sibling_names; kendisi hariç) arasında olamaz. Çakışan ad commit = duplicate_name. duplicate_name=0.", "trace": "FR-TEN-003, DB.md §5.1"},
+    {"id": "R7", "desc": "Residency tutarlılığı (NFR 10.7 UK/EU/NA/ME; DB.md §5.1 region residency override): region set ise UK/EU/NA/ME içinde VE tenant izinli bölge kümesinde (tenant_allowed_regions; YALNIZ-DARALTIR — tenant izinli set dışına çıkamaz). Geçersiz/izinli-dışı region commit = residency_violation. residency_violation=0.", "trace": "FR-TEN-003, NFR 10.7, DB.md §5.1, SAD §12.3"},
+    {"id": "R8", "desc": "Silme koruması (DB.md §5.1; FR-IAM-011; 12.1.3 scope-referansı): delete'te birim çocuğa (has_children) VEYA scoped assignment referansına (referenced_by_scope) sahipse cascade + confirm zorunlu (yetim çocuk / kırık scoped role assignment koruması — sessiz silme YASAK; SR-TEN-003). Korumasız silme commit = unsafe_delete. unsafe_delete=0.", "trace": "FR-TEN-003, FR-IAM-011, DB.md §5.1, 12.1.3"},
+    {"id": "R9", "desc": "WORM audit (FR-IAM-006/FR-REC-009; DB.md §5.1 audit_log WORM + hash chain): her mutasyon op'u (create/update/move/delete) WORM append-only audit_log'a yazılır (akış 12.1.8'e delege). read mutasyon değildir. Audit'siz mutasyon commit = missing_audit. missing_audit=0.", "trace": "FR-IAM-006, FR-REC-009, DB.md §5.1, 12.1.8"},
+    {"id": "R10", "desc": "Model bütünlük manifesti: org-yapısı modeli frozen (org_types/operations/op_permission/tenant_scope/hierarchy/uniqueness/residency/delete_guard/audit) + model_hash = sha256(kanonik) deterministik; çalışma anında tahrif (ör. tip CHECK'i kaldırma / cross-tenant ebeveyne izin verme / döngü kontrolünü kapatma) yeniden-hesaplanan hash tutmaz → model_tampered. Org-yapısı yüzeyinin değiştirilemez olduğunu test edilebilir kılar (ADR-011). model_tampered=0.", "trace": "FR-TEN-003, ADR-011"},
+    {"id": "R11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (op/result/org_type); tenant_id/org_unit_id/parent_id/request_id metrikte yok, yalnız trace; HAM İÇERİK/PII (org birimi adı DEĞERİ müşteri-tanımlı olabilir) metrikte VE log'da label değil (0.4.7 label_policy, BRD §17.7/FR-REC-004).", "trace": "BRD §17.7, 0.4.7 label_policy"},
+    {"id": "R12", "desc": "Sır/içerik yok: model/spec/sample HAM içerik / PII (müşteri ADI/telefon/transcript DEĞERİ) / credential (DB şifresi / connection string DEĞERİ) tutmaz — yalnız OP enum (create/move) + TYPE enum (brand/department) + REALM/PLANE enum + permission-key (org:manage) + REGION enum (UK/EU/NA/ME) + yapısal tenant/org_unit/request KİMLİK (slug; t-001, ou-001, req-001) + SENTETİK org adı (sentetik yapısal etiket; ör. 'Marka-A') + HASH. Kimlik/enum/slug/hash PII DEĞİLDİR. Bu modül org-yapısı KARARINI verir — ham müşteri içeriği AKMAZ. secret_or_pii=0.", "trace": "BRD §17.7, FR-REC-004, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/model/sample'lar HAM içerik, PII (müşteri ADI / TELEFON numarası / TRANSCRIPT değeri) veya credential (DB şifresi / connection string DEĞERİ) TUTMAZ — yalnız OP ENUM (create/update/move/delete/read) + TYPE ENUM (brand/country/department/project) + REALM ENUM (platform/tenant) + PLANE ENUM (platform_control_plane/tenant_application_plane) + PERMISSION-KEY (org:manage) + REGION ENUM (UK/EU/NA/ME) + result ENUM (COMMIT/REJECT) + yapısal tenant/org_unit/request KİMLİK (SENTETİK slug ör. t-001/ou-001/req-001) + SENTETİK org birimi adı (yapısal etiket ör. 'Marka-A'/'Satis') + HASH (sha256). Kimlik/enum/slug/hash PII DEĞİLDİR; tasarımca PII-olmayandır. Bu modül org-yapısı BAĞLAMA KARARINI verir — ham müşteri içeriği bu modülde AKMAZ.",
+    "forbids": ["customer_name_value", "customer_phone_value", "transcript_text_value", "db_password_value", "connection_string_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}

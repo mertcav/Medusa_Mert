@@ -1,0 +1,8 @@
+{
+  "name": "DEGRADE — frozen model çalışma-anı tahrifi (cross-tenant ebeveyn / döngü kapalı) (R10)",
+  "request_id": "req-d10", "op": "create", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["org:manage"],
+  "tenant_id": "t-001", "org_unit_id": "ou-d10", "type": "project", "name": "Tamper-D",
+  "parent_id": null, "region": "EU", "tenant_allowed_regions": ["EU"], "audit_emitted": true,
+  "inject": ["model_tamper"], "expect": "fail"
+}

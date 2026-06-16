@@ -1,0 +1,10 @@
+{
+  "name": "create brand (root, EU) — L1 tenant org birimi",
+  "request_id": "req-001", "op": "create", "actor_realm": "tenant",
+  "plane": "tenant_application_plane", "actor_permissions": ["org:manage"],
+  "tenant_id": "t-001", "org_unit_id": "ou-001", "type": "brand", "name": "Marka-A",
+  "parent_id": null, "region": "EU", "tenant_allowed_regions": ["EU", "UK"],
+  "audit_emitted": true,
+  "expect": "pass",
+  "expected": {"terminal": "COMMIT", "org_type": "brand"}
+}
