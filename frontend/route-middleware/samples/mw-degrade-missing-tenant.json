@@ -1,0 +1,11 @@
+{
+  "$comment": "DEGRADE — tenant-app oturumu tenant_id taşımıyor → forbid (M4; tek tenant binding zorunlu).",
+  "request_id": "mw-degrade-missing-tenant",
+  "app": "tenant-app",
+  "path": "/admin/numbers",
+  "session": { "sub": "user-opaque-5", "realm": "tenant", "tenant_id": null, "exp": 9999999999 },
+  "now": 1000,
+  "requested_tenant": null,
+  "expect_action": "forbid",
+  "expect_reason": "missing_tenant_binding"
+}

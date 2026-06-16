@@ -1,0 +1,12 @@
+{
+  "$comment": "PASS — L1 tenant-admin geçerli oturum: doğru realm + tek tenant + /admin panel. SAD §14.4.1 happy path.",
+  "request_id": "mw-pass-l1-happy",
+  "app": "tenant-app",
+  "path": "/admin/users",
+  "session": { "sub": "user-opaque-1", "realm": "tenant", "tenant_id": "tenant-A", "exp": 9999999999 },
+  "now": 1000,
+  "requested_tenant": null,
+  "expect_action": "next",
+  "expect_reason": "allow",
+  "expect_headers": { "x-panel": "L1", "x-route-group": "(tenant-admin)", "x-tenant-scope": "tenant-A" }
+}

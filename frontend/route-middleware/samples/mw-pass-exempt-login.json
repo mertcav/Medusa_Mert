@@ -1,0 +1,11 @@
+{
+  "$comment": "PASS — login exempt yolu oturumsuz geçer (?next= dönüşü için login ekranı erişilebilir).",
+  "request_id": "mw-pass-exempt-login",
+  "app": "tenant-app",
+  "path": "/login",
+  "session": null,
+  "now": 1000,
+  "requested_tenant": null,
+  "expect_action": "next",
+  "expect_reason": "exempt"
+}

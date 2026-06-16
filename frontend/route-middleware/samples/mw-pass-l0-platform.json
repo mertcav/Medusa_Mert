@@ -1,0 +1,12 @@
+{
+  "$comment": "PASS — L0 platform geçerli oturum: platform realm + tenant'a bağlı DEĞİL + (platform) panel.",
+  "request_id": "mw-pass-l0-platform",
+  "app": "platform-app",
+  "path": "/overview",
+  "session": { "sub": "platform-opaque-1", "realm": "platform", "tenant_id": null, "exp": 9999999999 },
+  "now": 1000,
+  "requested_tenant": null,
+  "expect_action": "next",
+  "expect_reason": "allow",
+  "expect_headers": { "x-panel": "L0", "x-route-group": "(platform)" }
+}

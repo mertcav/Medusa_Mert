@@ -1,0 +1,11 @@
+{
+  "$comment": "DEGRADE — süresi dolmuş oturum → login redirect (M2).",
+  "request_id": "mw-degrade-expired",
+  "app": "tenant-app",
+  "path": "/admin/org",
+  "session": { "sub": "user-opaque-3", "realm": "tenant", "tenant_id": "tenant-A", "exp": 500 },
+  "now": 1000,
+  "requested_tenant": null,
+  "expect_action": "redirect",
+  "expect_reason": "expired_session"
+}

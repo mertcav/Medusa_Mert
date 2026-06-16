@@ -1,0 +1,157 @@
+{
+  "$comment": "WBS 13.1.2 — ROUTE GROUP + MIDDLEWARE (oturum + tenant scope + panel ayrımı). 13.1 'Ortak frontend altyapısı' alt-bloğunun İKİNCİ modülü; F1-Must. SAD §14.4.1'in 'her route group kendi layout ve auth guard'ına sahiptir ... oturum doğrulama + tenant scope (L1/L2 tek tenant'a bağlı)' ÇALIŞMA-ANI middleware'ini SAHİPLENİR. 13.1.1 iki ayrı app + route group İSKELETİNİ kurdu (yer tutucu middleware); bu modül o iskelete ÇALIŞMA-ANI kapısını ekler: (1) OTURUM — realm-uyumlu oturum yoksa/expired → login'e yönlendir; (2) REALM/PANEL AYRIMI — yanlış realm oturumu app'e giremez (platform realm ⟂ tenant realm, FR-IAM-008); (3) TENANT SCOPE — tenant-app oturumu tek tenant_id'ye bağlı, cross-tenant gezinme reddi (FR-TEN-002); (4) PANEL — path → route group/panel (/admin→L1, /workspace→L2, platform→L0) + downstream context header propagasyonu. ÇEKİRDEK İLKE (A8 / SAD §14.4.1): UI yalnız GÖRSEL kapıdır; middleware coarse bir UX/yönlendirme kapısı + context propagasyonudur; NİHAİ yetki (rol→permission, kaynak sahipliği) HER ZAMAN backend'de (12.2.x) + PostgreSQL RLS (§13). Burada rol→izin KARARI YOKTUR. Bu modül STATİK + DAVRANIŞSAL kapı: on-disk middleware/lib kaynaklarının invariant'ları uyguladığını doğrular + saf karar çekirdeğini (lib/middleware-core.ts) Python aynası ile senaryolara karşı sınar. KAYNAK DOĞRULUK; çelişkide SAD §14.4.1 / ADR-011 esastır.",
+  "version": "1.0",
+  "wbs": "13.1.2",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TEN-002", "FR-IAM-008", "FR-TST-008"],
+    "srs": ["SR-TEN-002", "SR-IAM-008"],
+    "rtm": ["TC-TEN-002", "TC-IAM-008"],
+    "brd": [
+      "§17 (üç katmanlı panel — L0/L1/L2)",
+      "§17.7 (izolasyon/görünürlük — panel oturumu tek tenant kapsamına bağlı; cross-tenant gezinme yok; L0 ⟂ tenant iş içeriği)"
+    ],
+    "sad": [
+      "§14.4.1 (Frontend — Next.js App Router; her route group kendi layout + auth guard; middleware oturum doğrulama + tenant scope [L1/L2 tek tenant'a bağlı]; UI yalnız görsel kapı, yetki backend'de)",
+      "§14.4.2 (Backend — her endpoint panel + rol + tenant scope; RESİPROKAL çalışma-anı guard; nihai yetki kararı)",
+      "§13.3 (correlation_id + tenant context propagasyonu)"
+    ],
+    "adr": [
+      "ADR-011 (İki düzlemli panel dağıtımı — platform realm ⟂ tenant realm; middleware realm ayrımını çalışma-anında zorlar)",
+      "ADR-002 (vendor-neutral — belirli auth sağlayıcısı bağlanmaz; oturum token'ı realm/issuer'dan)"
+    ],
+    "threat_model": [
+      "TM-I-02 (L0 platform rolü tenant içeriğini görür — middleware realm_mismatch + unexpected_tenant_binding reddi)",
+      "TM-E-04 (tenant IdP'sinin L0 rolü ataması — ayrı realm; tenant realm oturumu platform-app'e giremez)",
+      "TM-T-xx (cross-tenant kurcalama — requestedTenant ≠ oturum tenant → cross_tenant_denied, FR-TEN-002)"
+    ],
+    "consumes": [
+      "13.1.1 iki-app + route group iskeleti (frontend/platform-app + frontend/tenant-app; FROZEN girdi)",
+      "config/middleware-policy.json (frozen — app → realm/plane/tier/tenantScoped/route group/panel/login/exempt)"
+    ],
+    "consumed_by": [
+      "13.1.3 tasarım sistemi/komponent/i18n (ortak paket — middleware-core paylaşılan pakete taşınabilir)",
+      "13.1.4 PII redaction/maskeleme (middleware tenant-scope header'ını tüketir)",
+      "13.2.x/13.3.x/13.4.x ekran implementasyonları (server component'ler middleware'in enjekte ettiği context header'larını okur)",
+      "12.2.x backend guard/RLS (RESİPROKAL — nihai yetki; middleware'in propagate ettiği tenant scope'u RLS ile çift-kontrol eder)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Route-group middleware, L0⟂tenant + tenant-izolasyonunun FRONTEND ÇALIŞMA-ANI katmanıdır — 13.1.1 (deploy-zamanı app ayrımı) ÜSTÜNE çalışma-anı kapısı ekler; 12.2.x (backend guard) + RLS (§13) ile AYNI defense-in-depth ailesinin frontend dilimi. Middleware UX kapısı + context propagasyonudur; NİHAİ yetki backend'de (A8). Saf karar çekirdeği deterministik (Date.now yalnız ince wrapper'da; çekirdek now'ı parametre alır → test/probe deterministik).",
+    "plane": "frontend çalışma-anı (route group middleware; 12.2.x backend guard + RLS BACKSTOP'tan BAĞIMSIZ frontend UX katmanı)",
+    "owns": "SAD §14.4.1 middleware: (1) OTURUM doğrulama (realm-uyumlu; yoksa/expired → login redirect; M2) + (2) REALM/PANEL ayrımı (yanlış realm → forbid; M3) + (3) TENANT SCOPE (tenant-app tek tenant; cross-tenant ipucu reddi; M4/M5) + (4) PANEL mapping (path → route group/panel; M6) + (5) CONTEXT propagasyonu (plane/tier/panel/route-group/tenant-scope/correlation-id downstream header; M8) + (6) UI-only no-authz (A8/M7) + (7) sır/PII yok + vendor-neutral (M9) + (8) policy frozen + bütünlük (M10)",
+    "delegates": "rol→permission + kaynak sahipliği nihai kararı → 12.2.x backend; tenant scope çift-kontrol → PostgreSQL RLS §13; tasarım sistemi/i18n → 13.1.3; PII maskeleme → 13.1.4; ekran içi → 13.2/13.3/13.4; kriptografik token imza/JWKS doğrulaması → auth realm + backend (edge JWKS opsiyonel F2); SSO/SCIM realm provisioning → 14.4.4/12.1.x",
+    "deterministic": true,
+    "fail_closed": true,
+    "decision_at": "request-time (Next.js middleware; çekirdek saf/deterministik)",
+    "trace": "SAD §14.4.1, FR-TEN-002, FR-IAM-008"
+  },
+
+  "policy_ref": {
+    "$comment": "Frozen app→middleware policy = config/middleware-policy.json. Probe bunu on-disk middleware.ts/lib kaynaklarına karşı doğrular. Hiç sır/PII yok.",
+    "path": "config/middleware-policy.json"
+  },
+
+  "decision_contract": {
+    "$comment": "Saf karar çekirdeği sözleşmesi (lib/middleware-core.ts decide()). Python aynası birebir aynı semantiği uygular. Sıra fail-closed: exempt → no_session → expired → realm → tenant scope → panel.",
+    "input": "DecisionInput{path, session:{sub,realm,tenant_id,exp}|null, now, requestedTenant|null, correlationId}",
+    "output": "Decision{action: next|redirect|forbid, reason, location?, status?, headers}",
+    "order": [
+      "A exempt(path) → next/exempt (oturumsuz)",
+      "B session==null → redirect/no_session (login?next=)",
+      "C exp<=now → redirect/expired_session",
+      "D session.realm!=policy.realm → forbid/realm_mismatch (403)",
+      "E1 tenantScoped & !tenant_id → forbid/missing_tenant_binding (403)",
+      "E2 tenantScoped & requestedTenant!=tenant_id → forbid/cross_tenant_denied (403)",
+      "E3 !tenantScoped & tenant_id → forbid/unexpected_tenant_binding (403)",
+      "F → next/allow + headers{x-app-plane,x-app-tier,x-panel,x-route-group,x-tenant-scope?,x-correlation-id,x-auth-subject}"
+    ],
+    "reasons": ["exempt", "no_session", "expired_session", "realm_mismatch", "missing_tenant_binding", "cross_tenant_denied", "unexpected_tenant_binding", "allow"]
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ route-group middleware kapısı. Hem STATİK (on-disk kaynak invariant uygular mı) hem DAVRANIŞSAL (saf çekirdek senaryolara doğru karar verir mi). Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "files_present", "field": "her app middleware.ts + lib/session.ts + lib/middleware-core.ts taşır", "invariant": "M1", "outcome": "PASS|FAIL",
+       "rule": "frontend/platform-app ve frontend/tenant-app her biri middleware.ts (çalışma-anı, yer tutucu DEĞİL) + lib/session.ts + lib/middleware-core.ts içerir; middleware decide() çekirdeğini import eder. Eksik/yer tutucu → FAIL (fail-closed)."},
+      {"id": "session_required", "field": "oturum yoksa/expired → login redirect (sessiz izin YOK)", "invariant": "M2", "outcome": "PASS|FAIL",
+       "rule": "session==null → redirect no_session; exp<=now → redirect expired_session (SAD §14.4.1 oturum doğrulama). Oturumsuz korumalı path için 'next/allow' ASLA verilmez. silent_allow_unauthenticated=0."},
+      {"id": "realm_separation", "field": "yanlış realm oturumu app'e giremez (panel/plane ayrımı)", "invariant": "M3", "outcome": "PASS|FAIL",
+       "rule": "session.realm != policy.realm → forbid realm_mismatch (platform realm ⟂ tenant realm; FR-IAM-008, ADR-011). Tenant oturumu platform-app'e VEYA platform oturumu tenant-app'e GİREMEZ. realm_mismatch_allow=0."},
+      {"id": "tenant_scope_binding", "field": "tenant-app oturumu tek tenant_id'ye bağlı; platform-app bağlı değil", "invariant": "M4", "outcome": "PASS|FAIL",
+       "rule": "tenant-app tenantScoped=true: tenant_id yoksa → forbid missing_tenant_binding; tenant_id downstream'e x-tenant-scope header ile pin'lenir (FR-TEN-002). platform-app tenantScoped=false: oturum tenant_id taşırsa → forbid unexpected_tenant_binding (L0 cross-tenant; iş içeriği yok — A5/FR-IAM-008). missing_tenant_binding_allow=0."},
+      {"id": "cross_tenant_denied", "field": "istek tenant ipucu ≠ oturum tenant → reddet", "invariant": "M5", "outcome": "PASS|FAIL",
+       "rule": "tenant-app: requestedTenant (?tenant=/x-tenant-id) oturum tenant_id'sinden FARKLI ise → forbid cross_tenant_denied (FR-TEN-002 cross-tenant gezinme reddi; BRD §17.7). cross_tenant_allow=0."},
+      {"id": "panel_mapping", "field": "path → route group/panel (L0/L1/L2)", "invariant": "M6", "outcome": "PASS|FAIL",
+       "rule": "tenant-app /admin/* → (tenant-admin)/L1; /workspace/* → (workspace)/L2; platform-app / → (platform)/L0 (SAD §14.4.1). Panel/route-group downstream'e x-panel/x-route-group header ile yayılır. panel_mismatch=0."},
+      {"id": "ui_only_no_authz", "field": "UI yalnız görsel kapı; rol→izin kararı YOK", "invariant": "M7", "outcome": "PASS|FAIL",
+       "rule": "Middleware nihai yetki KARARINI vermez (SAD §14.4.1 'UI yalnız görsel kapıdır; yetki kararı her zaman backend'de'); rol→permission grant/bypass token'ı YOK. Frontend'de hardcoded authz kararı → FAIL. frontend_authz=0."},
+      {"id": "context_propagation", "field": "plane/tier/panel/tenant-scope/correlation-id downstream header", "invariant": "M8", "outcome": "PASS|FAIL",
+       "rule": "next kararında downstream istek header'ları enjekte edilir: x-app-plane/x-app-tier (düşük kardinalite), x-panel/x-route-group, x-tenant-scope (tenant-app), x-correlation-id (§13.3). HAM PII header'da YOK (sub opaque kimlik; PII değil — BRD §17.7). missing_context=0."},
+      {"id": "no_secret_no_pii", "field": "sır/PII yok; vendor-neutral; credential-free", "invariant": "M9", "outcome": "PASS|FAIL",
+       "rule": "Kaynak/spec/config ham PII (transcript/recording/contact/telefon/kart/OTP/ad DEĞERİ) veya credential (token/parola/anahtar DEĞERİ) tutmaz; .env.example RHS boş; çerez ADI sır değildir; belirli auth sağlayıcısı bağlanmaz (ADR-002). secret_or_pii=0."},
+      {"id": "policy_integrity", "field": "policy frozen + hash; on-disk ↔ config tutarlı", "invariant": "M10", "outcome": "PASS|FAIL",
+       "rule": "middleware-policy.json frozen; policy_hash = sha256(kanonik). On-disk middleware kaynağı policy ile tutarsız (realm/tenantScoped/route group prefix sapması) → FAIL. policy_mismatch=0."}
+    ],
+    "evaluation": "files_present_then_session_required_then_realm_sep_then_tenant_scope_then_cross_tenant_then_panel_then_ui_only_then_context_then_no_secret_then_integrity",
+    "trace": "SAD §14.4.1, FR-TEN-002, FR-IAM-008"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed route-group middleware doğrulama algoritması. Statik: on-disk middleware/lib kaynakları + policy okunabilir, invariant token'ları (no_session/realm_mismatch/cross_tenant_denied/missing_tenant_binding/x-tenant-scope/panel) mevcut, hardcoded authz yok, policy tutarlı. Davranışsal: saf çekirdek senaryolara doğru terminal action+reason verir. Belirsizlik/eksik → FAIL (fail-closed).",
+    "algorithm": "dosya/policy okunamaz ⇒ FAIL → middleware yer tutucu/decide import yok ⇒ FAIL → oturum/expired redirect yok ⇒ FAIL → realm ayrımı yok ⇒ FAIL → tenant scope/cross-tenant reddi yok ⇒ FAIL → panel mapping yok ⇒ FAIL → hardcoded authz ⇒ FAIL → context header yok ⇒ FAIL → sır/PII ⇒ FAIL → policy hash sapması ⇒ FAIL",
+    "default": "FAIL",
+    "fail_safe_terminal": "PASS yalnız tüm M1–M10 kapıları 0-ihlal geçerse; aksi halde FAIL (middleware deploy edilmez)",
+    "trace": "SR-TEN-002, SR-IAM-008, SAD §14.4.1"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal doğrulama kararları. Statik kapı: PASS=on-disk middleware ADR-011/SAD §14.4.1 invariant'larını uygular. Davranış kararı (saf çekirdek): {next|redirect|forbid} + reason.",
+    "static": ["PASS", "FAIL"],
+    "runtime_action": ["next", "redirect", "forbid"],
+    "terminal": ["PASS", "FAIL"]
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. silent_allow_unauthenticated (M2) = oturumsuz korumalı path'e next; realm_mismatch_allow (M3) = yanlış realm oturumu geçer; cross_tenant_allow (M5) = cross-tenant ipucu geçer; missing_tenant_binding_allow (M4) = tenant'sız tenant-app oturumu geçer; panel_mismatch (M6); frontend_authz (M7); missing_context (M8); secret_or_pii (M9); policy_mismatch (M10); files_missing (M1). Eşikler MÜHENDİSLİK varsayılanı; gerçek deploy F1 canlı CI'da (next build + e2e middleware testi).",
+    "max_silent_allow_unauthenticated": 0,
+    "max_realm_mismatch_allow": 0,
+    "max_cross_tenant_allow": 0,
+    "max_missing_tenant_binding_allow": 0,
+    "max_panel_mismatch": 0,
+    "max_frontend_authz": 0,
+    "max_missing_context": 0,
+    "max_secret_or_pii": 0,
+    "max_policy_mismatch": 0,
+    "max_files_missing": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "Middleware kararları çalışma-anı metriklerini yayar (0.4.7). frontend_mw_decision_total{app,action,reason} → karar sayımı; frontend_mw_denied_total{app,reason} → realm_mismatch/cross_tenant_denied/missing_tenant_binding (güvenlik reddi). app+action+reason DÜŞÜK kardinalite; path/tenant_id/sub orta-yüksek → yalnız trace/log (metrik label'ı OLMAZ). HAM PII metrik/log'ta YOK (BRD §17.7/FR-REC-004). cross_tenant_denied>0 → kritik alarm (FR-TEN-002 ihlali girişimi).",
+    "metrics": ["frontend_mw_decision_total", "frontend_mw_denied_total"],
+    "low_cardinality_labels": ["app", "action", "reason"],
+    "high_cardinality_trace_only": ["path", "tenant_id", "sub", "correlation_id"],
+    "alarm": "cross_tenant_denied>0 (cross-tenant gezinme girişimi — FR-TEN-002) VEYA realm_mismatch>0 (yanlış realm oturumu — FR-IAM-008/ADR-011) → güvenlik alarmı (SAD §17.2)"
+  },
+
+  "invariants": [
+    {"id": "M1", "desc": "Dosya varlığı: her app middleware.ts (çalışma-anı, decide() import eden) + lib/session.ts + lib/middleware-core.ts taşır; yer tutucu DEĞİL. files_missing=0.", "trace": "SAD §14.4.1"},
+    {"id": "M2", "desc": "Oturum zorunlu: realm-uyumlu oturum yoksa → redirect no_session; expired → redirect expired_session. Oturumsuz korumalı path'e 'next' ASLA. Sessiz izin YOK (fail-closed). silent_allow_unauthenticated=0.", "trace": "SAD §14.4.1"},
+    {"id": "M3", "desc": "Realm/panel ayrımı: session.realm != policy.realm → forbid realm_mismatch. Tenant oturumu platform-app'e / platform oturumu tenant-app'e GİREMEZ (FR-IAM-008, ADR-011). realm_mismatch_allow=0.", "trace": "FR-IAM-008, ADR-011"},
+    {"id": "M4", "desc": "Tenant scope binding (FR-TEN-002): tenant-app tek tenant_id'ye bağlı (yoksa forbid missing_tenant_binding; varsa x-tenant-scope pin); platform-app tenant'a bağlı OLMAZ (varsa forbid unexpected_tenant_binding — L0 cross-tenant). missing_tenant_binding_allow=0.", "trace": "FR-TEN-002, FR-IAM-008"},
+    {"id": "M5", "desc": "Cross-tenant reddi (FR-TEN-002): tenant-app requestedTenant (?tenant=/x-tenant-id) ≠ oturum tenant_id → forbid cross_tenant_denied (cross-tenant gezinme yok; BRD §17.7). cross_tenant_allow=0.", "trace": "FR-TEN-002, BRD §17.7"},
+    {"id": "M6", "desc": "Panel mapping (SAD §14.4.1): /admin/*→L1/(tenant-admin), /workspace/*→L2/(workspace), platform /→L0/(platform); x-panel/x-route-group downstream. panel_mismatch=0.", "trace": "SAD §14.4.1, BRD §17"},
+    {"id": "M7", "desc": "UI yalnız görsel kapı (SAD §14.4.1/A8): middleware nihai yetki kararını VERMEZ; rol→permission grant/bypass YOK; coarse UX/yönlendirme kapısı. frontend_authz=0.", "trace": "SAD §14.4.1"},
+    {"id": "M8", "desc": "Context propagasyonu (§13.3): next kararında downstream'e x-app-plane/x-app-tier/x-panel/x-route-group/x-tenant-scope?/x-correlation-id/x-auth-subject enjekte; düşük-kardinalite metrik label; HAM PII header'da yok. missing_context=0.", "trace": "SAD §13.3, BRD §17.7"},
+    {"id": "M9", "desc": "Sır/PII yok + vendor-neutral: kaynak/spec/config ham PII/credential DEĞERİ tutmaz; .env.example RHS boş; çerez ADI sır değil; belirli auth sağlayıcısı bağlanmaz (ADR-002 — oturum realm/issuer'dan). secret_or_pii=0.", "trace": "BRD §17.7, FR-REC-004, ADR-002"},
+    {"id": "M10", "desc": "Policy bütünlüğü: middleware-policy.json frozen + policy_hash sha256(kanonik); on-disk middleware ↔ policy (realm/tenantScoped/route group prefix) tutarlı. policy_mismatch=0.", "trace": "ADR-011, SAD §14.4.1"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/kaynak HAM içerik, PII (TRANSCRIPT/RECORDING/CONTACT, TELEFON, KART, OTP, PAROLA, müşteri ADI DEĞERİ) veya credential (oturum TOKEN DEĞERİ / API anahtarı / connection string / parola DEĞERİ) TUTMAZ — yalnız APP/REALM/PLANE/PANEL/ROUTE GROUP ADLARI + ÇEREZ ADI (sır değil) + REASON ENUM + HASH. Ortam değişkenleri yalnız ${ENV} referansı.",
+    "forbids": ["session_token_value", "transcript_text_value", "recording_audio_value", "contact_pii_value", "customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "api_key_value", "connection_string_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}

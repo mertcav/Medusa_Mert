@@ -1,0 +1,12 @@
+{
+  "$comment": "PASS — L2 workspace geçerli oturum: doğru realm + tek tenant + /workspace panel.",
+  "request_id": "mw-pass-l2-happy",
+  "app": "tenant-app",
+  "path": "/workspace/live-calls",
+  "session": { "sub": "user-opaque-2", "realm": "tenant", "tenant_id": "tenant-A", "exp": 9999999999 },
+  "now": 1000,
+  "requested_tenant": null,
+  "expect_action": "next",
+  "expect_reason": "allow",
+  "expect_headers": { "x-panel": "L2", "x-route-group": "(workspace)" }
+}

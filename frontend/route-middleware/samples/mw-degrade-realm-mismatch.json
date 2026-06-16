@@ -1,0 +1,11 @@
+{
+  "$comment": "DEGRADE — platform realm oturumu tenant-app'e → forbid (M3; FR-IAM-008/ADR-011 plane ayrımı).",
+  "request_id": "mw-degrade-realm-mismatch",
+  "app": "tenant-app",
+  "path": "/workspace/qa",
+  "session": { "sub": "platform-opaque-2", "realm": "platform", "tenant_id": null, "exp": 9999999999 },
+  "now": 1000,
+  "requested_tenant": null,
+  "expect_action": "forbid",
+  "expect_reason": "realm_mismatch"
+}

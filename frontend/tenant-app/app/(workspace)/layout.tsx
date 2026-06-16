@@ -1,9 +1,10 @@
 // @chanteur/tenant-app — (workspace) route group layout (L2 — Operasyon / Uygulama Paneli).
 // SAD §14.4.1: "tenant oturumu + L2 rol guard".
 //
-// İSKELET (13.1.1): L2 günlük operasyon ekranlarını çerçeveler. Tenant oturumu + L2 rol guard +
-// tenant_scope ENFORCEMENT'ı 13.1.2'de. PII içeren görüntülemeler 13.1.4'te maskelenir. UI yalnız
-// görsel kapı; yetki backend'de (SAD §14.4.1 — A8).
+// İSKELET (13.1.1): L2 günlük operasyon ekranlarını çerçeveler. Tenant oturumu + tenant_scope
+// (tek tenant — FR-TEN-002) + panel ayrımı (/workspace → L2) ENFORCEMENT'ı 13.1.2'de middleware.ts'e
+// eklendi. PII içeren görüntülemeler 13.1.4'te maskelenir. UI yalnız görsel kapı; yetki backend'de +
+// RLS (SAD §14.4.1 — A8).
 import type { ReactNode } from "react";
 
 const L2_NAV = [

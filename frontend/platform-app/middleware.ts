@@ -1,21 +1,61 @@
-// @chanteur/platform-app — L0 middleware iskeleti (ADR-011, SAD §14.4.1).
+// @chanteur/platform-app — L0 middleware (13.1.2: oturum + tenant scope + panel ayrımı).
+// SAD §14.4.1 (Frontend route group + middleware) · ADR-011 (L0 ayrı internal-only) · FR-IAM-008.
 //
-// KAPSAM (13.1.1): yalnız iki-app ayrımının frontend iskeleti. Bu middleware bir İSKELETtir:
-// internal-only erişim sınırını (VPN/allowlist/private endpoint) ve platform auth realm'ini
-// İŞARETLER. Çalışma-anı oturum doğrulama + platform rol guard ENFORCEMENT'ı 13.1.2'de
-// (route group + middleware) eklenir; nihai YETKİ KARARI HER ZAMAN backend'dedir (12.2.x;
-// SAD §14.4.1 "UI yalnız görsel kapıdır"). Burada hardcoded authz KARARI YOKTUR (A8).
+// Bu middleware ÇALIŞMA-ANI kapısıdır (13.1.1'in iskelet yer tutucusunun yerini alır):
+//  1) OTURUM: platform realm oturumu yoksa/expired → login'e yönlendir (?next=).
+//  2) REALM/PANEL AYRIMI: tenant realm oturumu platform-app'e GİREMEZ → 403 (FR-IAM-008).
+//  3) TENANT SCOPE: platform realm tenant'a BAĞLI DEĞİL (L0 cross-tenant; iş içeriği yok — A5).
+//  4) CONTEXT: x-app-plane/x-app-tier/x-panel/x-route-group/x-correlation-id downstream'e enjekte.
 //
-// ADR-011: platform-app tenant iş verisi route'u BARINDIRMAZ; bu app'te (platform) dışında
-// route group yoktur (A3/A5). Ağ-seviyesi internal-only kısıt deploy/altyapı katmanında.
+// NİHAİ YETKİ KARARI HER ZAMAN BACKEND'DE (12.2.x; SAD §14.4.1 "UI yalnız görsel kapı" — A8).
+// Burada rol→izin kararı YOKTUR. Karar mantığı saf çekirdektedir (lib/middleware-core.ts).
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { APP_REALM, SESSION_COOKIE, parseSessionToken } from "./lib/session";
+import { decide, type AppPolicy } from "./lib/middleware-core";
 
-export function middleware(_req: NextRequest) {
-  // 13.1.2 yer tutucu: oturum (platform realm) + platform rol guard çalışma-anında burada zorlanacak.
-  // İskelet aşamasında istek geçirilir; yetki backend'de (12.2.x) karar verir.
-  const res = NextResponse.next();
-  res.headers.set("x-app-plane", "platform_control_plane"); // gözlemlenebilirlik (düşük kardinalite)
+const POLICY: AppPolicy = {
+  app: "platform-app",
+  realm: APP_REALM, // "platform"
+  plane: "platform_control_plane",
+  tier: "L0",
+  tenantScoped: false, // L0 cross-tenant — tek tenant'a bağlı DEĞİL
+  loginPath: "/login",
+  exemptPrefixes: ["/login", "/api/auth"],
+  routeGroups: [{ prefix: "/", group: "(platform)", panel: "L0" }],
+};
+
+export function middleware(req: NextRequest) {
+  const path = req.nextUrl.pathname;
+  const session = parseSessionToken(req.cookies.get(SESSION_COOKIE)?.value ?? null);
+  const requestedTenant =
+    req.nextUrl.searchParams.get("tenant") || req.headers.get("x-tenant-id");
+  const correlationId = req.headers.get("x-correlation-id") || crypto.randomUUID();
+  const now = Math.floor(Date.now() / 1000);
+
+  const d = decide(POLICY, { path, session, now, requestedTenant, correlationId });
+
+  if (d.action === "redirect") {
+    const url = req.nextUrl.clone();
+    const [p, q] = (d.location as string).split("?");
+    url.pathname = p;
+    url.search = q ? `?${q}` : "";
+    const res = NextResponse.redirect(url);
+    res.headers.set("x-mw-reason", d.reason);
+    return res;
+  }
+  if (d.action === "forbid") {
+    const res = new NextResponse("Forbidden", { status: d.status ?? 403 });
+    res.headers.set("x-mw-reason", d.reason);
+    res.headers.set("x-app-plane", POLICY.plane);
+    return res;
+  }
+  // next — downstream'e (server component/backend) context header'larını enjekte et
+  const requestHeaders = new Headers(req.headers);
+  for (const [k, v] of Object.entries(d.headers)) requestHeaders.set(k, v);
+  const res = NextResponse.next({ request: { headers: requestHeaders } });
+  res.headers.set("x-app-plane", POLICY.plane);
+  res.headers.set("x-mw-reason", d.reason);
   return res;
 }
 

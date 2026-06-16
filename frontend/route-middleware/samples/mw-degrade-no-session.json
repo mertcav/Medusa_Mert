@@ -1,0 +1,11 @@
+{
+  "$comment": "DEGRADE — oturumsuz korumalı path → login redirect (M2; sessiz izin YOK).",
+  "request_id": "mw-degrade-no-session",
+  "app": "tenant-app",
+  "path": "/workspace/recordings",
+  "session": null,
+  "now": 1000,
+  "requested_tenant": null,
+  "expect_action": "redirect",
+  "expect_reason": "no_session"
+}

@@ -1,9 +1,10 @@
 // @chanteur/platform-app — (platform) route group layout (L0 — Platform Admin Console).
 // SAD §14.4.1: "platform auth realm + platform rol guard".
 //
-// İSKELET (13.1.1): bu layout L0 (platform) route group'unu çerçeveler. Platform auth realm +
-// platform rol guard ENFORCEMENT'ı 13.1.2'de eklenir. UI yalnız görsel kapıdır; nihai yetki
-// kararı backend'dedir (SAD §14.4.1 — A8). Bu group YALNIZ platform ekranlarını barındırır;
+// İSKELET (13.1.1): bu layout L0 (platform) route group'unu çerçeveler. Çalışma-anı oturum +
+// platform realm + panel ayrımı ENFORCEMENT'ı 13.1.2'de middleware.ts'e eklendi (platform rol
+// guard'ı UX seviyesinde; nihai YETKİ backend'de — 12.2.x). UI yalnız görsel kapıdır (SAD §14.4.1
+// — A8). Bu group YALNIZ platform ekranlarını barındırır;
 // tenant iş verisi (call/transcript/recording) route'u YOKTUR (ADR-011, FR-IAM-008 — A5).
 import type { ReactNode } from "react";
 

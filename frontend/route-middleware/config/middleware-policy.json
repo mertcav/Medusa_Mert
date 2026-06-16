@@ -1,0 +1,42 @@
+{
+  "$comment": "WBS 13.1.2 — ROUTE-GROUP MIDDLEWARE POLICY (frozen kaynak doğruluk; SAD §14.4.1 + ADR-011). probe bunu on-disk frontend/platform-app + frontend/tenant-app middleware.ts/lib kaynaklarına karşı doğrular + saf karar çekirdeğine girdi olur. Hiç sır/PII yok — yalnız app/realm/plane/panel/route group ENUM + çerez ADI + ${ENV} referansı.",
+  "version": "1.0",
+  "frozen": true,
+  "apps": {
+    "platform-app": {
+      "dir": "frontend/platform-app",
+      "realm": "platform",
+      "plane": "platform_control_plane",
+      "tier": "L0",
+      "tenant_scoped": false,
+      "login_path": "/login",
+      "exempt_prefixes": ["/login", "/api/auth"],
+      "session_cookie_default": "__chanteur_platform_session",
+      "session_cookie_env": "${PLATFORM_SESSION_COOKIE}",
+      "route_groups": [
+        { "prefix": "/", "group": "(platform)", "panel": "L0" }
+      ],
+      "trace": "ADR-011 (L0 ayrı internal-only; platform realm), SAD §14.4.1"
+    },
+    "tenant-app": {
+      "dir": "frontend/tenant-app",
+      "realm": "tenant",
+      "plane": "tenant_application_plane",
+      "tier": "L1+L2",
+      "tenant_scoped": true,
+      "login_path": "/login",
+      "exempt_prefixes": ["/login", "/api/auth"],
+      "session_cookie_default": "__chanteur_tenant_session",
+      "session_cookie_env": "${TENANT_SESSION_COOKIE}",
+      "route_groups": [
+        { "prefix": "/admin", "group": "(tenant-admin)", "panel": "L1" },
+        { "prefix": "/workspace", "group": "(workspace)", "panel": "L2" }
+      ],
+      "trace": "ADR-011 (L1+L2 birlikte public; tenant realm; tek tenant per oturum FR-TEN-002), SAD §14.4.1"
+    }
+  },
+  "decision_reasons": ["exempt", "no_session", "expired_session", "realm_mismatch", "missing_tenant_binding", "cross_tenant_denied", "unexpected_tenant_binding", "allow"],
+  "downstream_headers": ["x-app-plane", "x-app-tier", "x-panel", "x-route-group", "x-tenant-scope", "x-correlation-id", "x-auth-subject"],
+  "tenant_hint_sources": ["query:tenant", "header:x-tenant-id"],
+  "trace": "SAD §14.4.1, FR-TEN-002, FR-IAM-008, ADR-011"
+}

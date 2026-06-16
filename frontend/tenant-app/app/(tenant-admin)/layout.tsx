@@ -1,8 +1,9 @@
 // @chanteur/tenant-app — (tenant-admin) route group layout (L1 — Tenant Admin Console).
 // SAD §14.4.1: "tenant oturumu + L1 rol guard; tenant scope middleware'de sabitlenir".
 //
-// İSKELET (13.1.1): L1 tek-tenant yönetim ekranlarını çerçeveler. Tenant oturumu + L1 rol guard +
-// tenant_scope ENFORCEMENT'ı 13.1.2'de. UI yalnız görsel kapı; yetki backend'de (SAD §14.4.1 — A8).
+// İSKELET (13.1.1): L1 tek-tenant yönetim ekranlarını çerçeveler. Tenant oturumu + tenant_scope
+// (tek tenant — FR-TEN-002) + panel ayrımı (/admin → L1) ENFORCEMENT'ı 13.1.2'de middleware.ts'e
+// eklendi. UI yalnız görsel kapı; nihai yetki backend'de + RLS (SAD §14.4.1 — A8).
 import type { ReactNode } from "react";
 
 const L1_NAV = [

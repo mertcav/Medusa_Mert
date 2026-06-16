@@ -1,0 +1,11 @@
+{
+  "$comment": "DEGRADE — platform realm oturumu tenant_id taşıyor (anomali) → forbid (M4; L0 cross-tenant, iş içeriği yok — A5).",
+  "request_id": "mw-degrade-unexpected-tenant",
+  "app": "platform-app",
+  "path": "/tenants",
+  "session": { "sub": "platform-opaque-3", "realm": "platform", "tenant_id": "tenant-X", "exp": 9999999999 },
+  "now": 1000,
+  "requested_tenant": null,
+  "expect_action": "forbid",
+  "expect_reason": "unexpected_tenant_binding"
+}
