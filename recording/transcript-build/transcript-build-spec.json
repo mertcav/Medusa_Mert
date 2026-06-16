@@ -1,0 +1,188 @@
+{
+  "$comment": "WBS 11.3 — Transkript üretimi + timeline (BRD §8.1 inbound müşteri hizmetleri akışı: çağrıyı karşıla→anla→işlem→teyit→özetle+sonuçlandır; transkript+özet, çağrının kalıcı içerik ürünüdür [BRD §16 'Çağrı kayıtları, transkript ve çağrı özeti']). 11. workstream'in (Kayıt, Transkript & PII Redaction) TRANSKRİPT ÜRETİMİ (transcript-build) modülü ve F1-Must temel yeteneği. Çağrının canlı STT FINAL transkript turn'lerini (her tur bir final utterance; SAD §6.1 turn state machine LISTEN→CAPTURE→THINK→ACT→SPEAK; SAD §8.2 turn-event sözleşmesi) ve sistem olaylarını (call_event; DB §23) alır → DETERMİNİSTİK, ZAMAN-SIRALI, KONUŞMACI-ATFLI bir transkript (DB §21 transcript + transcript_segment: seq/speaker/started_ms/confidence) + BİRLEŞİK TIMELINE (segmentler ⊕ sistem olayları, zaman-sıralı; A-12 'Çağrı Detayı / Transkript & Timeline' ekranı, BRD §17) üretir ve bir terminal {TRANSCRIPT | NO_TRANSCRIPT | BLOCK} kararı verir. Modül 11.1 (recording-policy) içerik/kayıt kararının + 11.2 (channel-recording) kanal/konuşmacı yerleşiminin AŞAĞI AKIŞ TÜKETİCİSİDİR; üretilen transkript redaction_state=pending ile 11.4 PII redaction + 11.5 kart/parola/OTP çıkarma + 11.6 erişim audit'ine AKTARILIR (bu modül REDACTION YAPMAZ). ANALYTICS PLANE ASENKRON post-processing (SAD §10.1/§10.2 Transcript Store; FR-RES-011 — hot-path DEĞİL). ÇEKİRDEK: (1) K2 ZAMAN-SIRALI üretim — segmentler started_ms'e göre monoton artan + seq 1..N bitişik (kronoloji, BRD §8.1; out-of-order/seq-gap yasak); (2) K3 KONUŞMACI ATFI — her segment geçerli speaker ∈ {caller,agent,human} (DB §21); DUAL kanalda (channels=2, 11.2) konuşmacı-kanal tutarlı (caller→ch0, agent/human→ch1); atıfsız (missing_speaker) / yanlış-atıf (speaker_mismatch) yok; (3) K4 TAMLIK — her final turn → tam bir segment (düşmez/çoğalmaz), timeline TÜM segment + TÜM sistem olayını içerir (turn_dropped/turn_duplicated/event_dropped yasak); (4) K5 İÇERİK KAPISI (FR-REC-002 AŞAĞI AKIŞ) — transkript içeriği YALNIZ 11.1 içerik politikası RECORD dediğinde kalıcılaştırılır; ≠RECORD ⇒ NO_TRANSCRIPT ∧ no_content_persisted=true (over_capture yasak); (5) K7 REDACTION DEVRİ — transkript redaction_state ∈ {pending, not_required} ile üretilir, ASLA 'redacted' (bu modül redaction yapmaz; 11.4/11.5 yapar — premature_redaction yasak). Modül bir DETERMİNİSTİK FAIL-CLOSED motorudur: TranscriptBuildRequest{request_id, tenant_id, correlation_id, call_id, direction, upstream_decision[11.1 RECORD/DISABLED/NO_CONSENT/BLOCK], upstream_no_media_captured, channels[1/2, 11.2], turn_events[{turn_id, speaker, start_ms, end_ms, kind:final, confidence, channel?, redaction_required?}], system_events[{event_id, event_type, at_ms}], redaction_required, in_region_storage_required, storage_region, home_region} alır → tenant izolasyonu doğrula (cross_tenant→BLOCK) → upstream geçerli mi (yoksa BLOCK no_upstream) → içerik kapısı (upstream==RECORD değilse NO_TRANSCRIPT, no content) → final turn'leri kanonik sırala (started_ms,turn_id) + seq 1..N ata → konuşmacı atfı doğrula → timeline birleştir (segment ⊕ system_event, zaman-sıralı) → redaction_state pending/not_required işaretle → residency doğrula → terminal: TRANSCRIPT (içerik kalıcı, redaction pending) | NO_TRANSCRIPT (11.1 RECORD değil ⇒ içerik yok) | BLOCK (cross-tenant/upstream yok/malformed turn ⇒ fail-closed, içerik yok). ÇEKİRDEK INVARIANT (K5, FR-REC-002 aşağı akış): terminal ∉ {TRANSCRIPT} ⇒ no_content_persisted=true; yetkisizken içerik kalıcılaştırmak (over_capture) = gizlilik ihlali (BRD §15 alarm). Üretim ATLANAMAZ (K8 assembly_skip=0: bypass = sıralama/atıf çözülmeden transkript = BRD §15 alarmı; malformed turn stream → BLOCK, fail-open yok). Residency: transkript in_region iken home_region'da kalıcılaştırılır (K6, NFR 10.7). Her karar deterministik+terminal (K1) + kanıt (K9) + audit (K10); metrik düşük-kardinalite + PII yok (K11); spec/config/sample HAM TRANSKRİPT METNİ/ses/PII tutmaz + tenant izolasyonu (K12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): kayıt-başlatma/içerik KARARI + consent + tamamen kapatma → 11.1 (FR-REC-001/002; upstream_decision TÜKETİLİR); kanal/track yerleşimi → 11.2 (FR-REC-003; channels + konuşmacı-kanal TÜKETİLİR); transkript ham METİN bytelarının STT'den üretimi + nesne depo yazımı → SAD §6.1/§10.2 Transcript Store + DB §21 storage_uri (bu modül SIRALAMA/ATIF/TIMELINE + metadata KARARINI verir, ham metin byte'ı YAZMAZ); PII redaction → 11.4 (FR-REC-004; redaction_state=pending TAŞINIR); kart/parola/OTP çıkarma → 11.5 (FR-REC-005); kayıt/transkript erişim audit + dinleme/görüntüleme yetkisi → 11.6 (FR-REC-008/009; bu modül KARAR audit'ini üretir); çağrı ÖZETİ (summary) LLM üretimi → özetleme modülü (DB §21 transcript.summary alanı TAŞINIR, doldurulmaz); retention/legal-hold/silme → FR-REC-006/007/010; residency depolama UYGULAMASI → DB §8/SAD §12.1 (karar verilir); panel UI → L2 A-12. Spec/config/sample'larda sır/credential ve gerçek PII (ham TRANSKRİPT metni / müşteri adı / TELEFON / hesap no / ham ses / OTP) YOK — yalnız yapısal KİMLİKLER (request/call/tenant/correlation/turn/event kimlikleri) + ENUM'lar (direction/upstream_decision/speaker/event_type/redaction_state) + SAYI (channels ∈ {1,2}, seq, started_ms offset, confidence). KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS/DB/API esastır.",
+  "version": "1.0",
+  "wbs": "11.3",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-REC-008", "FR-REC-001", "FR-REC-002", "FR-REC-003", "FR-REC-004", "FR-REC-005", "FR-REC-009", "FR-TEN-002", "FR-IAM-006", "FR-IAM-011", "FR-RES-011", "FR-TST-008"],
+    "nfr": ["NFR 10.7"],
+    "srs": ["SR-REC-008", "SR-REC-002", "SR-REC-004"],
+    "rtm": ["TC-REC-008"],
+    "brd": [
+      "§8.1 (Inbound Müşteri Hizmetleri akışı — çağrıyı karşıla/anla/işle/teyit et/özetle+sonuçlandır; transkript+timeline çağrının kronolojik içerik ürünüdür)",
+      "§9.14 (Çağrı Kayıtları ve Transkript — FR-REC-008 'Yetkili kullanıcı çağrıyı dinleyebilmeli ve transkripti görebilmelidir' + FR-REC-004/005 redaction aşağı akış)",
+      "§15 (kritik alarm — yetkisiz içerik [over_capture] / kronoloji-atıf bozulması = gizlilik/bütünlük ihlali)",
+      "§16 (veri varlıkları — Transcript, varlık 21: transcript + transcript_segment; 'Çağrı kayıtları, transkript ve çağrı özeti')",
+      "§17 (panel — L2 A-12 'Çağrı Detayı / Transkript & Timeline')",
+      "§17.7 (PII metrik/log'da yok — ham transkript metni)"
+    ],
+    "sad": [
+      "§6.1 (turn state machine LISTEN→CAPTURE→THINK→ACT→SPEAK — final transcript turn üretimi; bu modül turn'leri segment/timeline'a derler)",
+      "§8.2 (real-time turn-event sözleşmesi — final transcript turn girdisi)",
+      "§10.1/§10.2 (Analytics Plane Transcript Store — asenkron transkript post-processing, FR-RES-011; bu modül SIRALAMA/ATIF/TIMELINE KARARINI verir, ham metin byte'ı pipeline yazar)",
+      "§12.1/§12.3 (residency + KMS; transkript home-region'da, NFR 10.7)",
+      "§13.3 (correlation/tenant context propagation)",
+      "§14.4 (panel — L2 A-12 transkript & timeline yüzeyi)",
+      "§17.2 (yetkisiz içerik / kronoloji-atıf bozulması → kritik alarm ≤2dk)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — transkript derleme analytics/kontrol düzleminde bir karar fonksiyonu; STT/LLM/TTS'e doğrudan bağlanmaz, turn-event sözleşmesini tüketir)",
+      "ADR-002 (vendor-neutral — STT sağlayıcı bağımsız; aynı turn-event sözleşmesi arkasına gerçek Transcript Store)",
+      "ADR-012 (RBAC — transkript görüntüleme transcript:read; FR-REC-008 yetki kapısı 11.6'da)"
+    ],
+    "db": [
+      "DB §21 transcript — storage_uri (ham metin nesne depo) + redaction_state CHECK IN (pending,redacted,not_required) [FR-REC-004] + summary (BRD §8.1) = bu modül redaction_state=pending/not_required + segment timeline KARARINI üretir, ham metin/summary'yi pipeline/özetleyici yazar",
+      "DB §21 transcript_segment — seq + speaker CHECK IN (caller,agent,human) + started_ms + confidence = bu modülün ÜRETTİĞİ zaman-sıralı, konuşmacı-atflı segment yapısı",
+      "DB §23 call_event — event_type + occurred_at = timeline'a birleştirilen sistem olayları",
+      "DB §8 residency + KMS — transkript home-region kararı (NFR 10.7)"
+    ],
+    "threat_model": [
+      "TM-I-* (bilgi ifşası — yetkisiz içerik [upstream≠RECORD ama kalıcı] = gizlilik ihlali; over_capture=0, K5; ham transkript metni metrik/log'da yok K11)",
+      "TM-T-* (tahrifat — kronoloji [ordering_violation] / konuşmacı atfı [speaker_mismatch] bozulması = transkript bütünlük ihlali K2/K3; üretim ATLANAMAZ assembly_skip K8)",
+      "TM-T-* (tenant izolasyonu — transkript yalnız aynı tenant'a bağlanır; cross-tenant reddedilir FR-TEN-002, K12)",
+      "TM-R-* (inkâr — her karar [TRANSCRIPT/NO_TRANSCRIPT/BLOCK] result + segment_count + timeline_count + redaction_state + no_content_persisted ile audit'e yazılır, K10)"
+    ],
+    "consumes": [
+      "11.1 recording-policy (FR-REC-001/002) — upstream_decision (RECORD/DISABLED/NO_CONSENT/BLOCK) içerik/kalıcılaştırma kapısı + home_region + storage_region + in_region_storage_required sinyallerini TÜKETİR (içerik kararını ÜRETMEZ)",
+      "11.2 channel-recording (FR-REC-003) — channels (1/2) + konuşmacı-kanal yerleşimini (caller→ch0, agent/human→ch1) TÜKETİR (DUAL konuşmacı-kanal tutarlılığı)",
+      "SAD §6.1/§8.2 runtime turn-event akışı — final STT transcript turn'leri (turn_id/speaker/start_ms/confidence; ham metin nesne depoda) + sistem olayları (call_event) + direction'ı TÜKETİR"
+    ],
+    "consumed_by": [
+      "SAD §10.2 Transcript Store + DB §21 — TRANSCRIPT segment/timeline planını + redaction_state=pending'i TÜKETİR (ham metin byte yazımı + storage_uri residency/KMS); NO_TRANSCRIPT/BLOCK ⇒ içerik YAZILMAZ (no content)",
+      "11.4 PII redaction (FR-REC-004) — transkript + redaction_state=pending'i TÜKETİR (DUAL'da kanal-bazlı redaction mümkün)",
+      "11.5 kart/parola/OTP çıkarma (FR-REC-005) — redaction_required işaretini TÜKETİR (kayıt+transkriptten çıkarma)",
+      "11.6 kayıt/transkript erişim audit + dinleme/görüntüleme (FR-REC-008/009) — bu modül KARAR audit'ini üretir; görüntüleme yetkisi (transcript:read) 11.6'da",
+      "L2 A-12 panel (BRD §17) — segment + timeline (Çağrı Detayı / Transkript & Timeline ekranı)",
+      "0.4.7 gözlemlenebilirlik — transcript_build_* metriklerini tüketir (over_capture + ordering/atıf/tamlık bütünlük alarmı dahil)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Transkript üretimi, ANALYTICS PLANE'de ASENKRON bir post-processing KARAR fonksiyonudur (SAD §10.1/§10.2 Transcript Store; FR-RES-011 — hot-path/medya bütçesi DIŞI): 11.1 içerik kararı + 11.2 kanal yerleşimi + runtime turn-event akışı verildikten sonra, transkripti kalıcılaştıracak Transcript Store'a (SAD §10.2 + DB §21) hangi ZAMAN-SIRALI + KONUŞMACI-ATFLI segment yapısının + BİRLEŞİK TIMELINE'ın (segment ⊕ sistem olay) kurulacağını çözer ve TRANSCRIPT | NO_TRANSCRIPT | BLOCK döndürür — upstream≠RECORD ⇒ no_content_persisted=true GARANTİSİ (FR-REC-002 aşağı akış). Motor ham transkript METNİ byte'ı işlemez/yazmaz (STT üretir, nesne depoda; DB §21 storage_uri); deterministik kontrol düzlemi. Vendor-neutral (ADR-001/002): STT sağlayıcı bağımsız; aynı turn-event sözleşmesi arkasına gerçek Transcript Store (SAD §10.2) + nesne depolama (DB §8).",
+    "plane": "analytics + control plane (Transkript üretimi kapısı — deterministik fail-closed zaman-sıralı/konuşmacı-atflı transkript + timeline derleme kararı; asenkron, hot-path değil)",
+    "owns": "BRD §8.1 transkript+timeline boyutu: TranscriptBuildRequest → tenant izolasyonu + upstream geçerlilik + içerik kapısı (upstream==RECORD) + final turn'leri kanonik sıralama (started_ms,turn_id) + seq 1..N atama + konuşmacı atfı doğrulama (caller/agent/human; DUAL kanal tutarlı) + timeline birleştirme (segment ⊕ system_event, zaman-sıralı) + redaction_state pending/not_required işaretleme + residency + terminal karar {TRANSCRIPT (içerik kalıcı, redaction pending) | NO_TRANSCRIPT (11.1 RECORD değil ⇒ no content) | BLOCK (cross-tenant/upstream yok/malformed turn ⇒ no content)} + upstream≠RECORD ⇒ no_content_persisted=true garantisi + karar audit",
+    "delegates": "içerik/kayıt KARARI + consent + tamamen kapatma → 11.1 (FR-REC-001/002; upstream_decision TÜKETİLİR); kanal/track yerleşimi → 11.2 (FR-REC-003; channels + konuşmacı-kanal TÜKETİLİR); ham transkript METİN byte üretimi (STT) + nesne depo yazımı → SAD §6.1/§10.2 + DB §21 (SIRALAMA/ATIF/TIMELINE KARARI verilir, ham metin YAZILMAZ); PII redaction → 11.4 (FR-REC-004; redaction_state=pending TAŞINIR); kart/parola/OTP → 11.5 (FR-REC-005); erişim audit + görüntüleme yetkisi → 11.6 (FR-REC-008/009); çağrı özeti LLM üretimi → özetleyici (transcript.summary TAŞINIR); retention/silme → FR-REC-006/007/010; residency depolama UYGULAMASI → DB §8/SAD §12.1 (karar verilir); panel UI → L2 A-12",
+    "deterministic": true,
+    "fail_closed": true,
+    "trace": "BRD §8.1, BRD §9.14, SAD §6.1, SAD §10.2, SAD §12.3, DB §21, DB §23, ADR-001, ADR-002, ADR-012"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — ZAMAN-SIRALI + KONUŞMACI-ATFLI + TAM transkript üretimi (BRD §8.1, SAD §10.2, DB §21). Önce tenant izolasyonu + upstream geçerliliği doğrulanır; sonra içerik kapısı (K5 — upstream==RECORD değilse NO_TRANSCRIPT, no content); sonra final turn'ler kanonik sıralanır + seq atanır (K2); sonra konuşmacı atfı doğrulanır (K3); sonra timeline birleştirilir (K4); sonra redaction_state pending/not_required işaretlenir (K7); sonra residency doğrulanır (K6). Her kural bir invariant'a (K2–K7) eşlenir.",
+    "list": [
+      {"id": "persist_only_when_authorized", "field": "içerik kalıcılaştırılır ⇐ upstream_decision == RECORD; aksi NO_TRANSCRIPT ∧ no_content_persisted=true", "invariant": "K5", "outcome": "TRANSCRIPT|NO_TRANSCRIPT",
+       "rule": "transkript içeriği YALNIZ 11.1 içerik politikası RECORD dediğinde kalıcılaştırılır (FR-REC-002 aşağı akış koruması; transkript BRD §16 'çağrı kayıtları' içerik sınıfındadır); upstream_decision ≠ RECORD ⇒ içerik YOK (no_content_persisted=true); yetkisizken içerik kalıcılaştırmak (over_capture) = gizlilik ihlali"},
+      {"id": "chronological_order", "field": "segmentler started_ms'e göre MONOTON artan ∧ seq 1..N bitişik", "invariant": "K2", "outcome": "TRANSCRIPT",
+       "rule": "transkript segmentleri zaman-sıralı (started_ms monoton artan) ve seq 1..N bitişik üretilmeli (BRD §8.1 kronoloji; DB §21 transcript_segment.seq/started_ms); out-of-order (ordering_violation) / seq-gap (eksik veya atlanmış seq) yasak"},
+      {"id": "speaker_attribution", "field": "her segment speaker ∈ {caller,agent,human}; DUAL'da konuşmacı-kanal tutarlı (caller→ch0, agent/human→ch1)", "invariant": "K3", "outcome": "TRANSCRIPT",
+       "rule": "her segment geçerli bir konuşmacıya atfedilmeli (DB §21 speaker CHECK IN caller/agent/human); çift kanalda (channels=2, 11.2) konuşmacı kanonik kanalıyla tutarlı; atıfsız (missing_speaker) / yanlış-atıf (speaker_mismatch) yasak"},
+      {"id": "completeness", "field": "her final turn → tam bir segment (düşmez/çoğalmaz); timeline TÜM segment + TÜM sistem olayını içerir", "invariant": "K4", "outcome": "TRANSCRIPT",
+       "rule": "her STT final transcript turn'ü transkriptte tam bir segmente dönüşmeli (turn_dropped/turn_duplicated yasak); birleşik timeline her segmenti VE her sistem olayını (call_event) içermeli (event_dropped yasak; A-12 timeline)"},
+      {"id": "redaction_handoff", "field": "transkript redaction_state ∈ {pending, not_required}; ASLA 'redacted'", "invariant": "K7", "outcome": "TRANSCRIPT",
+       "rule": "transkript redaction_state=pending (redaction gerekli) veya not_required ile üretilmeli ve 11.4/11.5'e devredilmeli; bu modül redaction YAPMAZ — redaction_state='redacted' yaymak (premature_redaction) = redaction'ı atlamak (FR-REC-004/005; DB §21 redaction_state)"},
+      {"id": "residency_honored", "field": "TRANSCRIPT ∧ in_region_storage_required ⇒ storage_region == home_region", "invariant": "K6", "outcome": "TRANSCRIPT",
+       "rule": "transkript kalıcılaştırılırken home-region'da saklanmalı (in_region_storage_required ise storage_region == home_region; NFR 10.7 residency); home-region dışı = residency ihlali"}
+    ],
+    "evaluation": "tenant_check_then_authorize_content_then_order_then_attribute_then_merge_timeline_then_redaction_pending_fail_closed_no_content",
+    "trace": "BRD §8.1, SR-REC-008, SR-REC-002, SAD §10.2, DB §21, NFR 10.7"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed transkript üretim algoritması. Adımlar: (1) tenant izolasyonunu doğrula (bind mismatch / cross_tenant → BLOCK cross_tenant, K12). (2) upstream geçerli mi: ∉ {RECORD,DISABLED,NO_CONSENT,BLOCK} ⇒ BLOCK no_upstream. (3) içerik kapısı: upstream_decision != RECORD ⇒ NO_TRANSCRIPT (no_content_persisted=true; K5 — 11.1 RECORD demediyse içerik kalıcılaştırılmaz). (4) malformed turn stream (final turn'de turn_id yok) ⇒ BLOCK invalid_turn_stream (K8; fail-open yok). (5) final turn'leri kanonik sırala (started_ms,turn_id) + seq 1..N ata (K2). (6) konuşmacı atfı doğrula: speaker ∈ {caller,agent,human}; DUAL'da kanal tutarlı (K3). (7) timeline birleştir: segment ⊕ system_event, zaman-sıralı; TÜM segment + TÜM olay (K4). (8) redaction_state pending/not_required işaretle (K7). (9) residency: in_region ise storage_region==home_region (K6). HER terminal ∉ {TRANSCRIPT} ⇒ no_content_persisted=true (K5). Belirsizlik/malformed → BLOCK (fail-closed; ASLA fail-open içerik).",
+    "algorithm": "tenant_check ⇒ BLOCK(cross_tenant) → upstream∉decisions ⇒ BLOCK(no_upstream) → upstream!=RECORD ⇒ NO_TRANSCRIPT(no_content) → malformed_turn ⇒ BLOCK(invalid_turn_stream) → order(started_ms,turn_id)+seq → attribute(speaker∈{caller,agent,human}, DUAL kanal tutarlı) → merge_timeline(segment⊕event) → redaction_state(pending|not_required) → residency(home_region) ⇒ TRANSCRIPT",
+    "default": "BLOCK",
+    "fail_safe_terminal": "no_transcript (terminal ∉ {TRANSCRIPT} ⇒ no_content_persisted=true)",
+    "trace": "SR-REC-008, SR-REC-002, SAD §10.2, DB §21"
+  },
+
+  "block_reasons": {
+    "$comment": "BLOCK karar taksonomisi (yalnız fail-closed BLOCK durumları). Düşük-kardinalite (metrik label uygun). 'invalid_turn_stream' yalnız malformed final turn'de (turn_id yok). TRANSCRIPT/NO_TRANSCRIPT terminal sonuçlardır (BLOCK değil); NO_TRANSCRIPT gizlilik-güvenli normal sonuçtur (11.1 RECORD demedi), ihlal DEĞİL.",
+    "list": ["invalid_turn_stream", "cross_tenant", "no_upstream"]
+  },
+
+  "outcomes": {
+    "$comment": "Terminal transkript üretim sonuçları. TRANSCRIPT = upstream RECORD ⇒ zaman-sıralı/konuşmacı-atflı segmentler + birleşik timeline kalıcılaştırılır (content_persisted=true; redaction_state=pending/not_required). NO_TRANSCRIPT = 11.1 upstream_decision ≠ RECORD (DISABLED/NO_CONSENT/BLOCK) ⇒ içerik kalıcılaştırılmaz (no_content_persisted=true; FR-REC-002 aşağı akış koruması). BLOCK = cross-tenant / upstream yok / malformed turn ⇒ fail-closed, içerik yok. Üçü de geçerli terminal — NO_TRANSCRIPT ihlal DEĞİL, 11.1 kararının doğru aşağı-akış sonucudur. Her karar audit üretir.",
+    "list": ["TRANSCRIPT", "NO_TRANSCRIPT", "BLOCK"],
+    "terminal": ["TRANSCRIPT", "NO_TRANSCRIPT", "BLOCK"]
+  },
+
+  "speakers": {
+    "$comment": "Geçerli konuşmacı atfı (DB §21 transcript_segment.speaker CHECK IN (caller,agent,human)). caller = çağıran müşteri; agent = AI agent; human = (warm/cold transfer sonrası) insan temsilci. DUAL kanalda (channels=2, 11.2 channel_side) konuşmacı-kanal tutarlılığı: caller→ch0, agent/human→ch1.",
+    "valid": ["caller", "agent", "human"],
+    "channel_side": {"caller": 0, "agent": 1, "human": 1}
+  },
+
+  "timeline": {
+    "$comment": "Birleşik timeline (A-12 Çağrı Detayı / Transkript & Timeline; BRD §17): transkript segmentleri (konuşma) + sistem olayları (call_event; DB §23) zaman-sıralı tek akışta birleştirilir. event_types BRD §8.1 inbound akışı + handoff/tool olaylarını yansıtır (illüstratif; gerçek taksonomi BRD §15/SAD §17.1). Timeline TÜM segment + TÜM sistem olayını içermeli (K4 tamlık).",
+    "event_types": ["call_start", "ai_disclosure", "identify_attempt", "auth_step", "intent_understood", "kb_answer", "tool_call", "confirm", "summary", "transfer", "call_end"],
+    "item_kinds": ["segment", "event"],
+    "order_key": ["at_ms"]
+  },
+
+  "redaction_states": {
+    "$comment": "Bu modülün ÜRETEBİLECEĞİ redaction_state değerleri (DB §21 transcript.redaction_state CHECK IN (pending,redacted,not_required)). Modül YALNIZ 'pending' (redaction gerekli — 11.4/11.5 işleyecek) veya 'not_required' üretir; 'redacted' bu modül tarafından ASLA üretilmez (redaction'ı 11.4/11.5 yapar; premature_redaction K7 ihlali).",
+    "producible": ["pending", "not_required"],
+    "forbidden_here": ["redacted"]
+  },
+
+  "authorization": {
+    "$comment": "Transkript üretimi bir OTOMATİK asenkron post-processing gate'tir (çağrı sonu tetikler); RBAC kullanıcı-komutu değildir. Üretilen transkriptin GÖRÜNTÜLENME yetkisi (transcript:read; FR-REC-008) 11.6'da uygulanır. Politika yönetimi transcript:manage ister (operations_manager/security_compliance_officer). Karar her zaman backend'de.",
+    "view_permission": "transcript:read",
+    "policy_permission": "transcript:manage",
+    "policy_roles": ["operations_manager", "security_compliance_officer", "tenant_owner"],
+    "per_call_check": "automatic_async_gate (RBAC değil; fail-closed)",
+    "decision_at": "backend",
+    "trace": "FR-REC-008, FR-IAM-011, ADR-012, SAD §27 RBAC, SAD §10.2"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. over_capture (K5) = yetkisiz/yanlış-durumda içerik kalıcılaştırma = BRD §15 kritik gizlilik alarmı; ordering_violation (K2) = out-of-order veya seq-gap; missing_speaker/speaker_mismatch (K3) = konuşmacı atfı ihlali; turn_dropped/turn_duplicated/event_dropped (K4) = tamlık ihlali; premature_redaction (K7) = bu modülün 'redacted' yayması; assembly_skip (K8) = üretim atlandı; failopen (K8) = malformed turn'de sessiz içerik; residency_violation (K6) = home-region dışı. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1 canlı Transcript Store + pilot tenant verisinde doğrulanır.",
+    "max_assembly_skip": 0,
+    "max_ordering_violation": 0,
+    "max_missing_speaker": 0,
+    "max_speaker_mismatch": 0,
+    "max_turn_dropped": 0,
+    "max_turn_duplicated": 0,
+    "max_event_dropped": 0,
+    "max_over_capture": 0,
+    "max_premature_redaction": 0,
+    "max_residency_violation": 0,
+    "max_failopen": 0,
+    "max_cross_tenant": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "Transkript-üretim motoru her karar için BRD §15 + transkript/gizlilik/bütünlük metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. transcript_build_decision_total{tenant,result} → karar sayımı (result=TRANSCRIPT/NO_TRANSCRIPT/BLOCK); transcript_build_notranscript_total{tenant} → 11.1 RECORD demedi (NO_TRANSCRIPT); transcript_build_integrity_violation_total → over_capture VEYA ordering_violation VEYA missing_speaker VEYA speaker_mismatch VEYA turn_dropped VEYA turn_duplicated VEYA event_dropped VEYA premature_redaction VEYA assembly_skip (K2/K3/K4/K5/K7/K8 ihlal alarmı, 0 olmalı). tenant_id+result+direction DÜŞÜK kardinalite (label uygun); request_id/call_id/correlation_id/turn_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM TRANSKRİPT METNİ + müşteri PII (ad/telefon/ham ses) metrikte VE log'da YOK (FR-REC-004, BRD §17.7). integrity_violation>0 → kritik alarm ≤2dk (SAD §17.2, NFR 10.1, BRD §15).",
+    "metrics": ["transcript_build_decision_total", "transcript_build_notranscript_total", "transcript_build_integrity_violation_total"],
+    "low_cardinality_labels": ["tenant_id", "result", "direction"],
+    "high_cardinality_trace_only": ["request_id", "call_id", "correlation_id", "turn_id"],
+    "alarm": "over_capture>0 (yetkisiz içerik — K5, FR-REC-002 aşağı akış) VEYA ordering_violation>0 (kronoloji bozulması — K2) VEYA speaker_mismatch>0 (yanlış atıf — K3) VEYA turn_dropped>0 (turn kaybı — K4) VEYA premature_redaction>0 (erken redaction iddiası — K7) VEYA assembly_skip>0 (üretim atlandı — K8) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "K1", "desc": "Determinizm/tamlık: her TranscriptBuildRequest tanımlı tenant→authorize→order→attribute→merge→redaction algoritması boyunca ilerler ve bir terminal karara {TRANSCRIPT|NO_TRANSCRIPT|BLOCK} ulaşır; aynı girdi → aynı çıktı (deterministik kanonik sıralama [started_ms,turn_id] + seq atama; Date.now/random YOK); stuck/tanımsız durum yok. stuck_state=0.", "trace": "SR-REC-008, SAD §10.2"},
+    {"id": "K2", "desc": "Zaman-sıralı üretim ÇEKİRDEK (BRD §8.1 kronoloji): transkript segmentleri started_ms'e göre MONOTON artan + seq 1..N BİTİŞİK üretilir (DB §21 transcript_segment.seq/started_ms). Out-of-order (started_ms azalan) veya seq-gap (eksik/atlanmış/çoğalmış seq) = ordering_violation. Kronoloji bozuk transkript = yanlış konuşma akışı. ordering_violation=0.", "trace": "BRD §8.1, SR-REC-008, DB §21"},
+    {"id": "K3", "desc": "Konuşmacı atfı ÇEKİRDEK (DB §21 speaker): her segment geçerli speaker ∈ {caller,agent,human}; atıfsız segment (missing_speaker) yasak. DUAL kanalda (channels=2, 11.2 channel_side) konuşmacı-kanal TUTARLI (caller→ch0, agent/human→ch1); tutarsız atıf (speaker_mismatch) yasak. Atıfsız/yanlış-atıflı transkript = kimin konuştuğu belirsiz. missing_speaker=0 ∧ speaker_mismatch=0.", "trace": "DB §21, FR-REC-003, SR-REC-008"},
+    {"id": "K4", "desc": "Tamlık ÇEKİRDEK (BRD §8.1): her STT final transcript turn'ü transkriptte TAM bir segmente dönüşür — düşmez (turn_dropped) / çoğalmaz (turn_duplicated). Birleşik timeline (A-12) HER segment + HER sistem olayını (call_event; DB §23) içerir — sistem olayı düşmez (event_dropped). Eksik transkript = konuşmanın yarısını kaybetmek. turn_dropped=0 ∧ turn_duplicated=0 ∧ event_dropped=0.", "trace": "BRD §8.1, DB §21, DB §23"},
+    {"id": "K5", "desc": "İçerik kapısı ÇEKİRDEK (FR-REC-002 AŞAĞI AKIŞ KORUMASI): transkript içeriği YALNIZ 11.1 upstream_decision==RECORD iken kalıcılaştırılır; upstream ≠ RECORD (DISABLED/NO_CONSENT/BLOCK) ⇒ terminal=NO_TRANSCRIPT ∧ no_content_persisted=true — içerik kalıcılaştırılmaz (transkript BRD §16 'çağrı kayıtları' içerik sınıfındadır). Yetkisizken/BLOCK'ta içerik kalıcılaştırmak = over_capture = gizlilik ihlali (BRD §15 alarm); 11.1 tamamen-kapatma garantisini aşağı akışta korur. over_capture=0.", "trace": "FR-REC-002, SR-REC-002, BRD §16, BRD §15, SAD §17.2"},
+    {"id": "K6", "desc": "Residency korunur (NFR 10.7): TRANSCRIPT durumunda in_region_storage_required ise storage_region == home_region — transkript home-region'da kalıcılaştırılır. Home-region dışı = residency_violation. residency_violation=0.", "trace": "NFR 10.7, SAD §12.3, DB §8"},
+    {"id": "K7", "desc": "Redaction devri ÇEKİRDEK (FR-REC-004/005 AŞAĞI AKIŞ): transkript redaction_state ∈ {pending (redaction gerekli — 11.4/11.5 işleyecek), not_required} ile üretilir; bu modül redaction YAPMAZ. redaction_state='redacted' yaymak (premature_redaction) = redaction'ı atlamış gibi davranmak (kart/parola/OTP hâlâ içerde olabilir; FR-REC-005). Üretilen transkript redaction tamamlanmadan erişime-hazır işaretlenmez (görüntüleme yetkisi 11.6). premature_redaction=0.", "trace": "FR-REC-004, FR-REC-005, DB §21, SR-REC-004"},
+    {"id": "K8", "desc": "Fail-closed / ATLANAMAZ (SR-REC-008 ÇEKİRDEK): transkript üretimi (sıralama/atıf/timeline) bypass edilemez — bypass ile çözülmeden içerik kalıcılaştırılırsa assembly_skip ihlali = BRD §15 kritik 'transkript üretim atlandı' alarmı. Malformed turn stream (turn_id yok) → fail-closed BLOCK invalid_turn_stream, ASLA sessiz içerik (failopen). assembly_skip=0 ∧ failopen=0.", "trace": "SR-REC-008, BRD §15, SAD §17.2"},
+    {"id": "K9", "desc": "Kanıt: her karar request_id + upstream_decision + authorized + channels + segment_count + timeline_count + redaction_state + no_content_persisted + content_persisted + storage_region taşır; kanıtsız karar yok. missing_evidence=0.", "trace": "FR-IAM-006"},
+    {"id": "K10", "desc": "Audit: her karar (TRANSCRIPT/NO_TRANSCRIPT/BLOCK) → audit {result, request_id, call_id, direction, segment_count, timeline_count, redaction_state, content_persisted, no_content_persisted, correlation_id, tenant_id} (FR-IAM-006); ham TRANSKRİPT metni/PII YOK. missing_audit=0.", "trace": "FR-IAM-006, 0.4.7 label_policy"},
+    {"id": "K11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (result/direction); request_id/call_id/correlation_id/turn_id metrikte yok, yalnız trace; HAM TRANSKRİPT METNİ + müşteri PII (ad/telefon/ham ses) metrikte VE log'da yok (0.4.7 label_policy, FR-REC-004, BRD §17.7).", "trace": "FR-REC-004, 0.4.7 label_policy"},
+    {"id": "K12", "desc": "Sır/PII yok + tenant izolasyonu: spec/config/sample HAM TRANSKRİPT metni / müşteri adı / TELEFON numarası / hesap no / ham ses / OTP / credential tutmaz (yalnız yapısal kimlikler + enum + sayı/offset); transkript yalnız aynı tenant'a bağlanır, cross-tenant → cross_tenant ihlali (FR-TEN-002). secret_or_pii=0 ∧ cross_tenant=0.", "trace": "BRD §14, BRD §16, FR-TEN-002, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar HAM TRANSKRİPT METNİ, müşteri ADI, TELEFON numarası, HESAP numarası, ham SES, OTP, PAROLA, PII DEĞERİ veya credential TUTMAZ — yalnız yapısal KİMLİKLER (request/call/tenant/correlation/turn/event kimlikleri ör. req-001 / call-001 / turn-001 / ev-001 / t-acme / corr-001) + ENUM'lar (direction ör. inbound/outbound; upstream_decision ör. RECORD/DISABLED/NO_CONSENT/BLOCK; speaker ör. caller/agent/human; event_type ör. call_start/transfer/call_end; redaction_state ör. pending/not_required) + SAYI (channels ∈ {1,2}, seq, started_ms offset [ms], confidence). Kimlik/enum/sayı/offset PII DEĞİLDİR; tasarımca PII-olmayandır. Ham transkript METNİ HİÇBİR alanda tutulmaz (modül SIRALAMA/ATIF/TIMELINE kararı verir; ham metin STT'den nesne depoda, DB §21 storage_uri).",
+    "forbids": ["transcript_text", "segment_text", "customer_name", "customer_phone_value", "account_number_value", "raw_audio", "otp_code_value", "password_value", "credential", "secret", "pii_value", "raw_msisdn"]
+  }
+}

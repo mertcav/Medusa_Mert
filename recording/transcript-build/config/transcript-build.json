@@ -1,0 +1,21 @@
+{
+  "$comment": "WBS 11.3 — Transkript üretimi + timeline (BRD §8.1 / FR-REC-008 / DB §21 transcript + transcript_segment / DB §23 call_event / SAD §10.2 Transcript Store) yapılandırması. MÜHENDİSLİK varsayılanı. valid_speakers: DB §21 transcript_segment.speaker CHECK IN (caller,agent,human). channel_side: DUAL kanalda (channels=2, 11.2 channel-recording) konuşmacının kanonik kanalı (caller=0, agent=1, human=1; transfer sonrası insan temsilci agent tarafında ch1) — 11.2 channel_side ile birebir. order_key: segmentler started_ms'e göre kanonik sıralanır, eşitlikte turn_id (deterministik). producible_redaction_states: bu modülün üretebileceği redaction_state (pending|not_required); 'redacted' YASAK (11.4/11.5 üretir). timeline_event_types: birleşik timeline'a girebilen sistem olayı türleri (DB §23 call_event; BRD §8.1 akış + handoff/tool; illüstratif). Ham transkript METNİ + storage_uri byte yazımı SAD §10.2 Transcript Store'un işidir — bu modül yalnız SIRALAMA + ATIF + TIMELINE + metadata KARARINI verir. Değerler counsel/pilot/F1 canlı pipeline ile kalibre edilir. Sır/credential/PII YOK.",
+  "version": "1.0",
+  "wbs": "11.3",
+  "valid_speakers": ["caller", "agent", "human"],
+  "channel_side": {"caller": 0, "agent": 1, "human": 1},
+  "order_key": ["started_ms", "turn_id"],
+  "producible_redaction_states": ["pending", "not_required"],
+  "forbidden_redaction_states": ["redacted"],
+  "timeline_event_types": [
+    "call_start", "ai_disclosure", "identify_attempt", "auth_step",
+    "intent_understood", "kb_answer", "tool_call", "confirm",
+    "summary", "transfer", "call_end"
+  ],
+  "item_kinds": ["segment", "event"],
+  "valid_channels": [1, 2],
+  "segment_fields": {
+    "$comment": "Üretilen transcript_segment alanları (DB §21). text alanı HAM METİN değil — STT'den nesne depoda; bu modül yalnız yapısal metadata (seq/speaker/started_ms/confidence) kararını verir.",
+    "fields": ["seq", "speaker", "started_ms", "confidence"]
+  }
+}
