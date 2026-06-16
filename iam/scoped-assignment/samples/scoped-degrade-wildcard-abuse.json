@@ -1,0 +1,11 @@
+{
+  "name": "scoped-degrade-wildcard-abuse",
+  "request_id": "req-108", "tenant_id": "t-acme", "correlation_id": "corr-108",
+  "actor_user_id": "u-14", "actor_realm": "tenant",
+  "assignments": [{"role": "operations_manager", "scope": {"brand": []}}],
+  "required_permission": "campaign:manage", "ownership": "other",
+  "resource": {"tenant_id": "t-acme", "brand": "brand-x", "campaign": "camp-1"},
+  "inject": ["wildcard_abuse"],
+  "$comment": "S6 degrade: boş liste [] (matches_nothing olması gereken) sessizce match-all'a çevrilir → scope_broadened>0 → kapı eler (malformed wildcard'ın bir kısıtı genişletmesi yasak).",
+  "expect": "fail"
+}

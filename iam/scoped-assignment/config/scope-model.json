@@ -1,0 +1,35 @@
+{
+  "$comment": "WBS 12.1.3 — SCOPED ASSIGNMENT MODELİ (rol + departman/marka/kampanya filtresi). Bu dosya 12. workstream'in (IAM & Erişim) SCOPED ASSIGNMENT KAPSAM MODELİNİN makine-okunur, DEĞİŞMEZ (frozen) KAYNAK DOĞRULUĞUDUR: FR-IAM-011 'esneklik, rol atamasının scope filtresiyle (departman/marka/kampanya kapsamı) daraltılmasıyla sağlanır' + SAD §14.4.2 'atama bir scope (departman/marka/kampanya) ile daraltılır; guard hem permission-key'i hem assignment scope'unu kaynak attribute'larına karşı doğrular' + ADR-012 (sabit rol bundle + atama scope filtresi). ROL BUNDLE'I 12.1.1'in (config/rbac-roles.json, frozen, IMMUTABLE); bu modül rolü o modelden çözer ve atamanın KAPSAMINI kaynak attribute'larına karşı süzer — ÇEKİRDEK: kapsam YALNIZ DARALTIR (narrowing-only); atama scope'u rolün yetki yüzeyini ASLA genişletemez (ADR-012). Boyutlar (department/brand/campaign) = BRD §16 Organisation Unit (marka/departman/ülke) + Campaign varlıkları (BRD sözlük). Ham içerik/PII/credential YOK — yalnız rol adları + kapsam boyut anahtar/değerleri (sentetik yapısal kimlik) + enum + kimlik. ÇELİŞKİDE FR-IAM-011 / SAD §14.4.2 / ADR-012 esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "narrowing_only": true,
+  "custom_permission_builder": false,
+
+  "$dimensions_comment": "Kapsam boyutları = atamanın daraltılabileceği eksenler. BRD §16 / sözlük: Organisation Unit (marka, departman, ülke) + Campaign. v1 boyut seti: department, brand, campaign (FR-IAM-011 metniyle birebir). Her boyut bağımsız; eşleşme boyutlar arasında VE (AND), boyut içi izinli küme OR. Boyut dışı anahtar = unknown_dimension (defekt).",
+  "dimensions": ["department", "brand", "campaign"],
+  "wildcard": "*",
+
+  "$default_comment": "Atama scope'u boş/eksik ise (ör. {} veya scope yok) → TENANT-GENELİ (tüm boyutlar wildcard). v1 geriye-uyum: kapsamsız atama = tüm tenant kaynakları (mevcut rol bundle davranışı). Bir boyut atamada listelenmemişse o boyut KISITSIZDIR (wildcard).",
+  "default_scope": "tenant_wide",
+  "unlisted_dimension": "unconstrained",
+
+  "$match_comment": "scope_covers(scope, resource): her kısıtlı boyut için resource değeri izinli kümede olmalı. (1) izinli = wildcard içerir VEYA boyut atamada yok → KISITSIZ, geçer. (2) izinli boş liste [] → HİÇBİR ŞEYE uymaz (fail-closed). (3) aksi → resource[boyut] ∈ izinli (resource o boyutu taşımıyorsa fail-closed: kapsamda olduğu KANITLANAMAZ → kapsam dışı). Boyutlar arası VE: tüm kısıtlı boyutlar geçmeli. Birden çok atama: BİRLEŞİM (∃ atama: permission ∧ scope) → GRANT.",
+  "match_policy": {
+    "across_dimensions": "AND",
+    "within_dimension": "OR",
+    "wildcard_means": "unconstrained_on_dimension",
+    "empty_list_means": "matches_nothing_fail_closed",
+    "resource_missing_attribute": "fail_closed_out_of_scope",
+    "across_assignments": "UNION"
+  },
+
+  "$narrowing_comment": "ÇEKİRDEK (FR-IAM-011/ADR-012): atama scope'u rolün IMMUTABLE bundle'ını YALNIZ DARALTIR. Kapsam ekleyerek/genişleterek bir kaynağa erişim AÇILAMAZ; scope dışı kaynakta, rol bundle'ı permission'ı taşısa bile, erişim YOK (DENY out_of_scope). Atama scope'u ASLA permission EKLEYEMEZ (immutable bundle korunur, permission_added=0). 'most-restrictive-wins': birden çok boyut kısıtı kesişir; tenant_id sınırı kapsamın ÜSTÜNDE (cross-tenant kaynak BLOCK, FR-TEN-002).",
+  "narrowing_rules": {
+    "scope_can_broaden": false,
+    "scope_can_add_permission": false,
+    "tenant_boundary_above_scope": true
+  },
+
+  "$resource_comment": "Kaynak attribute modeli (kapsam değerlendirmesinin girdisi): kaynak hangi tenant'a + hangi organizasyon birimine (department/brand) + hangi kampanyaya ait. resource.tenant_id atamanın/aktörün tenant'ıyla eşleşmeli (FR-TEN-002; aksi BLOCK cross_tenant_resource). Kaynak bir boyutu taşımayabilir (ör. tenant-geneli ayar) → o boyut kısıtlıysa fail-closed.",
+  "resource_attributes": ["tenant_id", "department", "brand", "campaign"]
+}

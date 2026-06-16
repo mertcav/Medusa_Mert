@@ -1,0 +1,11 @@
+{
+  "name": "scoped-out-of-scope-deny",
+  "request_id": "req-002", "tenant_id": "t-acme", "correlation_id": "corr-002",
+  "actor_user_id": "u-1", "actor_realm": "tenant",
+  "assignments": [{"role": "operations_manager", "scope": {"brand": ["brand-x"]}}],
+  "required_permission": "campaign:manage", "ownership": "other",
+  "resource": {"tenant_id": "t-acme", "brand": "brand-y", "campaign": "camp-9"},
+  "$comment": "S2 narrowing-only ÇEKİRDEK: rol campaign:manage TAŞIR ama scope brand-x'e daraltır; kaynak brand-y → DENY out_of_scope. Meşru DENY (ihlal DEĞİL) — scope dışı kaynağa erişim YOK (FR-IAM-011/ADR-012).",
+  "expect": "pass",
+  "expected": {"terminal": "DENY", "deny_reason": "out_of_scope", "granted": false}
+}

@@ -1,0 +1,174 @@
+{
+  "$comment": "WBS 12.1.3 — SCOPED ASSIGNMENT (rol + departman/marka/kampanya filtresi; FR-IAM-011 'esneklik, rol atamasının scope filtresiyle (departman/marka/kampanya kapsamı) daraltılmasıyla sağlanır' + ADR-012 'sabit rol bundle + atama scope filtresi'). 12. workstream'in (IAM & Erişim) KAPSAM-DARALTMA modülü ve F2-Must yeteneği. 12.1.1 RBAC modelini (rol→IMMUTABLE permission bundle, frozen) TÜKETİR ve üzerine atamanın KAPSAMINI ekler: bir aktörün atamaları = [(rol, scope)] çiftleri; scope = {department/brand/campaign → izinli değer kümeleri}. Bir kapsam-duyarlı yetki sorgusu (ScopedCheckRequest) alır → DETERMİNİSTİK, FAIL-CLOSED bir karar verir: (1) aktörün her atamasının rolünü 12.1.1 frozen modelinden çözer (effective bundle) ve required permission-key'i değerlendirir (':own' sahiplik kuralıyla — 12.1.1'den DEVRALINIR); (2) atamanın SCOPE'unu kaynak attribute'larına (department/brand/campaign) karşı süzer. GRANT ⟺ ∃ atama: required ∈ bundle(rol) ∧ resource ∈ scope(atama). Terminal: GRANT | DENY (missing_permission/insufficient_scope/out_of_scope) | BLOCK (malformed/unknown_role/realm_layer_mismatch/cross_tenant_resource). ÇEKİRDEK: (1) S2 NARROWING-ONLY (FR-IAM-011/ADR-012 ÇEKİRDEK) — atama scope'u rolün yetki yüzeyini YALNIZ DARALTIR; scope dışı kaynakta, rol bundle'ı permission'ı taşısa bile, erişim YOK; scope ASLA genişletemez (scope_broadened=0); (2) S3 SCOPED-GRANT DOĞRULUĞU (FR-IAM-011 ÇEKİRDEK) — GRANT ⟺ ∃ atama (permission ∈ bundle ∧ resource ∈ scope); kapsam-dışı GRANT (out_of_scope_grant) yasak; granted ⟺ authorized; (3) S7 TENANT İZOLASYONU (FR-TEN-002, BRD §17.7) — resource.tenant_id = aktör tenant_id; cross-tenant kaynak → BLOCK cross_tenant_resource (kapsam tenant İÇİNDE; tenant sınırı kapsamın ÜSTÜNDE); (4) S8 IMMUTABLE BUNDLE KORUNUR (FR-IAM-011/ADR-012) — scope filtresi rol bundle'ına permission EKLEYEMEZ (permission_added=0; esneklik yalnız DARALTMADA, yetki sabit). S4 realm/katman bütünlüğü (L0 ⟂ tenant) + ':own' disiplini 12.1.1'den DEVRALINIR. Motor DETERMİNİSTİK FAIL-CLOSED (Date.now/random YOK; model_hash sha256). Her karar terminal (S1) + kanıt (S9) + model bütünlük manifesti (S10); metrik düşük-kardinalite + ham PII yok (S11); model/spec/sample ham içerik/PII/credential tutmaz — yalnız rol adı + permission-key + kapsam boyut anahtar/değeri + enum + yapısal kimlik (S12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): rol→permission-key bundle çözümü (immutable, FR-IAM-001/011) → 12.1.1 (bu modül TÜKETİR/üstüne kapsam ekler); permission-key GRAMER+TAM KATALOĞU → 12.1.2; backend guard (FastAPI dependency: hem permission-key HEM scope'u kaynak attribute'larına karşı zorlar + RLS) → 12.2.x (SAD §14.4.2; bu modül KARARI üretir, HTTP enforcement orada); break-glass → 12.3.x; SSO/SCIM rol+scope atama (IdP grup→rol+kapsam eşleme) → 12.1.4/12.1.6 (atama ÜRETİLİR, bu modül çözer); WORM audit → 12.1.8 (karar kaydı); custom roller → Faz 3 (ADR-012). KAYNAK DOĞRULUK; çelişkide FR-IAM-011 / SAD §14.4.2 / ADR-012 esastır.",
+  "version": "1.0",
+  "wbs": "12.1.3",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-IAM-011", "FR-IAM-001", "FR-IAM-008", "FR-TEN-002", "FR-TST-008"],
+    "srs": ["SR-IAM-011"],
+    "rtm": ["TC-IAM-011"],
+    "brd": [
+      "§17.2 (Rol Tanımları — sabit rol seti + scope filtresi FR-IAM-011: bir operations_manager yalnız belirli departman/marka/kampanya kapsamına atanabilir)",
+      "§16 (Veri modeli — Organisation Unit [marka/departman/ülke] + Campaign varlıkları = kapsam boyutları)",
+      "§17.7 (izolasyon/görünürlük — tenant scope; cross-tenant kaynak erişimi yok, FR-TEN-002)",
+      "§5 (kimlik & erişim yönetimi — FR-IAM-011 sabit bundle + scoped assignment)"
+    ],
+    "sad": [
+      "§14.4.2 (Backend yetki — Scoped assignment (FR-IAM-011): rol = sabit permission bundle; atama bir scope [departman/marka/kampanya] ile daraltılır; guard hem permission-key'i hem assignment scope'unu kaynak attribute'larına karşı doğrular; örn. operations_manager@scope=brandX yalnız brandX kampanyalarını yönetir)",
+      "§14.4.3 (RBAC rol→permission-key bundle — 12.1.1 modeli; bu modül kapsam katmanını ekler)",
+      "§14.4.4 (SSO/SCIM rol eşleme — atama [rol+scope] ÜRETİLİR; bu modül çözer)"
+    ],
+    "adr": [
+      "ADR-012 (sabit rol bundle + scoped assignment; custom roller Faz 3 — bu modülün TEMEL kararı; esneklik atamada [scope], yetki sabit [immutable bundle])",
+      "ADR-011 (iki düzlemli panel dağıtımı — L0 ⟂ tenant; realm/katman ayrımı kapsamla birlikte devralınır)",
+      "ADR-001 (orchestrator bağımsızlığı — scoped assignment deterministik karar fonksiyonu; iş verisine bağlanmaz)",
+      "ADR-002 (vendor-neutral — kapsam modeli IdP/sağlayıcı bağımsız; aynı karar sözleşmesi)"
+    ],
+    "threat_model": [
+      "TM-E-* (yetki yükseltme — narrowing-only: scope genişletemez S2; scope permission EKLEYEMEZ S8; out-of-scope GRANT yasak S3)",
+      "TM-I-* (bilgi ifşası / tenant sızıntısı — cross-tenant kaynak BLOCK S7, FR-TEN-002; scope dışı kaynak DENY)",
+      "TM-S-* (kimlik sahteleme — atama rol realm = actor_realm S4, 12.1.1'den devralınır)",
+      "TM-T-* (tahrifat — scope model frozen + model_hash sha256; çalışma-anı tahrifi yakalanır S10)"
+    ],
+    "consumes": [
+      "12.1.1 RBAC modeli (config/rbac-roles.json — rol→IMMUTABLE permission bundle, frozen) — permission GATE'i sağlar; bu modül rolü çözer + ':own' sahiplik + L0 ⟂ tenant realm kuralını DEVRALIR",
+      "FR-IAM-011 / ADR-012 — esneklik atama scope filtresinde (departman/marka/kampanya); yetki sabit (immutable bundle)",
+      "BRD §16 Organisation Unit (marka/departman/ülke) + Campaign — kapsam boyutları (department/brand/campaign)"
+    ],
+    "consumed_by": [
+      "12.2.x backend guard — ScopedCheckDecision'ı (GRANT/DENY/BLOCK) HTTP/403 enforcement + permission-key + assignment scope'u kaynak attribute'larına karşı + RLS ile uygular (SAD §14.4.2)",
+      "12.1.4/12.1.6 SSO/SCIM — IdP grup→rol+scope ataması ÜRETİR (bu modül atamayı çözer)",
+      "12.3.x break-glass — Tier B kapsam-üstü erişim ayrı yetkilendirme yolu (FR-IAM-009/010)",
+      "12.1.8 WORM audit — kapsam-duyarlı karar kaydını append-only hash-chained audit'e yazar (FR-IAM-006)",
+      "0.4.7 gözlemlenebilirlik — scoped_decision_total + scope_integrity_violation_total metrikleri"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Scoped assignment, RBAC yetki karar çekirdeğinin (12.1.1) ÜSTÜNDE KAPSAM-DARALTMA katmanıdır. Bir kapsam-duyarlı yetki sorgusu geldiğinde (panel/API isteği bir permission-key + belirli bir kaynak gerektirdiğinde), backend guard (12.2.x) içeriği/aksiyonu SUNMADAN ÖNCE: (1) 12.1.1 rolü frozen bundle'dan çözer (permission gate); (2) bu modül atamanın SCOPE'unu kaynağın department/brand/campaign attribute'larına karşı süzer. Esneklik ATAMADADIR (scope), yetki SABİTtir (immutable bundle, ADR-012). Kapsam YALNIZ DARALTIR (S2); scope dışı kaynak → DENY out_of_scope (rol permission'ı taşısa bile). Motor yalnız KARAR + kanıt + model bütünlük manifesti üretir (HTTP enforcement 12.2.x; WORM audit 12.1.8); deterministik kontrol düzlemi (Date.now/random YOK). Vendor-neutral (ADR-001/002/011/012).",
+    "plane": "control/analytics plane (scoped assignment kapsam-daraltma karar katmanı — deterministik fail-closed; rol bundle [12.1.1] + scope filtresi [department/brand/campaign] kesişimi; HTTP enforcement değil)",
+    "owns": "FR-IAM-011 SCOPED ASSIGNMENT boyutu: ScopedCheckRequest → malformed kapısı + unknown_role kapısı (12.1.1) + realm/katman bütünlüğü (L0 ⟂ tenant, devralınır) + tenant izolasyonu (cross-tenant kaynak BLOCK, FR-TEN-002) + atama bazında permission gate (12.1.1 bundle çözümü + ':own') + SCOPE-DARALTMA (department/brand/campaign kaynak attribute eşleşmesi; narrowing-only) + birleşim (∃ atama: permission ∧ scope) + terminal karar {GRANT | DENY (missing_permission/insufficient_scope/out_of_scope) | BLOCK} + narrowing-only garantisi (S2) + immutable bundle korunması (scope permission eklemez, S8) + model bütünlük manifesti (S10) + karar kanıtı",
+    "delegates": "rol→permission-key bundle çözümü (immutable) → 12.1.1 (TÜKETİLİR); permission-key gramer/katalog → 12.1.2; backend guard (FastAPI dependency + RLS) → 12.2.x (KARAR enforcement); break-glass → 12.3.x; rol+scope ATAMA üretimi (IdP grup→rol+kapsam) → 12.1.4/12.1.6; WORM audit → 12.1.8; custom roller → Faz 3 (ADR-012)",
+    "deterministic": true,
+    "fail_closed": true,
+    "narrowing_only": true,
+    "immutable_bundle": true,
+    "trace": "FR-IAM-011, FR-IAM-008, FR-TEN-002, SR-IAM-011, BRD §17.2, SAD §14.4.2, ADR-012"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ scoped assignment uygulaması (FR-IAM-011, SAD §14.4.2, ADR-012). Önce malformed; sonra unknown_role (12.1.1); sonra realm/katman bütünlüğü (L0 ⟂ tenant, devralınır); sonra tenant izolasyonu (cross-tenant kaynak BLOCK); sonra atama bazında permission gate (12.1.1 bundle + ':own'); sonra SCOPE-DARALTMA (department/brand/campaign eşleşmesi); birleşim (∃ atama). Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "scope_narrowing_only", "field": "atama scope'u rolün yetki yüzeyini YALNIZ daraltır; genişletemez", "invariant": "S2", "outcome": "GRANT|DENY",
+       "rule": "atama scope'u (department/brand/campaign) rolün IMMUTABLE bundle'ını YALNIZ DARALTIR (narrowing-only, FR-IAM-011/ADR-012); scope dışı kaynakta, rol bundle'ı permission'ı taşısa bile, erişim YOK (DENY out_of_scope); scope ASLA genişletemez (scope_broadened); empty list [] hiçbir şeye uymaz (fail-closed); resource bir kısıtlı boyutu taşımıyorsa kapsam-dışı (fail-closed)"},
+      {"id": "scoped_grant_correctness", "field": "GRANT ⟺ ∃ atama: permission ∈ bundle ∧ resource ∈ scope", "invariant": "S3", "outcome": "GRANT|DENY",
+       "rule": "GRANT ⟺ ∃ atama a: required permission-key ∈ bundle(a.rol) (':own' sahiplik kuralıyla) ∧ resource ∈ scope(a) (department/brand/campaign eşleşmesi); kapsam-dışı GRANT (out_of_scope_grant) yasak; granted ⟺ authorized; birden çok atama BİRLEŞİM (union)"},
+      {"id": "realm_layer_inherited", "field": "atama rol realm = actor_realm; L0 ⟂ tenant (12.1.1'den)", "invariant": "S4", "outcome": "GRANT|BLOCK",
+       "rule": "her atamanın rolü tanımlı katman/realm'e bağlı; platform rolleri (L0) tenant rollerinden TAMAMEN ayrı (FR-IAM-008); rol realm ≠ actor_realm → BLOCK realm_layer_mismatch (12.1.1'den DEVRALINIR); kapsam tenant realm İÇİNDE daraltır"},
+      {"id": "dimension_conformance", "field": "scope yalnız {department, brand, campaign} boyutları üzerinde", "invariant": "S5", "outcome": "GRANT|DENY",
+       "rule": "atama scope'u YALNIZ tanımlı boyutlar (department/brand/campaign, BRD §16 Organisation Unit + Campaign) üzerinde olmalı; boyut-dışı anahtar (unknown_dimension) = atama defekti → fail-closed (o atama kapsamayan sayılır)"},
+      {"id": "wildcard_discipline", "field": "'*' = boyutta kısıtsız; kapsamsız atama = tenant-geneli", "invariant": "S6", "outcome": "GRANT|DENY",
+       "rule": "wildcard '*' bir boyutta KISITSIZ demektir; atamada listelenmeyen boyut KISITSIZDIR; boş/eksik scope = TENANT-GENELİ (v1 geriye-uyum); malformed/abused wildcard'ın bir kısıtı sessizce match-all'a çevirmesi (scope_broadened) yasak; empty list [] match-all DEĞİL (fail-closed)"},
+      {"id": "tenant_isolation", "field": "resource.tenant_id = actor tenant_id; cross-tenant kaynak BLOCK", "invariant": "S7", "outcome": "GRANT|BLOCK",
+       "rule": "kapsam tenant İÇİNDE değerlendirilir; resource.tenant_id ≠ aktör tenant_id → BLOCK cross_tenant_resource (FR-TEN-002, BRD §17.7); tenant sınırı kapsamın ÜSTÜNDEdir (PostgreSQL RLS çift kontrol 12.2.x)"},
+      {"id": "immutable_bundle_preserved", "field": "scope filtresi rol bundle'ına permission EKLEYEMEZ", "invariant": "S8", "outcome": "GRANT|DENY",
+       "rule": "atama scope'u rolün IMMUTABLE bundle'ına bir permission EKLEYEMEZ (permission_added; FR-IAM-011/ADR-012); esneklik YALNIZ DARALTMADA, yetki SABİT; scope custom permission ÜRETEMEZ (v1'de custom permission-builder yok; SR-IAM-011)"}
+    ],
+    "evaluation": "malformed_then_unknown_role_then_realm_then_tenant_then_permission_then_scope_union_fail_closed",
+    "trace": "FR-IAM-011, FR-IAM-008, FR-TEN-002, SAD §14.4.2, ADR-012"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed scoped assignment yetki algoritması. Adımlar: (1) malformed (request_id/actor_user_id eksik / actor_realm geçersiz / atama yok / required_permission eksik veya biçimsiz [kaynak:eylem değil] / resource yok → BLOCK malformed_request). (2) unknown_role (herhangi bir atama rolü 12.1.1 modelinde yok → BLOCK unknown_role). (3) realm/katman bütünlüğü (herhangi bir atama rol realm ≠ actor_realm → BLOCK realm_layer_mismatch + realm_mismatch, S4). (4) tenant izolasyonu (resource.tenant_id ≠ actor tenant_id → BLOCK cross_tenant_resource + cross_tenant, S7). (5) her atama için: permit = (required ∈ bundle(rol), ':own' ownership ile) ∧ scope_covers(scope, resource) [department/brand/campaign]; (6) ∃ atama permit ⇒ GRANT; ∃ atama permission var ama hiçbiri scope-kapsamıyor ⇒ DENY out_of_scope; permission var ama yalnız ':own' + ownership=other ⇒ DENY insufficient_scope; hiçbir atama permission taşımaz ⇒ DENY missing_permission (S3). model bütünlük manifesti (model_hash sha256; S10). Belirsizlik/malformed/unknown_role/realm/tenant → BLOCK (fail-closed; ASLA fail-open GRANT).",
+    "algorithm": "malformed ⇒ BLOCK(malformed_request) → atama rolü modelde yok ⇒ BLOCK(unknown_role) → rol realm ≠ actor_realm ⇒ BLOCK(realm_layer_mismatch) → resource.tenant_id ≠ actor tenant ⇒ BLOCK(cross_tenant_resource) → ∀ atama: permit = (required ∈ bundle(rol), :own) ∧ scope_covers(scope, resource) → ∃ permit ⇒ GRANT; permission var ∧ scope yok ⇒ DENY(out_of_scope); yalnız :own + other ⇒ DENY(insufficient_scope); permission yok ⇒ DENY(missing_permission)",
+    "default": "BLOCK",
+    "fail_safe_terminal": "no access (terminal=BLOCK ⇒ granted=false; malformed/unknown_role/realm/tenant mismatch ⇒ BLOCK; scope dışı ⇒ DENY out_of_scope)",
+    "trace": "SR-IAM-011, SAD §14.4.2, ADR-012"
+  },
+
+  "block_reasons": {
+    "$comment": "BLOCK karar taksonomisi (fail-closed BLOCK durumları). Düşük-kardinalite (metrik label uygun). 'malformed_request' = atama/required/resource/kimlik eksik veya required biçimsiz; 'unknown_role' = atama rolü 12.1.1 modelinde yok; 'realm_layer_mismatch' = atama rol realm ≠ actor_realm (L0↔tenant, S4); 'cross_tenant_resource' = resource.tenant_id ≠ actor tenant_id (tenant izolasyonu, S7 FR-TEN-002). GRANT/DENY terminal sonuçlardır; DENY (missing_permission/insufficient_scope/out_of_scope) yetkisiz-ama-meşru sonuçtur, ihlal DEĞİL.",
+    "list": ["malformed_request", "unknown_role", "realm_layer_mismatch", "cross_tenant_resource"]
+  },
+
+  "deny_reasons": {
+    "$comment": "DENY karar taksonomisi (yetkisiz — aksiyon verilmez, meşru terminal). 'missing_permission' = hiçbir atamanın rolü required key'i taşımaz; 'insufficient_scope' = yalnız ':own' yetki var ama sahiplik=other (12.1.1'den devralınır); 'out_of_scope' = permission var ama resource hiçbir atamanın SCOPE'unda değil (department/brand/campaign daraltması; FR-IAM-011 ÇEKİRDEK). DENY ihlal DEĞİL — scoped assignment'ın doğru çıktısı (SR-IAM-011 kabul ölçütü).",
+    "list": ["missing_permission", "insufficient_scope", "out_of_scope"]
+  },
+
+  "outcomes": {
+    "$comment": "Terminal scoped assignment sonuçları. GRANT = ∃ atama (required ∈ bundle ∧ resource ∈ scope) ⇒ aksiyon/içerik yetkili (backend guard 12.2.x uygular). DENY = permission yok / yalnız :own+other / scope dışı ⇒ aksiyon yok (403). BLOCK = malformed / unknown_role / realm mismatch / cross-tenant ⇒ fail-closed, aksiyon yok. Üçü de geçerli terminal — DENY/BLOCK ihlal DEĞİL. granted ⟺ authorized (S3); scope YALNIZ daraltır (S2).",
+    "list": ["GRANT", "DENY", "BLOCK"],
+    "terminal": ["GRANT", "DENY", "BLOCK"]
+  },
+
+  "model": {
+    "$comment": "Scoped assignment modeli özeti. Rol bundle = 12.1.1 (config/rbac-roles.json — frozen, IMMUTABLE; bu modül TÜKETİR). Kapsam modeli = config/scope-model.json (frozen): boyutlar (department/brand/campaign, BRD §16) + wildcard '*' + narrowing-only + match_policy (boyutlar arası AND, boyut içi OR, atamalar arası UNION). Atama = (rol, scope); scope = {boyut → izinli değer kümesi}; boş/eksik scope = tenant-geneli. custom_permission_builder=false (v1; SR-IAM-011). Tam matris SAD §14.4.2/3.",
+    "frozen": true,
+    "narrowing_only": true,
+    "custom_permission_builder": false,
+    "dimensions": ["department", "brand", "campaign"],
+    "wildcard": "*",
+    "default_scope": "tenant_wide",
+    "rbac_model": "12.1.1 config/rbac-roles.json (frozen, IMMUTABLE — permission gate)",
+    "across_dimensions": "AND",
+    "within_dimension": "OR",
+    "across_assignments": "UNION"
+  },
+
+  "authorization": {
+    "$comment": "Scoped assignment yetki çözümü (FR-IAM-011; SAD §14.4.2). İKİ KAPI: (1) PERMISSION GATE — atamanın rolü 12.1.1 frozen bundle'ından çözülür; required ∈ bundle (':own' sahiplik). (2) SCOPE GATE — atamanın scope'u kaynak attribute'larına (department/brand/campaign) karşı süzülür; narrowing-only. GRANT ⟺ ∃ atama HER İKİ kapıdan geçer. Karar HER ZAMAN backend'de (ADR-012). 'operations_manager@scope=brandX yalnız brandX kampanyalarını yönetir' (SAD §14.4.2): rol campaign:manage taşır AMA scope brandX kampanyalarına daraltır; brandY kampanyası → DENY out_of_scope. Tenant sınırı kapsamın ÜSTÜNDE (cross-tenant kaynak BLOCK).",
+    "permission_gate": "required ∈ bundle(rol) (12.1.1 frozen model birleşimi; ':own' son ek sahiplikle sınırlı)",
+    "scope_gate": "scope_covers(atama.scope, resource): her kısıtlı boyut (department/brand/campaign) için resource değeri izinli kümede (wildcard/listelenmeyen = kısıtsız; empty list = fail-closed; resource attribute eksik = fail-closed)",
+    "grant_rule": "GRANT ⟺ ∃ atama: (required ∈ bundle(rol), :own) ∧ scope_covers(scope, resource)",
+    "decision_at": "backend",
+    "narrowing_rule": "atama scope'u rolün immutable bundle'ını YALNIZ DARALTIR (FR-IAM-011/ADR-012); genişletemez; permission ekleyemez",
+    "tenant_rule": "kapsam tenant İÇİNDE; resource.tenant_id ≠ actor tenant ⇒ BLOCK cross_tenant_resource (FR-TEN-002)",
+    "trace": "FR-IAM-011, FR-IAM-008, FR-TEN-002, SAD §14.4.2, ADR-012"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. scope_broadened (S2 ÇEKİRDEK) = atama scope'u rolün yetki yüzeyini genişletti (narrowing-only ihlali, FR-IAM-011); out_of_scope_grant (S3 ÇEKİRDEK) = kapsam-dışı kaynakta GRANT; unknown_dimension (S5) = scope'ta boyut-dışı anahtar honor edildi; cross_tenant (S7) = cross-tenant kaynak erişimi (BLOCK olması gereken/GRANT verilen); permission_added (S8) = scope rol bundle'ına permission ekledi (immutable ihlali); realm_mismatch (S4) = atama rol realm ≠ actor_realm; ownership_violation (S6/12.1.1) = ':own' kısıtı atlandı; model_tampered (S10) = scope model bütünlük manifesti (model_hash) tutmuyor. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F2 canlı IAM (scoped guard 12.2.x + IdP/SCIM rol+scope atama) + pilot tenant verisinde doğrulanır.",
+    "max_scope_broadened": 0,
+    "max_out_of_scope_grant": 0,
+    "max_unknown_dimension": 0,
+    "max_cross_tenant": 0,
+    "max_permission_added": 0,
+    "max_realm_mismatch": 0,
+    "max_ownership_violation": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "Scoped assignment her karar için yetki/güvenlik metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. scoped_decision_total{tenant,result,actor_realm} → karar sayımı (result=GRANT/DENY/BLOCK); scope_integrity_violation_total → scope_broadened VEYA out_of_scope_grant VEYA permission_added VEYA cross_tenant VEYA unknown_dimension VEYA realm_mismatch VEYA model_tampered (S2/S3/S4/S5/S7/S8/S10 ihlal alarmı, 0 olmalı). tenant_id+result+actor_realm DÜŞÜK kardinalite (label uygun); request_id/actor_user_id/required_permission/scope değerleri (department/brand/campaign ID'leri) YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM İÇERİK/PII metrikte VE log'da YOK (BRD §17.7). integrity_violation>0 → kritik alarm ≤2dk (SAD §17.2, NFR 10.1, BRD §15) = yetki yükseltme/narrowing-bypass/tenant sızıntısı güvenlik olayı.",
+    "metrics": ["scoped_decision_total", "scope_integrity_violation_total"],
+    "low_cardinality_labels": ["tenant_id", "result", "actor_realm"],
+    "high_cardinality_trace_only": ["request_id", "actor_user_id", "required_permission", "scope_values", "resource_attributes"],
+    "alarm": "scope_broadened>0 (narrowing-only ihlali — S2, FR-IAM-011) VEYA out_of_scope_grant>0 (kapsam-dışı GRANT — S3) VEYA permission_added>0 (immutable bundle ihlali — S8) VEYA cross_tenant>0 (tenant sızıntısı — S7, FR-TEN-002) VEYA model_tampered>0 (model tahrifatı — S10) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "S1", "desc": "Determinizm/tamlık: her ScopedCheckRequest tanımlı malformed→unknown_role→realm→tenant→permission→scope algoritması boyunca ilerler ve bir terminal karara {GRANT|DENY|BLOCK} ulaşır; aynı girdi → aynı çıktı (deterministik; model_hash sha256 kanonik JSON; Date.now/random YOK); stuck/tanımsız durum yok. stuck_state=0.", "trace": "SR-IAM-011, SAD §14.4.2"},
+    {"id": "S2", "desc": "Narrowing-only ÇEKİRDEK (FR-IAM-011/ADR-012 'esneklik, rol atamasının scope filtresiyle daraltılmasıyla sağlanır'): atama scope'u (department/brand/campaign) rolün IMMUTABLE bundle'ının yetki yüzeyini YALNIZ DARALTIR; scope dışı kaynakta, rol bundle'ı permission'ı taşısa bile, erişim YOK (DENY out_of_scope); scope ASLA genişletemez; empty list [] match-all DEĞİL (fail-closed); resource kısıtlı boyutu taşımıyorsa kapsam-dışı (fail-closed). scope_broadened=0.", "trace": "FR-IAM-011, ADR-012"},
+    {"id": "S3", "desc": "Scoped-grant doğruluğu ÇEKİRDEK (FR-IAM-011 'guard hem permission-key'i hem assignment scope'unu kaynak attribute'larına karşı doğrular'): GRANT ⟺ ∃ atama a: required permission-key ∈ bundle(a.rol) (':own' sahiplik) ∧ resource ∈ scope(a) (department/brand/campaign eşleşmesi). Kapsam-dışı GRANT (out_of_scope_grant) = yetkisiz erişim; granted ⟺ authorized; atamalar arası BİRLEŞİM. out_of_scope_grant=0.", "trace": "FR-IAM-011, SAD §14.4.2"},
+    {"id": "S4", "desc": "Realm/katman bütünlüğü (FR-IAM-008; 12.1.1'den DEVRALINIR): her atamanın rolü tanımlı katman/realm'e bağlı; platform rolleri (L0) tenant rollerinden TAMAMEN ayrı; atama rol realm ≠ actor_realm → BLOCK realm_layer_mismatch; kapsam tenant realm İÇİNDE daraltır. realm_mismatch=0.", "trace": "FR-IAM-008, SAD §14.4.2, ADR-011"},
+    {"id": "S5", "desc": "Boyut conformance: atama scope'u YALNIZ tanımlı boyutlar (department/brand/campaign — BRD §16 Organisation Unit [marka/departman] + Campaign) üzerinde olmalı; boyut-dışı anahtar (unknown_dimension) = atama defekti → fail-closed (o atama kapsamayan sayılır, asla sessiz broadening). unknown_dimension=0.", "trace": "FR-IAM-011, BRD §16, SAD §14.4.2"},
+    {"id": "S6", "desc": "Wildcard disiplini: '*' bir boyutta KISITSIZ; atamada listelenmeyen boyut KISITSIZ; boş/eksik scope = TENANT-GENELİ (v1 geriye-uyum, mevcut rol bundle davranışı); malformed/abused wildcard'ın bir kısıtı sessizce match-all'a çevirmesi (scope_broadened) yasak; empty list [] match-all DEĞİL (matches_nothing, fail-closed). ':own' sahiplik disiplini 12.1.1'den devralınır (ownership_violation=0).", "trace": "FR-IAM-011, BRD §17.7"},
+    {"id": "S7", "desc": "Tenant izolasyonu ÇEKİRDEK (FR-TEN-002, BRD §17.7): kapsam tenant İÇİNDE değerlendirilir; resource.tenant_id ≠ aktör tenant_id → BLOCK cross_tenant_resource (tenant sınırı kapsamın ÜSTÜNDE; PostgreSQL RLS çift kontrol 12.2.x). Cross-tenant kaynak erişimi = tenant sızıntısı. cross_tenant=0.", "trace": "FR-TEN-002, BRD §17.7, SAD §14.4.2"},
+    {"id": "S8", "desc": "Immutable bundle korunur (FR-IAM-011/ADR-012): atama scope'u rolün IMMUTABLE bundle'ına bir permission EKLEYEMEZ; esneklik YALNIZ DARALTMADA, yetki SABİT; scope custom permission ÜRETEMEZ (v1'de custom permission-builder yok; SR-IAM-011). permission_added=0.", "trace": "FR-IAM-011, SR-IAM-011, ADR-012"},
+    {"id": "S9", "desc": "Kanıt: her karar request_id + actor_realm + atamalar (rol+scope) + required_permission + resource (tenant/department/brand/campaign) + ownership + authorized + granted + matched_assignment + deny_reason/block_reason + model_hash taşır; kanıtsız karar yok. missing_evidence=0.", "trace": "FR-IAM-006"},
+    {"id": "S10", "desc": "Model bütünlük manifesti: scope model frozen + model_hash = sha256(kanonik(scope-model + 12.1.1 rol bundle)) deterministik; çalışma anında model tahrif edilirse (model_tamper) yeniden-hesaplanan hash tutmaz → model_tampered. Kapsam modelinin ve rol bundle'ının değiştirilemez olduğunu test edilebilir kılar (audit edilebilir yetki yüzeyi, ADR-012). model_tampered=0.", "trace": "FR-IAM-011, FR-IAM-006, ADR-012"},
+    {"id": "S11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (result/actor_realm); request_id/actor_user_id/required_permission/scope değerleri (department/brand/campaign ID) metrikte yok, yalnız trace; HAM İÇERİK/PII metrikte VE log'da yok (0.4.7 label_policy, BRD §17.7).", "trace": "BRD §17.7, 0.4.7 label_policy"},
+    {"id": "S12", "desc": "Sır/içerik yok: model/spec/sample HAM içerik / PII (telefon/kart/OTP/parola/ad/adres/hesap no DEĞERİ) / credential tutmaz — yalnız ROL ADLARI (ör. operations_manager) + PERMISSION-KEY'ler (ör. campaign:manage) + KAPSAM BOYUT anahtar/değerleri (department/brand/campaign → sentetik yapısal ID ör. brand-x, dept-sales, camp-1) + ENUM (actor_realm/ownership/result) + yapısal KİMLİK (req-001/t-acme/u-1). Rol adı/permission-key/kapsam boyut ID'si/enum/kimlik PII DEĞİLDİR. secret_or_pii=0.", "trace": "BRD §17.7, BRD §14, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/model/sample'lar HAM içerik, PII (TELEFON numarası, KART [PAN/CVV], OTP kodu, PAROLA, müşteri ADI, ADRES, HESAP/IBAN numarası DEĞERİ) veya credential TUTMAZ — yalnız ROL ADLARI (ör. operations_manager / qa_analyst) + PERMISSION-KEY'ler (ör. campaign:manage / transcript:read — 'kaynak:eylem') + KAPSAM BOYUT anahtar/değerleri (department/brand/campaign → SENTETİK yapısal ID ör. brand-x / dept-sales / camp-1 / camp-2) + ENUM'lar (actor_realm ör. platform/tenant; ownership ör. own/other; result ör. GRANT/DENY/BLOCK) + yapısal KİMLİK (request/tenant/actor/correlation kimlikleri ör. req-001 / t-acme / u-1 / corr-001) + HASH (sha256). Rol adı/permission-key/kapsam ID/enum/kimlik/hash PII DEĞİLDİR; tasarımca PII-olmayandır. Scoped assignment yetki KARARINI verir — iş içeriği (kayıt/transkript/PII) bu modülde AKMAZ (kapsam boyutu yalnız department/brand/campaign yapısal ID'leri).",
+    "forbids": ["customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "customer_name_value", "address_value", "account_number_value", "iban_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}

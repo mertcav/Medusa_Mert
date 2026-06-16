@@ -1,0 +1,11 @@
+{
+  "name": "scoped-degrade-cross-tenant",
+  "request_id": "req-105", "tenant_id": "t-acme", "correlation_id": "corr-105",
+  "actor_user_id": "u-12", "actor_realm": "tenant",
+  "assignments": [{"role": "operations_manager", "scope": {"brand": ["brand-x"]}}],
+  "required_permission": "campaign:manage", "ownership": "other",
+  "resource": {"tenant_id": "t-other", "brand": "brand-x", "campaign": "camp-1"},
+  "inject": ["cross_tenant"],
+  "$comment": "S7 degrade ÇEKİRDEK: başka tenant'ın (t-other) kaynağına izolasyon atlanarak erişilir → cross_tenant>0 → kapı eler (tenant izolasyonu kapsamın ÜSTÜNDE; FR-TEN-002, BRD §17.7).",
+  "expect": "fail"
+}
