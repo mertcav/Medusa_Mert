@@ -1,0 +1,23 @@
+{
+  "actor_role": "platform_owner",
+  "action": "read",
+  "target_tenant_id": "t-acme",
+  "resource_type": "transcript",
+  "reason_code": "rc-incident-debug",
+  "now": 100,
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "platform_sre",
+    "authorized": true,
+    "realm": "platform"
+  },
+  "approvals": [],
+  "request_id": "req-102",
+  "correlation_id": "corr-102",
+  "inject": [
+    "grant_without_quorum"
+  ],
+  "expect": "fail",
+  "name": "tb-degrade-grant-without-quorum",
+  "$comment": "DEGRADE grant_without_quorum: onay yokken (quorum dolmadan) GRANT_TIER_B → granted_without_approval (R4 ÇEKİRDEK onaysız token)."
+}

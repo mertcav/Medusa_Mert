@@ -1,0 +1,35 @@
+{
+  "actor_role": "platform_owner",
+  "action": "read",
+  "target_tenant_id": "t-acme",
+  "resource_type": "transcript",
+  "reason_code": "rc-incident-debug",
+  "now": 100,
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "platform_sre",
+    "authorized": true,
+    "realm": "platform"
+  },
+  "approvals": [
+    {
+      "approver_ref": "ck-1",
+      "decision": "approve",
+      "authorized": true,
+      "realm": "platform",
+      "at": 101
+    }
+  ],
+  "request_id": "req-106",
+  "correlation_id": "corr-106",
+  "access": {
+    "tenant_id": "t-acme",
+    "at": 500
+  },
+  "inject": [
+    "use_after_expiry"
+  ],
+  "expect": "fail",
+  "name": "tb-degrade-use-after-expiry",
+  "$comment": "DEGRADE use_after_expiry: pencere dışı (access_at=500 > expires=160) erişim VERİLDİ → expired_token_access (R6 auto-expiry ihlali)."
+}

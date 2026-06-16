@@ -1,0 +1,32 @@
+{
+  "actor_role": "platform_owner",
+  "action": "read",
+  "target_tenant_id": "t-acme",
+  "resource_type": "usage_record",
+  "reason_code": "rc-metric-pull",
+  "now": 100,
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "platform_sre",
+    "authorized": true,
+    "realm": "platform"
+  },
+  "approvals": [
+    {
+      "approver_ref": "ck-1",
+      "decision": "approve",
+      "authorized": true,
+      "realm": "platform",
+      "at": 101
+    }
+  ],
+  "request_id": "req-007",
+  "correlation_id": "corr-007",
+  "expect": "pass",
+  "expected": {
+    "terminal": "DENY",
+    "note": "not_tier_b"
+  },
+  "name": "tb-pass-deny-not-tier-b",
+  "$comment": "PASS (doğru DENY): usage_record (tenant_metric) → break-glass GEREKMEZ (Tier A 12.3.1) → DENY not_tier_b. R2 scope."
+}

@@ -1,0 +1,172 @@
+{
+  "$comment": "WBS 12.3.2 — TIER B BREAK-GLASS: MAKER-CHECKER (talep eden ≠ onaylayan) + TIME-BOXED TOKEN (60dk default, max 4sa, AUTO-EXPIRY, STANDING ACCESS YOK) (BRD §17.7/§17, SAD §14.4.2, FR-IAM-009 üç katmanlı break-glass Tier B, FR-IAM-006/FR-REC-009 tüm break-glass erişimi audit). 12. workstream'in (IAM & Erişim) ÜÇ KATMANLI BREAK-GLASS'ın İÇERİK/PII KATMANI (Tier B) erişim-verme modülü ve F2-Must yeteneği. ALTIN KURAL (BRD §17): L0 (platform) tenant'ın iş içeriğini (çağrı kaydı/transkript/müşteri/PII) VARSAYILAN GÖREMEZ — Tier B yalnız DAR, SÜRELİ, ONAYLI, TAM-AUDIT'li kapıyı açar. Bu modül 12.3.1'in ESCALATE_TIER_B çıktısını TÜKETİR; bir BreakGlassTierBRequest (actor_role[L0] + target_tenant + tier=B + data_class/resource_type[tenant_content] + reason_code + now[tick] + ttl_minutes[opsiyonel] + maker + approvals[] + access[opsiyonel token-kullanım] + prior_state[opsiyonel]) alır → DETERMİNİSTİK, FAIL-CLOSED bir karar verir: GRANT_TIER_B (maker-checker karşılandı + GEÇERLİ time-boxed token; pencere içinde + bağlı) | PENDING (onay bekliyor) | DENY (malformed / non-content [break-glass gerekmez] / maker yetkisiz / SoD / ttl>max / pencere dışı / replay → fail-closed). ÇEKİRDEK: (1) R3 SoD — TALEP EDEN ≠ ONAYLAYAN (maker kendi talebini onaylayamaz; self-approval quorum'a SAYILMAZ; sod_violation=0); (2) R4 ONAYSIZ TOKEN YOK — GRANT_TIER_B YALNIZ FARKLI yetkili onay (quorum) toplandığında (granted_without_approval=0, fail-closed); (3) R5 TIME-BOX 60/240 — token expires_at TAŞIR (unbounded_token=0); ttl default 60dk, max 240dk (4sa); ttl>max GRANT = ttl_exceeds_max; (4) R6 STANDING ACCESS YOK + AUTO-EXPIRY — expires_at sonrası erişim REDDEDİLİR (expired_token_access=0); kalıcı/standing token standing_access=0. Maker-checker ÇEKİRDEĞİ 12.1.7 (separation_of_duties + timebox_policy + breakglass.tier_b) TÜKETİLİR; bu modül onu Tier B token yaşam döngüsüne uygular. Motor DETERMİNİSTİK FAIL-CLOSED (Date.now/random YOK; model_hash sha256; tick=dakika sanal-saat). Her karar terminal (R1) + kanıt + model bütünlük manifesti (R10); metrik düşük-kardinalite + ham PII/token yok (R11); model/spec/sample ham içerik/PII/token tutmaz (R12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): gerekçe kodu SEMANTİĞİ + tenant security_compliance_officer/tenant_owner BİLDİRİMİ → 12.3.3; regüle tenant require_tenant_approval toggle + DPA → 12.3.4; Tier sınıflandırma + ESCALATE → 12.3.1 (TÜKETİLİR); rol→permission-key/scope → 12.1.2/12.1.3; WORM audit hash-zinciri → 12.1.8 (TÜKETİLİR). KAYNAK DOĞRULUK; çelişkide BRD §17.7 / SAD §14.4.2 / FR-IAM-009 esastır.",
+  "version": "1.0",
+  "wbs": "12.3.2",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-IAM-009", "FR-IAM-006", "FR-REC-009", "FR-IAM-005", "FR-IAM-008", "FR-REC-004", "FR-TEN-002", "FR-TST-008"],
+    "srs": ["SR-IAM-009", "SR-IAM-005", "SR-IAM-006"],
+    "rtm": ["TC-IAM-009"],
+    "brd": [
+      "§17.7 (izolasyon/görünürlük — 'Tier B — transkript/kayıt/PII: Maker-checker zorunlu [talep eden ≠ onaylayan] + time-boxed [varsayılan 60 dk, max 4 saat, otomatik sonlanma, STANDING ACCESS YOK]')",
+      "§17 (üç katmanlı break-glass FR-IAM-009/010 — Tier B maker-checker + time-boxed)",
+      "§5 (kimlik & erişim — platform rolleri tenant rollerinden ayrı; maker ve checker AYRI platform aktörleri)"
+    ],
+    "sad": [
+      "§14.4.2 (Backend — 'Tier B (transkript/kayıt/PII): maker-checker [talep eden ≠ onaylayan] → süreli token [varsayılan 60 dk, max 4 saat, otomatik expiry, standing access yok] → ... Erişim ayrı, kısıtlı, tam-audit'li bir break-glass router'ı üzerinden' — bu modülün TEMEL kararı)",
+      "§14.4.2 (Üç katmanlı break-glass FR-IAM-009/010 — gerekçe kodu + bildirim 12.3.3, regüle toggle 12.3.4'e DELEGE)",
+      "§14 (Audit — tüm panel erişimleri ve hassas görüntülemeler [özellikle break-glass] audit log'a; FR-IAM-006/FR-REC-009)"
+    ],
+    "adr": [
+      "ADR-013 (üç katmanlı break-glass + regüle tenant onay toggle'ı — Tier B bu kararın içerik/PII katmanı)",
+      "ADR-016 (audit tamper-evidence: hash zinciri — Tier B audit WORM/hash-zincir 12.1.8 RESİPROKAL)",
+      "ADR-001 (deterministik karar fonksiyonu deseni)", "ADR-002 (vendor-neutral / credential-free)"
+    ],
+    "threat_model": [
+      "TM-I-02 (L0 platform rolü tenant içeriğini [transkript/kayıt/PII] görür — Tier B yalnız onaylı + süreli + audit'li kapıyı açar; granted_without_approval=0/sod_violation=0)",
+      "TM-R-xx (sessiz/iz bırakmayan break-glass erişimi — her Tier B kararı WORM audit'lenir; unaudited_grant=0)",
+      "TM-E-xx (standing/kalıcı yetki yükseltme — token TEK, süreli grant; auto-expiry + no-standing; expired_token_access=0/standing_access=0)"
+    ],
+    "consumes": [
+      "12.3.1 break-glass-tier-a config/tier-a-model.json (ESCALATE_TIER_B + tenant_content sınıfı + table_class_of — RESİPROKAL) — TÜKETİLİR",
+      "12.1.7 maker-checker config/maker-checker-model.json (separation_of_duties [talep eden ≠ onaylayan] + timebox_policy + critical_actions.breakglass.tier_b — RESİPROKAL) — TÜKETİLİR",
+      "12.1.8 worm-audit config/worm-audit-model.json (append-only/WORM + hash-zincir — Tier B audit DEĞİŞMEZLİĞİ RESİPROKAL) — TÜKETİLİR",
+      "12.1.1 rbac-model config/rbac-roles.json (L0 platform rolleri — actor_role RESİPROKAL) — TÜKETİLİR",
+      "tier-b-model.json (frozen — separation_of_duties + quorum_policy + timebox_policy[60/240] + token_binding + concurrency_policy + audit + actor_roles + table_class_of)"
+    ],
+    "consumed_by": [
+      "12.3.3 break-glass Tier B gerekçe kodu semantiği + tenant security_compliance_officer/tenant_owner bildirimi (bu modülün GRANT_TIER_B/PENDING kararını tüketir)",
+      "12.3.4 regüle tenant require_tenant_approval toggle + DPA bağı (bu modülün maker-checker akışına tenant onayı ekler)",
+      "1.x F1/F2 kod (gerçek FastAPI break-glass router + time-boxed token verme/iptal + WORM audit yazımı); 0.4.7 gözlemlenebilirlik"
+    ],
+    "delegates": [
+      "12.3.3 (gerekçe kodu SEMANTİĞİ + tenant security_compliance_officer/tenant_owner BİLDİRİMİ)",
+      "12.3.4 (regüle tenant require_tenant_approval toggle + DPA)",
+      "12.3.1 (Tier sınıflandırma A/B/forbidden + ESCALATE_TIER_B — TÜKETİLİR)",
+      "12.1.2 / 12.1.3 (rol→permission-key bundle + scope kararı)",
+      "12.1.7 (maker-checker SoD + timebox ÇEKİRDEĞİ) / 12.1.8 (WORM audit zinciri)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Tier B, üç katmanlı break-glass'ın İÇERİK/PII katmanıdır (BRD §17.7, SAD §14.4.2). L0 platform rolü tenant içeriğine (transcript/recording/contact) YALNIZ maker-checker (talep eden ≠ onaylayan) + GEÇERLİ time-boxed token (60dk default/max 4sa/auto-expiry/standing-yok) + tam-audit ile erişir. Motor yalnız KARARI + (varsa) token yaşam-döngüsü parametrelerini + PII'siz/token'siz WORM audit kaydını + model bütünlük manifestini üretir (gerçek FastAPI break-glass router + token verme F1/F2 kod aşamasında); deterministik kontrol düzlemi (Date.now/random YOK; tick=dakika sanal-saat). Vendor-neutral (ADR-002/013).",
+    "tier": "Tier B (üç katmanlı break-glass'ın içerik/PII katmanı; maker-checker + time-boxed token)",
+    "owns": "BRD §17.7 / SAD §14.4.2 TIER B ERİŞİM-VERME KARARI: BreakGlassTierBRequest → malformed kapısı + Tier B scope (yalnız tenant_content; non-content→DENY not_tier_b; R2) + maker-checker (maker yetkili? + FARKLI yetkili onay quorum'u? + SoD R3) + admission (quorum→token; yetersiz→PENDING; granted_without_approval R4) + TIME-BOX (default 60 / max 240 / require_expiry; ttl_exceeds_max + unbounded_token R5) + STANDING-YOK + AUTO-EXPIRY (expired_token_access + standing_access R6) + token-binding (R7) + WORM audit (R8) + replay-safe (R9) + terminal {GRANT_TIER_B|PENDING|DENY} + model bütünlük manifesti (R10) + karar kanıtı",
+    "delegates": "gerekçe kodu semantiği + tenant bildirimi → 12.3.3; regüle tenant toggle + DPA → 12.3.4; Tier sınıflandırma + ESCALATE → 12.3.1; rol→permission-key/scope → 12.1.2/12.1.3; maker-checker ÇEKİRDEĞİ → 12.1.7; WORM audit zinciri → 12.1.8",
+    "deterministic": true,
+    "fail_closed": true,
+    "decision_at": "Tier B break-glass talep/onay/token-kullanım anı kararı (deterministik kontrol düzlemi; gerçek router + token verme + WORM audit yazımı F1/F2 kod)",
+    "trace": "FR-IAM-009, BRD §17.7, SAD §14.4.2, ADR-013"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ Tier B erişim-verme kararı. Önce malformed; sonra Tier B scope (yalnız tenant_content); sonra maker-checker (SoD + quorum); sonra time-box (default 60 / max 240 / require_expiry); sonra standing-yok + auto-expiry; sonra token-binding; sonra audit (WORM/PII-free/immutable) + replay-safe. Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "tier_b_scope", "field": "yalnız tenant_content Tier B'ye girer; non-content → DENY (break-glass gerekmez)", "invariant": "R2", "outcome": "GRANT_TIER_B|PENDING|DENY",
+       "rule": "Tier B break-glass YALNIZ içerik/PII (tenant_content: transcript/recording/contact) için açılır (12.3.1 ESCALATE_TIER_B RESİPROKAL). tenant_metric/platform/global_reference → break-glass GEREKMEZ; tenant_config → L0 yolu YOK → DENY (not_tier_b; misroute fail-closed). Sınıflandırılamayan → fail-closed DENY."},
+      {"id": "separation_of_duties", "field": "TALEP EDEN ≠ ONAYLAYAN (maker kendi talebini onaylayamaz)", "invariant": "R3", "outcome": "GRANT_TIER_B|PENDING",
+       "rule": "ÇEKİRDEK SoD (FR-IAM-009 'maker-checker [talep eden ≠ onaylayan]'; 12.1.7 RESİPROKAL): bir Tier B talebini gönderen maker, AYNI talebi onaylayamaz — kendi onayı quorum'a SAYILMAZ (sessizce dışlanır). maker'ın kendi onayını quorum'a saymak = sod_violation. sod_violation=0"},
+      {"id": "no_grant_without_approval", "field": "GRANT_TIER_B yalnız FARKLI yetkili onay (quorum) toplandığında", "invariant": "R4", "outcome": "GRANT_TIER_B|PENDING",
+       "rule": "ÇEKİRDEK fail-closed (FR-IAM-009 maker-checker zorunlu; 12.1.7 breakglass.tier_b min_quorum RESİPROKAL): token YALNIZ FARKLI (distinct) yetkili in-realm onaylayan sayısı ≥ quorum olduğunda VERİLİR; yetersiz → PENDING (onay bekliyor), token YOK. Onaysız/quorum'suz GRANT_TIER_B = granted_without_approval. granted_without_approval=0"},
+      {"id": "timebox_60_240", "field": "token expires_at taşır; ttl default 60dk, max 240dk (4sa)", "invariant": "R5", "outcome": "GRANT_TIER_B",
+       "rule": "ÇEKİRDEK time-box (FR-IAM-009 / BRD §17.7 'varsayılan 60 dk, max 4 saat'): verilen token expires_at=granted_at+ttl TAŞIR (require_expiry); expires_at'siz token = unbounded_token. ttl belirtilmezse default 60dk; ttl>240 (4sa) talebi REDDEDİLİR (DENY ttl_over_max; correct). ttl>max ile GRANT (token verme) = ttl_exceeds_max. unbounded_token=0, ttl_exceeds_max=0"},
+      {"id": "no_standing_auto_expiry", "field": "STANDING ACCESS YOK; expires_at sonrası erişim reddedilir (auto-expiry)", "invariant": "R6", "outcome": "GRANT_TIER_B|DENY",
+       "rule": "ÇEKİRDEK (FR-IAM-009 / BRD §17.7 'otomatik sonlanma, STANDING ACCESS YOK'): token TEK, süreli grant'tır — kalıcı/yenilenerek-standing'e dönen erişim YOK (standing_access). expires_at sonrası token GEÇERSİZ: access_at > expires_at erişimi REDDEDİLİR (DENY token_expired; correct auto-expiry). Süresi dolmuş token'la erişim VERMEK = expired_token_access. expired_token_access=0, standing_access=0"},
+      {"id": "token_binding", "field": "token target_tenant + tier B + scope'a bağlı", "invariant": "R7", "outcome": "GRANT_TIER_B|DENY",
+       "rule": "token target_tenant_id + tier=B + scope'a BAĞLIDIR (least-privilege; FR-TEN-002): başka tenant için (cross-tenant) / Tier B dışı / scope dışı kullanım REDDEDİLİR. access.tenant_id ≠ token.target_tenant_id ile GRANT = token_binding_violation. token_binding_violation=0"},
+      {"id": "audit_emitted", "field": "her Tier B kararı DEĞİŞMEZ (WORM) audit üretir — sessiz break-glass yok; PII/token-free + immutable", "invariant": "R8", "outcome": "GRANT_TIER_B|PENDING|DENY",
+       "rule": "ÇEKİRDEK tam-audit (BRD §17.7, SAD §14.4.2 'tam-audit'li break-glass router', FR-IAM-009/006/FR-REC-009): her Tier B kararı (GRANT/PENDING/DENY — girişim dahil) DEĞİŞMEZ (append-only/WORM) audit üretir (12.1.8 RESİPROKAL; break_glass_id ile). Audit'siz GRANT = unaudited_grant. Audit PII-free + token-free (HAM transcript/recording/contact + HAM token DEĞERİ YAZILMAZ; FR-REC-004) = audit_pii. Emitilen kayıt tahrifatı (row_hash uyumsuz) = audit_mutable. unaudited_grant=0, audit_pii=0, audit_mutable=0"},
+      {"id": "replay_safe", "field": "çözülmüş grant (expired/revoked/consumed) yeniden kullanılamaz", "invariant": "R9", "outcome": "GRANT_TIER_B|DENY",
+       "rule": "İdempotent + replay-güvenli (12.1.7 RESİPROKAL): çözülmüş grant (prior_state ∈ {EXPIRED, REVOKED, CONSUMED}) bayat kararla DİRİLTİLEMEZ/yeniden KULLANILAMAZ — süresi dolmuş/iptal token yeniden erişim açamaz. Çözülmüş grant'ı yeniden GRANT = replay_reuse. replay_reuse=0"},
+      {"id": "model_integrity", "field": "Tier B modeli frozen + model_hash sha256", "invariant": "R10", "outcome": "GRANT_TIER_B|PENDING|DENY",
+       "rule": "model (separation_of_duties/quorum_policy/timebox_policy[60/240]/token_binding/concurrency_policy/audit/actor_roles) frozen; model_hash = sha256(kanonik); çalışma anında tahrif (ör. max_ttl_minutes yükseltme / require_distinct_maker_checker kapatma) yeniden-hesaplanan hash'le yakalanır → model_tampered. Time-box/SoD yüzeyi audit edilebilir (ADR-013). model_tampered=0"}
+    ],
+    "evaluation": "malformed_then_scope_then_maker_checker_then_timebox_then_standing_expiry_then_binding_then_audit_replay",
+    "trace": "FR-IAM-009, BRD §17.7, SAD §14.4.2, ADR-013"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed Tier B algoritması. Adımlar: (1) malformed (request_id eksik / actor_role L0 değil / target_tenant eksik / data_class sınıflandırılamaz → DENY). (2) Tier B scope: data_class ≠ tenant_content → DENY (not_tier_b; break-glass gerekmez / L0 yolu yok). (3) maker-checker: maker yetkisiz → DENY (maker_unauthorized); FARKLI yetkili onay (self hariç) quorum'u doldurmazsa → PENDING. (4) time-box: ttl=ttl_minutes or default 60; ttl>240 → DENY (ttl_over_max); expires_at=granted_at(now)+ttl. (5) token-kullanım (access varsa): access_at>expires_at → DENY (token_expired; auto-expiry); access.tenant≠target → DENY (binding). (6) replay: prior_state çözülmüş → DENY (replay). (7) aksi → GRANT_TIER_B. (8) audit emit (her karar — DEĞİŞMEZ/WORM). Belirsizlik/malformed/non-content/maker-yetkisiz/ttl>max/pencere-dışı/replay → DENY (fail-closed).",
+    "algorithm": "malformed ⇒ DENY(malformed) → data_class ≠ tenant_content ⇒ DENY(not_tier_b) → maker yetkisiz ⇒ DENY(maker_unauthorized) → FARKLI yetkili onay (self hariç) < quorum ⇒ PENDING → ttl(default 60) > 240 ⇒ DENY(ttl_over_max) → expires_at=now+ttl → access_at>expires_at ⇒ DENY(token_expired) → access.tenant≠target ⇒ DENY(binding) → prior_state çözülmüş ⇒ DENY(replay) → GRANT_TIER_B → audit emit (her karar, WORM)",
+    "default": "DENY",
+    "fail_safe_terminal": "no access (terminal=DENY ⇒ erişim yok; malformed/non-content/maker-yetkisiz/ttl>max/pencere-dışı/replay ⇒ DENY; yetersiz onay ⇒ PENDING — token YOK)",
+    "trace": "SR-IAM-009, SR-IAM-005, BRD §17.7, SAD §14.4.2"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal Tier B kararları. GRANT_TIER_B = içerik/PII erişimi maker-checker + GEÇERLİ time-boxed token (pencere içinde + bağlı) + tam-audit ile VERİLİR. PENDING = talep geçerli ama yeterli FARKLI yetkili onay (quorum) YOK → token YOK (DOĞRU ara durum, ihlal değil). DENY = malformed / non-content (not_tier_b) / maker yetkisiz / ttl>max / pencere dışı (expired) / binding / replay (fail-closed default). Yetersiz onayın PENDING'i + pencere-dışı/ttl>max DENY'i DOĞRU çıktıdır (altın kural + time-box korunur).",
+    "list": ["GRANT_TIER_B", "PENDING", "DENY"],
+    "terminal": ["GRANT_TIER_B", "PENDING", "DENY"]
+  },
+
+  "model": {
+    "$comment": "Tier B modeli özeti = config/tier-b-model.json (frozen). separation_of_duties (talep eden ≠ onaylayan; 12.1.7 RESİPROKAL) + quorum_policy (distinct; breakglass.tier_b min_quorum 12.1.7 RESİPROKAL) + timebox_policy (default 60 / max 240 / require_expiry / auto_expiry / no_standing_access / reject_ttl_over_max) + token_binding (tenant + tier B + scope) + concurrency_policy (replay-safe) + audit (WORM; PII/token-free; 12.1.8 RESİPROKAL) + actor_roles (L0; 12.1.1 RESİPROKAL) + table_class_of (37 varlık; 12.3.1 RESİPROKAL).",
+    "frozen": true,
+    "tier": "B",
+    "data_class": "tenant_content",
+    "default_ttl_minutes": 60,
+    "max_ttl_minutes": 240,
+    "quorum_default": 1,
+    "actor_roles": ["platform_owner", "platform_sre", "platform_billing"],
+    "audit": "WORM (append-only); PII/token-free; row_hash sha256; her Tier B break-glass kararı audit'lenir (12.1.8 RESİPROKAL; break_glass_id ile)"
+  },
+
+  "enforcement": {
+    "$comment": "Tier B enforcement (BRD §17.7, SAD §14.4.2). maker_checker — talep eden ≠ onaylayan; FARKLI yetkili onay quorum'u. time_boxed_token — default 60dk / max 4sa / require_expiry / reddet ttl>max. auto_expiry_no_standing — expires_at sonrası erişim reddedilir; standing/kalıcı token YOK. audit_layer — her karar DEĞİŞMEZ (WORM) audit (12.1.8 RESİPROKAL; break_glass_id). Karar deterministik kontrol düzlemi.",
+    "maker_checker": "talep eden (maker) ≠ onaylayan (checker); maker kendi talebini onaylayamaz; GRANT_TIER_B yalnız FARKLI yetkili onay (quorum) toplandığında (FR-IAM-009; 12.1.7 RESİPROKAL)",
+    "time_boxed_token": "token expires_at=granted_at+ttl taşır; ttl default 60dk, max 240dk (4sa); ttl>max talebi REDDEDİLİR (BRD §17.7 'varsayılan 60 dk, max 4 saat')",
+    "auto_expiry_no_standing": "expires_at sonrası token GEÇERSİZ — access_at>expires_at REDDEDİLİR (auto-expiry); kalıcı/standing token YOK (BRD §17.7 'otomatik sonlanma, standing access yok')",
+    "audit_layer": "her Tier B kararı DEĞİŞMEZ (append-only/WORM) audit üretir; row_hash sha256 hash-zincir (12.1.8 worm-audit RESİPROKAL; break_glass_id ile); ham PII + ham token yazılmaz (FR-REC-004)",
+    "decision_at": "Tier B break-glass talep/onay/token-kullanım anı (kontrol düzlemi; gerçek router + token verme + WORM audit yazımı F1/F2 kod)",
+    "trace": "FR-IAM-009, BRD §17.7, SAD §14.4.2, 12.3.1, 12.1.7, 12.1.8"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. sod_violation (R3 ÇEKİRDEK) = maker kendi onayını saydı (talep eden = onaylayan); granted_without_approval (R4 ÇEKİRDEK) = quorum'suz GRANT; unbounded_token (R5 ÇEKİRDEK) = expires_at'siz token; ttl_exceeds_max (R5 ÇEKİRDEK) = ttl>240 ile GRANT; standing_access (R6 ÇEKİRDEK) = kalıcı/standing token; expired_token_access (R6) = pencere dışı erişim verildi; token_binding_violation (R7) = cross-tenant/tier-dışı token; unaudited_grant (R8) = audit'siz GRANT; audit_pii (R8) = audit'te ham PII/token; audit_mutable (R8) = emitilen audit tahrif (WORM ihlali); replay_reuse (R9) = çözülmüş grant yeniden; model_tampered (R10) = model bütünlük manifesti tutmuyor. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1/F2 canlı (FastAPI break-glass router + token verme + WORM audit) verisinde doğrulanır.",
+    "max_sod_violation": 0,
+    "max_granted_without_approval": 0,
+    "max_unbounded_token": 0,
+    "max_ttl_exceeds_max": 0,
+    "max_standing_access": 0,
+    "max_expired_token_access": 0,
+    "max_token_binding_violation": 0,
+    "max_unaudited_grant": 0,
+    "max_audit_pii": 0,
+    "max_audit_mutable": 0,
+    "max_replay_reuse": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "Tier B her karar için metrikleri hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. l0_break_glass_tier_b_total{actor_role,decision,result} → Tier B talep/karar sayımı; break_glass_tier_b_violation_total → sod_violation VEYA granted_without_approval VEYA unbounded_token VEYA ttl_exceeds_max VEYA standing_access VEYA expired_token_access VEYA token_binding_violation VEYA unaudited_grant VEYA audit_pii VEYA audit_mutable VEYA replay_reuse VEYA model_tampered (R3..R10 ihlal alarmı, 0 olmalı). actor_role+decision+result DÜŞÜK kardinalite (label uygun); correlation_id/break_glass_id/target_tenant_id/token_ref/request_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM İÇERİK/PII + HAM TOKEN metrikte VE log'da YOK (BRD §17.7/FR-REC-004). sod_violation>0 (talep eden=onaylayan) VEYA granted_without_approval>0 (onaysız token) VEYA expired_token_access>0 (pencere-dışı erişim) VEYA standing_access>0 (kalıcı yetki) → kritik alarm ≤2dk (SAD §17.2, NFR 10.1) = break-glass kontrol ihlali güvenlik olayı.",
+    "metrics": ["l0_break_glass_tier_b_total", "break_glass_tier_b_violation_total"],
+    "low_cardinality_labels": ["actor_role", "decision", "result"],
+    "high_cardinality_trace_only": ["correlation_id", "break_glass_id", "target_tenant_id", "token_ref", "request_id"],
+    "alarm": "sod_violation>0 (talep eden=onaylayan — R3, FR-IAM-009) VEYA granted_without_approval>0 (onaysız token — R4) VEYA expired_token_access>0 (pencere-dışı erişim — R6) VEYA standing_access>0 (kalıcı/standing yetki — R6) VEYA unaudited_grant>0 (sessiz break-glass — R8) VEYA audit_mutable>0 (WORM ihlali — R8) VEYA model_tampered>0 (R10) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "R1", "desc": "Determinizm/tamlık + kanıt: her BreakGlassTierBRequest tanımlı malformed→scope→maker-checker→timebox→standing/expiry→binding→audit/replay algoritması boyunca ilerler ve bir terminal karara {GRANT_TIER_B|PENDING|DENY} ulaşır; aynı girdi → aynı çıktı (deterministik; model_hash sha256 kanonik JSON; tick=dakika sanal-saat; Date.now/random YOK); varsayılan DENY (fail-closed; no access); her karar kanıt taşır (request_id + actor_role + target_tenant + data_class + reason_code + tier + terminal + ttl_minutes + expires_at + audit_emitted + model_hash). stuck_state=0, missing_evidence=0.", "trace": "SR-IAM-009, BRD §17.7"},
+    {"id": "R2", "desc": "Tier B scope: Tier B break-glass YALNIZ içerik/PII (tenant_content: transcript/recording/contact) için açılır (12.3.1 ESCALATE_TIER_B RESİPROKAL). tenant_metric/platform/global_reference → break-glass GEREKMEZ; tenant_config → L0 yolu YOK → DENY (not_tier_b; misroute fail-closed). Sınıflandırılamayan → fail-closed DENY.", "trace": "FR-IAM-009, FR-IAM-008, 12.3.1"},
+    {"id": "R3", "desc": "Separation of duties ÇEKİRDEK (FR-IAM-009 'maker-checker [talep eden ≠ onaylayan]'; 12.1.7 RESİPROKAL): bir Tier B talebini gönderen maker, AYNI talebi onaylayamaz — kendi onayı quorum'a SAYILMAZ (sessizce dışlanır). maker'ın kendi onayını quorum'a saymak = sod_violation. sod_violation=0.", "trace": "FR-IAM-009, FR-IAM-005, SAD §14.4.2"},
+    {"id": "R4", "desc": "No grant without approval ÇEKİRDEK (FR-IAM-009 maker-checker zorunlu; 12.1.7 breakglass.tier_b RESİPROKAL): token YALNIZ FARKLI (distinct) yetkili in-realm onaylayan sayısı ≥ quorum olduğunda VERİLİR; yetersiz → PENDING (token YOK, fail-closed). Onaysız/quorum'suz GRANT_TIER_B = granted_without_approval. granted_without_approval=0.", "trace": "FR-IAM-009, FR-IAM-005, BRD §17.7"},
+    {"id": "R5", "desc": "Time-box 60/240 ÇEKİRDEK (FR-IAM-009 / BRD §17.7 'varsayılan 60 dk, max 4 saat'): verilen token expires_at=granted_at+ttl TAŞIR (require_expiry; expires_at'siz = unbounded_token). ttl belirtilmezse default 60dk; ttl>240 (4sa) talebi REDDEDİLİR (correct). ttl>max ile GRANT (token verme) = ttl_exceeds_max. unbounded_token=0, ttl_exceeds_max=0.", "trace": "FR-IAM-009, BRD §17.7, SAD §14.4.2"},
+    {"id": "R6", "desc": "No standing + auto-expiry ÇEKİRDEK (FR-IAM-009 / BRD §17.7 'otomatik sonlanma, STANDING ACCESS YOK'): token TEK, süreli grant'tır — kalıcı/yenilenerek-standing'e dönen erişim YOK (standing_access). expires_at sonrası token GEÇERSİZ: access_at > expires_at erişimi REDDEDİLİR (correct auto-expiry). Süresi dolmuş token'la erişim VERMEK = expired_token_access. expired_token_access=0, standing_access=0.", "trace": "FR-IAM-009, BRD §17.7, SAD §14.4.2"},
+    {"id": "R7", "desc": "Token binding (FR-TEN-002): verilen token target_tenant_id + tier=B + scope'a BAĞLIDIR (least-privilege). Başka tenant için (cross-tenant) / Tier B dışı / scope dışı kullanım REDDEDİLİR. access.tenant_id ≠ token.target_tenant_id ile GRANT = token_binding_violation. token_binding_violation=0.", "trace": "FR-IAM-009, FR-TEN-002"},
+    {"id": "R8", "desc": "Audit emitted / PII-free / immutable ÇEKİRDEK (BRD §17.7, SAD §14.4.2 'tam-audit'li break-glass router', FR-IAM-009/006/FR-REC-009): her Tier B kararı (GRANT/PENDING/DENY — girişim dahil) DEĞİŞMEZ (append-only/WORM) audit üretir (12.1.8 RESİPROKAL; break_glass_id ile). Audit'siz GRANT = unaudited_grant. Audit PII-free + token-free (HAM transcript/recording/contact + HAM token DEĞERİ YAZILMAZ; FR-REC-004) = audit_pii. Emitilen kayıt tahrifatı (row_hash uyumsuz) = audit_mutable. unaudited_grant=0, audit_pii=0, audit_mutable=0.", "trace": "FR-IAM-006, FR-REC-009, FR-REC-004, ADR-016, 12.1.8"},
+    {"id": "R9", "desc": "Replay-safe (12.1.7 concurrency_policy RESİPROKAL): çözülmüş grant (prior_state ∈ {EXPIRED, REVOKED, CONSUMED}) bayat kararla DİRİLTİLEMEZ/yeniden KULLANILAMAZ — süresi dolmuş/iptal token yeniden erişim açamaz. Çözülmüş grant'ı yeniden GRANT = replay_reuse. replay_reuse=0.", "trace": "FR-IAM-009, SAD §14.4.2"},
+    {"id": "R10", "desc": "Model bütünlük manifesti: Tier B modeli frozen (separation_of_duties/quorum_policy/timebox_policy[60/240]/token_binding/concurrency_policy/audit/actor_roles) + model_hash = sha256(kanonik) deterministik; çalışma anında tahrif (ör. max_ttl_minutes yükseltme / require_distinct_maker_checker kapatma) yeniden-hesaplanan hash tutmaz → model_tampered. Time-box/SoD yüzeyinin değiştirilemez olduğunu test edilebilir kılar (ADR-013). model_tampered=0.", "trace": "FR-IAM-009, ADR-013"},
+    {"id": "R11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (actor_role/decision/result); correlation_id/break_glass_id/target_tenant_id/token_ref metrikte yok, yalnız trace; HAM İÇERİK/PII (transcript/recording/contact DEĞERİ) + HAM TOKEN DEĞERİ metrikte VE log'da yok (0.4.7 label_policy, BRD §17.7/FR-REC-004).", "trace": "BRD §17.7, 0.4.7 label_policy"},
+    {"id": "R12", "desc": "Sır/içerik yok: model/spec/sample HAM içerik / PII (transcript/recording/contact/telefon/kart/OTP/ad DEĞERİ) / credential (break-glass TOKEN DEĞERİ / DB şifresi) tutmaz — yalnız ACTOR ROL adları (platform_owner) + ACTION (read) + VERİ-SINIFI enum (tenant_content) + RESOURCE_TYPE adı (transcript) + TIER/DECISION enum (B/GRANT_TIER_B) + reason_code enum (rc-*) + ttl/tick (tamsayı) + yapısal korelasyon/aktör KİMLİK (req-/mk-/ck-/t- slug) + HASH. Rol/action/sınıf/kaynak/tier/karar/kimlik/hash/ttl PII DEĞİLDİR. Bu modül Tier B ERİŞİM-VERME KARARINI verir — ham satır içeriği (PII) ve ham token AKMAZ. secret_or_pii=0.", "trace": "BRD §17.7, FR-REC-004, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/model/sample'lar HAM içerik, PII (TRANSCRIPT/RECORDING/CONTACT içeriği, TELEFON numarası, KART [PAN/CVV], OTP kodu, PAROLA, müşteri ADI DEĞERİ) veya credential (break-glass TOKEN / DB şifresi DEĞERİ) TUTMAZ — yalnız ACTOR ROL ADLARI (platform_owner/platform_sre/platform_billing) + ACTION (read) + VERİ-SINIFI ENUM (tenant_content) + RESOURCE_TYPE ADLARI (transcript/recording/contact) + TIER ENUM (B) + DECISION ENUM (GRANT_TIER_B/PENDING/DENY) + reason_code ENUM (SENTETİK opak kod ör. rc-incident-debug) + ttl/tick (SANAL-SAAT tamsayı dakika) + yapısal korelasyon/aktör KİMLİK (SENTETİK slug ör. req-001/mk-1/ck-1/t-acme) + HASH (sha256). Rol/action/sınıf/kaynak/tier/decision/reason/kimlik/hash/ttl PII DEĞİLDİR; tasarımca PII-olmayandır. Bu modül Tier B ERİŞİM-VERME KARARINI verir — ham satır içeriği (transcript/recording/contact PII) + HAM TOKEN DEĞERİ bu modülde AKMAZ; audit kaydı da PII'siz + token'sizdir.",
+    "forbids": ["transcript_text_value", "recording_audio_value", "contact_pii_value", "customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "customer_name_value", "db_password_value", "connection_string_value", "break_glass_token_value", "token_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}

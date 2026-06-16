@@ -1,0 +1,32 @@
+{
+  "actor_role": "platform_owner",
+  "action": "read",
+  "target_tenant_id": "t-acme",
+  "resource_type": "transcript",
+  "reason_code": "rc-incident-debug",
+  "now": 100,
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "platform_sre",
+    "authorized": true,
+    "realm": "platform"
+  },
+  "approvals": [
+    {
+      "approver_ref": "ck-1",
+      "decision": "approve",
+      "authorized": true,
+      "realm": "platform",
+      "at": 101
+    }
+  ],
+  "request_id": "req-108",
+  "correlation_id": "corr-108",
+  "prior_state": "REVOKED",
+  "inject": [
+    "replay_grant"
+  ],
+  "expect": "fail",
+  "name": "tb-degrade-replay-grant",
+  "$comment": "DEGRADE replay_grant: çözülmüş (REVOKED) grant bayat kararla yeniden GRANT → replay_reuse (R9 idempotency/replay ihlali)."
+}

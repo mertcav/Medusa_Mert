@@ -1,0 +1,112 @@
+{
+  "$comment": "WBS 12.3.2 — TIER B BREAK-GLASS: MAKER-CHECKER (talep eden ≠ onaylayan) + TIME-BOXED TOKEN (60dk default, max 4sa, AUTO-EXPIRY, STANDING ACCESS YOK) modeli. Bu dosya 12. workstream'in (IAM & Erişim) ÜÇ KATMANLI BREAK-GLASS'ın İÇERİK/PII KATMANININ (Tier B) erişim-verme yüzeyinin DEĞİŞMEZ (frozen) KAYNAK DOĞRULUĞUDUR: BRD §17.7 / §17 ('Tier B — transkript/kayıt/PII: Maker-checker zorunlu [bir RMC kişisi talep eder, başka biri onaylar] + time-boxed [varsayılan 60 dk, max 4 saat, otomatik sonlanma, STANDING ACCESS YOK]') + SAD §14.4.2 ('maker-checker [talep eden ≠ onaylayan] → süreli token [varsayılan 60 dk, max 4 saat, otomatik expiry, standing access yok] → ... Erişim ayrı, kısıtlı, tam-audit'li bir break-glass router'ı üzerinden') + FR-IAM-009 (üç katmanlı break-glass Tier B) + FR-IAM-006/FR-REC-009 (tüm break-glass erişimi audit). ALTIN KURAL (BRD §17): L0 (platform) tenant'ın iş içeriğini (çağrı kaydı/transkript/müşteri/PII) VARSAYILAN GÖREMEZ — Tier B yalnız bu DAR, SÜRELİ, ONAYLI, TAM-AUDIT'li kapıyı açar. Bu modül 12.3.1'in ESCALATE_TIER_B çıktısını TÜKETİR; bir BreakGlassTierBRequest için DETERMİNİSTİK, FAIL-CLOSED bir karar verir: GRANT_TIER_B (maker-checker karşılandı + GEÇERLİ time-boxed token; pencere içinde + bağlı) | PENDING (onay bekliyor — checker yok/yetersiz) | DENY (malformed / non-content [break-glass gerekmez] / maker yetkisiz / SoD ihlali [self-approval] / ttl>max / pencere dışı [expired] / replay / fail-closed). ÇEKİRDEK: (1) R3 SoD — TALEP EDEN ≠ ONAYLAYAN (maker kendi talebini onaylayamaz; kendi onayı quorum'a SAYILMAZ; sod_violation=0); (2) R4 ONAYSIZ TOKEN YOK — GRANT_TIER_B YALNIZ yeterli sayıda FARKLI yetkili onay (quorum) toplandığında verilir (granted_without_approval=0, fail-closed); (3) R5 TIME-BOX 60/240 — token expires_at TAŞIR (require_expiry; unbounded_token=0); ttl default 60dk, max 240dk (4sa); ttl>max GRANT'i ttl_exceeds_max ihlal; (4) R6 STANDING ACCESS YOK + AUTO-EXPIRY — token TEK, süreli grant'tır; expires_at sonrası erişim REDDEDİLİR (expired_token_access=0); kalıcı/standing token standing_access=0. Maker-checker ÇEKİRDEĞİ 12.1.7'nin (separation_of_duties + timebox_policy + critical_actions.breakglass.tier_b) TÜKETTİĞİ mekanizmadır; bu modül onu Tier B token yaşam döngüsüne uygular. KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): gerekçe kodu semantiği + tenant security_compliance_officer/tenant_owner BİLDİRİMİ → 12.3.3; regüle tenant require_tenant_approval toggle + DPA → 12.3.4; rol→permission-key/scope → 12.1.2/12.1.3; Tier sınıflandırma (A/B/forbidden) + ESCALATE → 12.3.1 (TÜKETİLİR); append-only/WORM audit hash-zinciri → 12.1.8 (TÜKETİLİR). Bu dosya FROZEN — değiştirilemez time-box (60/240) + SoD + token-binding yüzeyi (model_hash sha256 ile audit edilebilir). ÇELİŞKİDE BRD §17.7 / SAD §14.4.2 / FR-IAM-009 esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+
+  "$tier_comment": "Üç katmanlı break-glass'ın İÇERİK/PII katmanı (Tier B). Bu modül YALNIZ Tier B (tenant_content: transcript/recording/contact) erişim-verme kararını sahiplenir. Tier A (metrik/log, PII yok → break-glass'sız) 12.3.1'in; bu modül 12.3.1'in ESCALATE_TIER_B çıktısını TÜKETİR. tenant_content DIŞI sınıf (tenant_metric/platform/global_reference → break-glass GEREKMEZ; tenant_config → L0 yolu yok) Tier B'ye GİREMEZ → DENY (not_tier_b; misroute fail-closed).",
+  "tier": "B",
+  "data_class": "tenant_content",
+  "tier_b_content": ["tenant_content"],
+  "non_break_glass_classes": ["tenant_metric", "platform", "global_reference"],
+  "forbidden_classes": ["tenant_config"],
+
+  "$sod_comment": "ÇEKİRDEK görevler ayrımı / SoD (FR-IAM-009 'maker-checker [talep eden ≠ onaylayan]'; 12.1.7 separation_of_duties RESİPROKAL): TALEP EDEN ≠ ONAYLAYAN. require_distinct_maker_checker: bir Tier B break-glass talebini gönderen maker, AYNI talebi onaylayamaz — kendi onayı quorum'a SAYILMAZ (sessizce dışlanır; sayım sonrası yetersizse PENDING). self_approval_counts_to_quorum=false: maker'ın kendi onayını saymak ÇEKİRDEK ihlaldir (sod_violation). maker_excluded_from_approvers: maker onaylayan kümesinden çıkarılır.",
+  "separation_of_duties": {
+    "require_distinct_maker_checker": true,
+    "self_approval_counts_to_quorum": false,
+    "maker_excluded_from_approvers": true,
+    "reciprocal": "12.1.7 maker-checker separation_of_duties (talep eden ≠ onaylayan)"
+  },
+
+  "$quorum_comment": "Onay / quorum (12.1.7 critical_actions.breakglass.tier_b min_quorum=1 RESİPROKAL). GRANT_TIER_B YALNIZ FARKLI (distinct, approver_ref'e göre tekilleştirilmiş) yetkili in-realm onaylayan sayısı ≥ quorum_required olduğunda verilir. quorum dolmadan → PENDING (onay bekliyor); GRANT YOK (granted_without_approval, fail-closed). Aynı onaylayan iki kez kaydedilse TEK sayılır.",
+  "quorum_policy": {
+    "default_quorum": 1,
+    "require_distinct_approvers": true,
+    "dedupe_by_actor_ref": true,
+    "no_grant_without_quorum": true,
+    "reciprocal": "12.1.7 critical_actions.breakglass.tier_b (requires_approval=true, min_quorum=1)"
+  },
+
+  "$timebox_comment": "ÇEKİRDEK time-boxed token (FR-IAM-009 / BRD §17.7 / SAD §14.4.2 'varsayılan 60 dk, max 4 saat, otomatik sonlanma, STANDING ACCESS YOK'). ttl_unit=minute (sanal-saat tick = dakika). default_ttl_minutes=60: ttl belirtilmezse token 60dk sürer. max_ttl_minutes=240 (4sa): ttl>240 talebi REDDEDİLİR (reject_ttl_over_max; fail-closed) — 240'tan uzun token VERİLMEZ; ttl>max ile GRANT ttl_exceeds_max ÇEKİRDEK ihlaldir. require_expiry: HER token expires_at=granted_at+ttl TAŞIR; expires_at'siz (unbounded) token unbounded_token ihlaldir. auto_expiry: expires_at sonrası token GEÇERSİZ — access_at > expires_at erişimi REDDEDİLİR (expired_token_access). no_standing_access: token TEK, süreli grant'tır — kalıcı/yenilenerek-standing'e dönen erişim YOK (standing_access ihlal). 12.1.7 timebox_policy (expired_request_denied) onay-akışı tarafının RESİPROKALİDİR.",
+  "timebox_policy": {
+    "ttl_unit": "minute",
+    "default_ttl_minutes": 60,
+    "max_ttl_minutes": 240,
+    "require_expiry": true,
+    "auto_expiry": true,
+    "no_standing_access": true,
+    "reject_ttl_over_max": true,
+    "reciprocal": "12.1.7 timebox_policy (request_has_expiry / expired_request_denied / stale_approval_not_counted)"
+  },
+
+  "$binding_comment": "Token binding (least-privilege): verilen token target_tenant_id + tier=B + scope'a BAĞLIDIR. Token başka tenant için (cross-tenant) / Tier B dışı için / scope dışı kaynak için KULLANILAMAZ → token_binding_violation. access_at token-kullanım anı; access.tenant_id token target_tenant_id ile eşleşmeli.",
+  "token_binding": {
+    "bind_target_tenant": true,
+    "bind_tier_b": true,
+    "bind_scope": true
+  },
+
+  "$idempotency_comment": "İdempotent + replay-güvenli (12.1.7 concurrency_policy RESİPROKAL): çözülmüş grant (prior_state ∈ {EXPIRED, REVOKED, CONSUMED}) bayat/tekrarlı kararla DİRİLTİLEMEZ/yeniden KULLANILAMAZ — süresi dolmuş/iptal edilmiş token yeniden erişim açamaz (replay_reuse). Kararlar deterministik (Date.now/random YOK; sanal-saat tick).",
+  "concurrency_policy": {
+    "idempotent_decision": true,
+    "no_resurrect_resolved_grant": true,
+    "resolved_states": ["EXPIRED", "REVOKED", "CONSUMED"]
+  },
+
+  "$actor_comment": "L0 (platform) RBAC rolleri (12.1.1 rbac-model RESİPROKAL; BRD §17.2). Tier B break-glass talebi/onayı platform realm rolleridir (maker ve checker AYRI platform aktörleri). Yetki/scope kararı 12.1.2/12.1.3 sahibi — bu modül onu SOYUT sonuç (maker.authorized / approval.authorized) olarak TÜKETİR. actor_realm her zaman 'platform'.",
+  "actor_roles": ["platform_owner", "platform_sre", "platform_billing"],
+  "actor_realm": "platform",
+
+  "$audit_comment": "ÇEKİRDEK tam-audit (BRD §17.7, SAD §14.4.2 'tam-audit'li bir break-glass router', FR-IAM-009/006/FR-REC-009): HER Tier B break-glass kararı (GRANT_TIER_B / PENDING / DENY — girişim dahil) DEĞİŞMEZ (append-only/WORM) bir audit kaydı üretir — SESSİZ break-glass YOKTUR. Audit DEĞİŞMEZLİĞİ + hash-zincir 12.1.8 worm-audit'e RESİPROKAL (row_hash=sha256(kanonik); UPDATE/DELETE reddedilir). Audit kaydı PII'siz: yalnız opak actor_role + actor_realm + target_tenant_ref + action + data_class enum + resource_type + tier + decision + reason_code + ttl_minutes + granted_at + expires_at + correlation_id + occurred_tick + row_hash. HAM PII (transcript/recording/contact DEĞERİ) ve HAM TOKEN DEĞERİ audit'e YAZILMAZ (FR-REC-004, BRD §17.7). break_glass_id audit'e iletilir (DB.md §6.3; her break-glass okuması audit_log'a break_glass_id ile yazılır).",
+  "audit": {
+    "required_for_every_decision": true,
+    "worm": true,
+    "append_only": true,
+    "hash_algo": "sha256",
+    "no_raw_pii": true,
+    "no_raw_token": true,
+    "reciprocal": "12.1.8 worm-audit (append-only/WORM + hash-zincir; row_hash)",
+    "record_fields": ["record_id", "break_glass_id", "correlation_id", "actor_role", "actor_realm", "target_tenant_ref", "action", "data_class", "resource_type", "tier", "decision", "reason_code", "ttl_minutes", "granted_at", "expires_at", "occurred_tick", "row_hash"]
+  },
+
+  "table_class_of": {
+    "$comment": "BRD §16 / DB.md §6.3 varlık → veri-sınıfı eşlemesi (12.3.1 / 12.2.4 table_class_of ile RESİPROKAL/aynı). Tier B YALNIZ tenant_content'i kabul eder; diğer sınıflar → DENY (not_tier_b / forbidden).",
+    "call": "tenant_content", "call_leg": "tenant_content", "transcript": "tenant_content",
+    "transcript_segment": "tenant_content", "recording": "tenant_content", "call_event": "tenant_content",
+    "tool_execution": "tenant_content", "contact": "tenant_content", "consent": "tenant_content",
+    "call_evaluation": "tenant_content",
+    "organisation_unit": "tenant_config", "app_user": "tenant_config", "agent": "tenant_config",
+    "agent_version": "tenant_config", "prompt": "tenant_config", "conversation_flow": "tenant_config",
+    "voice_profile": "tenant_config", "model_profile": "tenant_config", "stt_profile": "tenant_config",
+    "knowledge_base": "tenant_config", "kb_document": "tenant_config", "kb_chunk": "tenant_config",
+    "tool": "tenant_config", "phone_number": "tenant_config", "sip_trunk": "tenant_config",
+    "campaign": "tenant_config", "retention_policy": "tenant_config", "legal_hold": "tenant_config",
+    "user_role_assignment": "tenant_config",
+    "usage_record": "tenant_metric",
+    "tenant": "platform", "audit_log": "platform", "incident": "platform", "break_glass_grant": "platform",
+    "role": "global_reference", "permission_key": "global_reference", "role_permission": "global_reference"
+  },
+
+  "$delegation_comment": "KAPSAM AYRIMI (bilinçli). Bu modül YALNIZ Tier B maker-checker (SoD) + time-boxed token (60/240/auto-expiry/no-standing) + token-binding + replay-safety + WORM audit kararını sahiplenir. Gerekçe kodu SEMANTİĞİ + tenant security_compliance_officer/tenant_owner BİLDİRİMİ 12.3.3'e; regüle tenant require_tenant_approval toggle + DPA 12.3.4'e; Tier sınıflandırma + ESCALATE 12.3.1'e; rol→permission-key/scope 12.1.2/12.1.3'e; WORM audit hash-zinciri 12.1.8'e DELEGE/TÜKETİLİR. (reason_code bu modülde YALNIZ var/yok olarak TÜKETİLİR — enum semantiği + zorunlu bildirim 12.3.3.)",
+  "delegates": {
+    "reason_code_semantics_and_notification": "12.3.3 (gerekçe kodu semantiği + tenant security_compliance_officer/tenant_owner anlık bildirimi)",
+    "regulated_tenant_toggle": "12.3.4 (regüle tenant require_tenant_approval toggle + DPA bağı; controller=tenant/processor=RMC)",
+    "tier_classification_escalate": "12.3.1 (Tier A/B/forbidden sınıflandırma + ESCALATE_TIER_B — TÜKETİLİR)",
+    "rbac_role_scope": "12.1.2/12.1.3 (rol→permission-key bundle + scope kararı)",
+    "maker_checker_core": "12.1.7 (separation_of_duties + timebox_policy + critical_actions.breakglass.tier_b — TÜKETİLİR)",
+    "worm_audit_chain": "12.1.8 (append-only/WORM audit + hash-zincir)"
+  },
+
+  "consumes": {
+    "$comment": "RESİPROKAL bağlantılar. 12.3.1 tier-a-model.json: ESCALATE_TIER_B çıktısı + tenant_content sınıfı + table_class_of (RESİPROKAL/aynı). 12.1.7 maker-checker-model.json: SoD (talep eden ≠ onaylayan) + timebox + breakglass.tier_b aksiyonu (RESİPROKAL). 12.1.8 worm-audit-model.json: audit DEĞİŞMEZLİĞİ (append-only/WORM + hash-zincir) RESİPROKAL. 12.1.1 rbac-roles.json: L0 platform rolleri.",
+    "tier_a_model": "12.3.1 ../break-glass-tier-a/config/tier-a-model.json (ESCALATE_TIER_B + tenant_content + table_class_of RESİPROKAL)",
+    "maker_checker_model": "12.1.7 ../maker-checker/config/maker-checker-model.json (SoD + timebox + breakglass.tier_b RESİPROKAL)",
+    "worm_audit_model": "12.1.8 ../worm-audit/config/worm-audit-model.json (append-only/WORM + hash-zincir RESİPROKAL)",
+    "rbac_model": "12.1.1 ../rbac-model/config/rbac-roles.json (L0 platform rolleri RESİPROKAL)"
+  },
+
+  "terminal": ["GRANT_TIER_B", "PENDING", "DENY"],
+  "default": "DENY",
+  "trace": "BRD §17.7, SAD §14.4.2, FR-IAM-009, FR-IAM-006, FR-REC-009, 12.3.1, 12.1.7, 12.1.8, 12.1.1"
+}

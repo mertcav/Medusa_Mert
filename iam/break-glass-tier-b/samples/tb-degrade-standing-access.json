@@ -1,0 +1,31 @@
+{
+  "actor_role": "platform_owner",
+  "action": "read",
+  "target_tenant_id": "t-acme",
+  "resource_type": "transcript",
+  "reason_code": "rc-incident-debug",
+  "now": 100,
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "platform_sre",
+    "authorized": true,
+    "realm": "platform"
+  },
+  "approvals": [
+    {
+      "approver_ref": "ck-1",
+      "decision": "approve",
+      "authorized": true,
+      "realm": "platform",
+      "at": 101
+    }
+  ],
+  "request_id": "req-105",
+  "correlation_id": "corr-105",
+  "inject": [
+    "standing_access"
+  ],
+  "expect": "fail",
+  "name": "tb-degrade-standing-access",
+  "$comment": "DEGRADE standing_access: kalıcı/standing token (expires_at=None, otomatik sonlanma yok) → standing_access (R6 ÇEKİRDEK 'standing access yok')."
+}

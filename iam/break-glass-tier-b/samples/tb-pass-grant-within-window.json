@@ -1,0 +1,36 @@
+{
+  "actor_role": "platform_owner",
+  "action": "read",
+  "target_tenant_id": "t-acme",
+  "resource_type": "contact",
+  "reason_code": "rc-dsr-request",
+  "now": 100,
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "platform_sre",
+    "authorized": true,
+    "realm": "platform"
+  },
+  "approvals": [
+    {
+      "approver_ref": "ck-1",
+      "decision": "approve",
+      "authorized": true,
+      "realm": "platform",
+      "at": 101
+    }
+  ],
+  "request_id": "req-003",
+  "correlation_id": "corr-003",
+  "access": {
+    "tenant_id": "t-acme",
+    "at": 150
+  },
+  "expect": "pass",
+  "expected": {
+    "terminal": "GRANT_TIER_B",
+    "note": "granted"
+  },
+  "name": "tb-pass-grant-within-window",
+  "$comment": "PASS: contact erişimi pencere içinde (access_at=150 ≤ expires=160) + doğru tenant → GRANT_TIER_B. R6 auto-expiry / R7 binding doğru."
+}

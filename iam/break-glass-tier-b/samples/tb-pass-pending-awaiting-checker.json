@@ -1,0 +1,24 @@
+{
+  "actor_role": "platform_owner",
+  "action": "read",
+  "target_tenant_id": "t-acme",
+  "resource_type": "transcript",
+  "reason_code": "rc-incident-debug",
+  "now": 100,
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "platform_sre",
+    "authorized": true,
+    "realm": "platform"
+  },
+  "approvals": [],
+  "request_id": "req-005",
+  "correlation_id": "corr-005",
+  "expect": "pass",
+  "expected": {
+    "terminal": "PENDING",
+    "note": "awaiting_checker"
+  },
+  "name": "tb-pass-pending-awaiting-checker",
+  "$comment": "PASS (doğru ara durum): onay yok → quorum dolmaz → PENDING (token YOK). R4 fail-closed; girişim audit'lenir."
+}
