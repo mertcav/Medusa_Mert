@@ -1,0 +1,27 @@
+{
+  "actor_role": "platform_owner",
+  "target_tenant_id": "t-acme",
+  "tier": "B",
+  "resource_type": "transcript",
+  "data_class": "tenant_content",
+  "access_decision": "GRANT_TIER_B",
+  "now": 100,
+  "regulated": true,
+  "dpa_signed": true,
+  "tenant_approval": {
+    "role": "security_compliance_officer",
+    "realm": "tenant",
+    "tenant_id": "t-other",
+    "break_glass_id": "bg-010"
+  },
+  "request_id": "req-010",
+  "correlation_id": "corr-010",
+  "break_glass_id": "bg-010",
+  "expect": "pass",
+  "expected": {
+    "terminal": "HOLD",
+    "note": "awaiting_tenant_approval"
+  },
+  "$comment": "PASS: onay başka tenant'a ait (t-other ≠ t-acme) → geçersiz onay → HOLD. C7 doğru: cross-tenant onay erişim açmaz.",
+  "name": "tba-pass-hold-cross-tenant-approval-invalid"
+}

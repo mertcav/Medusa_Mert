@@ -1,0 +1,173 @@
+{
+  "$comment": "WBS 12.3.4 — TIER B BREAK-GLASS: REGÜLE TENANT require_tenant_approval TOGGLE + DPA BAĞI (BRD §17/§17.7, FR-IAM-010 regüle tenant onay toggle'ı + DPA, SAD §14.4.2, ADR-013, DPIA §8 most-restrictive-wins). 12. workstream'in (IAM & Erişim) ÜÇ KATMANLI BREAK-GLASS'ın İÇERİK/PII KATMANININ (Tier B) REGÜLE TENANT ONAY KATMANI ve F2-Must yeteneği. ALTIN KURAL (BRD §17): L0 (platform) tenant'ın iş içeriğini VARSAYILAN GÖREMEZ — Tier B yalnız DAR, SÜRELİ, ONAYLI, TAM-AUDIT'li kapıyı açar; REGÜLE tenant'ta bu kapı EK olarak TENANT ONAYINA (controller=tenant) + DPA'ya bağlanır. Bu modül 12.3.2'nin GRANT_TIER_B/PENDING/DENY (access_decision) çıktısını TÜKETİR; bir BreakGlassTierBApprovalEvent (actor_role[L0] + target_tenant + tier=B + access_decision + regulated[bool] + tenant_override[on/off/yok] + dpa_signed[bool] + tenant_approval[opsiyonel {role,realm,tenant_id,break_glass_id}] + now[tick] + prior_state[opsiyonel]) alır → DETERMİNİSTİK, FAIL-CLOSED bir karar verir: ALLOW (Tier B erişimi açılabilir — regüle değil/toggle kapalı VEYA regüle + toggle açık + GEÇERLİ tenant onayı + DPA bağlı) | HOLD (erişim AÇILMAZ — 12.3.2 grant etmedi [access_not_granted] VEYA regüle + toggle açık + tenant onayı YOK/beklemede [awaiting_tenant_approval]; idempotent [already_resolved]) | BLOCK (malformed / regüle kontrol DPA'sız [dpa_unbound] → fail-closed). ÇEKİRDEK: (1) C2 REGÜLE VARSAYILAN AÇIK — regulated profile → require_tenant_approval VARSAYILAN true (regulated_toggle_off=0); (2) C3 ONAYSIZ AÇILMAZ — require_tenant_approval=true iken GRANT_TIER_B GEÇERLİ tenant onayı OLMADAN erişimi AÇMAZ (tenant_approval_bypassed=0; FR-IAM-010 'tenant onayı olmadan açılmaz'); (3) C4 ONAY YETKİSİ — onay tenant realm rolünden (controller=tenant); platform self-approval yok (approval_authority_violation=0); (4) C5 DPA BAĞI — regüle kontrol imzalı DPA'ya bağlı (controller=tenant/processor=RMC); DPA'sız → BLOCK (dpa_unbound=0). Motor DETERMİNİSTİK FAIL-CLOSED (Date.now/random YOK; model_hash sha256; tick=dakika sanal-saat). Her karar terminal (C1) + kanıt + model bütünlük manifesti (C10); metrik düşük-kardinalite + ham PII/token yok (C11); model/spec/sample ham içerik/PII/token tutmaz (C12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): Tier B erişim-verme (maker-checker + time-boxed token) → 12.3.2 (TÜKETİLİR); gerekçe kodu + tenant bildirimi → 12.3.3; Tier sınıflandırma + ESCALATE → 12.3.1; rol→permission-key/scope → 12.1.2/12.1.3; WORM audit hash-zinciri → 12.1.8 (TÜKETİLİR); cp.* compliance profile motoru → DPIA.md + F2/F3. KAYNAK DOĞRULUK; çelişkide BRD §17 / FR-IAM-010 / SAD §14.4.2 esastır.",
+  "version": "1.0",
+  "wbs": "12.3.4",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-IAM-010", "FR-IAM-009", "FR-IAM-006", "FR-REC-009", "FR-IAM-005", "FR-IAM-008", "FR-REC-004", "FR-TEN-002", "FR-TST-008"],
+    "srs": ["SR-IAM-010", "SR-IAM-009"],
+    "rtm": ["TC-IAM-010"],
+    "brd": [
+      "§17 (üç katmanlı break-glass FR-IAM-009/010 — 'Regüle tenant'lar (finans/sağlık): Tier B'de tenant onayı zorunlu toggle'ı; regulated compliance profile'da varsayılan açık. B2B2B'de veri controller'ı tenant, RMC processor'dür; bu kontrol DPA'ya bağlanır')",
+      "§17.7 (izolasyon/görünürlük — altın kural: L0 tenant içeriğini varsayılan göremez; içeriğe erişim üç katmanlı break-glass ile)",
+      "§14 (uyumluluk & DPIA — controller/processor rol ayrımı; DPA)"
+    ],
+    "sad": [
+      "§14.4.2 (Backend — 'Regüle tenant toggle: require_tenant_approval=true ise Tier B, tenant onayı olmadan açılmaz; regulated compliance profile'da varsayılan açık; DPA'ya bağlı [controller=tenant, processor=RMC]' — bu modülün TEMEL kararı)",
+      "§12.3 / §19 (compliance profile config-driven; most-restrictive-wins)",
+      "§14 (Audit — tüm break-glass erişimleri audit log'a; FR-IAM-006/FR-REC-009)"
+    ],
+    "adr": [
+      "ADR-013 (üç katmanlı break-glass + regüle tenant onay toggle'ı — bu modül o toggle + DPA bağı katmanı)",
+      "ADR-016 (audit tamper-evidence: hash zinciri — karar audit'i WORM/hash-zincir 12.1.8 RESİPROKAL)",
+      "ADR-001 (deterministik karar fonksiyonu deseni)", "ADR-002 (vendor-neutral / credential-free)"
+    ],
+    "threat_model": [
+      "TM-I-02 (L0 platform rolü tenant içeriğini görür — regüle tenant'ta tenant onayı [controller=tenant] zorunlu; tenant_approval_bypassed=0)",
+      "TM-E-xx (platform aktörü kendi erişimini onaylar [cross-realm self-approval] — no_platform_self_approval; approval_authority_violation=0)",
+      "TM-T-xx (regüle toggle gevşetme / most-restrictive-wins bypass — regulated_toggle_off=0/override_loosened=0)"
+    ],
+    "consumes": [
+      "12.3.2 break-glass-tier-b config/tier-b-model.json (access_decision GRANT_TIER_B/PENDING/DENY + break_glass_id — RESİPROKAL) — TÜKETİLİR",
+      "12.1.1 rbac-model config/rbac-roles.json (security_compliance_officer + tenant_owner onaylayan tenant rolleri + L0 platform aktör rolleri — RESİPROKAL) — TÜKETİLİR",
+      "12.1.8 worm-audit config/worm-audit-model.json (append-only/WORM + hash-zincir — karar audit DEĞİŞMEZLİĞİ RESİPROKAL) — TÜKETİLİR",
+      "tier-b-approval-model.json (frozen — regulated_policy[default_when_regulated + most_restrictive_wins + override_tightens_only] + approval_policy[require_gate + approver_realm/roles + no_platform_self_approval + binding] + dpa_policy[require_dpa_when_regulated + controller/processor + bind_to_dpa] + concurrency_policy + audit + actor_roles)"
+    ],
+    "consumed_by": [
+      "12.3.5 break-glass tam-audit router (ayrı, kısıtlı — bu modülün ALLOW/HOLD/BLOCK kararını + onay/DPA kanıtını audit'ler)",
+      "1.x F1/F2 kod (gerçek FastAPI break-glass router + regüle toggle enforcement + tenant onay akışı + DPA bağı + WORM audit yazımı); 0.4.7 gözlemlenebilirlik"
+    ],
+    "delegates": [
+      "12.3.2 (Tier B erişim-verme: maker-checker + time-boxed token — access_decision TÜKETİLİR)",
+      "12.3.3 (gerekçe kodu semantiği + tenant security_compliance_officer/tenant_owner bildirimi)",
+      "12.3.1 (Tier sınıflandırma A/B/forbidden + ESCALATE_TIER_B)",
+      "12.1.2 / 12.1.3 (rol→permission-key bundle + scope kararı)",
+      "12.1.8 (WORM audit zinciri)",
+      "DPIA.md + F2/F3 (cp.* compliance profile parametre çözümleme motoru — bu modül yalnız regüle BAYRAĞINI + toggle KARARINI tüketir)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Tier B, üç katmanlı break-glass'ın İÇERİK/PII katmanıdır (BRD §17.7, SAD §14.4.2). Bu modül o katmanın REGÜLE TENANT ONAY yüzeyini sahiplenir: L0 platform rolü REGÜLE bir tenant'ın içeriğine (transcript/recording/contact) erişmek istediğinde (GRANT_TIER_B), erişim (1) require_tenant_approval toggle'ı VARSAYILAN AÇIK olmalı (regulated profile; most-restrictive-wins), (2) GEÇERLİ bir TENANT onayı (controller=tenant; tenant realm rolü) olmadan AÇILMAMALI ve (3) regüle kontrol İMZALI DPA'ya bağlı olmalıdır (controller=tenant/processor=RMC). Motor yalnız KARARI + onay/DPA kanıtını + PII'siz/token'siz WORM audit kaydını + model bütünlük manifestini üretir (gerçek FastAPI break-glass router + tenant onay akışı + DPA bağı F1/F2 kod aşamasında); deterministik kontrol düzlemi (Date.now/random YOK; tick=dakika sanal-saat). Vendor-neutral (ADR-002/013).",
+    "tier": "Tier B (üç katmanlı break-glass'ın içerik/PII katmanı; regüle tenant onay toggle + DPA bağı)",
+    "owns": "BRD §17 / FR-IAM-010 / SAD §14.4.2 REGÜLE TENANT ONAY KARARI: BreakGlassTierBApprovalEvent → malformed kapısı (fail-closed) + access_decision yönlendirme (PENDING/DENY → HOLD [access_not_granted]; GRANT_TIER_B → devam) + REGÜLE VARSAYILAN-AÇIK (regulated → require_tenant_approval default true; most-restrictive-wins; regulated_toggle_off C2 + override_tightens_only C6) + DPA BAĞI (regüle → imzalı DPA; DPA'sız → BLOCK dpa_unbound C5) + TENANT ONAY KAPISI (geçerli tenant onayı yok → HOLD awaiting_tenant_approval; bypass → tenant_approval_bypassed C3 + onay yetkisi approval_authority_violation C4 + binding approval_misbinding C7) + replay-safe (C8) + WORM audit (C9) + terminal {ALLOW|HOLD|BLOCK} + model bütünlük manifesti (C10) + karar kanıtı",
+    "delegates": "Tier B erişim-verme (maker-checker + token) → 12.3.2 (TÜKETİLİR); gerekçe kodu + bildirim → 12.3.3; Tier sınıflandırma + ESCALATE → 12.3.1; rol→permission-key/scope → 12.1.2/12.1.3; WORM audit zinciri → 12.1.8; cp.* compliance profile motoru → DPIA.md + F2/F3",
+    "deterministic": true,
+    "fail_closed": true,
+    "decision_at": "Tier B break-glass erişim (GRANT_TIER_B) anı regüle toggle + tenant onayı + DPA bağı kararı (deterministik kontrol düzlemi; gerçek router + tenant onay akışı + DPA bağı + WORM audit yazımı F1/F2 kod)",
+    "trace": "FR-IAM-010, BRD §17, SAD §14.4.2, ADR-013"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ Tier B regüle tenant onay kararı. Önce malformed; sonra access_decision yönlendirme (yalnız GRANT_TIER_B regüle gate gerektirir); sonra regüle varsayılan-açık (most-restrictive-wins) + override-tightens-only; sonra DPA bağı (regüle → imzalı DPA; yoksa BLOCK); sonra tenant onay kapısı (geçerli onay + yetki + binding); sonra replay-safe + audit (WORM/PII-free/immutable). Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "access_routing", "field": "yalnız GRANT_TIER_B regüle onay gate gerektirir; PENDING/DENY → HOLD (access_not_granted)", "invariant": "C1", "outcome": "ALLOW|HOLD|BLOCK",
+       "rule": "access_decision 12.3.2'den TÜKETİLİR. GRANT_TIER_B → erişim açılacak → regüle toggle + tenant onayı + DPA gate ZORUNLU. PENDING (onay bekliyor) / DENY (reddedildi) → 12.3.2 erişimi GRANT ETMEDİ → açılacak erişim YOK → HOLD (access_not_granted; DOĞRU, ihlal değil). Tanınmayan access_decision / malformed event → fail-closed BLOCK."},
+      {"id": "regulated_default_on", "field": "regulated profile → require_tenant_approval VARSAYILAN true (most-restrictive-wins)", "invariant": "C2", "outcome": "ALLOW|HOLD|BLOCK",
+       "rule": "ÇEKİRDEK (FR-IAM-010 'regulated compliance profile'da varsayılan açık'; DPIA §8 most-restrictive-wins): regulated_profiles içindeki bir tenant'ta require_tenant_approval VARSAYILAN AÇIK olmalı — regüle bir tenant'ta toggle KAPALI olamaz. Regüle toggle kapatılarak gate atlanırsa = regulated_toggle_off. regulated_toggle_off=0"},
+      {"id": "tenant_approval_gate", "field": "require_tenant_approval=true iken geçerli tenant onayı olmadan erişim AÇILMAZ", "invariant": "C3", "outcome": "ALLOW|HOLD",
+       "rule": "ÇEKİRDEK (FR-IAM-010 'tenant onayı olmadan açılmaz'; SAD §14.4.2): require_tenant_approval=true iken GRANT_TIER_B erişimi GEÇERLİ bir tenant onayı OLMADAN AÇILAMAZ → HOLD (awaiting_tenant_approval). Onaysız erişimi açmak (ALLOW) = tenant_approval_bypassed. tenant_approval_bypassed=0"},
+      {"id": "approval_authority", "field": "onay tenant realm rolünden (controller=tenant); platform self-approval yok", "invariant": "C4", "outcome": "ALLOW|HOLD",
+       "rule": "ÇEKİRDEK (FR-IAM-010 controller=tenant; 12.1.1 RESİPROKAL): tenant onayı TENANT realm rolünden (security_compliance_officer/tenant_owner) gelmek ZORUNDA. PLATFORM (L0) aktörünün kendi break-glass erişimini onaylaması (cross-realm self-approval) / tenant-dışı realm onayı = approval_authority_violation. approval_authority_violation=0"},
+      {"id": "dpa_binding", "field": "regüle kontrol imzalı DPA'ya bağlı (controller=tenant/processor=RMC); DPA'sız → BLOCK", "invariant": "C5", "outcome": "ALLOW|HOLD|BLOCK",
+       "rule": "ÇEKİRDEK (FR-IAM-010 'DPA'ya bağlanmalıdır [controller=tenant, processor=RMC]'; contract-dpa-checklist D-09): regüle tenant'ta require_tenant_approval kontrolü İMZALI bir DPA'ya BAĞLIDIR. DPA imzalı/bağlı değilken regüle Tier B erişimini açmak = dpa_unbound (regüle kontrolün hukuki dayanağı yok; fail-closed → BLOCK). dpa_unbound=0"},
+      {"id": "override_tightens_only", "field": "tenant override yalnız sıkılaştırır (regüle varsayılan-açık'ı kapatamaz)", "invariant": "C6", "outcome": "ALLOW|HOLD|BLOCK",
+       "rule": "DPIA §8 (tenant override yalnız-sıkılaştırır): tenant override toggle'ı yalnız SIKILAŞTIRABİLİR (kapalı→açık serbest). Regüle varsayılan-AÇIK toggle'ı override ile KAPALIYA çekmek (gevşetme) ENGELLENİR = override_loosened (gevşetme yalnız gerekçe+maker-checker+audit — bu modül kapsamı dışı). override_loosened=0"},
+      {"id": "approval_binding", "field": "tenant onayı yalnız ilgili break_glass_id + target_tenant için geçerli", "invariant": "C7", "outcome": "ALLOW|HOLD",
+       "rule": "Tenant onayı YALNIZ ilgili break_glass_id + target_tenant'a bağlıdır (least-privilege; FR-TEN-002): başka grant'a/tenant'a (cross-tenant) ait onay ile erişim açmak, tenant A'nın onayını tenant B'ye / grant X'i grant Y'ye taşır = approval_misbinding. approval_misbinding=0"},
+      {"id": "replay_safe", "field": "çözülmüş tenant onayı yeniden kullanılamaz", "invariant": "C8", "outcome": "ALLOW|HOLD",
+       "rule": "İdempotent + replay-güvenli: bir grant için tenant onayı TEK kullanımlıktır; çözülmüş (prior_state ∈ {CONSUMED, REVOKED, EXPIRED}) onay bayat kararla DİRİLTİLEMEZ/yeniden kullanılamaz. Çözülmüş onayı yeniden kullanarak erişim açmak = approval_replay. approval_replay=0"},
+      {"id": "audit_emitted", "field": "her karar DEĞİŞMEZ (WORM) audit üretir; PII/token-free + immutable", "invariant": "C9", "outcome": "ALLOW|HOLD|BLOCK",
+       "rule": "ÇEKİRDEK tam-audit (BRD §17.7, SAD §14.4.2, FR-IAM-010/006/FR-REC-009): her karar (ALLOW/HOLD/BLOCK) DEĞİŞMEZ (append-only/WORM) audit üretir (12.1.8 RESİPROKAL; break_glass_id ile). Audit'siz erişim (ALLOW) = unaudited_decision. Audit PII-free + token-free (HAM transcript/recording/contact + HAM token DEĞERİ YAZILMAZ; FR-REC-004) = audit_pii. Emitilen kayıt tahrifatı (row_hash uyumsuz) = audit_mutable. unaudited_decision=0, audit_pii=0, audit_mutable=0"},
+      {"id": "model_integrity", "field": "model frozen + model_hash sha256", "invariant": "C10", "outcome": "ALLOW|HOLD|BLOCK",
+       "rule": "model (regulated_policy/approval_policy/dpa_policy/concurrency_policy/audit/actor_roles) frozen; model_hash = sha256(kanonik); çalışma anında tahrif (ör. require_tenant_approval_default_when_regulated kapatma / no_platform_self_approval kapatma / require_dpa_when_regulated kapatma) yeniden-hesaplanan hash'le yakalanır → model_tampered. Regüle onay/DPA yüzeyi audit edilebilir (ADR-013). model_tampered=0"}
+    ],
+    "evaluation": "malformed_then_access_routing_then_regulated_toggle_then_dpa_binding_then_tenant_approval_then_audit_replay",
+    "trace": "FR-IAM-010, BRD §17, SAD §14.4.2, ADR-013"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed regüle tenant onay + DPA algoritması. Adımlar: (1) malformed (request_id eksik / actor_role L0 değil / target_tenant eksik / tier≠B / access_decision tanınmaz → BLOCK). (2) access routing: access_decision ∈ {PENDING, DENY} → HOLD (access_not_granted; erişim açılmıyor). (3) GRANT_TIER_B: regüle toggle çöz (regulated → require_tenant_approval default true; override yalnız-sıkılaştırır). (4) require_tenant_approval=false (regüle değil + override yok) → ALLOW (not_regulated). (5) require_tenant_approval=true: DPA imzalı değil → BLOCK (dpa_unbound). (6) prior_state çözülmüş → HOLD (already_resolved; idempotent). (7) geçerli tenant onayı (tenant realm rolü + target_tenant + break_glass_id bağlı) yok → HOLD (awaiting_tenant_approval). (8) geçerli onay var → ALLOW (tenant_approved). (9) audit emit (her karar — DEĞİŞMEZ/WORM). Belirsizlik/malformed/DPA'sız → BLOCK (fail-closed); onaysız → HOLD (erişim açılmaz).",
+    "algorithm": "malformed ⇒ BLOCK(malformed) → access_decision ∈ {PENDING,DENY} ⇒ HOLD(access_not_granted) → require_tenant_approval=false ⇒ ALLOW(not_regulated) → dpa_signed=false ⇒ BLOCK(dpa_unbound) → prior_state çözülmüş ⇒ HOLD(already_resolved) → geçerli tenant onayı yok ⇒ HOLD(awaiting_tenant_approval) → geçerli tenant onayı (tenant realm + target_tenant + break_glass_id) ⇒ ALLOW(tenant_approved) → audit emit (her karar, WORM)",
+    "default": "BLOCK",
+    "fail_safe_terminal": "no access (terminal=BLOCK ⇒ erişim geçersiz / DPA'sız; malformed ⇒ BLOCK; regüle + onaysız ⇒ HOLD [erişim açılmaz]; 12.3.2 grant etmedi ⇒ HOLD)",
+    "trace": "SR-IAM-010, BRD §17, FR-IAM-010, SAD §14.4.2"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal kararlar. ALLOW = Tier B erişimi açılabilir (regüle değil/toggle kapalı VEYA regüle + toggle açık + GEÇERLİ tenant onayı [tenant realm rolü, target_tenant + break_glass_id bağlı] + DPA bağlı). HOLD = erişim AÇILMAZ — 12.3.2 grant etmedi (access_not_granted; benign) VEYA regüle + toggle açık + geçerli tenant onayı YOK (awaiting_tenant_approval; ÇEKİRDEK FR-IAM-010) VEYA idempotent (already_resolved). BLOCK = malformed / regüle kontrol DPA'sız (dpa_unbound) → fail-closed. Onaysız'ın HOLD'u + DPA'sız'ın BLOCK'u DOĞRU çıktıdır (altın kural + tenant onayı + DPA korunur).",
+    "list": ["ALLOW", "HOLD", "BLOCK"],
+    "terminal": ["ALLOW", "HOLD", "BLOCK"]
+  },
+
+  "model": {
+    "$comment": "Regüle onay modeli özeti = config/tier-b-approval-model.json (frozen). regulated_policy (default_when_regulated=true + most_restrictive_wins + override_tightens_only) + approval_policy (require_gate + approver_realm=tenant + approver_roles=[SCO,owner] + no_platform_self_approval + binding) + dpa_policy (require_dpa_when_regulated + controller=tenant/processor=rmc + bind_to_dpa) + concurrency_policy (replay-safe) + audit (WORM; PII/token-free; 12.1.8 RESİPROKAL) + actor_roles (L0; 12.1.1 RESİPROKAL).",
+    "frozen": true,
+    "tier": "B",
+    "data_class": "tenant_content",
+    "approver_roles": ["security_compliance_officer", "tenant_owner"],
+    "approver_realm": "tenant",
+    "controller_role": "tenant",
+    "processor_role": "rmc",
+    "actor_roles": ["platform_owner", "platform_sre", "platform_billing"],
+    "audit": "WORM (append-only); PII/token-free; row_hash sha256; her karar audit'lenir (12.1.8 RESİPROKAL; break_glass_id ile)"
+  },
+
+  "enforcement": {
+    "$comment": "Tier B regüle tenant onay + DPA enforcement (BRD §17, FR-IAM-010, SAD §14.4.2). regulated_toggle — regulated profile'da require_tenant_approval varsayılan açık (most-restrictive-wins; override yalnız sıkılaştırır). tenant_approval — require_tenant_approval=true iken geçerli tenant onayı (tenant realm rolü; controller=tenant) olmadan açılmaz; platform self-approval yok. dpa_binding — regüle kontrol imzalı DPA'ya bağlı (controller=tenant/processor=RMC); DPA'sız → BLOCK. audit_layer — her karar DEĞİŞMEZ (WORM) audit (12.1.8 RESİPROKAL; break_glass_id). Karar deterministik kontrol düzlemi.",
+    "regulated_toggle": "regulated profile (finance/health/regulated) → require_tenant_approval VARSAYILAN açık; regüle toggle kapatma → regulated_toggle_off; tenant override yalnız sıkılaştırır (gevşetme → override_loosened) (FR-IAM-010 'regulated profile'da varsayılan açık'; DPIA §8)",
+    "tenant_approval": "require_tenant_approval=true → geçerli tenant onayı (security_compliance_officer/tenant_owner; tenant realm; controller=tenant; target_tenant + break_glass_id bağlı) olmadan erişim AÇILMAZ (HOLD); onaysız açma → tenant_approval_bypassed; platform self-approval / cross-realm → approval_authority_violation (FR-IAM-010 'tenant onayı olmadan açılmaz')",
+    "dpa_binding": "regüle kontrol imzalı DPA'ya bağlı (controller=tenant, processor=RMC); DPA imzalı değil → BLOCK (dpa_unbound) (FR-IAM-010 'DPA'ya bağlanmalıdır'; contract-dpa-checklist D-09)",
+    "audit_layer": "her karar (ALLOW/HOLD/BLOCK) DEĞİŞMEZ (append-only/WORM) audit üretir; row_hash sha256 hash-zincir (12.1.8 worm-audit RESİPROKAL; break_glass_id ile); ham PII + ham token yazılmaz (FR-REC-004)",
+    "decision_at": "Tier B break-glass erişim (GRANT_TIER_B) anı (kontrol düzlemi; gerçek router + tenant onay akışı + DPA bağı + WORM audit yazımı F1/F2 kod)",
+    "trace": "FR-IAM-010, BRD §17, SAD §14.4.2, 12.3.2, 12.1.1, 12.1.8"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. regulated_toggle_off (C2 ÇEKİRDEK) = regüle tenant'ta toggle kapatma; tenant_approval_bypassed (C3 ÇEKİRDEK) = onaysız erişim açma ('tenant onayı olmadan açılmaz' ihlali); approval_authority_violation (C4 ÇEKİRDEK) = platform self-approval / cross-realm onay; dpa_unbound (C5 ÇEKİRDEK) = DPA'sız regüle erişim; override_loosened (C6) = tenant override gevşetme; approval_misbinding (C7) = cross-tenant/cross-grant onay; approval_replay (C8) = çözülmüş onay yeniden; unaudited_decision (C9) = audit'siz erişim; audit_pii (C9) = audit'te ham PII/token; audit_mutable (C9) = emitilen audit tahrif (WORM ihlali); model_tampered (C10) = model bütünlük manifesti tutmuyor. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1/F2 canlı (FastAPI break-glass router + tenant onay akışı + DPA bağı + WORM audit) verisinde doğrulanır.",
+    "max_regulated_toggle_off": 0,
+    "max_tenant_approval_bypassed": 0,
+    "max_approval_authority_violation": 0,
+    "max_dpa_unbound": 0,
+    "max_override_loosened": 0,
+    "max_approval_misbinding": 0,
+    "max_approval_replay": 0,
+    "max_unaudited_decision": 0,
+    "max_audit_pii": 0,
+    "max_audit_mutable": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "Regüle onay her karar için metrikleri hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. l0_break_glass_approval_total{actor_role,decision,result} → regüle onay karar sayımı; break_glass_approval_violation_total → regulated_toggle_off VEYA tenant_approval_bypassed VEYA approval_authority_violation VEYA dpa_unbound VEYA override_loosened VEYA approval_misbinding VEYA approval_replay VEYA unaudited_decision VEYA audit_pii VEYA audit_mutable VEYA model_tampered (C2..C10 ihlal alarmı, 0 olmalı). actor_role+decision+result+approver_role DÜŞÜK kardinalite (label uygun); correlation_id/break_glass_id/target_tenant_id/request_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM İÇERİK/PII + HAM TOKEN metrikte VE log'da VE karar yükünde YOK (BRD §17.7/FR-REC-004). tenant_approval_bypassed>0 (onaysız erişim) VEYA dpa_unbound>0 (DPA'sız) VEYA regulated_toggle_off>0 (regüle gate atlandı) VEYA approval_authority_violation>0 (yetkisiz onay) → kritik alarm ≤2dk (SAD §17.2, NFR 10.1) = regüle break-glass onay ihlali güvenlik/uyumluluk olayı.",
+    "metrics": ["l0_break_glass_approval_total", "break_glass_approval_violation_total"],
+    "low_cardinality_labels": ["actor_role", "decision", "result", "approver_role"],
+    "high_cardinality_trace_only": ["correlation_id", "break_glass_id", "target_tenant_id", "request_id"],
+    "alarm": "tenant_approval_bypassed>0 (onaysız erişim — C3, FR-IAM-010) VEYA dpa_unbound>0 (DPA'sız regüle erişim — C5) VEYA regulated_toggle_off>0 (regüle gate atlandı — C2) VEYA approval_authority_violation>0 (yetkisiz/self-onay — C4) VEYA unaudited_decision>0 (sessiz erişim — C9) VEYA audit_mutable>0 (WORM ihlali — C9) VEYA model_tampered>0 (C10) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "C1", "desc": "Determinizm/tamlık + kanıt + access routing: her BreakGlassTierBApprovalEvent tanımlı malformed→access_routing→regulated_toggle→dpa_binding→tenant_approval→audit/replay algoritması boyunca ilerler ve bir terminal karara {ALLOW|HOLD|BLOCK} ulaşır; aynı girdi → aynı çıktı (deterministik; model_hash sha256 kanonik JSON; tick=dakika sanal-saat; Date.now/random YOK); varsayılan BLOCK (fail-closed); access_decision ∈ {PENDING,DENY} → HOLD (access_not_granted — erişim açılmıyor, DOĞRU). Her karar kanıt taşır (request_id + actor_role + target_tenant + access_decision + regulated + require_tenant_approval + dpa_bound + tenant_approved + tier + terminal + model_hash). stuck_state=0, missing_evidence=0.", "trace": "SR-IAM-010, BRD §17"},
+    {"id": "C2", "desc": "Regüle varsayılan-açık ÇEKİRDEK (FR-IAM-010 'regulated compliance profile'da varsayılan açık'; DPIA §8 most-restrictive-wins): regulated_profiles içindeki bir tenant'ta require_tenant_approval VARSAYILAN AÇIK olmalı — regüle bir tenant'ta toggle KAPALI olamaz. Regüle toggle kapatılarak gate atlanması = regulated_toggle_off. regulated_toggle_off=0.", "trace": "FR-IAM-010, BRD §17, DPIA §8"},
+    {"id": "C3", "desc": "Onaysız açılmaz ÇEKİRDEK (FR-IAM-010 'tenant onayı olmadan açılmaz'; SAD §14.4.2): require_tenant_approval=true iken GRANT_TIER_B erişimi GEÇERLİ bir tenant onayı OLMADAN AÇILAMAZ → HOLD (awaiting_tenant_approval). Onaysız erişimi açmak (ALLOW) = tenant_approval_bypassed. tenant_approval_bypassed=0.", "trace": "FR-IAM-010, BRD §17, SAD §14.4.2"},
+    {"id": "C4", "desc": "Onay yetkisi ÇEKİRDEK (FR-IAM-010 controller=tenant; 12.1.1 RESİPROKAL): tenant onayı TENANT realm rolünden (security_compliance_officer/tenant_owner) gelmek ZORUNDA. PLATFORM (L0) aktörünün kendi break-glass erişimini onaylaması (cross-realm self-approval) / tenant-dışı realm onayı = approval_authority_violation. approval_authority_violation=0.", "trace": "FR-IAM-010, SAD §14.4.2, 12.1.1"},
+    {"id": "C5", "desc": "DPA bağı ÇEKİRDEK (FR-IAM-010 'DPA'ya bağlanmalıdır [controller=tenant, processor=RMC]'; contract-dpa-checklist D-09): regüle tenant'ta require_tenant_approval kontrolü İMZALI bir DPA'ya BAĞLIDIR. DPA imzalı/bağlı değilken regüle Tier B erişimini açmak = dpa_unbound (regüle kontrolün hukuki dayanağı yok; fail-closed → BLOCK). dpa_unbound=0.", "trace": "FR-IAM-010, BRD §14, DPIA §2"},
+    {"id": "C6", "desc": "Override yalnız-sıkılaştırır (DPIA §8): tenant override toggle'ı yalnız SIKILAŞTIRABİLİR (kapalı→açık serbest). Regüle varsayılan-AÇIK toggle'ı override ile KAPALIYA çekmek (gevşetme) ENGELLENİR = override_loosened (gevşetme yalnız gerekçe+maker-checker+audit; bu modül kapsamı dışı). override_loosened=0.", "trace": "FR-IAM-010, DPIA §8"},
+    {"id": "C7", "desc": "Onay binding (FR-TEN-002): tenant onayı YALNIZ ilgili break_glass_id + target_tenant'a bağlıdır. Başka grant'a/tenant'a (cross-tenant) ait onay ile erişim açmak = approval_misbinding (tenant A'nın onayını tenant B'ye / grant X'i grant Y'ye taşıma). approval_misbinding=0.", "trace": "FR-IAM-010, FR-TEN-002"},
+    {"id": "C8", "desc": "Replay-safe / idempotent: bir grant için tenant onayı TEK kullanımlıktır; çözülmüş (prior_state ∈ {CONSUMED, REVOKED, EXPIRED}) onay bayat kararla DİRİLTİLEMEZ/yeniden kullanılamaz. Çözülmüş onayı yeniden kullanarak erişim açmak = approval_replay. approval_replay=0.", "trace": "FR-IAM-010, SAD §14.4.2"},
+    {"id": "C9", "desc": "Audit emitted / PII-free / immutable ÇEKİRDEK (BRD §17.7, SAD §14.4.2 'tam-audit'li break-glass router', FR-IAM-010/006/FR-REC-009): her karar (ALLOW/HOLD/BLOCK) DEĞİŞMEZ (append-only/WORM) audit üretir (12.1.8 RESİPROKAL; break_glass_id ile). Audit'siz erişim = unaudited_decision. Audit PII-free + token-free (HAM transcript/recording/contact + HAM token DEĞERİ YAZILMAZ; FR-REC-004) = audit_pii. Emitilen kayıt tahrifatı (row_hash uyumsuz) = audit_mutable. unaudited_decision=0, audit_pii=0, audit_mutable=0.", "trace": "FR-IAM-006, FR-REC-009, FR-REC-004, ADR-016, 12.1.8"},
+    {"id": "C10", "desc": "Model bütünlük manifesti: regüle onay modeli frozen (regulated_policy/approval_policy/dpa_policy/concurrency_policy/audit/actor_roles) + model_hash = sha256(kanonik) deterministik; çalışma anında tahrif (ör. require_tenant_approval_default_when_regulated kapatma / no_platform_self_approval kapatma / require_dpa_when_regulated kapatma) yeniden-hesaplanan hash tutmaz → model_tampered. Regüle onay/DPA yüzeyinin değiştirilemez olduğunu test edilebilir kılar (ADR-013). model_tampered=0.", "trace": "FR-IAM-010, ADR-013"},
+    {"id": "C11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (actor_role/decision/result/approver_role); correlation_id/break_glass_id/target_tenant_id metrikte yok, yalnız trace; HAM İÇERİK/PII (transcript/recording/contact DEĞERİ) + HAM TOKEN DEĞERİ metrikte VE log'da VE karar yükünde yok (0.4.7 label_policy, BRD §17.7/FR-REC-004).", "trace": "BRD §17.7, 0.4.7 label_policy"},
+    {"id": "C12", "desc": "Sır/içerik yok: model/spec/sample HAM içerik / PII (transcript/recording/contact/telefon/kart/OTP/ad DEĞERİ) / credential (break-glass/onay TOKEN DEĞERİ / DB şifresi) tutmaz — yalnız ACTOR ROL adları (platform_owner) + ONAYLAYAN ROL adları (security_compliance_officer/tenant_owner) + REALM enum (platform/tenant) + VERİ-SINIFI enum (tenant_content) + RESOURCE_TYPE adı (transcript) + TIER/DECISION enum (B/ALLOW) + regulated/dpa/onay BOOL + profil enum (finance/health) + tick (tamsayı) + yapısal korelasyon/aktör KİMLİK (req-/bg-/t- slug) + HASH. Rol/realm/sınıf/kaynak/tier/karar/bool/profil/kimlik/hash PII DEĞİLDİR. Bu modül Tier B REGÜLE ONAY KARARINI verir — ham satır içeriği (PII) ve ham token AKMAZ; karar + audit yükü de PII'siz + token'sizdir. secret_or_pii=0.", "trace": "BRD §17.7, FR-REC-004, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/model/sample'lar HAM içerik, PII (TRANSCRIPT/RECORDING/CONTACT içeriği, TELEFON numarası, KART [PAN/CVV], OTP kodu, PAROLA, müşteri ADI DEĞERİ) veya credential (break-glass/onay TOKEN / DB şifresi DEĞERİ) TUTMAZ — yalnız ACTOR ROL ADLARI (platform_owner/platform_sre/platform_billing) + ONAYLAYAN ROL ADLARI (security_compliance_officer/tenant_owner) + REALM ENUM (platform/tenant) + VERİ-SINIFI ENUM (tenant_content) + RESOURCE_TYPE ADLARI (transcript/recording/contact) + TIER ENUM (B) + DECISION ENUM (ALLOW/HOLD/BLOCK) + regulated/dpa_signed/tenant_approved BOOL + PROFİL ENUM (finance/health/regulated) + tick (SANAL-SAAT tamsayı dakika) + yapısal korelasyon/aktör KİMLİK (SENTETİK slug ör. req-001/bg-001/t-acme) + HASH (sha256). Rol/realm/sınıf/kaynak/tier/decision/bool/profil/kimlik/hash PII DEĞİLDİR; tasarımca PII-olmayandır. Bu modül Tier B REGÜLE ONAY KARARINI verir — ham satır içeriği (transcript/recording/contact PII) + HAM TOKEN DEĞERİ bu modülde AKMAZ; karar ve audit kaydı da PII'siz + token'sizdir.",
+    "forbids": ["transcript_text_value", "recording_audio_value", "contact_pii_value", "customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "customer_name_value", "db_password_value", "connection_string_value", "break_glass_token_value", "approval_token_value", "token_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}

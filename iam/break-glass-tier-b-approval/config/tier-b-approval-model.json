@@ -1,0 +1,84 @@
+{
+  "$comment": "WBS 12.3.4 — TIER B BREAK-GLASS: REGÜLE TENANT require_tenant_approval TOGGLE + DPA BAĞI modeli. Bu dosya 12. workstream'in (IAM & Erişim) ÜÇ KATMANLI BREAK-GLASS'ın İÇERİK/PII KATMANININ (Tier B) REGÜLE TENANT ONAY KATMANININ DEĞİŞMEZ (frozen) KAYNAK DOĞRULUĞUDUR: BRD §17 / §17.7 ('Regüle tenant'lar (finans/sağlık): Tier B'de tenant onayı zorunlu toggle'ı; regulated compliance profile'da varsayılan açık. B2B2B'de veri controller'ı tenant, RMC processor'dür; bu kontrol DPA'ya bağlanır') + FR-IAM-010 (regüle tenant onay toggle'ı + DPA) + SAD §14.4.2 ('Regüle tenant toggle: require_tenant_approval=true ise Tier B, tenant onayı olmadan açılmaz; regulated compliance profile'da varsayılan açık; DPA'ya bağlı [controller=tenant, processor=RMC]') + ADR-013 (üç katmanlı break-glass + regüle tenant onay toggle'ı) + DPIA §8 (compliance profile çözümleme: most-restrictive-wins; tenant override yalnız-sıkılaştırır). ALTIN KURAL (BRD §17): L0 (platform) tenant'ın iş içeriğini VARSAYILAN GÖREMEZ — Tier B yalnız DAR, SÜRELİ, ONAYLI, TAM-AUDIT'li kapıyı açar; REGÜLE tenant'ta bu kapı EK olarak TENANT ONAYINA bağlanır (controller=tenant). Bu modül 12.3.2'nin GRANT_TIER_B/PENDING/DENY (access_decision) kararını TÜKETİR; bir BreakGlassTierBApprovalEvent için DETERMİNİSTİK, FAIL-CLOSED bir karar verir: ALLOW (Tier B erişimi açılabilir — regüle değil/toggle kapalı VEYA regüle + toggle açık + GEÇERLİ tenant onayı + DPA bağlı) | HOLD (erişim AÇILMAZ — 12.3.2 grant etmedi [access_not_granted] VEYA regüle + toggle açık + tenant onayı YOK/beklemede [awaiting_tenant_approval]; idempotent [already_resolved]) | BLOCK (malformed / regüle kontrol DPA'sız [dpa_unbound] → fail-closed). ÇEKİRDEK: (1) C2 REGÜLE VARSAYILAN AÇIK — regulated compliance profile → require_tenant_approval VARSAYILAN true (most-restrictive-wins; regulated_toggle_off=0); (2) C3 ONAYSIZ AÇILMAZ — require_tenant_approval=true iken GRANT_TIER_B GEÇERLİ tenant onayı OLMADAN erişimi AÇMAZ (HOLD; tenant_approval_bypassed=0; FR-IAM-010 'tenant onayı olmadan açılmaz'); (3) C4 ONAY YETKİSİ — onay TENANT realm rolünden (security_compliance_officer/tenant_owner; controller=tenant) gelir, PLATFORM aktörü kendi erişimini onaylayamaz (approval_authority_violation=0); (4) C5 DPA BAĞI — regüle kontrol İMZALI DPA'ya bağlıdır (controller=tenant, processor=RMC); DPA'sız → BLOCK (dpa_unbound=0). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): Tier B erişim-verme (maker-checker + time-boxed token + token-binding + replay + WORM audit) → 12.3.2 (access_decision TÜKETİLİR); gerekçe kodu semantiği + tenant security_compliance_officer/tenant_owner BİLDİRİMİ → 12.3.3; Tier sınıflandırma + ESCALATE → 12.3.1; rol→permission-key/scope → 12.1.2/12.1.3; append-only/WORM audit hash-zinciri → 12.1.8 (TÜKETİLİR); compliance profile parametre çözümleme motoru (cp.*) → DPIA.md + Faz F2/F3 (bu modül yalnız regüle BAYRAĞINI + toggle KARARINI TÜKETİR). Bu dosya FROZEN — değiştirilemez regüle-varsayılan-açık + onay-yetkisi + DPA-bağı yüzeyi (model_hash sha256 ile audit edilebilir). ÇELİŞKİDE BRD §17 / FR-IAM-010 / SAD §14.4.2 esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+
+  "$tier_comment": "Üç katmanlı break-glass'ın İÇERİK/PII katmanı (Tier B). Bu modül YALNIZ Tier B GRANT_TIER_B kararına eşlik eden REGÜLE TENANT require_tenant_approval TOGGLE + DPA BAĞI kararını sahiplenir. Erişim-verme kararı (maker-checker + time-boxed token) 12.3.2'nin; bu modül 12.3.2'nin access_decision çıktısını TÜKETİR. PENDING/DENY (12.3.2 grant etmedi) → erişim zaten açılmıyor → HOLD (access_not_granted; DOĞRU, ihlal değil).",
+  "tier": "B",
+  "data_class": "tenant_content",
+
+  "$regulated_comment": "ÇEKİRDEK regüle tenant toggle çözümlemesi (FR-IAM-010 'regulated compliance profile'da varsayılan açık'; SAD §14.4.2; DPIA §8 most-restrictive-wins). require_tenant_approval_default_when_regulated=true: bir tenant regulated compliance profile'da (regulated_profiles; ör. finans/sağlık) ise require_tenant_approval VARSAYILAN AÇIK — regüle bir tenant'ta toggle KAPALI olamaz (regulated_toggle_off ÇEKİRDEK ihlal; most-restrictive-wins'i çiğner). default_when_unregulated=false: regüle olmayan tenant'ta toggle varsayılan kapalı (tenant opt-in ile sıkılaştırabilir). most_restrictive_wins=true + override_tightens_only=true: tenant override (DPIA §8) yalnız SIKILAŞTIRABİLİR (kapalı→açık serbest); regüle varsayılan-açık'ı KAPALIYA çekme (gevşetme) ENGELLENİR (override_loosened ihlal; gevşetme yalnız gerekçe+maker-checker+audit ile — bu modül kapsamı dışı, F2/F3).",
+  "regulated_policy": {
+    "regulated_profiles": ["finance", "health", "regulated"],
+    "require_tenant_approval_default_when_regulated": true,
+    "default_when_unregulated": false,
+    "most_restrictive_wins": true,
+    "override_tightens_only": true,
+    "reciprocal": "DPIA §8 compliance profile çözümleme (most-restrictive-wins; tenant override yalnız-sıkılaştırır); cp.legal.* regüle bayrağı"
+  },
+
+  "$approval_comment": "ÇEKİRDEK tenant onay yetkisi (FR-IAM-010 'tenant onayı zorunlu'; B2B2B controller=tenant). require_tenant_approval_gate=true: require_tenant_approval=true iken Tier B erişimi GEÇERLİ tenant onayı OLMADAN AÇILMAZ (HOLD; tenant_approval_bypassed ÇEKİRDEK ihlal). approver_realm=tenant + approver_roles: onay TENANT realm rolünden gelmeli (security_compliance_officer/tenant_owner; 12.1.1 RESİPROKAL — tenant kendi verisinin controller'ıdır). no_platform_self_approval=true: PLATFORM (L0) aktörü kendi break-glass erişimini onaylayamaz — platform aktörünün onayı (cross-realm self-approval) approval_authority_violation ÇEKİRDEK ihlaldir. bind_break_glass_id + bind_target_tenant=true: tenant onayı YALNIZ ilgili break_glass_id + target_tenant için geçerlidir (standing/cross-tenant onay yok; başka grant'a/tenant'a bağlanan onay approval_misbinding ihlal).",
+  "approval_policy": {
+    "require_tenant_approval_gate": true,
+    "approver_realm": "tenant",
+    "approver_roles": ["security_compliance_officer", "tenant_owner"],
+    "no_platform_self_approval": true,
+    "bind_break_glass_id": true,
+    "bind_target_tenant": true,
+    "reciprocal": "12.1.1 rbac-roles (security_compliance_officer + tenant_owner — tenant realm L1 onaylayan rolleri; controller=tenant)"
+  },
+
+  "$dpa_comment": "ÇEKİRDEK DPA bağı (FR-IAM-010 'DPA'ya bağlanmalıdır [controller=tenant, processor=RMC]'; vendor-eval/contract-dpa-checklist.md D-09). require_dpa_when_regulated=true: regüle tenant'ta require_tenant_approval kontrolü İMZALI bir DPA'ya BAĞLIDIR — DPA imzalı/bağlı değilken regüle Tier B erişimi açılamaz → BLOCK (dpa_unbound ÇEKİRDEK ihlal; fail-closed; regüle kontrolün hukuki dayanağı yok). controller_role=tenant + processor_role=rmc: B2B2B veri koruma rol modeli — tenant controller, RMC processor; tenant onayı controller'ın talimatıdır. bind_control_to_dpa=true: regüle onay kontrolü DPA'ya bağlanır (D-09).",
+  "dpa_policy": {
+    "require_dpa_when_regulated": true,
+    "controller_role": "tenant",
+    "processor_role": "rmc",
+    "bind_control_to_dpa": true,
+    "reciprocal": "vendor-eval/contract-dpa-checklist.md D-09 (regüle tenant break-glass onayı require_tenant_approval DPA'ya bağlı); DPIA §2 controller/processor rol ayrımı"
+  },
+
+  "$idempotency_comment": "İdempotent + replay-güvenli: bir break-glass grant için tenant onayı TEK kullanımlıktır; çözülmüş (prior_state ∈ {CONSUMED, REVOKED, EXPIRED}) tenant onayı bayat/tekrarlı kararla DİRİLTİLEMEZ/yeniden KULLANILAMAZ — kullanılmış/iptal/süresi dolmuş onay yeniden erişim açamaz (approval_replay). Kararlar deterministik (Date.now/random YOK; sanal-saat tick).",
+  "concurrency_policy": {
+    "idempotent_decision": true,
+    "no_resurrect_resolved_approval": true,
+    "resolved_states": ["CONSUMED", "REVOKED", "EXPIRED"]
+  },
+
+  "$actor_comment": "L0 (platform) RBAC aktör rolleri (12.1.1 rbac-model RESİPROKAL; BRD §17.2). Tier B break-glass erişimini TALEP EDEN aktör platform realm rolüdür (actor_role). ONAYLAYAN ise tenant realm rolüdür (security_compliance_officer/tenant_owner) — platform aktöründen AYRI realm (controller=tenant). actor_realm = 'platform'; approver_realm = 'tenant'. Platform aktörünün kendi erişimini onaylaması cross-realm self-approval = ihlaldir.",
+  "actor_roles": ["platform_owner", "platform_sre", "platform_billing"],
+  "actor_realm": "platform",
+
+  "$audit_comment": "ÇEKİRDEK tam-audit (BRD §17.7, SAD §14.4.2 'tam-audit'li break-glass router', FR-IAM-010/006/FR-REC-009): HER regüle onay kararı (ALLOW / HOLD / BLOCK) DEĞİŞMEZ (append-only/WORM) bir audit kaydı üretir — SESSİZ erişim YOKTUR. Audit DEĞİŞMEZLİĞİ + hash-zincir 12.1.8 worm-audit'e RESİPROKAL (row_hash=sha256(kanonik); UPDATE/DELETE reddedilir). Audit kaydı PII'siz: yalnız opak actor_role + actor_realm + target_tenant_ref + data_class + resource_type + tier + decision + regulated + require_tenant_approval + tenant_approved + dpa_bound + approver_role (opak rol enum) + occurred_tick + break_glass_id + row_hash. HAM PII (transcript/recording/contact DEĞERİ) ve HAM TOKEN (break-glass/onay token DEĞERİ) audit'e/karara YAZILMAZ (FR-REC-004, BRD §17.7).",
+  "audit": {
+    "required_for_every_decision": true,
+    "worm": true,
+    "append_only": true,
+    "hash_algo": "sha256",
+    "no_raw_pii": true,
+    "no_raw_token": true,
+    "reciprocal": "12.1.8 worm-audit (append-only/WORM + hash-zincir; row_hash)",
+    "record_fields": ["record_id", "break_glass_id", "correlation_id", "actor_role", "actor_realm", "target_tenant_ref", "data_class", "resource_type", "tier", "decision", "regulated", "require_tenant_approval", "tenant_approved", "dpa_bound", "approver_role", "occurred_tick", "row_hash"]
+  },
+
+  "$delegation_comment": "KAPSAM AYRIMI (bilinçli). Bu modül YALNIZ Tier B REGÜLE TENANT require_tenant_approval TOGGLE (regüle varsayılan-açık + most-restrictive-wins + override-tightens-only) + TENANT ONAY YETKİSİ (controller=tenant; platform self-approval yok) + DPA BAĞI (controller=tenant/processor=RMC) kararını sahiplenir. Tier B erişim-verme (maker-checker + time-boxed token) 12.3.2'nin (access_decision TÜKETİLİR); gerekçe kodu semantiği + tenant bildirimi 12.3.3'ün; Tier sınıflandırma + ESCALATE 12.3.1'in; rol→permission-key/scope 12.1.2/12.1.3'ün; WORM audit hash-zinciri 12.1.8'in; compliance profile parametre çözümleme motoru (cp.*) DPIA.md + F2/F3'ün DELEGE/TÜKETİLİR.",
+  "delegates": {
+    "tier_b_access_decision": "12.3.2 (maker-checker + time-boxed token + token-binding + replay + WORM audit — access_decision TÜKETİLİR)",
+    "reason_code_and_notification": "12.3.3 (gerekçe kodu semantiği + tenant security_compliance_officer/tenant_owner anlık bildirimi)",
+    "tier_classification_escalate": "12.3.1 (Tier A/B/forbidden sınıflandırma + ESCALATE_TIER_B)",
+    "rbac_role_scope": "12.1.2/12.1.3 (rol→permission-key bundle + scope kararı)",
+    "worm_audit_chain": "12.1.8 (append-only/WORM audit + hash-zincir)",
+    "compliance_profile_engine": "DPIA.md + F2/F3 (cp.* parametre çözümleme motoru; bu modül yalnız regüle BAYRAĞINI + toggle KARARINI tüketir)"
+  },
+
+  "consumes": {
+    "$comment": "RESİPROKAL bağlantılar. 12.3.2 tier-b-model.json: access_decision (GRANT_TIER_B/PENDING/DENY) + break_glass_id (RESİPROKAL). 12.1.1 rbac-roles.json: onaylayan tenant rolleri (security_compliance_officer/tenant_owner) + L0 aktör rolleri (RESİPROKAL). 12.1.8 worm-audit-model.json: audit DEĞİŞMEZLİĞİ (append-only/WORM + hash-zincir) RESİPROKAL.",
+    "tier_b_model": "12.3.2 ../break-glass-tier-b/config/tier-b-model.json (access_decision GRANT_TIER_B/PENDING/DENY + break_glass_id RESİPROKAL)",
+    "rbac_model": "12.1.1 ../rbac-model/config/rbac-roles.json (security_compliance_officer + tenant_owner onaylayan tenant rolleri + L0 aktör rolleri RESİPROKAL)",
+    "worm_audit_model": "12.1.8 ../worm-audit/config/worm-audit-model.json (append-only/WORM + hash-zincir RESİPROKAL)"
+  },
+
+  "terminal": ["ALLOW", "HOLD", "BLOCK"],
+  "default": "BLOCK",
+  "trace": "BRD §17, §17.7, FR-IAM-010, SAD §14.4.2, ADR-013, DPIA §8, 12.3.2, 12.1.1, 12.1.8"
+}

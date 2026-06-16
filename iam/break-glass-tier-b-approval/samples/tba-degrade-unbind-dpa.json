@@ -1,0 +1,26 @@
+{
+  "actor_role": "platform_owner",
+  "target_tenant_id": "t-acme",
+  "tier": "B",
+  "resource_type": "transcript",
+  "data_class": "tenant_content",
+  "access_decision": "GRANT_TIER_B",
+  "now": 100,
+  "regulated": true,
+  "dpa_signed": false,
+  "tenant_approval": {
+    "role": "security_compliance_officer",
+    "realm": "tenant",
+    "tenant_id": "t-acme",
+    "break_glass_id": "bg-107"
+  },
+  "request_id": "req-107",
+  "correlation_id": "corr-107",
+  "break_glass_id": "bg-107",
+  "inject": [
+    "unbind_dpa"
+  ],
+  "expect": "fail",
+  "$comment": "DEGRADE unbind_dpa: regüle + DPA imzasız ama erişim açıldı → ALLOW → dpa_unbound (C5 ÇEKİRDEK ihlal; regüle kontrolün hukuki dayanağı [DPA] yok).",
+  "name": "tba-degrade-unbind-dpa"
+}

@@ -1,0 +1,28 @@
+{
+  "actor_role": "platform_owner",
+  "target_tenant_id": "t-acme",
+  "tier": "B",
+  "resource_type": "transcript",
+  "data_class": "tenant_content",
+  "access_decision": "GRANT_TIER_B",
+  "now": 100,
+  "regulated": true,
+  "dpa_signed": true,
+  "tenant_approval": {
+    "role": "security_compliance_officer",
+    "realm": "tenant",
+    "tenant_id": "t-acme",
+    "break_glass_id": "bg-008"
+  },
+  "prior_state": "CONSUMED",
+  "request_id": "req-008",
+  "correlation_id": "corr-008",
+  "break_glass_id": "bg-008",
+  "expect": "pass",
+  "expected": {
+    "terminal": "HOLD",
+    "note": "already_resolved"
+  },
+  "$comment": "PASS: tenant onayı çözülmüş (prior_state=CONSUMED) → idempotent → HOLD (already_resolved). C8 replay-safe doğru.",
+  "name": "tba-pass-hold-already-resolved"
+}

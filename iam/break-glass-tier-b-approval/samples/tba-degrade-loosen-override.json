@@ -1,0 +1,22 @@
+{
+  "actor_role": "platform_owner",
+  "target_tenant_id": "t-acme",
+  "tier": "B",
+  "resource_type": "transcript",
+  "data_class": "tenant_content",
+  "access_decision": "GRANT_TIER_B",
+  "now": 100,
+  "regulated": true,
+  "dpa_signed": true,
+  "tenant_override": "off",
+  "tenant_approval": null,
+  "request_id": "req-102",
+  "correlation_id": "corr-102",
+  "break_glass_id": "bg-102",
+  "inject": [
+    "loosen_override"
+  ],
+  "expect": "fail",
+  "$comment": "DEGRADE loosen_override: tenant override regüle varsayılan-AÇIK toggle'ı KAPALIYA çekti (gevşetti) → ALLOW → override_loosened (C6 ihlal; override yalnız sıkılaştırabilir, DPIA §8).",
+  "name": "tba-degrade-loosen-override"
+}

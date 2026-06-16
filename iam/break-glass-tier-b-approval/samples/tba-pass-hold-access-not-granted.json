@@ -1,0 +1,22 @@
+{
+  "actor_role": "platform_owner",
+  "target_tenant_id": "t-acme",
+  "tier": "B",
+  "resource_type": "transcript",
+  "data_class": "tenant_content",
+  "access_decision": "PENDING",
+  "now": 100,
+  "regulated": true,
+  "dpa_signed": true,
+  "tenant_approval": null,
+  "request_id": "req-006",
+  "correlation_id": "corr-006",
+  "break_glass_id": "bg-006",
+  "expect": "pass",
+  "expected": {
+    "terminal": "HOLD",
+    "note": "access_not_granted"
+  },
+  "$comment": "PASS: 12.3.2 access_decision=PENDING (grant etmedi) → erişim açılmıyor → HOLD (access_not_granted). C1 routing doğru, ihlal değil.",
+  "name": "tba-pass-hold-access-not-granted"
+}
