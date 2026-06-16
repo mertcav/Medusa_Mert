@@ -1,0 +1,9 @@
+{
+  "name": "rp-unknown-country-block",
+  "$comment": "K7 fail-closed: bilinmeyen ülke (ZZ) → kayıt politikası çözülemez → BLOCK unknown_profile, HİÇBİR medya (privacy-safe NO-RECORD). Geçer.",
+  "expect": "pass",
+  "channel": "voice", "direction": "inbound", "country": "ZZ", "use_case": "sales",
+  "request_id": "req-zz-001", "tenant_id": "t-acme", "correlation_id": "corr-zz-001", "call_id": "call-zz-001",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "EU",
+  "expected": {"terminal": "BLOCK", "block_reason": "unknown_profile", "recording_allowed": false, "no_media_captured": true}
+}

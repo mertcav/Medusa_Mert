@@ -1,0 +1,10 @@
+{
+  "name": "rp-ignore-tenant-override-degraded",
+  "$comment": "DEGRADE [K2]: ignore_tenant_override — tenant kaydı kapatmış ama tenant katmanı atlanır → policy_resolution_error + yanlış RECORD. FR-REC-001 tenant boyutu ihlali. Kapı ELER.",
+  "expect": "fail",
+  "channel": "voice", "direction": "outbound", "country": "TR", "use_case": "sales",
+  "request_id": "req-d-005", "tenant_id": "t-acme", "correlation_id": "corr-d-005", "call_id": "call-d-005",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "TR",
+  "tenant_override": {"recording_enabled": false},
+  "inject": ["ignore_tenant_override"]
+}

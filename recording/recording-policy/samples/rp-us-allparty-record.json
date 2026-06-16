@@ -1,0 +1,9 @@
+{
+  "name": "rp-us-allparty-record",
+  "$comment": "US all_party (iki-taraf rıza): tüm taraflar rıza (all_party_consent=true ∧ granted) ∧ notice → RECORD. Geçer.",
+  "expect": "pass",
+  "channel": "voice", "direction": "outbound", "country": "US", "use_case": "sales", "profile_id": "PROFILE-US-CALL",
+  "request_id": "req-us-001", "tenant_id": "t-acme", "correlation_id": "corr-us-001", "call_id": "call-us-001",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "NA",
+  "expected": {"terminal": "RECORD", "recording_allowed": true, "no_media_captured": false, "consent_model": "all_party"}
+}

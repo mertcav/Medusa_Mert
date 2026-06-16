@@ -1,0 +1,78 @@
+{
+  "$comment": "WBS 11.1 Kayıt politikası (tenant/ülke/use-case) + tamamen kapatma — kayıt-başlatma politikaları (SAD §10.2 Recording Pipeline + §19.3 compliance profile + DB §22 recording + §8 residency; vendor-neutral, credential-free). Bu config, her ülke compliance profili için KAYIT-BAŞLATMA parametrelerini tutar: recording_enabled (varsayılan kayıt açık mı) + consent_model (notice/explicit_optin/all_party — DPIA §5.2 cp.transparency.recording_consent_model 'Kayıt başlatma kapısı FR-REC-001') + notice_required (kayıt bildirimi zorunlu) + in_region_storage_required (residency, NFR 10.7) + home_region + default_channels (FR-REC-003 attribute, 11.2 tüketir) + retention_days (FR-REC-006 attribute, retention motoru tüketir). Ayrıca use_case_overlays: use-case bazında SIKILAŞTIRAN overlay'ler (most-restrictive-wins; ör. bir use-case kaydı tamamen kapatabilir veya consent modelini sıkılaştırabilir — FR-REC-001 use-case boyutu). Tenant override REQUEST'te gelir (yalnız sıkılaştırır). Profile ÇÖZÜMLEME motoru (most-restrictive-wins + tenant override uygulama) DPIA §5/SAD §19.3'tedir; bu config kayıt-özgü DEĞERLERİ taşır + kayıt-özgü katman çözümünü modül uygular. consent_state KAYDI → consent:manage + 10.2.1 (modül okur). Değerler MÜHENDİSLİK varsayılanı, counsel onayına + pilot tenant + compliance profile (F1) ile kalibre edilir. Sır/credential ve PII (ham telefon/MSISDN/ses) YOK — yalnız enum/sayı/bayrak.",
+  "version": "1.0",
+  "wbs": "11.1",
+  "default_profile": "PROFILE-TR",
+  "channel": "voice",
+  "profiles": {
+    "PROFILE-TR": {
+      "$comment": "TR (KVKK/ETK): kayıt açık, consent_model=notice (KVKK aydınlatma yükümlülüğü — kayıt bildirimi çalınması yeterli, DPIA §5.2 PROFILE-TR recording_consent_model=notice), notice zorunlu; residency in-region (TR/EU bölge kararı açık — DPIA §5.4), çift kanal varsayılan. Değerler MÜHENDİSLİK varsayılanı.",
+      "country": "TR",
+      "recording_enabled": true,
+      "consent_model": "notice",
+      "notice_required": true,
+      "in_region_storage_required": true,
+      "home_region": "TR",
+      "default_channels": 2,
+      "retention_days": 365
+    },
+    "PROFILE-UK": {
+      "$comment": "UK (UK_GDPR/PECR): kayıt açık, consent_model=notice (iş amaçlı tek-taraf bildirim yeterli, DPIA §5.2 PROFILE-UK recording_consent_model=notice), notice zorunlu; residency in-region, çift kanal.",
+      "country": "UK",
+      "recording_enabled": true,
+      "consent_model": "notice",
+      "notice_required": true,
+      "in_region_storage_required": true,
+      "home_region": "UK",
+      "default_channels": 2,
+      "retention_days": 365
+    },
+    "PROFILE-EU": {
+      "$comment": "EU (EU_GDPR): kayıt açık ama daha sıkı consent_model=explicit_optin (açık rıza; GDPR explicit consent yaklaşımı), notice zorunlu; residency in-region, çift kanal. (Mühendislik varsayılanı; counsel use-case'e göre legitimate_interest seçebilir.)",
+      "country": "EU",
+      "recording_enabled": true,
+      "consent_model": "explicit_optin",
+      "notice_required": true,
+      "in_region_storage_required": true,
+      "home_region": "EU",
+      "default_channels": 2,
+      "retention_days": 180
+    },
+    "PROFILE-US-CALL": {
+      "$comment": "İLLÜSTRATİF ABD profili: kayıt açık, consent_model=all_party (iki-taraf rıza eyaletleri — tüm taraflar rıza vermeli), notice zorunlu; residency NA. Gerçek değerler eyalet + counsel'a tabi (mühendislik varsayılanı; iki-taraf rıza all_party kanıtı).",
+      "country": "US",
+      "recording_enabled": true,
+      "consent_model": "all_party",
+      "notice_required": true,
+      "in_region_storage_required": true,
+      "home_region": "NA",
+      "default_channels": 2,
+      "retention_days": 365
+    }
+  },
+  "use_case_overlays": {
+    "$comment": "Use-case bazında SIKILAŞTIRAN overlay'ler (FR-REC-001 use-case boyutu; most-restrictive-wins). Yalnız tanımlı alanlar ülke profilini sıkılaştırır (recording_enabled=false ⇒ tamamen kapatma; consent_model ⇒ en katı seçilir). Tanımsız use_case = overlay yok (yalnız ülke + tenant).",
+    "internal_test": {
+      "$comment": "Dahili test çağrıları: kayıt tamamen kapalı (use-case-düzeyi tamamen kapatma — FR-REC-002).",
+      "recording_enabled": false
+    },
+    "legal_privileged": {
+      "$comment": "Hukuki ayrıcalıklı görüşme: kayıt tamamen kapalı (use-case-düzeyi tamamen kapatma — FR-REC-002).",
+      "recording_enabled": false
+    },
+    "collections": {
+      "$comment": "Tahsilat: consent modelini sıkılaştırır (explicit_optin) — ülke notice olsa bile açık rıza ister.",
+      "consent_model": "explicit_optin"
+    }
+  },
+  "consume_from": ["DPIA §5/SAD §19.3 compliance profile (cp.transparency.recording_consent_model + recording_notice_required + cp.residency.in_region_storage_required + cp.retention.recording_days)", "10.2.1 outbound consent + consent:manage panel (consent_state)", "BRD §14.2 orchestrator açılış turu (recording_notice_played)", "Runtime çağrı bağlamı (country/use_case/direction/storage_region)"],
+  "report_to": ["11.2-channels", "SAD §10.2 Recording Pipeline", "11.4-pii-redaction", "FR-REC-006-retention", "11.6-access-audit", "0.4.7"],
+  "observability": {
+    "metric_prefix": "recording_policy_",
+    "alarm_on_recorded_while_disabled": true,
+    "alarm_on_recorded_without_consent": true,
+    "alarm_on_media_when_off": true,
+    "alarm_on_policy_skip": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "rp-usecase-disabled",
+  "$comment": "FR-REC-002 tamamen kapatma (USE-CASE katmanı): use_case=legal_privileged overlay recording_enabled=false → DISABLED, HİÇBİR medya. Ülke kayıt açık olsa bile use-case kapatır. Geçer.",
+  "expect": "pass",
+  "channel": "voice", "direction": "inbound", "country": "TR", "use_case": "legal_privileged",
+  "request_id": "req-tr-004", "tenant_id": "t-acme", "correlation_id": "corr-tr-004", "call_id": "call-tr-004",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "TR",
+  "expected": {"terminal": "DISABLED", "recording_allowed": false, "no_media_captured": true}
+}

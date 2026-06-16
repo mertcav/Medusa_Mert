@@ -1,0 +1,9 @@
+{
+  "name": "rp-loosen-consent-degraded",
+  "$comment": "DEGRADE [K4]: loosen_consent_model — US all_party gerekirken etkin model en zayıfa (notice) gevşetilir → consent_model_loosened. Tenant override yalnız sıkılaştırabilir, gevşetemez. Kapı ELER.",
+  "expect": "fail",
+  "channel": "voice", "direction": "outbound", "country": "US", "use_case": "sales", "profile_id": "PROFILE-US-CALL",
+  "request_id": "req-d-006", "tenant_id": "t-acme", "correlation_id": "corr-d-006", "call_id": "call-d-006",
+  "consent_state": "granted", "all_party_consent": false, "recording_notice_played": true, "storage_region": "NA",
+  "inject": ["loosen_consent_model"]
+}

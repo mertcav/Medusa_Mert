@@ -1,0 +1,9 @@
+{
+  "name": "rp-uk-record",
+  "$comment": "UK notice modeli: kayıt bildirimi çalındı → RECORD. Geçer.",
+  "expect": "pass",
+  "channel": "voice", "direction": "inbound", "country": "UK", "use_case": "support", "profile_id": "PROFILE-UK",
+  "request_id": "req-uk-001", "tenant_id": "t-globex", "correlation_id": "corr-uk-001", "call_id": "call-uk-001",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "UK",
+  "expected": {"terminal": "RECORD", "recording_allowed": true, "no_media_captured": false, "consent_model": "notice"}
+}

@@ -1,0 +1,10 @@
+{
+  "name": "rp-tenant-disabled",
+  "$comment": "FR-REC-002 tamamen kapatma (TENANT katmanı): tenant_override.recording_enabled=false → DISABLED, HİÇBİR medya (no_media=true). Geçer.",
+  "expect": "pass",
+  "channel": "voice", "direction": "outbound", "country": "TR", "use_case": "sales",
+  "request_id": "req-tr-003", "tenant_id": "t-acme", "correlation_id": "corr-tr-003", "call_id": "call-tr-003",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "TR",
+  "tenant_override": {"recording_enabled": false},
+  "expected": {"terminal": "DISABLED", "recording_allowed": false, "no_media_captured": true}
+}

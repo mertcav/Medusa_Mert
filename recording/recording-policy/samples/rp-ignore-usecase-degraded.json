@@ -1,0 +1,9 @@
+{
+  "name": "rp-ignore-usecase-degraded",
+  "$comment": "DEGRADE [K2]: ignore_usecase — use_case=internal_test kaydı kapatması GEREKİRKEN katman atlanır → policy_resolution_error + yanlış RECORD. FR-REC-001 use-case boyutu ihlali. Kapı ELER.",
+  "expect": "fail",
+  "channel": "voice", "direction": "inbound", "country": "TR", "use_case": "internal_test",
+  "request_id": "req-d-004", "tenant_id": "t-acme", "correlation_id": "corr-d-004", "call_id": "call-d-004",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "TR",
+  "inject": ["ignore_usecase"]
+}

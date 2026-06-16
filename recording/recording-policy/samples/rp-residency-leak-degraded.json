@@ -1,0 +1,9 @@
+{
+  "name": "rp-residency-leak-degraded",
+  "$comment": "DEGRADE [K6]: residency_leak — RECORD ama kayıt home-region (TR) DIŞINA yazılır → residency_violation (NFR 10.7). Kapı ELER.",
+  "expect": "fail",
+  "channel": "voice", "direction": "inbound", "country": "TR", "use_case": "sales",
+  "request_id": "req-d-007", "tenant_id": "t-acme", "correlation_id": "corr-d-007", "call_id": "call-d-007",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "TR",
+  "inject": ["residency_leak"]
+}

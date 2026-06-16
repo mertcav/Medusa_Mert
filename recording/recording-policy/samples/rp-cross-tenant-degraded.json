@@ -1,0 +1,10 @@
+{
+  "name": "rp-cross-tenant-degraded",
+  "$comment": "DEGRADE [K12]: cross_tenant — bind_tenant ile request tenant uyuşmaz (yabancı tenant kayıt politikası okuması) → cross_tenant + BLOCK. FR-TEN-002 ihlali. Kapı ELER.",
+  "expect": "fail",
+  "channel": "voice", "direction": "inbound", "country": "TR", "use_case": "sales",
+  "request_id": "req-d-010", "tenant_id": "t-acme", "correlation_id": "corr-d-010", "call_id": "call-d-010",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "TR",
+  "bind_tenant": "t-other",
+  "inject": ["cross_tenant"]
+}

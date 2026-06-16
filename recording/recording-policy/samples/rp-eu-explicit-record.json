@@ -1,0 +1,9 @@
+{
+  "name": "rp-eu-explicit-record",
+  "$comment": "EU explicit_optin: açık rıza granted ∧ notice çalındı → RECORD. Geçer.",
+  "expect": "pass",
+  "channel": "voice", "direction": "inbound", "country": "EU", "use_case": "support", "profile_id": "PROFILE-EU",
+  "request_id": "req-eu-001", "tenant_id": "t-acme", "correlation_id": "corr-eu-001", "call_id": "call-eu-001",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "EU",
+  "expected": {"terminal": "RECORD", "recording_allowed": true, "no_media_captured": false, "consent_model": "explicit_optin"}
+}

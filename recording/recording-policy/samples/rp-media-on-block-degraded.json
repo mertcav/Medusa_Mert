@@ -1,0 +1,9 @@
+{
+  "name": "rp-media-on-block-degraded",
+  "$comment": "DEGRADE [K5]: record_on_block — BLOCK (bilinmeyen ülke) iken medya yakalanır → media_when_off. SR-REC-002 'kapalıyken hiçbir medya' ihlali (BLOCK yolu). Kapı ELER.",
+  "expect": "fail",
+  "channel": "voice", "direction": "inbound", "country": "ZZ", "use_case": "sales",
+  "request_id": "req-d-009", "tenant_id": "t-acme", "correlation_id": "corr-d-009", "call_id": "call-d-009",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "EU",
+  "inject": ["record_on_block"]
+}

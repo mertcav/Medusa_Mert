@@ -1,0 +1,9 @@
+{
+  "name": "rp-no-audit-degraded",
+  "$comment": "DEGRADE [K10]: no_audit — karar audit kaydı üretilmez → missing_audit. FR-IAM-006 ihlali. Kapı ELER.",
+  "expect": "fail",
+  "channel": "voice", "direction": "inbound", "country": "TR", "use_case": "sales",
+  "request_id": "req-d-011", "tenant_id": "t-acme", "correlation_id": "corr-d-011", "call_id": "call-d-011",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "TR",
+  "inject": ["no_audit"]
+}

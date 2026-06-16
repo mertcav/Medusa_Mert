@@ -1,0 +1,10 @@
+{
+  "name": "rp-tenant-tighten-record",
+  "$comment": "FR-REC-001 tenant boyutu + sıkılaştırma: ülke TR=notice, tenant_override consent_model=explicit_optin (yalnız sıkılaştırır); açık rıza granted → RECORD (explicit_optin). Geçer.",
+  "expect": "pass",
+  "channel": "voice", "direction": "inbound", "country": "TR", "use_case": "sales",
+  "request_id": "req-tr-005", "tenant_id": "t-acme", "correlation_id": "corr-tr-005", "call_id": "call-tr-005",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "TR",
+  "tenant_override": {"consent_model": "explicit_optin"},
+  "expected": {"terminal": "RECORD", "recording_allowed": true, "no_media_captured": false, "consent_model": "explicit_optin"}
+}

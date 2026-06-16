@@ -1,0 +1,9 @@
+{
+  "name": "rp-tr-notice-not-played",
+  "$comment": "TR notice modeli ama kayıt bildirimi ÇALINMADI (notice_required) → kayıt-başlatma kapısı geçilemez → NO_CONSENT (no media). Gizlilik-güvenli. Geçer.",
+  "expect": "pass",
+  "channel": "voice", "direction": "inbound", "country": "TR", "use_case": "support",
+  "request_id": "req-tr-002", "tenant_id": "t-acme", "correlation_id": "corr-tr-002", "call_id": "call-tr-002",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": false, "storage_region": "TR",
+  "expected": {"terminal": "NO_CONSENT", "recording_allowed": false, "no_media_captured": true}
+}

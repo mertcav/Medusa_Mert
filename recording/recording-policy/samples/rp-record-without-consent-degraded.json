@@ -1,0 +1,9 @@
+{
+  "name": "rp-record-without-consent-degraded",
+  "$comment": "DEGRADE [K4]: record_without_consent — EU açık rıza DENIED ama kayıt yapılır → recorded_without_consent + media_when_off = izinsiz kayıt. Kapı ELER.",
+  "expect": "fail",
+  "channel": "voice", "direction": "inbound", "country": "EU", "use_case": "support", "profile_id": "PROFILE-EU",
+  "request_id": "req-d-003", "tenant_id": "t-acme", "correlation_id": "corr-d-003", "call_id": "call-d-003",
+  "consent_state": "denied", "all_party_consent": false, "recording_notice_played": true, "storage_region": "EU",
+  "inject": ["record_without_consent"]
+}

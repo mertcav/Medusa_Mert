@@ -1,0 +1,10 @@
+{
+  "name": "rp-tenant-tighten-no-consent",
+  "$comment": "Tenant sıkılaştırma enforce edilir: TR=notice ama tenant explicit_optin ister; açık rıza yok (not_obtained) → NO_CONSENT (no media). Sıkılaştırmanın gerçekten uygulandığını kanıtlar. Geçer.",
+  "expect": "pass",
+  "channel": "voice", "direction": "inbound", "country": "TR", "use_case": "sales",
+  "request_id": "req-tr-006", "tenant_id": "t-acme", "correlation_id": "corr-tr-006", "call_id": "call-tr-006",
+  "consent_state": "not_obtained", "all_party_consent": false, "recording_notice_played": true, "storage_region": "TR",
+  "tenant_override": {"consent_model": "explicit_optin"},
+  "expected": {"terminal": "NO_CONSENT", "recording_allowed": false, "no_media_captured": true}
+}

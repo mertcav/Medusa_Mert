@@ -1,0 +1,9 @@
+{
+  "name": "rp-eu-no-consent",
+  "$comment": "EU explicit_optin: açık rıza DENIED → kayıt-başlatma kapısı geçilemez → NO_CONSENT (no media). Geçer.",
+  "expect": "pass",
+  "channel": "voice", "direction": "inbound", "country": "EU", "use_case": "support", "profile_id": "PROFILE-EU",
+  "request_id": "req-eu-002", "tenant_id": "t-acme", "correlation_id": "corr-eu-002", "call_id": "call-eu-002",
+  "consent_state": "denied", "all_party_consent": false, "recording_notice_played": true, "storage_region": "EU",
+  "expected": {"terminal": "NO_CONSENT", "recording_allowed": false, "no_media_captured": true}
+}

@@ -1,0 +1,9 @@
+{
+  "name": "rp-tr-record",
+  "$comment": "TR sağlıklı: recording_enabled=true, consent_model=notice, kayıt bildirimi çalındı → RECORD (recording_allowed=true, no_media=false, channels=2). Geçer.",
+  "expect": "pass",
+  "channel": "voice", "direction": "inbound", "country": "TR", "use_case": "sales",
+  "request_id": "req-tr-001", "tenant_id": "t-acme", "correlation_id": "corr-tr-001", "call_id": "call-tr-001",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "TR",
+  "expected": {"terminal": "RECORD", "recording_allowed": true, "no_media_captured": false, "consent_model": "notice", "channels": 2}
+}

@@ -1,0 +1,169 @@
+{
+  "$comment": "WBS 11.1 — Kayıt politikası (tenant/ülke/use-case) + tamamen kapatma (BRD §9.14 / FR-REC-001 'Kayıt politikası tenant, ülke ve use-case bazında belirlenmelidir' [Must] + FR-REC-002 'Ses kaydı tamamen kapatılabilmelidir' [Must] + SR-REC-001 [yöntem I — 'Kayıt politikası tenant/ülke/use-case bazında belirlenir'; kabul: 'Politika seçimi ilgili çağrılara uygulanır'] / SR-REC-002 [yöntem T — 'Ses kaydı tamamen kapatılabilir'; kabul: 'Kayıt kapalıyken hiçbir medya saklanmaz'] / TC-REC-001 / TC-REC-002 / DB §22 recording + §8 residency + SAD §10.2 Recording Pipeline + §19.3 compliance profile + DPIA §5.2 cp.transparency.recording_consent_model 'Kayıt başlatma kapısı FR-REC-001'). 11. workstream'in (Kayıt, Transkript & PII Redaction) KAYIT POLİTİKASI (recording-policy) modülü ve F1-Must temel yeteneği. FR-REC-001 + FR-REC-002 + SR-REC-001/002'nin KAYIT BAŞLATMA KARARINI sahiplenir: bir çağrı kaydı başlatılırken (inbound/outbound) etkin kayıt politikasını ÜÇ KATMANDA çözer (ülke compliance profili × tenant override × use-case overlay — most-restrictive-wins, DPIA §5/SAD §19.3) ve bir terminal {RECORD | DISABLED | NO_CONSENT | BLOCK} kararı verir. ÇEKİRDEK: (1) FR-REC-001 — politika tenant + ülke + use-case bazında belirlenir (üç katman; bir katmanı atlamak = yanlış politika); (2) FR-REC-002 — ses kaydı TAMAMEN KAPATILABİLİR: herhangi bir katman (tenant veya use-case veya ülke) recording_enabled=false ⇒ DISABLED ve HİÇBİR MEDYA YAKALANMAZ/SAKLANMAZ (no_media_captured=true; SR-REC-002 kabul 'Kayıt kapalıyken hiçbir medya saklanmaz'). Modül bir DETERMİNİSTİK FAIL-CLOSED (privacy-safe = NO-RECORD) MOTORUdur: RecordingPolicyRequest{request_id, tenant_id, correlation_id, call_id, country, use_case, channel, direction, consent_state, all_party_consent, recording_notice_played, storage_region, profile_id?, tenant_override?} alır → ülke kayıt politikasını çözer (recording_enabled + consent_model[notice|explicit_optin|all_party] + notice_required + in_region_storage_required + home_region + default_channels) → use-case overlay + tenant override'ı MOST-RESTRICTIVE-WINS birleştirir (enabled = AND; consent_model = en katı sıra notice<explicit_optin<all_party; notice_required = OR; in_region = OR) → terminal karar: recording_enabled=false ⇒ DISABLED (no_media_captured=true) | etkin ama kayıt-başlatma consent/notice kapısı geçilemedi ⇒ NO_CONSENT (no_media_captured=true) | profil çözümlenemedi / cross-tenant ⇒ BLOCK (fail-closed; no_media_captured=true) | etkin ∧ kapı geçildi ⇒ RECORD (recording_allowed=true; channels + storage residency + retention attribute'ları taşınır). ÇEKİRDEK INVARIANT (FR-REC-002 / SR-REC-002): terminal ≠ RECORD ⇒ no_media_captured=true — kayıt kapalı/izinsiz/belirsizken HİÇBİR medya saklanmaz; medya yakalamak (recorded_while_disabled / recorded_without_consent / media_when_off) = gizlilik ihlali (BRD §15 alarm). ÇEKİRDEK INVARIANT (FR-REC-001): etkin politika üç katmandan (ülke × tenant × use-case) most-restrictive-wins çözülür; bir katmanı atlamak (ignore_usecase / ignore_tenant_override → policy_resolution_error) = yanlış (gevşek) politika = istenmeyen kayıt. Kayıt-başlatma consent/notice kapısı: consent_model=notice ⇒ kayıt bildirimi ÇALINMALI (recording_notice_played); explicit_optin ⇒ açık rıza (consent_state=granted); all_party ⇒ tüm taraflar rıza (all_party_consent ∧ granted); kapı atlanırsa recorded_without_consent (K4). Tenant override yalnız SIKILAŞTIRIR (most-restrictive); gevşetme (loosen_consent_model → consent_model_loosened) yasak. Profil çözümlenemezse fail-closed BLOCK unknown_profile (K7, ASLA fail-open RECORD — privacy-safe varsayılan NO-RECORD); kayıt-politikası kontrolü ATLANAMAZ (K8 policy_skip=0: bypass = politika çözmeden kayıt = BRD §15 'kayıt politikası atlandı' kritik alarmı); residency: RECORD storage_region in_region_storage_required iken home_region olmalı (residency_violation K6, NFR 10.7); her karar deterministik+terminal (K1) + kanıt (K9) + audit (K10); metrik düşük-kardinalite + PII metrikte/log'da yok (K11); spec/config/sample ham PII/sır tutmaz + tenant izolasyonu (K12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): tek/çift kanallı kayıt ÜRETİMİ (mono/stereo medya yazımı) → 11.2 (FR-REC-003; bu modül channels'ı politika attribute'u olarak TAŞIR, yazmaz); transkript üretimi → 11.3; PII redaction pipeline → 11.4 (FR-REC-004; bu modül redaction GEREĞİNİ işaretler, çalıştırmaz); kart/parola/OTP çıkarma → 11.5 (FR-REC-005); kayıt/transkript erişim audit'i → 11.6 (FR-REC-009; bu modül KARAR audit'ini üretir, erişim audit'ini değil); saklama süresi (retention) uygulaması → FR-REC-006/legal-hold FR-REC-007/geri-döndürülemez silme FR-REC-010 (bu modül retention_days attribute'unu TAŞIR, retention motorunu çalıştırmaz); kayıt-içi PCI kart kanalı dışlama → BRD §8.5; consent KAYDI yönetimi/registry → consent:manage panel + 10.2.1 outbound consent (bu modül consent_state'i OKUR); compliance profile ÇÖZÜMLEME (most-restrictive-wins + tenant override uygulama motoru) → DPIA §5/SAD §19.3 (bu modül değerleri TÜKETİR + kayıt-özgü çözümü uygular); AI/kayıt bildirimi METNİ + ÇALMA → BRD §14.2/FR — orchestrator açılış turu (bu modül notice_played'i OKUR); residency depolama uygulaması (S3 bucket/prefix + KMS) → DB §8/SAD §12.1 (bu modül residency KARARINI verir); audit store → 7.1.6/12.x; nesne depolama lifecycle → DB §9; panel UI 'kayıt politikası' render → L1 T-06 / L2 A-13. Spec/config/sample'larda sır/credential ve gerçek PII (müşteri adı/TELEFON numarası/hesap no/ham transkript/ses) YOK — yalnız yapısal KİMLİKLER (request/call/tenant/correlation kimlikleri) + ENUM'lar (country/use_case/channel/direction/consent_model/consent_state/region) + BAYRAKLAR (recording_enabled/notice_played/all_party_consent). KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS/DB/API esastır.",
+  "version": "1.0",
+  "wbs": "11.1",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-REC-001", "FR-REC-002", "FR-REC-003", "FR-REC-004", "FR-REC-006", "FR-REC-007", "FR-REC-009", "FR-TEN-002", "FR-IAM-006", "FR-IAM-011", "FR-TST-008"],
+    "nfr": ["NFR 10.7"],
+    "srs": ["SR-REC-001", "SR-REC-002"],
+    "rtm": ["TC-REC-001", "TC-REC-002"],
+    "brd": [
+      "§9.14 (Çağrı Kayıtları ve Transkript — FR-REC-001 'Kayıt politikası tenant, ülke ve use-case bazında belirlenmelidir' + FR-REC-002 'Ses kaydı tamamen kapatılabilmelidir')",
+      "§8.1 (kayıt/transkript akışı bağlamı)",
+      "§14.2 (AI/kayıt bildirimi — şeffaflık; recording_notice ÇALMA orchestrator'da, bu modül OKUR)",
+      "§14.4 (compliance profile — ülke/sektör; kayıt consent_model kaynağı)",
+      "§15 (kritik alarm — kayıt politikası atlanması / izinsiz kayıt = gizlilik ihlali)",
+      "§16 (veri varlıkları — Recording, varlık 22)",
+      "§17.7 (PII metrik/log'da yok)"
+    ],
+    "sad": [
+      "§10.2 (Recording Pipeline — Analytics Plane; bu modül kayıt-başlatma KARARINI verir, pipeline kaydı yazar)",
+      "§12.1/§12.3 (residency + KMS; kayıt home-region'da, NFR 10.7 — RECORD storage residency kararı)",
+      "§13.3 (correlation/tenant context propagation — karar correlation_id+tenant taşır)",
+      "§19.3 (compliance profile çözümleme — most-restrictive-wins + tenant override; bu modül kayıt-özgü değerleri TÜKETİR)",
+      "§14.4 (panel — L1 T-06 / L2 A-13 'kayıt politikası' yüzeyi)",
+      "§17.2 (kayıt politikası atlanması / izinsiz kayıt → kritik alarm ≤2dk)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — Kayıt-politikası kapısı kayıt/kontrol düzleminde bir karar fonksiyonu; STT/LLM/TTS'e doğrudan bağlanmaz)",
+      "ADR-002 (vendor-neutral — kayıt depolama/residency sağlayıcı bağımsız; aynı karar sözleşmesi arkasına gerçek Recording Pipeline + nesne depolama)",
+      "ADR-012 (RBAC — kayıt politikası yönetimi recording:policy:manage / compliance:manage; kayıt-başlatma otomatik gate)"
+    ],
+    "db": [
+      "DB §22 recording — channels (1/2, FR-REC-003) + storage_uri (tenant bucket/prefix + KMS) + retain_until (FR-REC-006) + redaction_state; bu modül RECORD kararı + channels/residency/retention attribute'larını üretir, satırı pipeline yazar",
+      "DB §3 tenant — retention_profile + region (residency override); home_region girdisidir",
+      "DB §8 residency + KMS — RECORD storage home-region kararı (NFR 10.7)"
+    ],
+    "threat_model": [
+      "TM-T-* (tahrifat — kayıt politikası kontrolü ATLANAMAZ; bypass=policy_skip ihlali, K8 = politika çözmeden kayıt = BRD §15 'kayıt politikası atlandı' alarmı)",
+      "TM-I-* (bilgi ifşası — izinsiz/kapalıyken kayıt = gizlilik ihlali; terminal≠RECORD ⇒ no_media_captured=true, K3/K4/K5; karar/metrik/log ham PII taşımaz, K11)",
+      "TM-T-* (tenant izolasyonu — kayıt politikası/profil yalnız aynı tenant'a ait okunur; cross-tenant reddedilir, FR-TEN-002, K12)",
+      "TM-R-* (inkâr — her karar [RECORD/DISABLED/NO_CONSENT/BLOCK] resolved_policy + consent_model + no_media_captured ile audit'e yazılır, K10)"
+    ],
+    "consumes": [
+      "DPIA §5/SAD §19.3 compliance profile — cp.transparency.recording_consent_model (notice/explicit_optin/all_party) + cp.transparency.recording_notice_required + cp.residency.in_region_storage_required + cp.retention.recording_days değerlerini TÜKETİR (most-restrictive-wins çözümleme motorunu DEĞİL — kayıt-özgü katman çözümünü uygular)",
+      "10.2.1 outbound consent + consent:manage panel — consent_state (recording consent: granted/denied/not_obtained) sinyalini TÜKETİR (rıza KAYDI üretmez)",
+      "BRD §14.2 orchestrator açılış turu — recording_notice_played (kayıt bildirimi çalındı mı) sinyalini TÜKETİR (bildirimi ÇALMAZ)",
+      "Runtime çağrı bağlamı — country + use_case + direction + storage_region'ı TÜKETİR"
+    ],
+    "consumed_by": [
+      "11.2 tek/çift kanallı kayıt (FR-REC-003) — RECORD kararı + channels attribute'unu TÜKETİR (mono/stereo medya yazımı)",
+      "SAD §10.2 Recording Pipeline — RECORD ⇒ kayıt başlatılır + storage_uri (residency/KMS) yazılır; DISABLED/NO_CONSENT/BLOCK ⇒ kayıt BAŞLATILMAZ (no media)",
+      "11.4 PII redaction (FR-REC-004) — RECORD redaction_required işaretini TÜKETİR",
+      "FR-REC-006 retention motoru — RECORD retention_days attribute'unu TÜKETİR (retain_until)",
+      "11.6 kayıt/transkript erişim audit (FR-REC-009) — bu modül KARAR audit'ini üretir (erişim audit'i ayrı)",
+      "7.1.6 + 12.1.8 audit store (FR-IAM-006) — kayıt-başlatma kararını kalıcılaştırır",
+      "0.4.7 gözlemlenebilirlik — recording_policy_* metriklerini tüketir (recorded_while_disabled + policy_skip alarmı dahil)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Kayıt-politikası/başlatma kontrolü, kayıt + kontrol düzleminde bir KARAR fonksiyonudur: bir çağrı kaydı başlatılırken (inbound/outbound bağlantı kurulduğunda) bu motora RecordingPolicyRequest gönderilir; motor ülke compliance profilini çözer (recording_enabled + consent_model + notice_required + in_region + home_region + channels), use-case overlay + tenant override'ı most-restrictive-wins birleştirir, kayıt-başlatma consent/notice kapısını değerlendirir ve RECORD | DISABLED | NO_CONSENT | BLOCK döndürür — terminal≠RECORD ⇒ no_media_captured=true GARANTİSİ (FR-REC-002/SR-REC-002). Motor hot-path medya işlemez; deterministik kontrol düzlemi (medya bütçesi dışı). Vendor-neutral (ADR-001/002): kayıt depolama + residency sağlayıcı bağımsız; aynı karar sözleşmesi arkasına gerçek Recording Pipeline (SAD §10.2) + nesne depolama (DB §8).",
+    "plane": "recording + control plane (Kayıt-politikası kapısı — deterministik fail-closed / privacy-safe NO-RECORD kayıt-başlatma kararı)",
+    "owns": "FR-REC-001/SR-REC-001 + FR-REC-002/SR-REC-002 boyutu: RecordingPolicyRequest → ülke profil çözümü (recording_enabled + consent_model + notice_required + in_region_storage_required + home_region + default_channels) + üç-katman most-restrictive-wins (ülke × tenant override × use-case overlay) + kayıt-başlatma consent/notice kapısı + terminal karar {RECORD (recording_allowed=true, channels/residency/retention attribute) | DISABLED (recording_enabled=false ⇒ no media) | NO_CONSENT (consent/notice kapısı geçilemedi ⇒ no media) | BLOCK (fail-closed ⇒ no media)} + terminal≠RECORD ⇒ no_media_captured=true garantisi (tamamen kapatma) + karar audit",
+    "delegates": "tek/çift kanallı kayıt ÜRETİMİ → 11.2 (FR-REC-003; channels attribute TAŞINIR); transkript → 11.3; PII redaction → 11.4 (FR-REC-004; redaction_required işaretlenir); kart/parola/OTP çıkarma → 11.5 (FR-REC-005); kayıt/transkript erişim audit → 11.6 (FR-REC-009); retention/legal-hold/silme → FR-REC-006/007/010 (retention_days TAŞINIR); compliance profile ÇÖZÜMLEME motoru → DPIA §5/SAD §19.3 (değerleri TÜKETİR); consent KAYDI → consent:manage + 10.2.1 (consent_state OKUNUR); bildirim ÇALMA → BRD §14.2 orchestrator (notice_played OKUNUR); residency depolama uygulaması → DB §8/SAD §12.1 (karar verilir); audit store → 7.1.6/12.x; pipeline kayıt yazımı → SAD §10.2 (karar döndürülür, kaydedilmez); panel UI → L1 T-06 / L2 A-13",
+    "deterministic": true,
+    "fail_closed": true,
+    "trace": "BRD §9.14, SAD §10.2, SAD §12.3, SAD §19.3, DB §22, ADR-001, ADR-002, ADR-012"
+  },
+
+  "rules": {
+    "$comment": "FR-REC-001 + FR-REC-002 ÇEKİRDEK — KAYIT-BAŞLATMA KARARI (BRD §9.14, SAD §10.2/§19.3, DPIA §5.2). Önce etkin politika ÜÇ KATMANDA çözülür (ülke compliance profili × tenant override × use-case overlay; most-restrictive-wins — recording_enabled=AND, consent_model=en katı, notice_required=OR, in_region=OR; K2 — üç katman ATLANAMAZ); sonra recording_enabled=false ise DISABLED (no media; K3 FR-REC-002 tamamen kapatma); etkinse kayıt-başlatma consent/notice kapısı (K4); kapı geçilirse RECORD, geçilemezse NO_CONSENT (no media; K5). Her kural bir invariant'a (K2–K6) eşlenir; profil çözümlenemezse K7 fail-closed unknown_profile (privacy-safe NO-RECORD).",
+    "list": [
+      {"id": "policy_resolution", "field": "effective = most_restrictive(country_profile, use_case_overlay, tenant_override); recording_enabled=AND, consent_model=max(notice<explicit_optin<all_party), notice_required=OR, in_region=OR", "invariant": "K2", "outcome": "RECORD|DISABLED|NO_CONSENT",
+       "rule": "etkin kayıt politikası ÜÇ KATMANDAN (tenant + ülke + use-case) most-restrictive-wins çözülmeli (FR-REC-001 'tenant, ülke ve use-case bazında'); bir katmanı atlamak (use-case/tenant override) = yanlış (gevşek) politika = istenmeyen kayıt"},
+      {"id": "disable_killswitch", "field": "effective.recording_enabled == false ⇒ DISABLED ∧ no_media_captured=true", "invariant": "K3", "outcome": "DISABLED",
+       "rule": "herhangi bir katman (tenant veya use-case veya ülke) recording_enabled=false ise ses kaydı TAMAMEN KAPALI ⇒ DISABLED ve HİÇBİR medya yakalanmaz/saklanmaz (FR-REC-002 'Ses kaydı tamamen kapatılabilmelidir'; SR-REC-002 kabul 'Kayıt kapalıyken hiçbir medya saklanmaz')"},
+      {"id": "consent_gate", "field": "RECORD ⇐ consent_model satisfied (notice⇒notice_played; explicit_optin⇒consent granted; all_party⇒all parties granted) ∧ notice_required⇒notice_played", "invariant": "K4", "outcome": "RECORD|NO_CONSENT",
+       "rule": "kayıt yalnız etkin consent_model'in kayıt-başlatma kapısı karşılanırsa başlatılmalı (DPIA §5.2 cp.transparency.recording_consent_model = 'Kayıt başlatma kapısı FR-REC-001'): notice⇒kayıt bildirimi çalınmalı, explicit_optin⇒açık rıza, all_party⇒tüm taraflar rıza; kapı geçilemezse NO_CONSENT (no media); gevşetme (tenant override) yasak"},
+      {"id": "no_media_when_off", "field": "terminal ≠ RECORD ⇒ no_media_captured = true", "invariant": "K5", "outcome": "DISABLED|NO_CONSENT|BLOCK",
+       "rule": "kayıt kapalı/izinsiz/belirsiz (DISABLED/NO_CONSENT/BLOCK) HER durumda HİÇBİR medya yakalanmaz/saklanmaz (no_media_captured=true; SR-REC-002 ÇEKİRDEK kabul); medya yakalamak = gizlilik ihlali (BRD §15 alarm)"},
+      {"id": "residency_honored", "field": "RECORD ∧ in_region_storage_required ⇒ storage_region == home_region", "invariant": "K6", "outcome": "RECORD",
+       "rule": "RECORD durumunda kayıt home-region'da saklanmalı (in_region_storage_required ise storage_region == home_region; NFR 10.7 residency); home-region dışı saklama = residency ihlali"}
+    ],
+    "evaluation": "resolve_then_killswitch_then_consent_fail_closed_no_record",
+    "trace": "BRD §9.14, SR-REC-001, SR-REC-002, SAD §10.2, SAD §19.3, DPIA §5.2, NFR 10.7"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed / privacy-safe (NO-RECORD) kayıt-başlatma algoritması. Adımlar: (1) ülke kayıt politikasını çöz. Çözümlenemezse fail-closed BLOCK unknown_profile (K7) — bilinen politika olmadan kayıt = belirsiz gizlilik riski; ASLA fail-open RECORD. (2) tenant izolasyonunu doğrula (bind mismatch / cross_tenant → BLOCK cross_tenant, K12). (3) etkin politikayı ÜÇ KATMANDA çöz: effective = most_restrictive(country_profile, use_case_overlay, tenant_override) (K2 — recording_enabled=AND, consent_model=en katı, notice_required=OR, in_region=OR). (4) effective.recording_enabled == false ⇒ DISABLED (no_media_captured=true; K3 FR-REC-002 tamamen kapatma). (5) kayıt-başlatma consent/notice kapısı: notice⇒notice_played, explicit_optin⇒consent_state=granted, all_party⇒all_party_consent ∧ granted, + notice_required⇒notice_played; kapı geçilemezse ⇒ NO_CONSENT (no_media_captured=true; K4). (6) kapı geçildi ⇒ RECORD (recording_allowed=true, no_media_captured=false; channels + residency + retention attribute). HER terminal≠RECORD ⇒ no_media_captured=true (K5). Belirsizlik/profil çözümlenemedi → BLOCK (fail-closed; ASLA fail-open kayıt).",
+    "algorithm": "resolve_country_profile | unresolved ⇒ BLOCK(unknown_profile) → tenant_check ⇒ BLOCK(cross_tenant) → effective = most_restrictive(country, use_case_overlay, tenant_override) → effective.recording_enabled==false ⇒ DISABLED(no_media) → consent_gate(effective.consent_model, notice_required) fail ⇒ NO_CONSENT(no_media) → RECORD(recording_allowed=true, channels/residency/retention)",
+    "default": "BLOCK",
+    "fail_safe_terminal": "no_record (terminal≠RECORD ⇒ no_media_captured=true)",
+    "trace": "SR-REC-001, SR-REC-002, SAD §10.2, SAD §19.3, DPIA §5.2"
+  },
+
+  "block_reasons": {
+    "$comment": "BLOCK karar taksonomisi (yalnız fail-closed BLOCK durumları: profil çözümlenememe + tenant izolasyonu). Düşük-kardinalite (metrik label uygun). 'policy_skip' yalnız BYPASS injection'ında (K8 ihlali) görünür — normal akışta üretilmez. RECORD/DISABLED/NO_CONSENT terminal sonuçlardır (BLOCK değil); DISABLED ve NO_CONSENT gizlilik-güvenli normal sonuçlardır, ihlal DEĞİL.",
+    "list": ["unknown_profile", "cross_tenant"]
+  },
+
+  "outcomes": {
+    "$comment": "Terminal kayıt-başlatma karar sonuçları. RECORD = politika etkin ∧ consent/notice kapısı geçildi → kayıt başlatılabilir (recording_allowed=true, no_media_captured=false; channels + storage residency + retention taşınır). DISABLED = recording_enabled=false (herhangi katman) → ses kaydı tamamen kapalı, HİÇBİR medya (FR-REC-002; no_media_captured=true). NO_CONSENT = etkin ama kayıt-başlatma consent/notice kapısı geçilemedi → kayıt başlatılmaz, HİÇBİR medya (no_media_captured=true). BLOCK = profil çözümlenemedi / cross-tenant → fail-closed, HİÇBİR medya. Dördü de geçerli terminal — DISABLED/NO_CONSENT ihlal DEĞİL, FR-REC-002/gizlilik-güvenli varsayılanın doğru sonucudur. Her karar audit üretir.",
+    "list": ["RECORD", "DISABLED", "NO_CONSENT", "BLOCK"],
+    "terminal": ["RECORD", "DISABLED", "NO_CONSENT", "BLOCK"]
+  },
+
+  "consent_models": {
+    "$comment": "Kayıt-başlatma consent modelleri (DPIA §5.2 cp.transparency.recording_consent_model). most-restrictive sıralama: notice < explicit_optin < all_party. notice = kayıt bildirimi çalınması yeterli (tek-taraf bildirim; KVKK aydınlatma / UK iş amaçlı). explicit_optin = açık rıza (consent_state=granted; EU GDPR explicit). all_party = tüm taraflar rıza (all_party_consent ∧ granted; iki-taraf rıza eyaletleri illüstratif). Tenant override yalnız bu sırada YUKARI (sıkılaştırma); aşağı (gevşetme) yasak.",
+    "rank": {"notice": 0, "explicit_optin": 1, "all_party": 2}
+  },
+
+  "authorization": {
+    "$comment": "Kayıt-başlatma politika kontrolü bir OTOMATİK gate'tir (çağrı kaydı başlatma tetikler); RBAC kullanıcı-komutu değildir. Kayıt POLİTİKASI yönetimi (recording_enabled, consent_model, notice_required, tenant_override) recording:policy:manage / compliance:manage yetkisi ister (platform_owner/tenant_owner/security_compliance_officer). Kayıt-başlatma kapısı yetki sormaz, fail-closed çalışır. Karar her zaman backend'de.",
+    "policy_permission": "recording:policy:manage",
+    "policy_roles": ["platform_owner", "tenant_owner", "security_compliance_officer"],
+    "per_call_check": "automatic_gate (RBAC değil; fail-closed)",
+    "decision_at": "backend",
+    "trace": "FR-IAM-011, ADR-012, SAD §27 RBAC, SAD §10.2"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli; bir senaryoda ihlal varsa kapı eler. recorded_while_disabled (K3) + recorded_without_consent (K4) + media_when_off (K5) + policy_skip (K8) = BRD §15 kritik 'kayıt politikası atlandı / izinsiz kayıt' gizlilik alarmı; policy_resolution_error (K2) = yanlış (gevşek) politika; consent_model_loosened (K4) = gevşetilmiş consent; residency_violation (K6) = home-region dışı kayıt; failopen (K7) = belirsiz politikada kayıt. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1 canlı Recording Pipeline + compliance profile + pilot tenant verisinde doğrulanır (counsel onayına tabi).",
+    "max_policy_skip": 0,
+    "max_policy_resolution_error": 0,
+    "max_recorded_while_disabled": 0,
+    "max_recorded_without_consent": 0,
+    "max_consent_model_loosened": 0,
+    "max_media_when_off": 0,
+    "max_residency_violation": 0,
+    "max_failopen": 0,
+    "max_cross_tenant": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "Kayıt-politikası motoru her karar için BRD §15 + kayıt/gizlilik metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. recording_policy_decision_total{tenant,result} → karar sayımı (result=RECORD/DISABLED/NO_CONSENT/BLOCK); recording_disabled_total{tenant} → tamamen kapatma (DISABLED); recording_no_consent_total{tenant} → consent/notice kapısı geçilemedi; recording_privacy_violation_total → recorded_while_disabled VEYA recorded_without_consent VEYA media_when_off VEYA policy_skip (K3/K4/K5/K8 ihlal alarmı, 0 olmalı). tenant_id+result+country+use_case+consent_model DÜŞÜK kardinalite (label uygun); request_id/call_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Müşteri PII (ad/telefon/ham ses/transkript) metrikte VE log'da YOK (FR-REC-004, BRD §17.7). recording_privacy_violation>0 (K3/K4/K5/K8 ihlali) → kritik alarm ≤2dk (SAD §17.2, NFR 10.1, BRD §15).",
+    "metrics": ["recording_policy_decision_total", "recording_disabled_total", "recording_no_consent_total", "recording_privacy_violation_total"],
+    "low_cardinality_labels": ["tenant_id", "result", "country", "use_case", "consent_model"],
+    "high_cardinality_trace_only": ["request_id", "call_id", "correlation_id"],
+    "alarm": "recorded_while_disabled>0 (kapalıyken kayıt — K3, FR-REC-002) VEYA recorded_without_consent>0 (izinsiz kayıt — K4) VEYA media_when_off>0 (kapalıyken medya — K5, SR-REC-002) VEYA policy_skip>0 (politika atlandı — K8, BRD §15) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "K1", "desc": "Determinizm/tamlık: her RecordingPolicyRequest tanımlı resolve→killswitch→consent algoritması boyunca ilerler ve bir terminal karara {RECORD|DISABLED|NO_CONSENT|BLOCK} ulaşır; aynı girdi → aynı çıktı (deterministik politika çözümü + most-restrictive birleştirme + bayrak/enum karşılaştırma; Date.now/random YOK); stuck/tanımsız durum yok. stuck_state=0.", "trace": "SR-REC-001, SAD §10.2"},
+    {"id": "K2", "desc": "Üç-katman politika çözümü ÇEKİRDEK (FR-REC-001): effective = most_restrictive(country_profile, use_case_overlay, tenant_override); recording_enabled=AND, consent_model=max(notice<explicit_optin<all_party), notice_required=OR, in_region=OR. Tenant + ülke + use-case ÜÇ katman ATLANAMAZ; bir katmanı (use-case/tenant override) atlamak = yanlış (gevşek) politika = istenmeyen kayıt (policy_resolution_error). policy_resolution_error=0.", "trace": "FR-REC-001, SR-REC-001, SAD §19.3, DPIA §5"},
+    {"id": "K3", "desc": "Tamamen kapatma ÇEKİRDEK (FR-REC-002): herhangi bir katman recording_enabled=false ⇒ terminal=DISABLED ∧ no_media_captured=true — ses kaydı tamamen kapalı, HİÇBİR medya yakalanmaz/saklanmaz ('Ses kaydı tamamen kapatılabilmelidir'). Kapalıyken medya yakalamak (recorded_while_disabled) = gizlilik ihlali (BRD §15 alarm). recorded_while_disabled=0.", "trace": "FR-REC-002, SR-REC-002, BRD §15, SAD §17.2"},
+    {"id": "K4", "desc": "Kayıt-başlatma consent kapısı ÇEKİRDEK (DPIA §5.2): RECORD yalnız etkin consent_model karşılanırsa (notice⇒notice_played; explicit_optin⇒consent_state=granted; all_party⇒all_party_consent ∧ granted) ∧ notice_required⇒notice_played. Kapı geçilemeden kayıt = recorded_without_consent; etkin model'i gevşetmek (tenant override aşağı) = consent_model_loosened. recorded_without_consent=0 ∧ consent_model_loosened=0.", "trace": "FR-REC-001, DPIA §5.2, BRD §14.2"},
+    {"id": "K5", "desc": "Kapalıyken medya yok ÇEKİRDEK (SR-REC-002): terminal ≠ RECORD (DISABLED/NO_CONSENT/BLOCK) HER durumda ⇒ no_media_captured=true — kayıt kapalı/izinsiz/belirsizken HİÇBİR medya saklanmaz (SR-REC-002 kabul 'Kayıt kapalıyken hiçbir medya saklanmaz'). Terminal≠RECORD iken medya = media_when_off ihlali. media_when_off=0.", "trace": "SR-REC-002, FR-REC-002, BRD §15"},
+    {"id": "K6", "desc": "Residency korunur (NFR 10.7): RECORD durumunda in_region_storage_required ise storage_region == home_region — kayıt home-region'da saklanır (cross-region kayıt sızıntısı yok). Home-region dışı saklama = residency_violation. residency_violation=0.", "trace": "NFR 10.7, SAD §12.3, DB §8"},
+    {"id": "K7", "desc": "Fail-closed bilinmeyen profil / privacy-safe NO-RECORD (SAD §19.3): ülke kayıt politikası çözümlenemezse fail-closed BLOCK unknown_profile — ASLA fail-open RECORD (bilinen politika olmadan kayıt = belirsiz gizlilik riski; gizlilik-güvenli varsayılan = NO-RECORD). Politika belirlenemeden RECORD = failopen ihlali. failopen=0.", "trace": "SAD §19.3, SR-REC-001"},
+    {"id": "K8", "desc": "Fail-closed / ATLANAMAZ (SR-REC-001/002 ÇEKİRDEK): kayıt-politikası kontrolü bypass edilemez — bypass ile politika çözülmeden kayıt başlatılırsa policy_skip ihlali = BRD §15 kritik 'kayıt politikası atlandı' gizlilik alarmı. policy_skip=0.", "trace": "SR-REC-001, SR-REC-002, BRD §15, SAD §17.2"},
+    {"id": "K9", "desc": "Kanıt: her karar request_id + resolved_profile + effective(recording_enabled/consent_model/notice_required/in_region) + consent_gate sonucu + no_media_captured + recording_allowed + channels/storage_region/retention_days taşır; kanıtsız karar yok. missing_evidence=0.", "trace": "FR-IAM-006"},
+    {"id": "K10", "desc": "Audit: her karar (RECORD/DISABLED/NO_CONSENT/BLOCK) → audit {result, request_id, call_id, country, use_case, consent_model, recording_allowed, no_media_captured, correlation_id, tenant_id} (FR-IAM-006); ham PII YOK. missing_audit=0.", "trace": "FR-IAM-006, 0.4.7 label_policy"},
+    {"id": "K11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (result/country/use_case/consent_model); request_id/call_id/correlation_id metrikte yok, yalnız trace; müşteri PII (ad/telefon/ham ses/transkript) metrikte VE log'da yok (0.4.7 label_policy, FR-REC-004, BRD §17.7).", "trace": "FR-REC-004, 0.4.7 label_policy"},
+    {"id": "K12", "desc": "Sır/PII yok + tenant izolasyonu: spec/config/sample müşteri adı/TELEFON numarası/hesap no/ham transkript/ses/OTP/credential tutmaz (yalnız yapısal kimlikler + enum + bayrak); kayıt politikası/profil yalnız aynı tenant'a ait okunur, cross-tenant okuma → cross_tenant ihlali (FR-TEN-002). secret_or_pii=0 ∧ cross_tenant=0.", "trace": "BRD §14, BRD §16, FR-TEN-002, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar müşteri ADI, TELEFON numarası, HESAP numarası, ham TRANSKRİPT, ham SES, OTP, PAROLA, PII DEĞERİ veya credential TUTMAZ — yalnız yapısal KİMLİKLER (request/call/tenant/correlation kimlikleri ör. req-001 / call-001 / t-acme / corr-001) + ENUM'lar (country ör. TR/UK/EU/US; use_case ör. sales/support/collections; channel ör. voice; direction ör. inbound/outbound; consent_model ör. notice/explicit_optin/all_party; consent_state ör. granted/denied/not_obtained; region ör. TR/UK/EU/NA) + BAYRAKLAR (recording_enabled/notice_played/all_party_consent). Kimlik/enum/bayrak PII DEĞİLDİR; tasarımca PII-olmayandır. Telefon numarası/ham ses HİÇBİR alanda tutulmaz (kayıt-başlatma kararı; medya/PII içermez).",
+    "forbids": ["customer_name", "customer_phone_value", "account_number_value", "transcript_text", "raw_audio", "otp_code_value", "password_value", "credential", "secret", "pii_value", "raw_msisdn"]
+  }
+}

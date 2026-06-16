@@ -1,0 +1,10 @@
+{
+  "name": "rp-record-while-disabled-degraded",
+  "$comment": "DEGRADE [K3]: record_while_disabled — tenant kaydı kapatmış ama medya yine yakalanır → recorded_while_disabled + media_when_off = FR-REC-002 ihlali (gizlilik). Kapı ELER.",
+  "expect": "fail",
+  "channel": "voice", "direction": "outbound", "country": "TR", "use_case": "sales",
+  "request_id": "req-d-002", "tenant_id": "t-acme", "correlation_id": "corr-d-002", "call_id": "call-d-002",
+  "consent_state": "granted", "all_party_consent": true, "recording_notice_played": true, "storage_region": "TR",
+  "tenant_override": {"recording_enabled": false},
+  "inject": ["record_while_disabled"]
+}
