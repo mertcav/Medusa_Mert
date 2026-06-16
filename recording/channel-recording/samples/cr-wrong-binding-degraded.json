@@ -1,0 +1,23 @@
+{
+  "name": "cr-wrong-binding-degraded",
+  "$comment": "K3: caller↔agent kanalları takas (caller→ch1, agent→ch0) → binding_error; kapı ELER",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "direction": "inbound",
+  "upstream_decision": "RECORD",
+  "upstream_no_media_captured": false,
+  "media_legs": [
+    "caller",
+    "agent"
+  ],
+  "in_region_storage_required": true,
+  "storage_region": "TR",
+  "home_region": "TR",
+  "request_id": "req-104",
+  "call_id": "call-104",
+  "channels": 2,
+  "inject": [
+    "wrong_channel_binding"
+  ],
+  "expect": "fail"
+}

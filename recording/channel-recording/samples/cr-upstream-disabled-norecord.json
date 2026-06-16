@@ -1,0 +1,25 @@
+{
+  "name": "cr-upstream-disabled-norecord",
+  "$comment": "11.1 DISABLED (tamamen kapatma) → NO_RECORD; hiçbir track yazılmaz (K5/FR-REC-002 aşağı akış)",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "direction": "inbound",
+  "upstream_decision": "DISABLED",
+  "upstream_no_media_captured": true,
+  "media_legs": [
+    "caller",
+    "agent"
+  ],
+  "in_region_storage_required": true,
+  "storage_region": "TR",
+  "home_region": "TR",
+  "request_id": "req-008",
+  "call_id": "call-008",
+  "channels": 2,
+  "expect": "pass",
+  "expected": {
+    "terminal": "NO_RECORD",
+    "recording_written": false,
+    "no_media_captured": true
+  }
+}

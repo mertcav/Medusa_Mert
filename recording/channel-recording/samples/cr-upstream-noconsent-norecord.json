@@ -1,0 +1,25 @@
+{
+  "name": "cr-upstream-noconsent-norecord",
+  "$comment": "11.1 NO_CONSENT → NO_RECORD; medya yok",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "direction": "inbound",
+  "upstream_decision": "NO_CONSENT",
+  "upstream_no_media_captured": true,
+  "media_legs": [
+    "caller",
+    "agent"
+  ],
+  "in_region_storage_required": true,
+  "storage_region": "TR",
+  "home_region": "TR",
+  "request_id": "req-009",
+  "call_id": "call-009",
+  "channels": 2,
+  "expect": "pass",
+  "expected": {
+    "terminal": "NO_RECORD",
+    "recording_written": false,
+    "no_media_captured": true
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "$comment": "WBS 11.2 — Tek/çift kanallı kayıt (FR-REC-003) kanal-yerleşimi (channel layout) yapılandırması. MÜHENDİSLİK varsayılanı (DB §22 recording.channels CHECK IN (1,2); SAD §10.2 Recording Pipeline). İki desteklenen mod (FR-REC-003 'Tek VEYA çift kanallı kayıt desteklenmelidir'): MONO (channels=1 — tek kanal, tüm bacaklar [caller+agent+human] tek track'e DOWNMIX, hiçbiri düşmez) ve DUAL (channels=2 — çift/stereo kanal, caller→ch0, agent/human→ch1 AYRI track'lerde, çapraz sızıntı yok). channel_side: bir medya bacağının (leg) hangi kanala bağlandığı (caller=0, agent=1, human=1; warm/cold transfer sonrası insan temsilci agent tarafında ch1). valid_channels: yalnız {1,2} (DB §22). container: kayıt yazım parametreleri SAD §10.2 Recording Pipeline'ın işidir — bu modül yalnız LAYOUT + BACAK→KANAL bağlama KARARINI verir, byte YAZMAZ. Değerler counsel/pilot/F1 canlı pipeline ile kalibre edilir. Sır/credential/PII YOK.",
+  "version": "1.0",
+  "wbs": "11.2",
+  "layouts": {
+    "mono": {
+      "mode": "MONO",
+      "channels": 1,
+      "tracks": [
+        {"channel": 0, "leg_roles": ["caller", "agent", "human"], "$comment": "tek kanal: tüm bacaklar downmix (FR-REC-003 tek kanal)"}
+      ]
+    },
+    "dual": {
+      "mode": "DUAL",
+      "channels": 2,
+      "tracks": [
+        {"channel": 0, "leg_roles": ["caller"], "$comment": "sol/0. kanal: çağıran (FR-REC-003 çift kanal)"},
+        {"channel": 1, "leg_roles": ["agent", "human"], "$comment": "sağ/1. kanal: AI agent + (transfer sonrası) insan temsilci"}
+      ]
+    }
+  },
+  "leg_roles": ["caller", "agent", "human"],
+  "channel_side": {"caller": 0, "agent": 1, "human": 1},
+  "valid_channels": [1, 2],
+  "default_channels": 2,
+  "container": {
+    "$comment": "Kayıt yazımı (codec/sample-rate/byte) SAD §10.2 Recording Pipeline'ın işidir; bu modül layout/binding KARARINI verir. İllüstratif.",
+    "codec": "pcm16",
+    "sample_rate_hz": 8000
+  }
+}
