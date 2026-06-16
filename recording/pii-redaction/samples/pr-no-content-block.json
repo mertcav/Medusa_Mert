@@ -1,0 +1,22 @@
+{
+  "name": "pr-no-content-block",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "call_id": "call-005",
+  "request_id": "req-005",
+  "direction": "inbound",
+  "upstream_transcript_decision": "BLOCK",
+  "redaction_state_in": "pending",
+  "execution_plane": "analytics_async",
+  "in_region_storage_required": true,
+  "storage_region": "TR",
+  "home_region": "TR",
+  "$comment": "upstream BLOCK → NO_CONTENT; içerik yok",
+  "segments": [],
+  "expect": "pass",
+  "expected": {
+    "terminal": "NO_CONTENT",
+    "access_ready": false,
+    "no_content_persisted": true
+  }
+}

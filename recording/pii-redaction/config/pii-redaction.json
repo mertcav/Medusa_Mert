@@ -1,0 +1,27 @@
+{
+  "$comment": "WBS 11.4 — PII redaction pipeline (async) (FR-REC-004 / SR-REC-004 / DB §21 transcript.redaction_state / SAD §10.2 PII Redaction / SAD §19.2) yapılandırması. MÜHENDİSLİK varsayılanı. pii_categories: sezilebilen PII kategorisi → kanonik maskeli token + owner. owner=11.4 GENEL PII (bu modül maskeler + redacted üretir). owner=11.5 GİZLİ-DEĞER kategorileri (card_pan/cvv/otp/password — FR-REC-005; bu modül transkript span'lerini MASKELER ve 11.5'e DEVREDER delegated_to=11.5: KAYITTAN çıkarma + dedeksiyon kuralları 11.5'in). masked_token: TAM maskeleme bracket-token'ı ([CATEGORY]); PARTIAL reveal (last4 vb.) DISPLAY katmanı işidir (DB §8: transcript_segment.text view/uygulama katmanında maskelenmiş sunulur). accepted_input_states: bu modülün KABUL ettiği girdi redaction_state (11.3'ten pending/not_required); 'redacted' girdi YASAK (11.3 üretmez; çift-redaction → BLOCK). producible_output_states: üretilebilen çıktı (redacted/not_required); execution_plane: SAD §19.2 'Analytics Plane, async' (FR-RES-011); hot_path YASAK. Kategori listesi illüstratif; gerçek taksonomi PII-dedektör + counsel/compliance profile (DPIA) ile kalibre edilir. Ham metin maskelemesi + storage_uri byte yazımı SAD §10.2 Transcript Store'un işidir — bu modül yalnız MASKELEME DİREKTİFİ + redaction_state KARARINI verir. Sır/credential/HAM PII YOK.",
+  "version": "1.0",
+  "wbs": "11.4",
+  "pii_categories": {
+    "phone":          {"masked_token": "[PHONE]",       "owner": "11.4"},
+    "email":          {"masked_token": "[EMAIL]",       "owner": "11.4"},
+    "national_id":    {"masked_token": "[NATIONAL_ID]", "owner": "11.4"},
+    "iban":           {"masked_token": "[IBAN]",        "owner": "11.4"},
+    "account_number": {"masked_token": "[ACCOUNT]",     "owner": "11.4"},
+    "person_name":    {"masked_token": "[NAME]",        "owner": "11.4"},
+    "address":        {"masked_token": "[ADDRESS]",     "owner": "11.4"},
+    "dob":            {"masked_token": "[DOB]",         "owner": "11.4"},
+    "plate":          {"masked_token": "[PLATE]",       "owner": "11.4"},
+    "card_pan":       {"masked_token": "[CARD]",        "owner": "11.5", "delegated_to": "11.5"},
+    "cvv":            {"masked_token": "[CVV]",         "owner": "11.5", "delegated_to": "11.5"},
+    "otp":            {"masked_token": "[OTP]",         "owner": "11.5", "delegated_to": "11.5"},
+    "password":       {"masked_token": "[PASSWORD]",    "owner": "11.5", "delegated_to": "11.5"}
+  },
+  "masked_token_pattern": "^\\[[A-Z0-9_]+\\]$",
+  "accepted_input_states": ["pending", "not_required"],
+  "producible_output_states": ["redacted", "not_required"],
+  "forbidden_input_states": ["redacted"],
+  "execution_plane": "analytics_async",
+  "forbidden_execution_planes": ["hot_path"],
+  "directive_order_key": ["seq", "start"]
+}

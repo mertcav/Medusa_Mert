@@ -1,0 +1,63 @@
+{
+  "name": "pr-multi-segment-redacted",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "call_id": "call-008",
+  "request_id": "req-008",
+  "direction": "inbound",
+  "upstream_transcript_decision": "TRANSCRIPT",
+  "redaction_state_in": "pending",
+  "execution_plane": "analytics_async",
+  "in_region_storage_required": true,
+  "storage_region": "TR",
+  "home_region": "TR",
+  "$comment": "pending + çoklu segment + çoklu kategori (phone/address/iban) → REDACTED; tüm span maskeli",
+  "segments": [
+    {
+      "seq": 1,
+      "speaker": "caller",
+      "pii_spans": [
+        {
+          "category": "phone",
+          "start": 4,
+          "length": 11
+        },
+        {
+          "category": "address",
+          "start": 30,
+          "length": 25
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "speaker": "agent",
+      "pii_spans": [
+        {
+          "category": "iban",
+          "start": 12,
+          "length": 26
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "speaker": "caller",
+      "pii_spans": [
+        {
+          "category": "dob",
+          "start": 2,
+          "length": 10
+        }
+      ]
+    }
+  ],
+  "expect": "pass",
+  "expected": {
+    "terminal": "REDACTED",
+    "pii_span_count": 4,
+    "masked_count": 4,
+    "directive_count": 4,
+    "access_ready": true
+  }
+}

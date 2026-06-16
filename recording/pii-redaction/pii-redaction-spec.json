@@ -1,0 +1,192 @@
+{
+  "$comment": "WBS 11.4 — PII redaction pipeline (async) (FR-REC-004 'Transkript üzerinde PII redaction uygulanmalıdır'). 11. workstream'in (Kayıt, Transkript & PII Redaction) PII REDACTION PIPELINE modülü ve F1-Must temel yeteneği. Çağrının ÜRETİLMİŞ transkriptini (11.3 transcript-build çıktısı: zaman-sıralı/konuşmacı-atflı segmentler + redaction_state ∈ {pending, not_required}) + sezdirilmiş PII span'lerini (kategori + segment-içi offset; HAM DEĞER YOK — STT/PII-dedektör sağlar) alır → DETERMİNİSTİK, FAIL-CLOSED, ASENKRON bir redaction PLANI (her span için maskeleme direktifi {seq, category, start, length, masked_token, delegated_to}) üretir ve transkript redaction_state geçişini (pending→redacted) yönetir; bir terminal {REDACTED | NOT_REQUIRED | NO_CONTENT | BLOCK} kararı verir. Modül ANALYTICS PLANE'de ASENKRON çalışır (SAD §10.1/§10.2 PII Redaction; SAD §19.2 'PII redaction pipeline (Analytics Plane, async)'; FR-RES-011 — hot-path/medya bütçesi DIŞI; ADR-004/007). Modül 11.3 (transcript-build) AŞAĞI AKIŞ TÜKETİCİSİDİR; redaction TAMAMLANDIKTAN sonra transkript görüntülemeye-hazır (access_ready) olur (görüntüleme YETKİSİ transcript:read 11.6'da, FR-REC-008). KART/PAROLA/OTP gizli-değer KATEGORİLERİ (card_pan/cvv/otp/password) hem KAYITTAN hem TRANSKRİPTTEN çıkarma KARARI 11.5'in (FR-REC-005) sahipliğindedir — bu modül bu kategorilerin transkript span'lerini de MASKELER (maskeleme tamlığı K2) ve 11.5'e DEVREDER (delegated_to=11.5). ÇEKİRDEK: (1) K2 REDACTION TAMLIĞI (FR-REC-004 ÇEKİRDEK) — sezilen HER PII span'ı (her segmentte) maskeleme direktifi alır; maskesiz span (unredacted_pii) yasak; (2) K3 DURUM GEÇİŞİ ÇEKİRDEK — redaction_state pending→redacted YALNIZ tüm span'ler maskelendikten sonra; residüel PII varken 'redacted' işaretlemek (false_redacted) veya 'redacted'→'pending' geri-düşmek (state_regression) yasak; (3) K4 HAM PII SIZINTISI YOK (FR-REC-004 + BRD §17.7 ÇEKİRDEK) — redaction planı/audit/metrik YALNIZ maskeli token ([CATEGORY]) + kategori + offset taşır, ASLA ham PII değeri; ham değer = pii_leak; (4) K5 ATLANAMAZ / FAIL-CLOSED — redaction bypass edilemez; pending transkript redaction tamamlanmadan görüntülemeye-hazır (access_ready) işaretlenemez; bypass = redaction_skip (BRD §15 alarmı); malformed span → fail-closed BLOCK, sessiz redacted (failopen) yok; (5) K6 İÇERİK KAPISI (FR-REC-002 AŞAĞI AKIŞ) — upstream 11.3 içerik üretmediyse (NO_TRANSCRIPT/BLOCK) redaction edilecek içerik YOK ⇒ NO_CONTENT ∧ no_content_persisted=true (over_capture yasak); (6) K8 ASENKRON/HOT-PATH DIŞI (FR-RES-011) — pipeline Analytics Plane asenkron çalışır, medya hot-path'inde DEĞİL; hot_path yürütme beyanı = hotpath_violation. Modül bir DETERMİNİSTİK FAIL-CLOSED motorudur: PiiRedactionRequest{request_id, tenant_id, correlation_id, call_id, direction, upstream_transcript_decision[11.3 TRANSCRIPT/NO_TRANSCRIPT/BLOCK], redaction_state_in[pending/not_required/redacted], execution_plane[analytics_async/hot_path], segments[{seq, speaker, pii_spans[{category, start, length}]}], in_region_storage_required, storage_region, home_region} alır → tenant izolasyonu doğrula (cross_tenant→BLOCK) → upstream geçerli mi (yoksa BLOCK no_upstream) → içerik kapısı (upstream != TRANSCRIPT ⇒ NO_CONTENT, no content) → redaction_state_in doğrula (redacted girdi ⇒ BLOCK invalid_redaction_input; not_required ama span var ⇒ BLOCK tutarsız) → execution_plane=analytics_async doğrula (hot_path ⇒ hotpath_violation) → pending iken her span için maskeleme direktifi üret (kanonik (seq,start) sıra; config masked_token) → tamlık doğrula (her span maskeli; unredacted_pii=0) → ham-değer sızıntısı yok doğrula (pii_leak=0) → redaction_state pending→redacted geçişi (tüm span maskeliyse) → residency doğrula → terminal: REDACTED (tüm PII maskeli, state redacted, access_ready=true) | NOT_REQUIRED (11.3 not_required ∧ span yok ⇒ maskeleme gerekmez) | NO_CONTENT (11.3 RECORD/TRANSCRIPT değil ⇒ içerik yok) | BLOCK (cross-tenant/upstream yok/geçersiz girdi ⇒ fail-closed, içerik yok). ÇEKİRDEK INVARIANT (K3): redaction_state_out=='redacted' ⇒ unredacted_pii=0 (residüel PII varken redacted=false_redacted); (K5): access_ready=true ⇒ redaction_state_out ∈ {redacted, not_required} (pending görüntülemeye-hazır değil). Redaction ATLANAMAZ (K5 redaction_skip=0). Residency: redaksiyonlu transkript in_region iken home_region'da (K6, NFR 10.7). Her karar deterministik+terminal (K1) + kanıt (K9) + audit (K10); metrik düşük-kardinalite + HAM PII yok (K11); spec/config/sample HAM PII (telefon/kart/OTP/ad/adres DEĞERİ) tutmaz — yalnız kategori ENUM + offset + maskeli token + tenant izolasyonu (K12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): içerik/kayıt KARARI + consent + tamamen kapatma → 11.1 (FR-REC-001/002; upstream içerik dolaylı TÜKETİLİR); kanal/track yerleşimi → 11.2 (FR-REC-003); transkript ÜRETİMİ (segment/timeline/sıralama/atıf) + redaction_state=pending işareti → 11.3 (FR-REC-008/BRD §8.1; TÜKETİLİR); KART/PAROLA/OTP gizli-değer DEDEKSİYON KURALLARI + KAYITTAN çıkarma → 11.5 (FR-REC-005; bu modül transkript span'lerini MASKELER + DEVREDER); ham transkript METİN byte'ına maskeleme UYGULAMASI + storage_uri yazımı → SAD §10.2 Transcript Store + DB §21 (bu modül redaction PLANINI + state KARARINI verir, ham metin byte YAZMAZ/GÖRMEZ); PII DEDEKSİYON (NER/regex span çıkarımı) → STT/PII-dedektör (sağlayıcı-soyut; bu modül sezilen span'leri TÜKETİR); erişim audit + görüntüleme yetkisi → 11.6 (FR-REC-008/009); retention/silme → FR-REC-006/007/010; residency depolama UYGULAMASI → DB §8/SAD §12.1 (karar verilir); panel maskeli sunum → L2 A-12/A-13 (BRD §17 PII redaction panel görüntülemede de uygulanır). Spec/config/sample'larda sır/credential ve gerçek PII (telefon/kart/OTP/parola/ad/adres/hesap no/ham ses/ham metin DEĞERİ) YOK — yalnız yapısal KİMLİKLER (request/call/tenant/correlation kimlikleri) + ENUM'lar (direction/upstream_transcript_decision/redaction_state/pii kategori/execution_plane) + SAYI (seq, offset, length) + MASKELİ token ([PHONE]/[CARD]/...). KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS/DB/API esastır.",
+  "version": "1.0",
+  "wbs": "11.4",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-REC-004", "FR-REC-005", "FR-REC-002", "FR-REC-008", "FR-REC-009", "FR-RES-011", "FR-TEN-002", "FR-IAM-006", "FR-IAM-011", "FR-TST-008"],
+    "nfr": ["NFR 10.7"],
+    "srs": ["SR-REC-004", "SR-REC-005", "SR-REC-002", "SR-RES-011"],
+    "rtm": ["TC-REC-004"],
+    "brd": [
+      "§9.14 (Çağrı Kayıtları ve Transkript — FR-REC-004 'Transkript üzerinde PII redaction uygulanmalıdır' + FR-REC-005 kart/parola/OTP çıkarma)",
+      "§14.1 (Veri koruma & gizlilik — PII en aza indirme/maskeleme)",
+      "§15 (kritik alarm — redaction atlandı [redaction_skip] / residüel PII [unredacted_pii] / ham PII sızıntısı [pii_leak] = gizlilik ihlali)",
+      "§16 (veri varlıkları — Transcript, varlık 21: redaction_state pending/redacted/not_required)",
+      "§17 (panel — L2 A-12/A-13 maskeli transkript sunumu; PII redaction panel görüntülemede de uygulanır)",
+      "§17.7 (PII metrik/log'da yok — ham PII değeri)",
+      "§19 (kabul — (13) PII redaction testleri geçilmelidir)"
+    ],
+    "sad": [
+      "§4.2 (Analytics/Ops Plane — asenkron post-processing; ADR-004 plane ayrımı)",
+      "§10.1/§10.2 (Analytics Plane PII Redaction + Transcript Store — asenkron redaction; bu modül redaction PLANINI + state KARARINI verir, ham metin byte pipeline maskeler)",
+      "§12.1/§12.3 (residency + KMS; redaksiyonlu transkript home-region'da, NFR 10.7)",
+      "§13.3 (correlation/tenant context propagation)",
+      "§17.2 (redaction atlandı / residüel PII / ham PII sızıntısı → kritik alarm ≤2dk)",
+      "§19.2 (Veri Koruma & PII — 'PII redaction pipeline (Analytics Plane, async): transkript ve kayıttan kart/parola/OTP çıkarılır (FR-REC-004/005)')"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — redaction analytics düzleminde bir karar fonksiyonu; STT/LLM/TTS'e doğrudan bağlanmaz, sezilen span sözleşmesini tüketir)",
+      "ADR-002 (vendor-neutral — PII dedektör/STT sağlayıcı bağımsız; aynı span sözleşmesi arkasına gerçek PII Redaction pipeline)",
+      "ADR-004 (Data/Control/Analytics plane ayrımı — redaction Analytics Plane'de asenkron; hot-path DIŞI)",
+      "ADR-007 (async event pipeline (Kafka) — post-processing; FR-RES-011)",
+      "ADR-012 (RBAC — redaksiyonlu transkript görüntüleme transcript:read; yetki kapısı 11.6'da)"
+    ],
+    "db": [
+      "DB §21 transcript — redaction_state CHECK IN (pending,redacted,not_required) [FR-REC-004]: bu modül pending→redacted GEÇİŞİNİ + redaction PLANINI üretir; ham metin maskelemesi pipeline (SAD §10.2)",
+      "DB §21 transcript_segment — text 'kart/parola/OTP çıkarılmış (FR-REC-005)'; bu modül segment-bazlı maskeleme direktiflerini üretir (offset/kategori/masked_token), ham text byte YAZMAZ",
+      "DB §8 P6 — 'PII en aza indir, ayrıştır, şifrele; DB yalnız pointer + metadata + redaction durumu'; residency + KMS (NFR 10.7)"
+    ],
+    "threat_model": [
+      "TM-I-* (bilgi ifşası — residüel PII [redacted iddia edilirken span maskesiz] = gizlilik ihlali; unredacted_pii=0, K2/K3; ham PII redaction planı/metrik/log'da yok pii_leak=0, K4/K11)",
+      "TM-T-* (tahrifat — redaction atlama [redaction_skip] / sahte-redacted [false_redacted] / state geri-düşme [state_regression] = redaction bütünlük ihlali K3/K5)",
+      "TM-T-* (tenant izolasyonu — redaction yalnız aynı tenant transkriptine uygulanır; cross-tenant reddedilir FR-TEN-002, K12)",
+      "TM-R-* (inkâr — her karar [REDACTED/NOT_REQUIRED/NO_CONTENT/BLOCK] result + redaction_state_in/out + pii_span_count + masked_count + access_ready ile audit'e yazılır, K10)"
+    ],
+    "consumes": [
+      "11.3 transcript-build (FR-REC-008/BRD §8.1) — ÜRETİLMİŞ transkripti (segmentler) + upstream_transcript_decision (TRANSCRIPT/NO_TRANSCRIPT/BLOCK) + redaction_state_in (pending/not_required) + home_region/storage_region/in_region_storage_required'ı TÜKETİR (transkript ÜRETMEZ; redaction_state=pending işaretini 11.3 koyar)",
+      "STT/PII-dedektör (ADR-002 sağlayıcı-soyut) — segment-içi sezilen PII span'lerini {category, start, length} TÜKETİR (HAM DEĞER YOK); dedeksiyon KURALLARINI ÜRETMEZ",
+      "11.1 recording-policy (FR-REC-002) — içerik politikası DOLAYLI: 11.3 zaten upstream_decision'ı tükettiğinden NO_TRANSCRIPT/BLOCK aşağı akışta NO_CONTENT'e dönüşür"
+    ],
+    "consumed_by": [
+      "SAD §10.2 Transcript Store + DB §21 — REDACTED redaction PLANINI + redaction_state=redacted'ı TÜKETİR (ham metin byte'ına maskeleme uygulaması + storage_uri residency/KMS); NO_CONTENT/BLOCK ⇒ içerik YOK",
+      "11.5 kart/parola/OTP çıkarma (FR-REC-005) — secret kategori span'lerinin (card_pan/cvv/otp/password) delegated_to=11.5 devrini TÜKETİR (kayıttan çıkarma + dedeksiyon kuralları 11.5'in)",
+      "11.6 kayıt/transkript erişim audit + dinleme/görüntüleme (FR-REC-008/009) — redaksiyonlu transkript access_ready'i + bu modülün KARAR audit'ini TÜKETİR; görüntüleme yetkisi (transcript:read) 11.6'da",
+      "L2 A-12/A-13 panel (BRD §17) — maskeli transkript sunumu (PII redaction panel görüntülemede de uygulanır, BRD §17)",
+      "0.4.7 gözlemlenebilirlik — pii_redaction_* metriklerini tüketir (redaction_skip + unredacted_pii + pii_leak + false_redacted bütünlük alarmı dahil)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "PII redaction, ANALYTICS PLANE'de ASENKRON bir post-processing KARAR fonksiyonudur (SAD §10.1/§10.2 PII Redaction; SAD §19.2; FR-RES-011 — hot-path/medya bütçesi DIŞI; ADR-004/007). 11.3 transkripti (segmentler + redaction_state=pending) + STT/PII-dedektör sezilen span'leri verildikten sonra, ham metni maskeleyecek Transcript Store'a (SAD §10.2 + DB §21) hangi MASKELEME DİREKTİFLERİNİN (span-bazlı: kategori + offset + masked_token) uygulanacağını + redaction_state pending→redacted GEÇİŞİNİ çözer ve REDACTED | NOT_REQUIRED | NO_CONTENT | BLOCK döndürür — upstream içerik yoksa NO_CONTENT GARANTİSİ (FR-REC-002 aşağı akış) + residüel PII varken redacted YASAK (K3). Motor ham PII DEĞERİNİ/transkript metnini işlemez/görmez/yazmaz (STT/dedektör span çıkarır, pipeline maskeler; DB §21 storage_uri); deterministik kontrol düzlemi. Vendor-neutral (ADR-001/002): PII dedektör/STT sağlayıcı bağımsız; aynı span sözleşmesi arkasına gerçek PII Redaction pipeline (SAD §10.2) + nesne depolama (DB §8).",
+    "plane": "analytics plane (PII redaction pipeline kapısı — deterministik fail-closed, ASENKRON redaction planı + redaction_state geçiş kararı; hot-path DEĞİL, FR-RES-011)",
+    "owns": "FR-REC-004 PII redaction boyutu: PiiRedactionRequest → tenant izolasyonu + upstream geçerlilik + içerik kapısı (upstream==TRANSCRIPT) + redaction_state_in doğrulama (pending/not_required; redacted girdi reddi) + execution_plane=analytics_async doğrulama + pending iken her span için maskeleme direktifi üretimi (kanonik (seq,start); config masked_token) + tamlık doğrulama (her span maskeli) + ham-değer sızıntısı yok doğrulama + redaction_state pending→redacted geçişi + residency + terminal karar {REDACTED (tüm PII maskeli, redacted, access_ready) | NOT_REQUIRED (span yok) | NO_CONTENT (içerik yok) | BLOCK (cross-tenant/upstream yok/geçersiz girdi ⇒ no content)} + residüel PII varken redacted yasağı (K3) + pending access-ready yasağı (K5) + karar audit",
+    "delegates": "içerik/kayıt KARARI + consent + tamamen kapatma → 11.1 (FR-REC-001/002); kanal/track yerleşimi → 11.2 (FR-REC-003); transkript ÜRETİMİ + redaction_state=pending işareti → 11.3 (FR-REC-008; TÜKETİLİR); KART/PAROLA/OTP gizli-değer DEDEKSİYON KURALLARI + KAYITTAN çıkarma → 11.5 (FR-REC-005; transkript span'leri MASKELENİR + DEVREDİLİR delegated_to=11.5); PII DEDEKSİYON (NER/regex span çıkarımı) → STT/PII-dedektör (sezilen span TÜKETİLİR); ham metin byte'ına maskeleme UYGULAMASI + storage_uri yazımı → SAD §10.2 + DB §21 (redaction PLANI + state KARARI verilir, ham metin YAZILMAZ); erişim audit + görüntüleme yetkisi → 11.6 (FR-REC-008/009); retention/silme → FR-REC-006/007/010; residency depolama UYGULAMASI → DB §8/SAD §12.1 (karar verilir); panel maskeli sunum → L2 A-12/A-13",
+    "deterministic": true,
+    "fail_closed": true,
+    "async": true,
+    "trace": "FR-REC-004, FR-RES-011, SAD §10.2, SAD §19.2, DB §21, ADR-001, ADR-002, ADR-004, ADR-007, ADR-012"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ PII redaction uygulaması (FR-REC-004, SAD §10.2/§19.2, DB §21). Önce tenant izolasyonu + upstream geçerliliği doğrulanır; sonra içerik kapısı (K6 — upstream==TRANSCRIPT değilse NO_CONTENT, no content); sonra redaction_state_in + execution_plane doğrulanır; sonra her span için maskeleme direktifi üretilir (K2 tamlık); sonra ham-değer sızıntısı yok doğrulanır (K4); sonra redaction_state pending→redacted geçişi yapılır (K3 — residüel PII varken redacted yok); sonra residency doğrulanır (K7); pipeline asenkron Analytics Plane'de (K8). Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "redaction_completeness", "field": "sezilen HER PII span → maskeleme direktifi (masked_token); maskesiz span yok", "invariant": "K2", "outcome": "REDACTED",
+       "rule": "redaction_state=pending transkriptte sezilen her PII span (her segmentte) maskeleme direktifi almalı (FR-REC-004 'Transkript üzerinde PII redaction uygulanmalıdır'); maskesiz bırakılan span (unredacted_pii) = redaction eksik = gizlilik ihlali"},
+      {"id": "state_transition", "field": "redaction_state pending→redacted ⇐ tüm span maskeli; residüel PII varken redacted yok; geri-düşme yok", "invariant": "K3", "outcome": "REDACTED",
+       "rule": "redaction_state YALNIZ tüm span'ler maskelendikten sonra pending→redacted'a geçer (DB §21); residüel PII varken 'redacted' işaretlemek (false_redacted) veya 'redacted'→'pending' geri-düşmek (state_regression) yasak"},
+      {"id": "no_raw_pii", "field": "redaction planı/audit/metrik YALNIZ maskeli token + kategori + offset; ham PII değeri yok", "invariant": "K4", "outcome": "REDACTED|NOT_REQUIRED",
+       "rule": "redaction planı + audit + metrik YALNIZ maskeli token ([CATEGORY]) + kategori enum + offset taşımalı; ham PII değeri (telefon/kart/OTP/ad...) hiçbir alanda yok (FR-REC-004, BRD §17.7); ham değer = pii_leak"},
+      {"id": "mandatory_fail_closed", "field": "redaction bypass edilemez; pending access-ready değil; malformed → BLOCK", "invariant": "K5", "outcome": "REDACTED|BLOCK",
+       "rule": "redaction bypass edilemez (redaction_skip yasak — BRD §15 alarmı); pending transkript redaction tamamlanmadan görüntülemeye-hazır (access_ready) işaretlenemez; malformed span → fail-closed BLOCK, sessiz redacted (failopen) yok"},
+      {"id": "content_gate", "field": "upstream != TRANSCRIPT ⇒ NO_CONTENT ∧ no_content_persisted=true", "invariant": "K6", "outcome": "NO_CONTENT",
+       "rule": "upstream 11.3 içerik üretmediyse (NO_TRANSCRIPT/BLOCK) redaction edilecek içerik YOK ⇒ NO_CONTENT ∧ no_content_persisted=true (FR-REC-002 aşağı akış koruması); yokken redaction planı üretmek (over_capture) yasak"},
+      {"id": "residency_honored", "field": "REDACTED ∧ in_region_storage_required ⇒ storage_region == home_region", "invariant": "K7", "outcome": "REDACTED",
+       "rule": "redaksiyonlu transkript home-region'da saklanmalı (in_region_storage_required ise storage_region == home_region; NFR 10.7 residency); home-region dışı = residency ihlali"},
+      {"id": "async_offpath", "field": "execution_plane == analytics_async; hot_path yürütme yok", "invariant": "K8", "outcome": "REDACTED|NOT_REQUIRED",
+       "rule": "PII redaction pipeline Analytics Plane'de ASENKRON çalışmalı (SAD §19.2; FR-RES-011; ADR-004/007); medya hot-path'inde yürütme (execution_plane=hot_path) = hotpath_violation (gecikme bütçesi NFR 10.1 ihlali)"}
+    ],
+    "evaluation": "tenant_check_then_authorize_content_then_validate_input_state_then_check_async_then_mask_all_spans_then_no_leak_then_state_pending_to_redacted_fail_closed_no_content",
+    "trace": "FR-REC-004, SR-REC-004, SR-REC-005, SAD §10.2, SAD §19.2, DB §21, NFR 10.7, FR-RES-011"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed PII redaction algoritması. Adımlar: (1) tenant izolasyonunu doğrula (bind mismatch / cross_tenant → BLOCK cross_tenant, K12). (2) upstream geçerli mi: upstream_transcript_decision ∉ {TRANSCRIPT,NO_TRANSCRIPT,BLOCK} ⇒ BLOCK no_upstream. (3) içerik kapısı: upstream != TRANSCRIPT ⇒ NO_CONTENT (no_content_persisted=true; K6 — redaction edilecek içerik yok). (4) redaction_state_in doğrula: 'redacted' girdi ⇒ BLOCK invalid_redaction_input (11.3 'redacted' üretmez; çift-redaction); 'not_required' ama span var ⇒ BLOCK invalid_redaction_input (tutarsız); aksi → devam. (5) execution_plane: != analytics_async ⇒ hotpath_violation (K8). (6) pending iken: her span için maskeleme direktifi üret (kanonik (seq,start); config masked_token; secret kategori delegated_to=11.5) (K2). (7) tamlık: maskesiz span ⇒ unredacted_pii (K2). (8) ham-değer sızıntısı: masked_token ham PII değeri ⇒ pii_leak (K4). (9) redaction_state pending→redacted (tüm span maskeliyse); residüel PII ile redacted ⇒ false_redacted (K3). (10) residency: in_region ise storage_region==home_region (K7). HER terminal ∉ {REDACTED} ile içerik üretimi ⇒ no_content/over_capture kontrolü (K6). access_ready ⇐ redaction_state_out ∈ {redacted, not_required} (K5). Belirsizlik/malformed → BLOCK (fail-closed; ASLA fail-open redacted).",
+    "algorithm": "tenant_check ⇒ BLOCK(cross_tenant) → upstream∉{TRANSCRIPT,NO_TRANSCRIPT,BLOCK} ⇒ BLOCK(no_upstream) → upstream!=TRANSCRIPT ⇒ NO_CONTENT(no_content) → state_in=redacted ⇒ BLOCK(invalid_redaction_input) → state_in=not_required∧span ⇒ BLOCK(invalid_redaction_input) → plane!=analytics_async ⇒ hotpath_violation → mask_all_spans(seq,start) → completeness(unredacted_pii=0) → no_leak(pii_leak=0) → state pending→redacted(residüel PII yok) → residency(home_region) ⇒ REDACTED | NOT_REQUIRED",
+    "default": "BLOCK",
+    "fail_safe_terminal": "no_content (terminal ∉ {REDACTED,NOT_REQUIRED} ⇒ no_content_persisted=true ∧ access_ready=false)",
+    "trace": "SR-REC-004, SR-REC-002, SAD §10.2, DB §21"
+  },
+
+  "block_reasons": {
+    "$comment": "BLOCK karar taksonomisi (yalnız fail-closed BLOCK durumları). Düşük-kardinalite (metrik label uygun). 'invalid_redaction_input' = 'redacted' girdi (11.3 üretmez; çift-redaction) VEYA not_required+span tutarsızlığı VEYA malformed span (kategori/offset eksik). REDACTED/NOT_REQUIRED/NO_CONTENT terminal sonuçlardır (BLOCK değil); NO_CONTENT gizlilik-güvenli normal sonuçtur (içerik yok), ihlal DEĞİL.",
+    "list": ["invalid_redaction_input", "cross_tenant", "no_upstream"]
+  },
+
+  "outcomes": {
+    "$comment": "Terminal PII redaction sonuçları. REDACTED = upstream TRANSCRIPT ∧ redaction_state_in=pending ⇒ tüm PII span maskeleme direktifi alır + redaction_state pending→redacted + access_ready=true. NOT_REQUIRED = redaction_state_in=not_required ∧ span yok ⇒ maskeleme gerekmez (11.3 PII işaretlemedi); access_ready=true (içerik temiz). NO_CONTENT = upstream != TRANSCRIPT (NO_TRANSCRIPT/BLOCK) ⇒ redaction edilecek içerik yok (no_content_persisted=true; FR-REC-002 aşağı akış). BLOCK = cross-tenant / upstream yok / geçersiz girdi ⇒ fail-closed, içerik yok. Dördü de geçerli terminal — NO_CONTENT ihlal DEĞİL. Her karar audit üretir.",
+    "list": ["REDACTED", "NOT_REQUIRED", "NO_CONTENT", "BLOCK"],
+    "terminal": ["REDACTED", "NOT_REQUIRED", "NO_CONTENT", "BLOCK"]
+  },
+
+  "pii_categories": {
+    "$comment": "Sezilebilen PII kategorileri + kanonik maskeli token. owner=11.4 genel PII (bu modül maskeler + redacted üretir); owner=11.5 gizli-değer kategorileri (card_pan/cvv/otp/password — FR-REC-005; bu modül transkript span'lerini MASKELER ve 11.5'e DEVREDER delegated_to=11.5: KAYITTAN çıkarma + dedeksiyon kuralları 11.5'in). masked_token kanonik bracket-token; PARTIAL reveal (last4) DISPLAY katmanı işidir (DB §8: text view/uygulama katmanında maskelenmiş sunulur) — bu modül TAM maskeleme direktifi üretir. Kategori listesi illüstratif (MÜHENDİSLİK varsayılanı); gerçek taksonomi PII-dedektör + counsel/compliance profile (DPIA) ile kalibre edilir.",
+    "general": ["phone", "email", "national_id", "iban", "account_number", "person_name", "address", "dob", "plate"],
+    "secret_delegated_to_11_5": ["card_pan", "cvv", "otp", "password"],
+    "masked_token_pattern": "^\\[[A-Z0-9_]+\\]$"
+  },
+
+  "redaction_states": {
+    "$comment": "redaction_state geçiş sözleşmesi (DB §21 transcript.redaction_state CHECK IN (pending,redacted,not_required)). KABUL EDİLEN girdi: pending (11.3'ten — redaction gerekli) | not_required (11.3'ten — PII yok). ÜRETİLEBİLEN çıktı: redacted (pending'den, tüm span maskeli) | not_required (not_required'tan, pass-through). YASAK girdi: redacted (11.3 'redacted' üretmez; çift-redaction → BLOCK). Geçiş: pending→redacted (tek yön; geri-düşme state_regression yasak).",
+    "accepted_input": ["pending", "not_required"],
+    "producible_output": ["redacted", "not_required"],
+    "forbidden_input": ["redacted"],
+    "transition": "pending -> redacted (tek yön)"
+  },
+
+  "execution": {
+    "$comment": "PII redaction pipeline yürütme düzlemi (SAD §19.2 'Analytics Plane, async'; FR-RES-011; ADR-004 plane ayrımı; ADR-007 async event pipeline). Medya hot-path'inde DEĞİL — gecikme bütçesi (SAD §20, NFR 10.1) DIŞI. execution_plane=hot_path beyanı = hotpath_violation.",
+    "plane": "analytics_async",
+    "forbidden_plane": ["hot_path"],
+    "hot_path_excluded": true
+  },
+
+  "authorization": {
+    "$comment": "PII redaction bir OTOMATİK asenkron post-processing gate'tir (transkript üretimi/çağrı sonu tetikler; ADR-007 event pipeline); RBAC kullanıcı-komutu değildir. Redaksiyonlu transkriptin GÖRÜNTÜLENME yetkisi (transcript:read; FR-REC-008) 11.6'da uygulanır. Redaction politikası yönetimi compliance:manage/transcript:manage ister (security_compliance_officer/operations_manager). Karar her zaman backend'de.",
+    "view_permission": "transcript:read",
+    "policy_permission": "compliance:manage",
+    "policy_roles": ["security_compliance_officer", "operations_manager", "tenant_owner"],
+    "per_call_check": "automatic_async_gate (RBAC değil; fail-closed)",
+    "decision_at": "backend",
+    "trace": "FR-REC-008, FR-IAM-011, ADR-012, SAD §27 RBAC, SAD §10.2"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. unredacted_pii (K2) = maskesiz PII span = redaction eksik = BRD §15 kritik gizlilik alarmı; false_redacted (K3) = residüel PII varken redacted; state_regression (K3) = redacted→pending geri-düşme; pii_leak (K4) = ham PII değeri planda/audit'te; redaction_skip (K5) = redaction atlandı; failopen (K5) = malformed span'de sessiz redacted; over_capture (K6) = içerik yokken redaction planı; residency_violation (K7) = home-region dışı; hotpath_violation (K8) = hot-path'te yürütme. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1 canlı PII Redaction pipeline + pilot tenant verisinde doğrulanır.",
+    "max_redaction_skip": 0,
+    "max_unredacted_pii": 0,
+    "max_false_redacted": 0,
+    "max_state_regression": 0,
+    "max_pii_leak": 0,
+    "max_over_capture": 0,
+    "max_residency_violation": 0,
+    "max_hotpath_violation": 0,
+    "max_failopen": 0,
+    "max_cross_tenant": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "PII redaction motoru her karar için BRD §15 + redaction/gizlilik metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. pii_redaction_decision_total{tenant,result} → karar sayımı (result=REDACTED/NOT_REQUIRED/NO_CONTENT/BLOCK); pii_redaction_masked_total{tenant,category} → maskelenen span sayımı (kategori DÜŞÜK-kard enum); pii_redaction_integrity_violation_total → unredacted_pii VEYA false_redacted VEYA state_regression VEYA pii_leak VEYA redaction_skip VEYA over_capture VEYA hotpath_violation (K2/K3/K4/K5/K6/K8 ihlal alarmı, 0 olmalı). tenant_id+result+category+direction DÜŞÜK kardinalite (label uygun); request_id/call_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM PII DEĞERİ (telefon/kart/OTP/ad...) + transkript metni metrikte VE log'da YOK (FR-REC-004, BRD §17.7) — yalnız kategori enum + sayım. integrity_violation>0 → kritik alarm ≤2dk (SAD §17.2, NFR 10.1, BRD §15).",
+    "metrics": ["pii_redaction_decision_total", "pii_redaction_masked_total", "pii_redaction_integrity_violation_total"],
+    "low_cardinality_labels": ["tenant_id", "result", "category", "direction"],
+    "high_cardinality_trace_only": ["request_id", "call_id", "correlation_id"],
+    "alarm": "unredacted_pii>0 (maskesiz PII — K2, FR-REC-004) VEYA false_redacted>0 (sahte-redacted — K3) VEYA pii_leak>0 (ham PII sızıntısı — K4) VEYA redaction_skip>0 (redaction atlandı — K5) VEYA over_capture>0 (içerik yokken redaction — K6) VEYA hotpath_violation>0 (hot-path yürütme — K8) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "K1", "desc": "Determinizm/tamlık: her PiiRedactionRequest tanımlı tenant→authorize→content_gate→validate_input→async_check→mask→no_leak→state_transition algoritması boyunca ilerler ve bir terminal karara {REDACTED|NOT_REQUIRED|NO_CONTENT|BLOCK} ulaşır; aynı girdi → aynı çıktı (deterministik kanonik (seq,start) direktif sırası; Date.now/random YOK); stuck/tanımsız durum yok. stuck_state=0.", "trace": "SR-REC-004, SAD §10.2"},
+    {"id": "K2", "desc": "Redaction tamlığı ÇEKİRDEK (FR-REC-004 'Transkript üzerinde PII redaction uygulanmalıdır'): redaction_state=pending transkriptte sezilen HER PII span (her segmentte) maskeleme direktifi (masked_token) alır; maskesiz bırakılan span (unredacted_pii) = redaction eksik = gizlilik ihlali. Eksik redaction = PII hâlâ görünür. unredacted_pii=0.", "trace": "FR-REC-004, SR-REC-004, DB §21"},
+    {"id": "K3", "desc": "Durum geçişi ÇEKİRDEK (DB §21 redaction_state): redaction_state YALNIZ tüm span'ler maskelendikten sonra pending→redacted'a geçer. residüel PII (maskesiz span) varken 'redacted' işaretlemek (false_redacted) = redaction'ı tamamlamış gibi yalan söylemek (PII hâlâ içerde); 'redacted'→'pending' geri-düşmek (state_regression) = tamamlanmış redaction'ı geçersiz kılmak. redaction_state_out=='redacted' ⇒ unredacted_pii=0. false_redacted=0 ∧ state_regression=0.", "trace": "FR-REC-004, DB §21, SR-REC-004"},
+    {"id": "K4", "desc": "Ham PII sızıntısı yok ÇEKİRDEK (FR-REC-004, BRD §17.7): redaction planı + audit + metrik YALNIZ maskeli token ([CATEGORY]) + kategori enum + offset taşır; ham PII değeri (telefon/kart/OTP/ad/adres/hesap no DEĞERİ) hiçbir alanda yok — redaction'ın amacı budur. masked_token bir bracket-token deseni; ham değer içermez. pii_leak=0.", "trace": "FR-REC-004, BRD §17.7, 0.4.7 label_policy"},
+    {"id": "K5", "desc": "Atlanamaz / fail-closed ÇEKİRDEK (SR-REC-004): redaction (maskeleme) bypass edilemez — bypass ile maskeleme yapılmadan redacted işaretlenirse redaction_skip ihlali = BRD §15 kritik 'PII redaction atlandı' alarmı. Pending transkript redaction tamamlanmadan görüntülemeye-hazır (access_ready) işaretlenemez: access_ready=true ⇒ redaction_state_out ∈ {redacted, not_required}. Malformed span (kategori/offset eksik) → fail-closed BLOCK invalid_redaction_input, ASLA sessiz redacted (failopen). redaction_skip=0 ∧ failopen=0.", "trace": "SR-REC-004, BRD §15, SAD §17.2"},
+    {"id": "K6", "desc": "İçerik kapısı (FR-REC-002 AŞAĞI AKIŞ KORUMASI): upstream 11.3 içerik üretmediyse (upstream_transcript_decision != TRANSCRIPT) redaction edilecek içerik YOK ⇒ terminal=NO_CONTENT ∧ no_content_persisted=true. İçerik yokken redaction planı/direktif üretmek (over_capture) = yetkisiz içerik üretimi = gizlilik ihlali (BRD §15 alarm); 11.1/11.3 tamamen-kapatma garantisini aşağı akışta korur. over_capture=0.", "trace": "FR-REC-002, SR-REC-002, BRD §16, BRD §15, SAD §17.2"},
+    {"id": "K7", "desc": "Residency korunur (NFR 10.7): REDACTED durumunda in_region_storage_required ise storage_region == home_region — redaksiyonlu transkript home-region'da kalıcılaştırılır. Home-region dışı = residency_violation. residency_violation=0.", "trace": "NFR 10.7, SAD §12.3, DB §8"},
+    {"id": "K8", "desc": "Asenkron / hot-path dışı (FR-RES-011, SAD §19.2 'Analytics Plane, async'): PII redaction pipeline Analytics Plane'de ASENKRON çalışır (ADR-004 plane ayrımı; ADR-007 async event pipeline); medya hot-path'inde (gecikme bütçesi SAD §20, NFR 10.1) DEĞİL. execution_plane=hot_path yürütme = hotpath_violation (redaction hot-path'i şişirir → gecikme ihlali). hotpath_violation=0.", "trace": "FR-RES-011, SAD §19.2, SAD §20, NFR 10.1, ADR-004, ADR-007"},
+    {"id": "K9", "desc": "Kanıt: her karar request_id + upstream_transcript_decision + redaction_state_in + redaction_state_out + pii_span_count + masked_count + access_ready + no_content_persisted + storage_region taşır; kanıtsız karar yok. missing_evidence=0.", "trace": "FR-IAM-006"},
+    {"id": "K10", "desc": "Audit: her karar (REDACTED/NOT_REQUIRED/NO_CONTENT/BLOCK) → audit {result, request_id, call_id, direction, redaction_state_in, redaction_state_out, pii_span_count, masked_count, access_ready, no_content_persisted, correlation_id, tenant_id} (FR-IAM-006, FR-REC-009); ham PII DEĞERİ YOK (yalnız kategori sayımı). missing_audit=0.", "trace": "FR-IAM-006, FR-REC-009, 0.4.7 label_policy"},
+    {"id": "K11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (result/category/direction); request_id/call_id/correlation_id metrikte yok, yalnız trace; HAM PII DEĞERİ (telefon/kart/OTP/ad...) + transkript metni metrikte VE log'da yok (0.4.7 label_policy, FR-REC-004, BRD §17.7).", "trace": "FR-REC-004, 0.4.7 label_policy"},
+    {"id": "K12", "desc": "Sır/PII yok + tenant izolasyonu: spec/config/sample HAM PII (telefon/kart/OTP/parola/ad/adres/hesap no DEĞERİ) / transkript metni / ham ses / credential tutmaz (yalnız kategori ENUM + offset + sayı + maskeli token + yapısal kimlikler ör. req-001/call-001/t-acme); redaction yalnız aynı tenant transkriptine uygulanır, cross-tenant → cross_tenant ihlali (FR-TEN-002). secret_or_pii=0 ∧ cross_tenant=0.", "trace": "BRD §14, BRD §16, FR-TEN-002, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar HAM PII (TELEFON numarası, KART numarası [PAN/CVV], OTP kodu, PAROLA, müşteri ADI, ADRES, HESAP/IBAN numarası DEĞERİ), transkript METNİ, ham SES veya credential TUTMAZ — yalnız yapısal KİMLİKLER (request/call/tenant/correlation kimlikleri ör. req-001 / call-001 / t-acme / corr-001) + ENUM'lar (direction ör. inbound/outbound; upstream_transcript_decision ör. TRANSCRIPT/NO_TRANSCRIPT/BLOCK; redaction_state ör. pending/redacted/not_required; pii kategori ör. phone/email/card_pan; execution_plane ör. analytics_async/hot_path) + SAYI (seq, segment-içi offset [start/length]) + MASKELİ token (ör. [PHONE]/[CARD]/[OTP]). Kategori/enum/offset/sayı/maskeli-token PII DEĞİLDİR; tasarımca PII-olmayandır. Ham PII DEĞERİ HİÇBİR alanda tutulmaz — redaction'ın amacı tam olarak budur (PII-dedektör span çıkarır [kategori+offset], pipeline maskeler; ham metin/değer DB §21 storage_uri nesne depoda, maskeleme pipeline uygular).",
+    "forbids": ["customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "customer_name_value", "address_value", "account_number_value", "iban_value", "raw_value", "pii_value", "transcript_text", "segment_text", "raw_audio", "raw_msisdn", "credential", "secret"]
+  }
+}
