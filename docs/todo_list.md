@@ -302,7 +302,7 @@
 - [x] **12.3.2** Tier B: maker-checker + time-boxed token (60dk default, max 4sa, auto-expiry) — `F2` · `Must` · →FR-IAM-009
 - [x] **12.3.3** Tier B: gerekçe kodu + tenant security_compliance_officer/tenant_owner bildirimi — `F2` · `Must` · →FR-IAM-009
 - [x] **12.3.4** Regüle tenant `require_tenant_approval` toggle + DPA bağı — `F2` · `Must` · →FR-IAM-010
-- [ ] **12.3.5** Break-glass tam-audit router (ayrı, kısıtlı) — `F2` · `Must` · →SAD §14.4.2
+- [x] **12.3.5** Break-glass tam-audit router (ayrı, kısıtlı) — `F2` · `Must` · →SAD §14.4.2
 
 ### 12.4 Tenant & organizasyon yönetimi
 - [ ] **12.4.1** Tenant CRUD + provisioning (L0) — `F1` · `Must` · →FR-TEN-001

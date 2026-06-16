@@ -1,0 +1,174 @@
+{
+  "$comment": "WBS 12.3.5 — BREAK-GLASS TAM-AUDIT ROUTER (AYRI, KISITLI) (SAD §14.4.2 'Erişim AYRI, KISITLI, TAM-AUDIT'li bir break-glass ROUTER'ı üzerinden verilir', BRD §17/§17.7 altın kural, FR-IAM-009 üç katmanlı break-glass, FR-IAM-008 L0 izolasyon, FR-IAM-006/FR-REC-009 tüm erişim audit, ADR-011 Platform Control Plane internal-only/ayrı router, ADR-013). 12. workstream'in (IAM & Erişim) ÜÇ KATMANLI BREAK-GLASS'ın ROUTER/ADMISSION KATMANI ve F2-Must yeteneği. ALTIN KURAL (BRD §17): L0 tenant iş içeriğini VARSAYILAN GÖREMEZ — Tier B içeriğine erişim YALNIZ bu AYRI, KISITLI, TAM-AUDIT'li ROUTER'dan geçer. Bu modül 12.3.4'ün ALLOW/HOLD/BLOCK (sanction_decision) kararını + 12.3.2'nin time-boxed TOKEN'ını TÜKETİR; bir BreakGlassRouterRequest (actor_role[L0] + target_tenant + tier=B + resource_type + data_class + router_context{router_id,plane,internal_only,oauth_scope} + sanction_decision[ALLOW/HOLD/BLOCK] + token{break_glass_id,target_tenant_id,tier,scope[],granted_at,expires_at,state} + access_tick[now] + break_glass_id) alır → DETERMİNİSTİK, FAIL-CLOSED bir ROUTER ADMISSION kararı verir: ADMIT (AYRI router/plane/scope + KISITLI [sanction=ALLOW + geçerli token] + scope-içi + TAM-AUDIT'li) | REJECT (malformed / router izolasyon ihlali / sanction≠ALLOW / token geçersiz·expired·resolved·misbound / scope dışı → fail-closed; HER durumda audit'li). ÇEKİRDEK: (1) C2 AYRI (router izolasyonu) — break-glass router AYRI ağaçtır; YALNIZ internal-only Platform Control Plane + dedicated break-glass scope; yanlış router/plane/scope → REJECT (router_isolation_violation=0). (2) C3 KISITLI (admission) — YALNIZ sanction=ALLOW + geçerli token ile ADMIT (no standing access); sanction'sız/token'sız ADMIT → unsanctioned_admission=0. (3) C4 TAM-AUDIT — HER router isteği (ADMIT/REJECT/malformed) DEĞİŞMEZ (WORM) audit üretir; audit'siz istek → unaudited_request=0. Motor DETERMİNİSTİK FAIL-CLOSED (Date.now/random YOK; model_hash sha256; tick=dakika sanal-saat). Her karar terminal (C1) + kanıt + model bütünlük manifesti (C10); metrik düşük-kardinalite + ham PII/token yok (C11); model/spec/sample ham içerik/PII/token tutmaz (C12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): Tier B erişim-verme kararı + token ÜRETİMİ → 12.3.2 (TÜKETİLİR); regüle tenant onay + DPA → 12.3.4 (sanction_decision TÜKETİLİR); gerekçe kodu + bildirim → 12.3.3; Tier sınıflandırma + ESCALATE → 12.3.1; panel router topolojisi (L0/L1/L2) → 12.2.2 (RESİPROKAL); rol→permission-key/scope → 12.1.2/12.1.3; WORM audit hash-zinciri → 12.1.8 (TÜKETİLİR). KAYNAK DOĞRULUK; çelişkide SAD §14.4.2 / BRD §17 / FR-IAM-009 esastır.",
+  "version": "1.0",
+  "wbs": "12.3.5",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-IAM-009", "FR-IAM-008", "FR-IAM-006", "FR-REC-009", "FR-REC-004", "FR-TEN-002", "FR-IAM-010", "FR-TST-008"],
+    "srs": ["SR-IAM-009", "SR-IAM-008"],
+    "rtm": ["TC-IAM-009"],
+    "brd": [
+      "§17 (üç katmanlı break-glass FR-IAM-009/010 — içeriğe erişim yalnız break-glass akışıyla; ayrı/kısıtlı/tam-audit'li router)",
+      "§17.7 (izolasyon/görünürlük — altın kural: L0 tenant içeriğini varsayılan göremez; içeriğe erişim üç katmanlı break-glass ile; audit PII'siz)",
+      "§17.2 (panel mimarisi L0/L1/L2 + Platform Control Plane internal-only)"
+    ],
+    "sad": [
+      "§14.4.2 (Backend — 'maker-checker → süreli token → ... Erişim AYRI, KISITLI, TAM-AUDIT'li bir break-glass ROUTER'ı üzerinden verilir' — bu modülün TEMEL kararı)",
+      "§14.4.2 (Ayrı router/scopes + ayrı deploy: L0 ayrı servis [Platform Control Plane, internal-only] ve ayrı auth realm; break-glass router o düzlemde AYRI/EK ağaç)",
+      "§14 (Audit — tüm break-glass erişimleri audit log'a; FR-IAM-006/FR-REC-009)"
+    ],
+    "adr": [
+      "ADR-011 (Platform Control Plane internal-only + ayrı router ağaçları/scope — break-glass router AYRI/EK dördüncü ağaç)",
+      "ADR-013 (üç katmanlı break-glass — bu modül o akışın ROUTER/ADMISSION katmanı)",
+      "ADR-016 (audit tamper-evidence: hash zinciri — router audit'i WORM/hash-zincir 12.1.8 RESİPROKAL)",
+      "ADR-001 (deterministik karar fonksiyonu deseni)", "ADR-002 (vendor-neutral / credential-free)"
+    ],
+    "threat_model": [
+      "TM-I-02 (L0 platform rolü tenant içeriğini görür — içeriğe erişim YALNIZ kısıtlı break-glass router'dan; unsanctioned_admission=0)",
+      "TM-E-xx (sanction'sız/token'sız erişim — kısıtlı admission; unsanctioned_admission=0)",
+      "TM-T-xx (break-glass router'ı tenant düzlemine mount / yanlış scope — router izolasyonu; router_isolation_violation=0)",
+      "TM-R-xx (sessiz break-glass erişimi — tam-audit; unaudited_request=0)"
+    ],
+    "consumes": [
+      "12.3.4 break-glass-tier-b-approval config/tier-b-approval-model.json (sanction_decision ALLOW/HOLD/BLOCK — yalnız ALLOW ADMIT; RESİPROKAL) — TÜKETİLİR",
+      "12.3.2 break-glass-tier-b config/tier-b-model.json (GRANT_TIER_B + time-boxed token [60/240/auto-expiry/no-standing] + token_binding + resolved_states — RESİPROKAL) — TÜKETİLİR",
+      "12.2.2 router-scopes config/router-topology.json (platform_control_plane internal_only + scope_disjoint — break-glass router AYRI/EK dördüncü ağaç RESİPROKAL) — TÜKETİLİR",
+      "12.1.8 worm-audit config/worm-audit-model.json (append-only/WORM + hash-zincir — router audit DEĞİŞMEZLİĞİ RESİPROKAL) — TÜKETİLİR",
+      "12.1.1 rbac-model config/rbac-roles.json (L0 platform aktör rolleri — RESİPROKAL) — TÜKETİLİR",
+      "break-glass-router-model.json (frozen — router_policy[router_id + plane + internal_only + oauth_scope + scope_disjoint + mount_planes] + admission_policy[require_sanction_allow + require_valid_token + no_standing_access] + token_policy[active/resolved_states + binding] + scope_policy[tier_b_only + content_class] + concurrency_policy + audit + actor_roles)"
+    ],
+    "consumed_by": [
+      "1.x F1/F2 kod (gerçek FastAPI break-glass router: ayrı router ağacı + internal-only Platform Control Plane mount + dedicated break-glass OAuth scope + admission [sanction+token] + scope-limited routing + WORM audit yazımı + hash-zincir); 0.4.7 gözlemlenebilirlik"
+    ],
+    "delegates": [
+      "12.3.2 (Tier B erişim-verme + time-boxed token ÜRETİMİ — token TÜKETİLİR)",
+      "12.3.4 (regüle tenant onay toggle + DPA → sanction_decision TÜKETİLİR)",
+      "12.3.3 (gerekçe kodu semantiği + tenant security_compliance_officer/tenant_owner bildirimi)",
+      "12.3.1 (Tier sınıflandırma A/B/forbidden + ESCALATE_TIER_B)",
+      "12.2.2 (panel router topolojisi L0/L1/L2 — break-glass router AYRI/EK dördüncü ağaç)",
+      "12.1.2 / 12.1.3 (rol→permission-key bundle + scope kararı)",
+      "12.1.8 (WORM audit zinciri)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "break-glass router, üç katmanlı break-glass'ın ROUTER/ADMISSION katmanıdır (SAD §14.4.2). Erişim-verme kararını VERMEZ (12.3.2/12.3.4 verir) — verilen kararı (sanction_decision) + token'ı KISITLI bir kapıdan (AYRI router/plane/scope) geçirir ve HER isteği TAM-AUDIT'ler. L0 platform rolü REGÜLE/normal bir tenant'ın Tier B içeriğine (transcript/recording/contact) erişmek istediğinde, istek YALNIZ (1) internal-only Platform Control Plane'de + dedicated break-glass scope'ta açılan AYRI router'a gelir (router izolasyonu), (2) sanction=ALLOW + geçerli time-boxed token ile ADMIT edilir (kısıtlı; no standing access) ve (3) ne olursa olsun (ADMIT/REJECT) DEĞİŞMEZ WORM audit üretir (tam-audit). Motor yalnız ADMISSION KARARINI + scope kanıtını + PII'siz/token'sız WORM audit kaydını + model bütünlük manifestini üretir (gerçek FastAPI break-glass router + mount + scope dependency + WORM audit yazımı F1/F2 kod aşamasında); deterministik kontrol düzlemi (Date.now/random YOK; tick=dakika sanal-saat). Vendor-neutral (ADR-002/011/013).",
+    "tier": "Router/admission (üç katmanlı break-glass'ın AYRI/KISITLI/TAM-AUDIT'li erişim kapısı)",
+    "owns": "SAD §14.4.2 BREAK-GLASS ROUTER ADMISSION KARARI: BreakGlassRouterRequest → malformed kapısı (fail-closed) + ROUTER İZOLASYONU (router_id/plane/internal_only/oauth_scope dedicated break-glass; yanlış → REJECT router_isolation C2) + KISITLI ADMISSION (sanction=ALLOW [12.3.4] + geçerli token [12.3.2]; sanction'sız/token'sız → unsanctioned_admission C3) + TOKEN doğrulama (state ACTIVE + unexpired [expired_token_admission C5] + binding [token_misbinding C6] + replay-safe [token_replay C8]) + SCOPE-LIMITED routing (Tier B + token scope; out_of_scope_routing C7) + TAM-AUDIT (her istek WORM audit; unaudited_request C4) + terminal {ADMIT|REJECT} + model bütünlük manifesti (C10) + karar kanıtı",
+    "delegates": "Tier B erişim-verme + token üretimi → 12.3.2 (TÜKETİLİR); regüle onay + DPA → 12.3.4 (sanction_decision TÜKETİLİR); gerekçe kodu + bildirim → 12.3.3; Tier sınıflandırma + ESCALATE → 12.3.1; panel router topolojisi → 12.2.2 (RESİPROKAL); rol→permission-key/scope → 12.1.2/12.1.3; WORM audit zinciri → 12.1.8",
+    "deterministic": true,
+    "fail_closed": true,
+    "decision_at": "break-glass router admission anı (deterministik kontrol düzlemi; gerçek FastAPI break-glass router + mount + scope dependency + WORM audit yazımı F1/F2 kod)",
+    "trace": "SAD §14.4.2, FR-IAM-009, BRD §17, ADR-011, ADR-013"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ break-glass router admission kararı. Önce malformed; sonra ROUTER İZOLASYONU (ayrı router/plane/scope); sonra KISITLI ADMISSION (sanction=ALLOW); sonra TOKEN doğrulama (geçerli/unexpired/bound/replay-safe); sonra SCOPE-LIMITED routing (Tier B + token scope); sonra TAM-AUDIT (her istek WORM) + model bütünlük. Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "router_isolation", "field": "break-glass router AYRI ağaç; internal-only platform plane + dedicated break-glass scope", "invariant": "C2", "outcome": "ADMIT|REJECT",
+       "rule": "ÇEKİRDEK (SAD §14.4.2 'AYRI'; ADR-011): istek YALNIZ dedicated break-glass router'a (router_id=break_glass) + internal-only Platform Control Plane düzlemine (plane=platform_control_plane + internal_only=true) + dedicated break-glass OAuth scope'una (panel:L0:break_glass; panel:L0/L1/L2'den DISJOINT) gelmek ZORUNDA. Yanlış router/plane/internal_only=false/yanlış scope (ör. tenant düzlemine mount / panel:L0 scope) ile servis = router_isolation_violation → fail-closed REJECT. router_isolation_violation=0"},
+      {"id": "restricted_admission", "field": "YALNIZ sanction=ALLOW (12.3.4) + geçerli token (12.3.2) ile ADMIT; no standing access", "invariant": "C3", "outcome": "ADMIT|REJECT",
+       "rule": "ÇEKİRDEK (SAD §14.4.2 'KISITLI'; no standing access): istek YALNIZ (1) sanction_decision=ALLOW (12.3.4 regüle onay/DPA terminali; HOLD/BLOCK → REJECT not_sanctioned) ve (2) GEÇERLİ time-boxed token (12.3.2; state ACTIVE + unexpired + bound) ile ADMIT edilir. sanction'sız VEYA token'sız ADMIT (sessiz/standing erişim) = unsanctioned_admission. unsanctioned_admission=0"},
+      {"id": "full_audit", "field": "HER router isteği (ADMIT/REJECT/malformed) DEĞİŞMEZ (WORM) audit üretir", "invariant": "C4", "outcome": "ADMIT|REJECT",
+       "rule": "ÇEKİRDEK (SAD §14.4.2 'TAM-AUDIT'; BRD §17.7, FR-IAM-006/FR-REC-009): break-glass router'dan geçen HER istek (ADMIT/REJECT/malformed — girişim dahil) DEĞİŞMEZ (append-only/WORM) audit üretir — router'dan hiçbir istek audit'siz geçemez (sessiz erişim yok). Audit'siz istek = unaudited_request. unaudited_request=0"},
+      {"id": "token_expiry", "field": "expired/resolved token ADMIT alamaz (auto-expiry; 12.3.2 RESİPROKAL)", "invariant": "C5", "outcome": "ADMIT|REJECT",
+       "rule": "Time-boxed token (12.3.2 RESİPROKAL): access_tick > expires_at (auto-expiry; standing access yok) VEYA state resolved (CONSUMED/REVOKED/EXPIRED) → token GEÇERSİZ → REJECT. Süresi dolmuş token ile ADMIT = expired_token_admission. expired_token_admission=0"},
+      {"id": "token_binding", "field": "token break_glass_id + target_tenant + tier=B'ye bağlı (least-privilege)", "invariant": "C6", "outcome": "ADMIT|REJECT",
+       "rule": "Token binding (least-privilege; FR-TEN-002): token.break_glass_id=request.break_glass_id + token.target_tenant_id=request.target_tenant_id + token.tier=B olmak ZORUNDA. Başka grant'a/tenant'a (cross-tenant) bağlı token ile ADMIT = token_misbinding. token_misbinding=0"},
+      {"id": "scope_limited", "field": "ADMIT scope token grant'ına + Tier B'ye kısıtlı", "invariant": "C7", "outcome": "ADMIT|REJECT",
+       "rule": "Scope-limited routing (least-privilege): istenen resource_type token.scope (verilen kaynak tipleri) içinde + data_class=tenant_content (Tier B yalnız içerik) + tier=B olmalı. Grant scope DIŞI (verilmeyen resource_type / non-Tier-B) yönlendirme = out_of_scope_routing. out_of_scope_routing=0"},
+      {"id": "replay_safe", "field": "çözülmüş token yeniden kullanılamaz", "invariant": "C8", "outcome": "ADMIT|REJECT",
+       "rule": "İdempotent + replay-güvenli (12.3.2 concurrency_policy RESİPROKAL): çözülmüş (resolved_states ∈ {CONSUMED, REVOKED, EXPIRED}) token bayat istekle DİRİLTİLEMEZ — kullanılmış/iptal/süresi dolmuş token yeniden ADMIT alamaz. Çözülmüş token'ı yeniden kullanarak ADMIT = token_replay. token_replay=0"},
+      {"id": "audit_integrity", "field": "audit PII/token-free + immutable (WORM)", "invariant": "C9", "outcome": "ADMIT|REJECT",
+       "rule": "ÇEKİRDEK (BRD §17.7, FR-REC-004, ADR-016): router audit kaydı PII-free + token-free (HAM transcript/recording/contact + HAM token DEĞERİ YAZILMAZ; yalnız token_state ENUM) = audit_pii. Emitilen kayıt tahrifatı (row_hash uyumsuz; WORM ihlali) = audit_mutable. audit_pii=0, audit_mutable=0"},
+      {"id": "model_integrity", "field": "model frozen + model_hash sha256", "invariant": "C10", "outcome": "ADMIT|REJECT",
+       "rule": "model (router_policy/admission_policy/token_policy/scope_policy/concurrency_policy/audit/actor_roles) frozen; model_hash = sha256(kanonik); çalışma anında tahrif (ör. internal_only kapatma / oauth_scope gevşetme / require_sanction_allow kapatma / required_for_every_request kapatma) yeniden-hesaplanan hash'le yakalanır → model_tampered. Router-izolasyon + admission + tam-audit yüzeyi audit edilebilir (ADR-011/013). model_tampered=0"}
+    ],
+    "evaluation": "malformed_then_router_isolation_then_restricted_admission_then_token_then_scope_then_full_audit",
+    "trace": "SAD §14.4.2, FR-IAM-009, BRD §17, ADR-011, ADR-013"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed break-glass router admission algoritması. Adımlar: (1) malformed (request_id eksik / actor_role L0 değil / target_tenant eksik / tier≠B / sanction_decision tanınmaz / router_context yok → REJECT). (2) router izolasyonu: router_id≠break_glass VEYA plane≠platform_control_plane VEYA internal_only≠true VEYA oauth_scope≠panel:L0:break_glass → REJECT (router_isolation). (3) sanction_decision≠ALLOW (12.3.4 HOLD/BLOCK) → REJECT (not_sanctioned). (4) token yok → REJECT (token_missing). (5) token state resolved → REJECT (token_resolved). (6) access_tick > expires_at → REJECT (token_expired). (7) token misbound (break_glass_id/target_tenant/tier) → REJECT (token_misbound). (8) scope dışı (resource_type token.scope dışı / non-Tier-B) → REJECT (out_of_scope). (9) hepsi geçer → ADMIT (routed). (10) audit emit (HER istek — DEĞİŞMEZ/WORM). Belirsizlik/malformed → REJECT (fail-closed).",
+    "algorithm": "malformed ⇒ REJECT(malformed) → router izolasyon ihlali ⇒ REJECT(router_isolation) → sanction≠ALLOW ⇒ REJECT(not_sanctioned) → token yok ⇒ REJECT(token_missing) → token resolved ⇒ REJECT(token_resolved) → access_tick>expires_at ⇒ REJECT(token_expired) → token misbound ⇒ REJECT(token_misbound) → scope dışı ⇒ REJECT(out_of_scope) → hepsi geçer ⇒ ADMIT(routed) → audit emit (HER istek, WORM)",
+    "default": "REJECT",
+    "fail_safe_terminal": "no access (terminal=REJECT ⇒ erişim yönlendirilmez; malformed/router izolasyon/sanction'sız/token geçersiz/scope dışı ⇒ REJECT; HER istek audit'li)",
+    "trace": "SR-IAM-009, BRD §17, SAD §14.4.2"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal kararlar. ADMIT = istek break-glass handler'a yönlendirilir (AYRI router/plane/scope'ta + KISITLI [sanction=ALLOW + geçerli token] + scope-içi). REJECT = erişim yönlendirilmez (malformed / router izolasyon ihlali / sanction≠ALLOW / token geçersiz·expired·resolved·misbound / scope dışı → fail-closed). HER iki durumda DEĞİŞMEZ WORM audit (tam-audit). REJECT DOĞRU çıktıdır (altın kural + izolasyon + kısıtlı admission + scope korunur).",
+    "list": ["ADMIT", "REJECT"],
+    "terminal": ["ADMIT", "REJECT"]
+  },
+
+  "model": {
+    "$comment": "Router admission modeli özeti = config/break-glass-router-model.json (frozen). router_policy (router_id=break_glass + plane=platform_control_plane + internal_only + oauth_scope=panel:L0:break_glass + scope_disjoint + mount_planes) + admission_policy (require_sanction_allow + require_valid_token + no_standing_access) + token_policy (active/resolved_states + binding) + scope_policy (tier_b_only + content_class) + concurrency_policy (replay-safe) + audit (WORM; PII/token-free; 12.1.8 RESİPROKAL) + actor_roles (L0; 12.1.1 RESİPROKAL).",
+    "frozen": true,
+    "tier": "B",
+    "data_class": "tenant_content",
+    "router_id": "break_glass",
+    "plane": "platform_control_plane",
+    "internal_only": true,
+    "oauth_scope": "panel:L0:break_glass",
+    "sanction_allow_value": "ALLOW",
+    "actor_roles": ["platform_owner", "platform_sre", "platform_billing"],
+    "audit": "WORM (append-only); PII/token-free; row_hash sha256; HER istek audit'lenir (12.1.8 RESİPROKAL; break_glass_id ile)"
+  },
+
+  "enforcement": {
+    "$comment": "break-glass router admission enforcement (SAD §14.4.2, FR-IAM-009, ADR-011). router_isolation — break-glass router AYRI ağaç; yalnız internal-only platform plane + dedicated break-glass scope (panel:L0:break_glass; disjoint). restricted_admission — yalnız sanction=ALLOW (12.3.4) + geçerli token (12.3.2) ile ADMIT; no standing access. full_audit — HER istek (ADMIT/REJECT) DEĞİŞMEZ (WORM) audit (12.1.8 RESİPROKAL; break_glass_id). Karar deterministik kontrol düzlemi.",
+    "router_isolation": "break-glass router AYRI/EK dördüncü router ağacıdır; YALNIZ internal-only Platform Control Plane düzleminde (plane=platform_control_plane + internal_only=true) + dedicated break-glass OAuth scope'ta (panel:L0:break_glass — panel:L0/L1/L2'den DISJOINT) mount edilir; tenant düzlemine ASLA mount edilemez; yanlış router/plane/scope → REJECT (router_isolation_violation) (SAD §14.4.2 'ayrı'; ADR-011)",
+    "restricted_admission": "istek YALNIZ sanction_decision=ALLOW (12.3.4) + GEÇERLİ time-boxed token (12.3.2; state ACTIVE + unexpired + bound) ile ADMIT edilir (no standing access); sanction'sız/token'sız ADMIT → unsanctioned_admission (SAD §14.4.2 'kısıtlı')",
+    "full_audit": "break-glass router'dan geçen HER istek (ADMIT/REJECT/malformed) DEĞİŞMEZ (append-only/WORM) audit üretir (router'dan hiçbir istek audit'siz geçemez); row_hash sha256 hash-zincir (12.1.8 worm-audit RESİPROKAL; break_glass_id ile); ham PII + ham token (yalnız token_state enum) yazılmaz (FR-REC-004) (SAD §14.4.2 'tam-audit')",
+    "decision_at": "break-glass router admission anı (kontrol düzlemi; gerçek FastAPI break-glass router + mount + scope dependency + WORM audit yazımı F1/F2 kod)",
+    "trace": "SAD §14.4.2, FR-IAM-009, BRD §17, ADR-011, 12.3.4, 12.3.2, 12.2.2, 12.1.8"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. router_isolation_violation (C2 ÇEKİRDEK) = yanlış router/plane/scope servis; unsanctioned_admission (C3 ÇEKİRDEK) = sanction'sız/token'sız ADMIT (standing/sessiz erişim); unaudited_request (C4 ÇEKİRDEK) = audit'siz router isteği; expired_token_admission (C5) = süresi dolmuş token ile ADMIT; token_misbinding (C6) = cross-tenant/cross-grant token; out_of_scope_routing (C7) = scope dışı/non-Tier-B yönlendirme; token_replay (C8) = çözülmüş token yeniden; audit_pii (C9) = audit'te ham PII/token; audit_mutable (C9) = emitilen audit tahrif (WORM ihlali); model_tampered (C10) = model bütünlük manifesti tutmuyor. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1/F2 canlı (FastAPI break-glass router + mount + scope dependency + WORM audit) verisinde doğrulanır.",
+    "max_router_isolation_violation": 0,
+    "max_unsanctioned_admission": 0,
+    "max_unaudited_request": 0,
+    "max_expired_token_admission": 0,
+    "max_token_misbinding": 0,
+    "max_out_of_scope_routing": 0,
+    "max_token_replay": 0,
+    "max_audit_pii": 0,
+    "max_audit_mutable": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "Router admission her istek için metrikleri hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. l0_break_glass_router_total{actor_role,decision,result,plane} → router admission sayımı; break_glass_router_violation_total → router_isolation_violation VEYA unsanctioned_admission VEYA unaudited_request VEYA expired_token_admission VEYA token_misbinding VEYA out_of_scope_routing VEYA token_replay VEYA audit_pii VEYA audit_mutable VEYA model_tampered (C2..C10 ihlal alarmı, 0 olmalı). actor_role+decision+result+plane DÜŞÜK kardinalite (label uygun); correlation_id/break_glass_id/target_tenant_id/request_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM İÇERİK/PII + HAM TOKEN metrikte VE log'da VE karar yükünde YOK (BRD §17.7/FR-REC-004). unsanctioned_admission>0 (sessiz/standing erişim) VEYA router_isolation_violation>0 (yanlış düzlem/scope) VEYA unaudited_request>0 (sessiz erişim) → kritik alarm ≤2dk (SAD §17.2, NFR 10.1) = break-glass router güvenlik/uyumluluk olayı.",
+    "metrics": ["l0_break_glass_router_total", "break_glass_router_violation_total"],
+    "low_cardinality_labels": ["actor_role", "decision", "result", "plane"],
+    "high_cardinality_trace_only": ["correlation_id", "break_glass_id", "target_tenant_id", "request_id"],
+    "alarm": "unsanctioned_admission>0 (sessiz/standing erişim — C3, SAD §14.4.2) VEYA router_isolation_violation>0 (yanlış router/plane/scope — C2, ADR-011) VEYA unaudited_request>0 (sessiz erişim — C4, FR-REC-009) VEYA expired_token_admission>0 (süresi dolmuş token — C5) VEYA audit_mutable>0 (WORM ihlali — C9) VEYA model_tampered>0 (C10) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "C1", "desc": "Determinizm/tamlık + kanıt + router admission: her BreakGlassRouterRequest tanımlı malformed→router_isolation→restricted_admission→token→scope→full_audit algoritması boyunca ilerler ve bir terminal karara {ADMIT|REJECT} ulaşır; aynı girdi → aynı çıktı (deterministik; model_hash sha256 kanonik JSON; tick=dakika sanal-saat; Date.now/random YOK); varsayılan REJECT (fail-closed). Her karar kanıt taşır (request_id + actor_role + target_tenant + router_id + plane + oauth_scope + sanction_decision + token_state + tier + terminal + model_hash). stuck_state=0, missing_evidence=0.", "trace": "SR-IAM-009, BRD §17"},
+    {"id": "C2", "desc": "AYRI / router izolasyonu ÇEKİRDEK (SAD §14.4.2 'AYRI ... break-glass router'; ADR-011): break-glass router AYRI/EK bir router ağacıdır — YALNIZ internal-only Platform Control Plane düzleminde (plane=platform_control_plane + internal_only=true) + dedicated break-glass OAuth scope'ta (panel:L0:break_glass; panel:L0/L1/L2'den DISJOINT) mount edilir; tenant düzlemine / yanlış scope'a ASLA. Yanlış router/plane/internal_only/scope ile servis = router_isolation_violation → fail-closed REJECT. router_isolation_violation=0.", "trace": "SAD §14.4.2, ADR-011, BRD §17.2"},
+    {"id": "C3", "desc": "KISITLI / admission ÇEKİRDEK (SAD §14.4.2 'KISITLI'; no standing access): istek YALNIZ (1) sanction_decision=ALLOW (12.3.4 regüle onay/DPA terminali) ve (2) GEÇERLİ time-boxed token (12.3.2; state ACTIVE + unexpired + bound) ile ADMIT edilir. sanction'sız VEYA token'sız ADMIT (sessiz/standing erişim) = unsanctioned_admission. unsanctioned_admission=0.", "trace": "SAD §14.4.2, FR-IAM-009, 12.3.4, 12.3.2"},
+    {"id": "C4", "desc": "TAM-AUDIT ÇEKİRDEK (SAD §14.4.2 'TAM-AUDIT'li break-glass router'; BRD §17.7, FR-IAM-006/FR-REC-009): break-glass router'dan geçen HER istek (ADMIT/REJECT/malformed — girişim dahil) DEĞİŞMEZ (append-only/WORM) audit üretir (12.1.8 RESİPROKAL; break_glass_id ile) — router'dan hiçbir istek audit'siz geçemez (sessiz erişim yok). Audit'siz istek = unaudited_request. unaudited_request=0.", "trace": "SAD §14.4.2, FR-IAM-006, FR-REC-009"},
+    {"id": "C5", "desc": "Token expiry / auto-expiry (12.3.2 RESİPROKAL; 60/240/auto-expiry/no-standing): access_tick > expires_at (auto-expiry) VEYA state resolved (CONSUMED/REVOKED/EXPIRED) → token GEÇERSİZ → REJECT. Süresi dolmuş token ile ADMIT = expired_token_admission. expired_token_admission=0.", "trace": "FR-IAM-009, SAD §14.4.2, 12.3.2"},
+    {"id": "C6", "desc": "Token binding (least-privilege; FR-TEN-002): token.break_glass_id=request.break_glass_id + token.target_tenant_id=request.target_tenant_id + token.tier=B olmak ZORUNDA. Başka grant'a/tenant'a (cross-tenant) bağlı token ile ADMIT = token_misbinding. token_misbinding=0.", "trace": "FR-TEN-002, 12.3.2"},
+    {"id": "C7", "desc": "Scope-limited routing (least-privilege): istenen resource_type token.scope (verilen kaynak tipleri) içinde + data_class=tenant_content (Tier B yalnız içerik) + tier=B olmalı. Grant scope DIŞI (verilmeyen resource_type / non-Tier-B) yönlendirme = out_of_scope_routing. out_of_scope_routing=0.", "trace": "FR-IAM-009, FR-TEN-002"},
+    {"id": "C8", "desc": "Replay-safe / idempotent (12.3.2 concurrency_policy RESİPROKAL): çözülmüş (resolved_states ∈ {CONSUMED, REVOKED, EXPIRED}) token bayat istekle DİRİLTİLEMEZ — kullanılmış/iptal/süresi dolmuş token yeniden ADMIT alamaz. Çözülmüş token'ı yeniden kullanarak ADMIT = token_replay. token_replay=0.", "trace": "FR-IAM-009, SAD §14.4.2, 12.3.2"},
+    {"id": "C9", "desc": "Audit PII-free / immutable ÇEKİRDEK (BRD §17.7, FR-REC-004, ADR-016): router audit kaydı PII-free + token-free (HAM transcript/recording/contact + HAM token DEĞERİ YAZILMAZ; yalnız token_state ENUM) = audit_pii. Emitilen kayıt tahrifatı (row_hash uyumsuz; WORM ihlali; 12.1.8 RESİPROKAL) = audit_mutable. audit_pii=0, audit_mutable=0.", "trace": "FR-REC-004, ADR-016, 12.1.8"},
+    {"id": "C10", "desc": "Model bütünlük manifesti: router admission modeli frozen (router_policy/admission_policy/token_policy/scope_policy/concurrency_policy/audit/actor_roles) + model_hash = sha256(kanonik) deterministik; çalışma anında tahrif (ör. internal_only kapatma / oauth_scope gevşetme / require_sanction_allow kapatma / required_for_every_request kapatma) yeniden-hesaplanan hash tutmaz → model_tampered. Router-izolasyon + admission + tam-audit yüzeyinin değiştirilemez olduğunu test edilebilir kılar (ADR-011/013). model_tampered=0.", "trace": "SAD §14.4.2, ADR-011, ADR-013"},
+    {"id": "C11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (actor_role/decision/result/plane); correlation_id/break_glass_id/target_tenant_id metrikte yok, yalnız trace; HAM İÇERİK/PII (transcript/recording/contact DEĞERİ) + HAM TOKEN DEĞERİ metrikte VE log'da VE karar yükünde yok (0.4.7 label_policy, BRD §17.7/FR-REC-004).", "trace": "BRD §17.7, 0.4.7 label_policy"},
+    {"id": "C12", "desc": "Sır/içerik yok: model/spec/sample HAM içerik / PII (transcript/recording/contact/telefon/kart/OTP/ad DEĞERİ) / credential (break-glass TOKEN DEĞERİ / DB şifresi) tutmaz — yalnız ACTOR ROL adları (platform_owner) + REALM enum (platform) + VERİ-SINIFI enum (tenant_content) + RESOURCE_TYPE adı (transcript) + ROUTER/PLANE/SCOPE enum (break_glass/platform_control_plane/panel:L0:break_glass) + TIER/DECISION enum (B/ADMIT/REJECT) + sanction/token_state enum (ALLOW/ACTIVE) + tick (tamsayı) + yapısal korelasyon/aktör KİMLİK (req-/bg-/t- slug) + HASH. Rol/realm/sınıf/kaynak/router/tier/karar/enum/kimlik/hash PII DEĞİLDİR. Bu modül ROUTER ADMISSION KARARINI verir — ham satır içeriği (PII) ve ham token AKMAZ; karar + audit yükü de PII'siz + token'sizdir. secret_or_pii=0.", "trace": "BRD §17.7, FR-REC-004, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/model/sample'lar HAM içerik, PII (TRANSCRIPT/RECORDING/CONTACT içeriği, TELEFON numarası, KART [PAN/CVV], OTP kodu, PAROLA, müşteri ADI DEĞERİ) veya credential (break-glass TOKEN / DB şifresi DEĞERİ) TUTMAZ — yalnız ACTOR ROL ADLARI (platform_owner/platform_sre/platform_billing) + REALM ENUM (platform) + VERİ-SINIFI ENUM (tenant_content) + RESOURCE_TYPE ADLARI (transcript/recording/contact) + ROUTER/PLANE/SCOPE ENUM (break_glass/platform_control_plane/panel:L0:break_glass) + TIER ENUM (B) + DECISION ENUM (ADMIT/REJECT) + sanction ENUM (ALLOW/HOLD/BLOCK) + token_state ENUM (ACTIVE/CONSUMED/REVOKED/EXPIRED) + tick (SANAL-SAAT tamsayı dakika) + yapısal korelasyon/aktör KİMLİK (SENTETİK slug ör. req-001/bg-001/t-acme) + HASH (sha256). Rol/realm/sınıf/kaynak/router/tier/decision/enum/kimlik/hash PII DEĞİLDİR; tasarımca PII-olmayandır. Bu modül ROUTER ADMISSION KARARINI verir — ham satır içeriği (transcript/recording/contact PII) + HAM TOKEN DEĞERİ bu modülde AKMAZ (token YALNIZ state ENUM + bound slug kimlik olarak görünür); karar ve audit kaydı da PII'siz + token'sizdir.",
+    "forbids": ["transcript_text_value", "recording_audio_value", "contact_pii_value", "customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "customer_name_value", "db_password_value", "connection_string_value", "break_glass_token_value", "approval_token_value", "token_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}

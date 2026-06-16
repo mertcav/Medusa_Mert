@@ -1,0 +1,37 @@
+{
+  "request_id": "req-007",
+  "correlation_id": "corr-007",
+  "break_glass_id": "bg-001",
+  "actor_role": "platform_owner",
+  "target_tenant_id": "t-acme",
+  "tier": "B",
+  "resource_type": "transcript",
+  "data_class": "tenant_content",
+  "router_context": {
+    "router_id": "break_glass",
+    "plane": "platform_control_plane",
+    "internal_only": true,
+    "oauth_scope": "panel:L0:break_glass"
+  },
+  "sanction_decision": "ALLOW",
+  "token": {
+    "break_glass_id": "bg-001",
+    "target_tenant_id": "t-acme",
+    "tier": "B",
+    "scope": [
+      "transcript"
+    ],
+    "granted_at": 100,
+    "expires_at": 160,
+    "state": "ACTIVE"
+  },
+  "access_tick": 200,
+  "expect": "pass",
+  "expected": {
+    "terminal": "REJECT",
+    "note": "token_expired",
+    "token_state": "expired"
+  },
+  "$comment": "PASS: access_tick=200 > expires_at=160 → REJECT (token_expired). Auto-expiry / time-box (C5; 12.3.2 RESİPROKAL — standing access yok). DOĞRU.",
+  "name": "bgr-pass-reject-token-expired"
+}

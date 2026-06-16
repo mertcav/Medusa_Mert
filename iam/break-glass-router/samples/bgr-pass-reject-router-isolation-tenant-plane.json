@@ -1,0 +1,37 @@
+{
+  "request_id": "req-004",
+  "correlation_id": "corr-004",
+  "break_glass_id": "bg-001",
+  "actor_role": "platform_owner",
+  "target_tenant_id": "t-acme",
+  "tier": "B",
+  "resource_type": "transcript",
+  "data_class": "tenant_content",
+  "router_context": {
+    "router_id": "break_glass",
+    "plane": "tenant_application_plane",
+    "internal_only": false,
+    "oauth_scope": "panel:L0:break_glass"
+  },
+  "sanction_decision": "ALLOW",
+  "token": {
+    "break_glass_id": "bg-001",
+    "target_tenant_id": "t-acme",
+    "tier": "B",
+    "scope": [
+      "transcript"
+    ],
+    "granted_at": 100,
+    "expires_at": 160,
+    "state": "ACTIVE"
+  },
+  "access_tick": 120,
+  "expect": "pass",
+  "expected": {
+    "terminal": "REJECT",
+    "note": "router_isolation",
+    "router_isolation_ok": false
+  },
+  "$comment": "PASS: break-glass router public tenant düzlemine geldi (plane=tenant_application_plane) → REJECT (router_isolation). AYRI router izolasyonu (C2; ADR-011 internal-only). DOĞRU.",
+  "name": "bgr-pass-reject-router-isolation-tenant-plane"
+}

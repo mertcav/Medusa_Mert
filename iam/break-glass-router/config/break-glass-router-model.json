@@ -1,0 +1,98 @@
+{
+  "$comment": "WBS 12.3.5 — BREAK-GLASS TAM-AUDIT ROUTER (AYRI, KISITLI) modeli. Bu dosya 12. workstream'in (IAM & Erişim) ÜÇ KATMANLI BREAK-GLASS'ın ROUTER/ADMISSION katmanının DEĞİŞMEZ (frozen) KAYNAK DOĞRULUĞUDUR: SAD §14.4.2 ('maker-checker → süreli token → ... Erişim AYRI, KISITLI, TAM-AUDIT'li bir break-glass ROUTER'ı üzerinden verilir') + BRD §17/§17.7 (altın kural: L0 platform tenant iş içeriğini varsayılan göremez; içeriğe erişim üç katmanlı break-glass ile) + FR-IAM-009 (üç katmanlı break-glass) + FR-IAM-008 (L0 iş verisine tasarımca bağlı değil) + FR-IAM-006/FR-REC-009 (TÜM break-glass erişimi audit) + FR-REC-004 (audit PII'siz) + FR-TEN-002 (tenant binding) + ADR-011 (Platform Control Plane internal-only; ayrı router ağaçları/scope) + ADR-013 (üç katmanlı break-glass). ALTIN KURAL (BRD §17): L0 tenant iş içeriğini (transcript/recording/contact) VARSAYILAN GÖREMEZ — Tier B içeriğine erişim YALNIZ bu AYRI, KISITLI, TAM-AUDIT'li ROUTER'dan geçer. Bu modül 12.3.4'ün ALLOW/HOLD/BLOCK (sanction_decision) kararını + 12.3.2'nin time-boxed TOKEN'ını TÜKETİR; bir BreakGlassRouterRequest için DETERMİNİSTİK, FAIL-CLOSED bir ROUTER ADMISSION kararı verir: ADMIT (istek break-glass handler'a yönlendirilir — AYRI router/plane/scope'ta + KISITLI [sanction=ALLOW + geçerli token] + TAM-AUDIT'li) | REJECT (malformed / router izolasyon ihlali / sanction≠ALLOW / token geçersiz/expired/resolved/misbound / scope dışı → fail-closed; her durumda audit'li). ÇEKİRDEK: (1) C2 AYRI (router izolasyonu) — break-glass router AYRI bir router ağacıdır; YALNIZ internal-only Platform Control Plane'de + DAYANIK (dedicated) break-glass OAuth scope'ta mount edilir (L0/L1/L2 ağaçlarından + tenant düzleminden AYRI); yanlış router/plane/scope → REJECT (router_isolation_violation=0). (2) C3 KISITLI (admission) — istek YALNIZ sanction=ALLOW (12.3.4) + GEÇERLİ time-boxed token (12.3.2) ile ADMIT edilir; sanction'sız/token'sız ADMIT = unsanctioned_admission=0 (no standing access). (3) C4 TAM-AUDIT — HER router isteği (ADMIT/REJECT/malformed) DEĞİŞMEZ (append-only/WORM) audit üretir — SESSİZ erişim YOKTUR; audit'siz istek = unaudited_request=0. KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): Tier B erişim-verme kararı (maker-checker + time-boxed token üretimi) → 12.3.2 (token TÜKETİLİR); regüle tenant onay toggle + DPA → 12.3.4 (sanction_decision TÜKETİLİR); gerekçe kodu + tenant bildirimi → 12.3.3; Tier sınıflandırma + ESCALATE → 12.3.1; panel router ağaçları/scope topolojisi (L0/L1/L2) → 12.2.2 (RESİPROKAL — break-glass router AYRI/EK ağaçtır); rol→permission-key/scope → 12.1.2/12.1.3; append-only/WORM audit hash-zinciri → 12.1.8 (TÜKETİLİR). Bu dosya FROZEN — değiştirilemez router-izolasyon + admission + tam-audit yüzeyi (model_hash sha256 ile audit edilebilir). ÇELİŞKİDE SAD §14.4.2 / BRD §17 / FR-IAM-009 esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+
+  "$tier_comment": "Üç katmanlı break-glass'ın ROUTER/ADMISSION katmanı. Bu modül erişim-verme KARARINI vermez (12.3.2/12.3.4 verir) — verilen kararı + token'ı KISITLI bir kapıdan (AYRI router/plane/scope) geçirir ve HER isteği TAM-AUDIT'ler. Yalnız Tier B (tenant_content) içeriği bu router'dan geçer; Tier A (metrik/log, PII'siz) break-glass'sız normal L0 yolundadır (12.3.1) — bu router'a GİRMEZ.",
+  "tier": "B",
+  "data_class": "tenant_content",
+
+  "$router_comment": "ÇEKİRDEK router izolasyonu (SAD §14.4.2 'AYRI ... break-glass router'; ADR-011 Platform Control Plane internal-only + ayrı router ağaçları/scope). break-glass router DAYANIK (dedicated) bir router ağacıdır: router_id=break_glass; YALNIZ platform_control_plane düzleminde (internal_only=true; VPN/allowlist/private-endpoint arkasında) mount edilir; DAYANIK break-glass OAuth scope'una (panel:L0:break_glass — panel:L0/L1/L2'den DISJOINT, daha kısıtlı) bağlıdır. mount_planes YALNIZ platform_control_plane — break-glass router tenant_application_plane'e (public) ASLA mount edilemez (blast-radius). Yanlış router_id / yanlış plane / internal_only=false / yanlış oauth_scope = router_isolation_violation (ÇEKİRDEK; fail-closed → REJECT). Panel router topolojisi (L0/L1/L2) 12.2.2'nin; bu router o üçüne AYRI/EK dördüncü ağaçtır (RESİPROKAL platform plane).",
+  "router_policy": {
+    "router_id": "break_glass",
+    "plane": "platform_control_plane",
+    "internal_only": true,
+    "oauth_scope": "panel:L0:break_glass",
+    "scope_disjoint_from": ["panel:L0", "panel:L1", "panel:L2"],
+    "mount_planes": ["platform_control_plane"],
+    "separate_router_tree": true,
+    "reciprocal": "12.2.2 router-scopes (planes.platform_control_plane internal_only + scope_disjoint; break-glass router AYRI/EK dördüncü ağaç — RESİPROKAL platform plane)"
+  },
+
+  "$admission_comment": "ÇEKİRDEK kısıtlı admission (SAD §14.4.2 'KISITLI'; no standing access). İstek YALNIZ (1) sanction_decision=ALLOW (12.3.4 regüle onay/DPA katmanının terminali; HOLD/BLOCK → REJECT not_sanctioned) ve (2) GEÇERLİ time-boxed token (12.3.2; state=ACTIVE + access_tick ≤ expires_at + bound break_glass_id/target_tenant/tier + scope kapsar) ile ADMIT edilir. require_sanction_allow=true + require_valid_token=true: sanction'sız VEYA token'sız ADMIT = unsanctioned_admission (ÇEKİRDEK; no standing access — token tek, süreli grant'tır). Erişim-verme kararı 12.3.2/12.3.4'ün; bu router YALNIZ verilen kararı KISITLI kapıdan geçirir.",
+  "admission_policy": {
+    "require_sanction_allow": true,
+    "require_valid_token": true,
+    "sanction_allow_value": "ALLOW",
+    "no_standing_access": true,
+    "reciprocal": "12.3.4 break-glass-tier-b-approval (sanction_decision ALLOW/HOLD/BLOCK); 12.3.2 break-glass-tier-b (time-boxed token GRANT_TIER_B)"
+  },
+
+  "$token_comment": "Time-boxed token doğrulaması (12.3.2 RESİPROKAL; 60dk default/240dk max/auto-expiry/no-standing). Token: {break_glass_id, target_tenant_id, tier, scope[granted resource_type listesi], granted_at, expires_at, state}. Geçerli token: state ∈ active_states (ACTIVE) + access_tick ≤ expires_at (auto-expiry). Çözülmüş (resolved_states ∈ {CONSUMED, REVOKED, EXPIRED}) token yeniden kullanılamaz (token_replay). access_tick > expires_at = expired (expired_token_admission). Token binding (least-privilege): token.break_glass_id=request.break_glass_id + token.target_tenant_id=request.target_tenant_id + token.tier=B (token_misbinding). Scope: istenen resource_type token.scope içinde + data_class=tenant_content (out_of_scope_routing).",
+  "token_policy": {
+    "ttl_unit": "minute",
+    "active_states": ["ACTIVE"],
+    "resolved_states": ["CONSUMED", "REVOKED", "EXPIRED"],
+    "require_unexpired": true,
+    "bind_break_glass_id": true,
+    "bind_target_tenant": true,
+    "bind_tier_b": true,
+    "bind_scope": true,
+    "reciprocal": "12.3.2 break-glass-tier-b timebox_policy (default 60/max 240/auto_expiry/no_standing) + token_binding + concurrency_policy resolved_states"
+  },
+
+  "$scope_comment": "Scope-limited routing (least-privilege; FR-TEN-002). ADMIT edilen erişim YALNIZ verilen grant scope'una kısıtlıdır: istenen resource_type token.scope (verilen kaynak tipleri) içinde + data_class=tenant_content (Tier B yalnız içerik) + tier=B. Grant scope DIŞI kaynak (cross-tenant token binding'de yakalanır; non-Tier-B / verilmeyen resource_type) yönlendirme = out_of_scope_routing.",
+  "scope_policy": {
+    "confine_to_token_scope": true,
+    "tier_b_only": true,
+    "content_class": "tenant_content"
+  },
+
+  "$idempotency_comment": "İdempotent + replay-güvenli (12.3.2 concurrency_policy RESİPROKAL): çözülmüş (resolved_states ∈ {CONSUMED, REVOKED, EXPIRED}) token bayat/tekrarlı istekle DİRİLTİLEMEZ — kullanılmış/iptal/süresi dolmuş token yeniden ADMIT alamaz (token_replay). Kararlar deterministik (Date.now/random YOK; sanal-saat tick=dakika).",
+  "concurrency_policy": {
+    "idempotent_decision": true,
+    "no_resurrect_resolved_token": true,
+    "resolved_states": ["CONSUMED", "REVOKED", "EXPIRED"]
+  },
+
+  "$actor_comment": "L0 (platform) RBAC aktör rolleri (12.1.1 rbac-model RESİPROKAL; BRD §17.2). break-glass router'a istek YAPAN aktör platform realm rolüdür (actor_role; actor_realm=platform). Onay (12.3.4) ve erişim-verme (12.3.2) AYRI modüllerin; bu router yalnız platform aktörünün isteğini KISITLI kapıdan geçirir.",
+  "actor_roles": ["platform_owner", "platform_sre", "platform_billing"],
+  "actor_realm": "platform",
+
+  "$audit_comment": "ÇEKİRDEK tam-audit (BRD §17.7, SAD §14.4.2 'TAM-AUDIT'li break-glass router', FR-IAM-009/006/FR-REC-009): break-glass router'dan geçen HER istek (ADMIT / REJECT / malformed — girişim dahil) DEĞİŞMEZ (append-only/WORM) bir audit kaydı üretir — SESSİZ erişim YOKTUR (tam-audit = router'dan hiçbir istek audit'siz geçmez). Audit DEĞİŞMEZLİĞİ + hash-zincir 12.1.8 worm-audit'e RESİPROKAL (row_hash=sha256(kanonik); UPDATE/DELETE reddedilir). Audit kaydı PII'siz + TOKEN'sız: yalnız opak actor_role + actor_realm + target_tenant_ref + data_class + resource_type + tier + router_id + oauth_scope + plane + decision + reject_reason + sanction_decision + token_state (enum; DEĞER değil) + break_glass_id + occurred_tick + row_hash. HAM PII (transcript/recording/contact DEĞERİ) ve HAM TOKEN (break-glass token DEĞERİ) audit'e/karara YAZILMAZ (FR-REC-004, BRD §17.7).",
+  "audit": {
+    "required_for_every_request": true,
+    "worm": true,
+    "append_only": true,
+    "hash_algo": "sha256",
+    "no_raw_pii": true,
+    "no_raw_token": true,
+    "reciprocal": "12.1.8 worm-audit (append-only/WORM + hash-zincir; row_hash)",
+    "record_fields": ["record_id", "break_glass_id", "correlation_id", "actor_role", "actor_realm", "target_tenant_ref", "data_class", "resource_type", "tier", "router_id", "oauth_scope", "plane", "decision", "reject_reason", "sanction_decision", "token_state", "occurred_tick", "row_hash"]
+  },
+
+  "$delegation_comment": "KAPSAM AYRIMI (bilinçli). Bu modül YALNIZ break-glass ROUTER ADMISSION (router izolasyonu [ayrı] + kısıtlı admission [sanction+token] + tam-audit + scope-limited routing) kararını sahiplenir. Tier B erişim-verme kararı (maker-checker + time-boxed token ÜRETİMİ) 12.3.2'nin (token TÜKETİLİR); regüle tenant onay toggle + DPA 12.3.4'ün (sanction_decision TÜKETİLİR); gerekçe kodu + tenant bildirimi 12.3.3'ün; Tier sınıflandırma + ESCALATE 12.3.1'in; panel router topolojisi (L0/L1/L2 ağaçları/scope) 12.2.2'nin (break-glass router AYRI/EK dördüncü ağaç — RESİPROKAL); rol→permission-key/scope 12.1.2/12.1.3'ün; WORM audit hash-zinciri 12.1.8'in DELEGE/TÜKETİLİR.",
+  "delegates": {
+    "tier_b_access_grant_and_token": "12.3.2 (maker-checker + time-boxed token ÜRETİMİ — token TÜKETİLİR)",
+    "regulated_tenant_approval_dpa": "12.3.4 (regüle tenant require_tenant_approval toggle + DPA → sanction_decision ALLOW/HOLD/BLOCK TÜKETİLİR)",
+    "reason_code_and_notification": "12.3.3 (gerekçe kodu semantiği + tenant security_compliance_officer/tenant_owner anlık bildirimi)",
+    "tier_classification_escalate": "12.3.1 (Tier A/B/forbidden sınıflandırma + ESCALATE_TIER_B)",
+    "panel_router_topology": "12.2.2 (L0/L1/L2 ayrı router ağaçları + OAuth scope; break-glass router AYRI/EK dördüncü ağaç — RESİPROKAL platform plane)",
+    "rbac_role_scope": "12.1.2/12.1.3 (rol→permission-key bundle + scope kararı)",
+    "worm_audit_chain": "12.1.8 (append-only/WORM audit + hash-zincir)"
+  },
+
+  "consumes": {
+    "$comment": "RESİPROKAL bağlantılar. 12.3.4 tier-b-approval-model.json: sanction_decision (ALLOW/HOLD/BLOCK terminal — bu router yalnız ALLOW'da ADMIT). 12.3.2 tier-b-model.json: GRANT_TIER_B + time-boxed token (60/240/auto-expiry/no-standing + binding + resolved_states) RESİPROKAL. 12.2.2 router-topology.json: platform_control_plane internal_only + scope_disjoint (break-glass router AYRI/EK ağaç). 12.1.8 worm-audit-model.json: append-only/WORM + hash-zincir RESİPROKAL. 12.1.1 rbac-roles.json: L0 platform aktör rolleri.",
+    "tier_b_approval_model": "12.3.4 ../break-glass-tier-b-approval/config/tier-b-approval-model.json (sanction_decision ALLOW/HOLD/BLOCK RESİPROKAL — yalnız ALLOW ADMIT)",
+    "tier_b_model": "12.3.2 ../break-glass-tier-b/config/tier-b-model.json (GRANT_TIER_B + time-boxed token [60/240/auto-expiry/no-standing] + token_binding + resolved_states RESİPROKAL)",
+    "router_topology": "12.2.2 ../router-scopes/config/router-topology.json (platform_control_plane internal_only + scope_disjoint — break-glass router AYRI/EK dördüncü ağaç RESİPROKAL)",
+    "worm_audit_model": "12.1.8 ../worm-audit/config/worm-audit-model.json (append-only/WORM + hash-zincir RESİPROKAL)",
+    "rbac_model": "12.1.1 ../rbac-model/config/rbac-roles.json (L0 platform aktör rolleri RESİPROKAL)"
+  },
+
+  "terminal": ["ADMIT", "REJECT"],
+  "default": "REJECT",
+  "trace": "SAD §14.4.2, BRD §17, §17.7, FR-IAM-009, FR-IAM-008, FR-IAM-006, FR-REC-009, FR-REC-004, FR-TEN-002, ADR-011, ADR-013, 12.3.4, 12.3.2, 12.2.2, 12.1.8, 12.1.1"
+}
