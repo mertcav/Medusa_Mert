@@ -1,0 +1,43 @@
+{
+  "name": "mc-pending-self-approval-excluded",
+  "request_id": "req-003",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-003",
+  "actor_realm": "tenant",
+  "action": "agent.publish",
+  "reason_code": "rc-prod-release",
+  "now": 10,
+  "expires_at": 100,
+  "resource": {
+    "subject_ref": "agent-7",
+    "scope": {
+      "brand": [
+        "brand-x"
+      ]
+    }
+  },
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "conversation_designer",
+    "authorized": true,
+    "tenant_id": "t-acme",
+    "realm": "tenant"
+  },
+  "approvals": [
+    {
+      "approver_ref": "mk-1",
+      "decision": "approve",
+      "authorized": true,
+      "scope_ok": true,
+      "tenant_id": "t-acme",
+      "realm": "tenant",
+      "at": 20
+    }
+  ],
+  "$comment": "S3 ÇEKİRDEK: maker (mk-1) AYNI talebi onaylar → kendi onayı quorum'a SAYILMAZ (talep eden ≠ onaylayan) → PENDING. sod_violation=0 (doğru dışlama).",
+  "expect": "pass",
+  "expected": {
+    "terminal": "PENDING",
+    "committed": false
+  }
+}

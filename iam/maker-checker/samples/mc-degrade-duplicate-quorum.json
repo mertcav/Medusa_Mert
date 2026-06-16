@@ -1,0 +1,51 @@
+{
+  "name": "mc-degrade-duplicate-quorum",
+  "request_id": "req-108",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-108",
+  "actor_realm": "tenant",
+  "action": "compliance_profile.update",
+  "reason_code": "rc-prod-release",
+  "now": 10,
+  "expires_at": 100,
+  "resource": {
+    "subject_ref": "agent-7",
+    "scope": {
+      "brand": [
+        "brand-x"
+      ]
+    }
+  },
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "conversation_designer",
+    "authorized": true,
+    "tenant_id": "t-acme",
+    "realm": "tenant"
+  },
+  "approvals": [
+    {
+      "approver_ref": "ck-1",
+      "decision": "approve",
+      "authorized": true,
+      "scope_ok": true,
+      "tenant_id": "t-acme",
+      "realm": "tenant",
+      "at": 20
+    },
+    {
+      "approver_ref": "ck-1",
+      "decision": "approve",
+      "authorized": true,
+      "scope_ok": true,
+      "tenant_id": "t-acme",
+      "realm": "tenant",
+      "at": 25
+    }
+  ],
+  "inject": [
+    "duplicate_approver_quorum"
+  ],
+  "$comment": "S8 degrade: aynı checker (ck-1) quorum=2'yi tek başına doldurmak için iki kez sayılır → quorum_tampered>0 → APPLIED (yanlış) → kapı eler.",
+  "expect": "fail"
+}

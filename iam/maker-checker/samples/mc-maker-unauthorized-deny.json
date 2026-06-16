@@ -1,0 +1,44 @@
+{
+  "name": "mc-maker-unauthorized-deny",
+  "request_id": "req-010",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-010",
+  "actor_realm": "tenant",
+  "action": "agent.publish",
+  "reason_code": "rc-prod-release",
+  "now": 10,
+  "expires_at": 100,
+  "resource": {
+    "subject_ref": "agent-7",
+    "scope": {
+      "brand": [
+        "brand-x"
+      ]
+    }
+  },
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "conversation_designer",
+    "authorized": false,
+    "tenant_id": "t-acme",
+    "realm": "tenant"
+  },
+  "approvals": [
+    {
+      "approver_ref": "ck-1",
+      "decision": "approve",
+      "authorized": true,
+      "scope_ok": true,
+      "tenant_id": "t-acme",
+      "realm": "tenant",
+      "at": 20
+    }
+  ],
+  "$comment": "S2: maker submit yetkisine sahip değil → DENIED maker_unauthorized (commit YOK).",
+  "expect": "pass",
+  "expected": {
+    "terminal": "DENIED",
+    "committed": false,
+    "deny_reason": "maker_unauthorized"
+  }
+}

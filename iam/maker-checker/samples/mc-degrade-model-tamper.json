@@ -1,0 +1,42 @@
+{
+  "name": "mc-degrade-model-tamper",
+  "request_id": "req-110",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-110",
+  "actor_realm": "tenant",
+  "action": "agent.publish",
+  "reason_code": "rc-prod-release",
+  "now": 10,
+  "expires_at": 100,
+  "resource": {
+    "subject_ref": "agent-7",
+    "scope": {
+      "brand": [
+        "brand-x"
+      ]
+    }
+  },
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "conversation_designer",
+    "authorized": true,
+    "tenant_id": "t-acme",
+    "realm": "tenant"
+  },
+  "approvals": [
+    {
+      "approver_ref": "ck-1",
+      "decision": "approve",
+      "authorized": true,
+      "scope_ok": true,
+      "tenant_id": "t-acme",
+      "realm": "tenant",
+      "at": 20
+    }
+  ],
+  "inject": [
+    "model_tamper"
+  ],
+  "$comment": "S10 degrade: SoD model bütünlüğü tahrif (require_distinct_maker_checker=false) → model_tampered>0 → kapı eler.",
+  "expect": "fail"
+}

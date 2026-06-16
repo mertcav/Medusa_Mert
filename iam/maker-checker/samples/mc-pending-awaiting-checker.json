@@ -1,0 +1,34 @@
+{
+  "name": "mc-pending-awaiting-checker",
+  "request_id": "req-002",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-002",
+  "actor_realm": "tenant",
+  "action": "agent.publish",
+  "reason_code": "rc-prod-release",
+  "now": 10,
+  "expires_at": 100,
+  "resource": {
+    "subject_ref": "agent-7",
+    "scope": {
+      "brand": [
+        "brand-x"
+      ]
+    }
+  },
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "conversation_designer",
+    "authorized": true,
+    "tenant_id": "t-acme",
+    "realm": "tenant"
+  },
+  "approvals": [],
+  "$comment": "Geçerli talep, henüz onay yok → PENDING (awaiting checker; commit YOK — fail-closed default). S5.",
+  "expect": "pass",
+  "expected": {
+    "terminal": "PENDING",
+    "committed": false,
+    "pending_reason": "insufficient_approvals"
+  }
+}

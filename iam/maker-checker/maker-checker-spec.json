@@ -1,0 +1,122 @@
+{
+  "$comment": "WBS 12.1.7 — Maker-checker onay akışı spec (makine-okunur). FR-IAM-005 (kritik değişikliklerde maker-checker / onay) + SR-IAM-005 (talep eden ≠ onaylayan; onaysız değişiklik canlıya çıkmaz) + SAD §14.1/§14.4.2 (maker-checker kritik mutasyonlarda pending→approved ile zorlanır) + FR-TEN-002 (tenant izolasyonu). Onay karar motorunun (maker_checker_probe.py) sözleşmesi: kurallar + karar + reason taksonomileri + SoD/quorum/timebox/reason/tenant modeli + kapılar + invariant'lar S1–S12. Kaynak doğruluk config/maker-checker-model.json (frozen) + ../rbac-model/config/rbac-roles.json (12.1.1 rol→IMMUTABLE bundle + realm). İzin/kapsam kararı 12.1.2/12.1.3 (soyut authorized/scope_ok olarak TÜKETİLİR). Ham token/credential/PII YOK.",
+  "wbs": "12.1.7",
+  "title": "Maker-checker onay akışı",
+  "phase": "F2",
+  "priority": "Should",
+
+  "trace": {
+    "fr": ["FR-IAM-005", "FR-TEN-002"],
+    "srs": ["SR-IAM-005"],
+    "rtm": ["TC-IAM-005"],
+    "adr": ["ADR-011 (iki düzlemli panel dağıtımı — L0 ayrı kontrol düzlemi)", "ADR-012 (sabit rol bundle + scoped assignment — onaylayan kapsamı 12.1.3'ten)", "ADR-002 (sağlayıcı-nötr — izin/kapsam kararı soyut, credential-free)"],
+    "sad": ["§14.1 IAM (Maker-checker: kritik değişikliklerde onay akışı, FR-IAM-005)", "§14.4.2 maker-checker kritik mutasyonlarda pending→approved ile zorlanır", "§14 Güvenlik"],
+    "brd": ["§9.2 FR-IAM-005", "§17.2 panel rol seti + onay/gerekçe", "§17.7 gizlilik (ham PII yazılmaz)"],
+    "consumes": ["12.1.1 RBAC modeli (rol→IMMUTABLE bundle + realm — maker/onaylayan rol/realm tutarlılığı)", "12.1.2 permission-key (aksiyon→gerekli izin — maker.authorized/approval.authorized soyut sonuç)", "12.1.3 scoped assignment (onaylayan kapsamı — approval.scope_ok soyut sonuç)"],
+    "consumed_by": ["12.2.x backend panel guard (kritik mutasyon → onay durumu pending→approved enforcement)", "break-glass Tier B (FR-IAM-009; talep eden ≠ onaylayan — AYNI maker-checker çekirdeği)", "12.1.8 WORM audit (onay kararı + reason_code kaydı)", "7.3.1 deterministik workflow (kritik işlem öncesi onay adımı)"]
+  },
+
+  "placement": {
+    "layer": "Tenant/Platform Admin Console kritik mutasyon onay akışı (backend durum makinesi)",
+    "fail_closed": true,
+    "decision_at": "backend",
+    "credential_free": true,
+    "$note": "İzin/kapsam doğrulaması bu modülde YAPILMAZ (maker.authorized/approval.authorized/scope_ok soyut sonuç); canlı onay UI + bildirim + backend guard 12.2.x/F2 entegrasyonunda."
+  },
+
+  "rules": {
+    "evaluation": "malformed_then_action_then_maker_auth_then_reason_then_tenant_then_timebox_then_approvals_fail_closed",
+    "list": [
+      {"id": "separation_of_duties", "invariant": "S3", "desc": "TALEP EDEN ≠ ONAYLAYAN: maker kendi talebini onaylayamaz, kendi onayı quorum'a sayılmaz; sod_violation=0 (ÇEKİRDEK; FR-IAM-005 / SR-IAM-005)"},
+      {"id": "no_apply_without_approval", "invariant": "S5", "desc": "Kritik mutasyon YALNIZ quorum dolunca APPLIED/commit; PENDING/REJECTED/DENIED → commit YOK; applied_without_quorum=0 (ÇEKİRDEK; SR-IAM-005 'onaysız değişiklik canlıya çıkmaz')"},
+      {"id": "maker_authority", "invariant": "S2", "desc": "Maker submit yetkisine sahip olmalı; yetkisiz talep DENIED; unauthorized_maker_accepted=0 (FR-IAM-005)"},
+      {"id": "approver_authority", "invariant": "S4", "desc": "Onaylayan onay yetkisine + kapsama sahip olmalı; yetkisiz/kapsam-dışı onay quorum'a sayılmaz; unauthorized_approval=0 (FR-IAM-011 / 12.1.3)"},
+      {"id": "time_box_freshness", "invariant": "S6", "desc": "Onay penceresi expires_at sonrası uygulanamaz; süresi dolmuş talep DENIED; bayat onay sayılmaz; stale_approval_applied=0"},
+      {"id": "tenant_isolation", "invariant": "S7", "desc": "Maker/onaylayan aynı tenant; başka tenant maker → DENIED, başka tenant onaylayan sayılmaz; cross_tenant=0 (FR-TEN-002)"},
+      {"id": "quorum_integrity", "invariant": "S8", "desc": "Quorum FARKLI (distinct) onaylayanla dolar; aynı kişi tek sayılır; duplicate'i saymak ihlal; quorum_tampered=0"}
+    ]
+  },
+
+  "decision": {
+    "default": "DENIED",
+    "fail_safe_terminal": "DENIED ⇒ no commit (talep geçersiz/yetkisiz); PENDING/REJECTED ⇒ no commit (kritik mutasyon canlıya çıkmaz)"
+  },
+
+  "outcomes": {
+    "list": ["APPLIED", "PENDING", "REJECTED", "DENIED"],
+    "$desc": "APPLIED = farklı yetkili onay sayısı ≥ quorum + süre/gerekçe/tenant geçerli → kritik mutasyon commit edilir (committed=true); PENDING = geçerli talep ama yeterli onay yok (awaiting checker; commit YOK — fail-closed default); REJECTED = yetkili checker reddetti → commit YOK; DENIED = talep geçersiz/yetkisiz (malformed/katalog-dışı/maker yetkisiz/gerekçe yok/cross-tenant/süresi dolmuş — fail-closed)"
+  },
+
+  "deny_reasons": {
+    "list": ["malformed_request", "unsupported_action", "maker_unauthorized", "reason_code_missing", "cross_tenant", "expired"]
+  },
+
+  "model": {
+    "frozen": true,
+    "rbac_model": "12.1.1 ../rbac-model/config/rbac-roles.json (rol→IMMUTABLE bundle + realm)",
+    "sod_required": true,
+    "self_approval_counts_to_quorum": false,
+    "commit_only_on_applied": true,
+    "default_quorum": 1,
+    "reason_code_required": true,
+    "expired_request_denied": true,
+    "require_distinct_approvers": true
+  },
+
+  "approval": {
+    "maker_auth_gate": "maker.authorized = true (submit izni — 12.1.2 soyut sonuç); aksi maker_unauthorized DENIED (S2)",
+    "action_gate": "action ∈ critical_actions kataloğu; aksi unsupported_action DENIED (fail-closed)",
+    "reason_gate": "reason_code zorunlu (boş/eksik → reason_code_missing DENIED)",
+    "tenant_gate": "maker.tenant_id = request tenant_id; aksi cross_tenant DENIED (FR-TEN-002; S7)",
+    "timebox_gate": "now ≤ expires_at; aksi expired DENIED; bayat onay (at > expires_at) sayılmaz (S6)",
+    "sod_rule": "onaylayan ≠ maker (ÇEKİRDEK); maker'ın kendi onayı quorum'a SAYILMAZ; sod_violation=0 (S3)",
+    "approver_rule": "onay quorum'a SAYILIR ⟺ decision=approve ∧ authorized ∧ scope_ok ∧ aynı tenant/realm ∧ ≠ maker ∧ taze ∧ distinct (S4/S7/S8)",
+    "reject_rule": "∃ yetkili in-tenant checker decision=reject → REJECTED (commit YOK)",
+    "quorum_rule": "distinct yetkili onay ≥ quorum_required (aksiyon kataloğu) → APPLIED/commit; aksi PENDING (fail-closed; SR-IAM-005)",
+    "decision_at": "backend",
+    "produces": "APPLIED ⇒ committed=true (kritik mutasyon canlıya çıkar) + onay kanıtı (maker_ref ≠ approver_ref'ler, reason_code) WORM audit'e (12.1.8); aksi committed=false"
+  },
+
+  "gates": {
+    "max_sod_violation": 0,
+    "max_applied_without_quorum": 0,
+    "max_unauthorized_maker_accepted": 0,
+    "max_unauthorized_approval": 0,
+    "max_stale_approval_applied": 0,
+    "max_cross_tenant": 0,
+    "max_quorum_tampered": 0,
+    "max_reason_bypassed": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "metrics": ["makerchecker_request_total", "makerchecker_applied_total", "makerchecker_rejected_total", "makerchecker_sod_violation_total", "makerchecker_authority_violation_total"],
+    "low_cardinality_labels": ["action_class", "result", "deny_reason", "actor_realm", "quorum_required"],
+    "high_cardinality_trace_only": ["request_id", "correlation_id", "maker_ref", "approver_ref", "reason_code"],
+    "alarm": "sod_violation / applied_without_quorum / unauthorized_maker_accepted / unauthorized_approval / stale_approval_applied / cross_tenant / quorum_tampered > 0 ⇒ ≤2dk (NFR 10.1; güvenlik olayı)",
+    "$pii_note": "Ham kullanıcı adı/e-posta/token baytı label OLAMAZ ve log/audit'e ham yazılmaz (BRD §17.7, FR-REC-004); actor_ref opak; reason_code opak kod (yalnız trace)."
+  },
+
+  "invariants": [
+    {"id": "S1", "claim": "Her senaryo terminal sonuca ulaşır (APPLIED|PENDING|REJECTED|DENIED); stuck state yok"},
+    {"id": "S2", "claim": "Maker yetki bütünlüğü: yetkisiz maker talebi DENIED; unauthorized_maker_accepted=0 (FR-IAM-005)"},
+    {"id": "S3", "claim": "Görevler ayrımı (ÇEKİRDEK): TALEP EDEN ≠ ONAYLAYAN; maker kendi talebini onaylayamaz, kendi onayı quorum'a sayılmaz; sod_violation=0 (FR-IAM-005 / SR-IAM-005)"},
+    {"id": "S4", "claim": "Onaylayan yetkisi/kapsamı: yetkisiz/kapsam-dışı onay quorum'a sayılmaz; unauthorized_approval=0 (FR-IAM-011 / 12.1.3)"},
+    {"id": "S5", "claim": "Onaysız canlıya çıkmaz (ÇEKİRDEK): commit YALNIZ APPLIED'da (quorum dolu); PENDING/REJECTED/DENIED → commit YOK; applied_without_quorum=0 (SR-IAM-005)"},
+    {"id": "S6", "claim": "Time-box/tazelik: süresi dolmuş talep DENIED; bayat onay sayılmaz; stale_approval_applied=0"},
+    {"id": "S7", "claim": "Tenant izolasyonu: maker/onaylayan aynı tenant; cross_tenant=0 (FR-TEN-002)"},
+    {"id": "S8", "claim": "Quorum bütünlüğü: distinct yetkili onay ≥ quorum; aynı kişi tek sayılır; quorum_tampered=0"},
+    {"id": "S9", "claim": "Her karar yapısal kanıt taşır (ham token/PII yok); missing_evidence=0"},
+    {"id": "S10", "claim": "Model bütünlük manifesti (maker-checker + rbac sha256); model_tampered=0"},
+    {"id": "S11", "claim": "Gözlemlenebilirlik düşük-kardinalite + ham PII yok (actor_ref/reason_code opak)"},
+    {"id": "S12", "claim": "Model/spec/sample ham token/credential/PII tutmaz — yalnız opak actor_ref + aksiyon/rol adı + kapsam ID + reason_code + tick + enum"}
+  ],
+
+  "no_secrets": "Sır/credential/anahtar ve ham token/PII (kullanıcı adı/e-posta/token) repoya yazılmaz. İzin/kapsam doğrulaması soyut (maker.authorized/approval.authorized/scope_ok). Canlı onay UI/bildirim yalnız --url/ortam değişkeniyle (run_live_test.sh).",
+
+  "$$end": true
+}

@@ -1,0 +1,73 @@
+{
+  "$comment": "WBS 12.1.7 — MAKER-CHECKER ONAY AKIŞI MODELİ. Bu dosya 12. workstream'in (IAM & Erişim) KRİTİK MUTASYON ONAY yüzeyinin makine-okunur, DEĞİŞMEZ (frozen) KAYNAK DOĞRULUĞUDUR: FR-IAM-005 'Kritik değişikliklerde maker-checker / onay mekanizması bulunmalıdır' + SR-IAM-005 'Kritik değişiklikler maker-checker onayı gerektirir (talep eden ≠ onaylayan); aynı kullanıcı hem talep hem onay yapamaz; onaysız değişiklik canlıya çıkmaz' + SAD §14.1/§14.4.2 'maker-checker (FR-IAM-005) kritik mutasyonlarda onay durumu (pending→approved) ile zorlanır'. Aynı maker-checker ÇEKİRDEĞİ break-glass Tier B'nin (FR-IAM-009; talep eden ≠ onaylayan) ve panel kritik mutasyonlarının (12.2.x guard) TÜKETTİĞİ mekanizmadır. ROL/REALM 12.1.1'in (config/rbac-roles.json, frozen, IMMUTABLE); İZİN/KAPSAM KARARI 12.1.2 (permission-key) + 12.1.3 (scoped assignment) tarafından verilir — bu modül onu SOYUT sonuç (maker.authorized / approval.authorized / approval.scope_ok) olarak TÜKETİR, yeniden hesaplamaz. ÇEKİRDEK: (1) GÖREVLER AYRIMI / SoD (FR-IAM-005 ÇEKİRDEK) — TALEP EDEN ≠ ONAYLAYAN; maker kendi talebini onaylayamaz, kendi onayı quorum'a SAYILMAZ (sod_violation=0); (2) ONAYSIZ CANLIYA ÇIKMAZ (FR-IAM-005 ÇEKİRDEK) — kritik mutasyon YALNIZ yeterli sayıda farklı yetkili onay (quorum) toplandığında APPLIED/commit; PENDING/REJECTED/DENIED → commit YOK (applied_without_quorum=0, fail-closed); (3) SÜRELİ (time-boxed) — onay penceresi expires_at sonrası uygulanamaz (stale_approval_applied=0); (4) ZORUNLU GEREKÇE — kritik talep reason_code taşımalı; (5) tenant izolasyonu (FR-TEN-002) — maker/onaylayan aynı tenant; (6) quorum bütünlüğü — quorum FARKLI (distinct) onaylayanla dolar, aynı kişi tek sayılır. İdempotent + replay-güvenli: çözülmüş talep (APPLIED/REJECTED) bayat kararla yeniden uygulanamaz. Ham PII/credential (kullanıcı adı/e-posta/token) YOK — yalnız opak actor_ref + aksiyon adı + rol adı + kapsam ID + reason_code enum + sanal-saat tick (deterministik tamsayı). SİMETRİK SIR: izin/kapsam doğrulaması bu modülde YAPILMAZ (credential-free, ADR-002 sağlayıcı-nötr) — authorized/scope_ok soyut doğrulama SONUCUDUR; canlı onay UI + bildirim + backend guard entegrasyonu 12.2.x/F2'de. ÇELİŞKİDE FR-IAM-005 / SR-IAM-005 / SAD §14.4.2 esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+
+  "$sod_comment": "ÇEKİRDEK görevler ayrımı (SR-IAM-005): TALEP EDEN ≠ ONAYLAYAN. require_distinct_maker_checker: bir talebi gönderen maker, AYNI talebi onaylayamaz — kendi onayı quorum'a SAYILMAZ (sessizce dışlanır; sayım sonrası yetersizse PENDING). self_approval_counts_to_quorum=false: maker'ın kendi onayını saymak ÇEKİRDEK ihlaldir (sod_violation).",
+  "separation_of_duties": {
+    "require_distinct_maker_checker": true,
+    "self_approval_counts_to_quorum": false,
+    "maker_excluded_from_approvers": true
+  },
+
+  "$commit_comment": "ÇEKİRDEK fail-closed (SR-IAM-005 'onaysız değişiklik canlıya çıkmaz'): kritik mutasyon YALNIZ APPLIED durumunda commit edilir; APPLIED = farklı yetkili onay sayısı ≥ quorum_required (aksiyon kataloğundan). PENDING (yetersiz onay) / REJECTED (checker reddi) / DENIED (geçersiz/yetkisiz talep) → commit YOK. apply_requires_quorum: quorum dolmadan commit applied_without_quorum ÇEKİRDEK ihlaldir.",
+  "commit_policy": {
+    "commit_only_on_applied": true,
+    "apply_requires_quorum": true,
+    "default_quorum": 1,
+    "no_commit_on_pending": true,
+    "no_commit_on_rejected": true,
+    "no_commit_on_denied": true
+  },
+
+  "$timebox_comment": "Süreli onay penceresi (time-boxed). Talep expires_at (sanal-saat tick) taşır; değerlendirme now (tick). now > expires_at → talep EXPIRED (DENIED, fail-closed) — geç onay/uygulama yapılamaz. Onay kararının at (tick) > expires_at olanı quorum'a SAYILMAZ (bayat). Süresi dolmuş talebi uygulamak (apply_expired) stale_approval_applied ihlaldir. Bu, break-glass Tier B time-box'ının (FR-IAM-009; default 60dk, max 4sa) onay-akışı tarafıdır.",
+  "timebox_policy": {
+    "request_has_expiry": true,
+    "expired_request_denied": true,
+    "stale_approval_not_counted": true
+  },
+
+  "$reason_comment": "Zorunlu gerekçe (BRD §17.2 / FR-IAM-009 gerekçe kodu deseni): kritik talep reason_code (enum/serbest opak kod) taşımalı; eksik/boş → reason_code_missing (DENIED, fail-closed). Gerekçesiz commit (reason_bypass) ihlaldir. reason_code WORM audit'e (12.1.8) iletilir.",
+  "reason_policy": {
+    "reason_code_required": true
+  },
+
+  "$tenant_comment": "Tenant izolasyonu (FR-TEN-002) onay akışının ÜSTÜNDE: maker.tenant_id = request tenant_id olmalı; aksi → cross_tenant (DENIED; güvenlik olayı). Onaylayan da yalnız kendi tenant'ı (approval.tenant_id = request tenant_id ∧ approval.realm = actor_realm) ise quorum'a sayılır; başka tenant/realm onayı dışlanır.",
+  "tenant_isolation": {
+    "maker_bound_to_tenant": true,
+    "approver_bound_to_tenant": true,
+    "tenant_boundary_above_approval": true
+  },
+
+  "$quorum_comment": "Quorum bütünlüğü: APPLIED için FARKLI (distinct, actor_ref'e göre tekilleştirilmiş) yetkili onaylayan sayısı ≥ quorum_required olmalı. Aynı onaylayan iki kez kaydedilse de TEK sayılır (require_distinct_approvers) — aynı kişi tek başına quorum>1'i dolduramaz. Duplicate'i saymak (duplicate_approver_quorum) quorum_tampered ihlaldir.",
+  "quorum_policy": {
+    "require_distinct_approvers": true,
+    "dedupe_by_actor_ref": true
+  },
+
+  "$catalog_comment": "Kritik-aksiyon kataloğu (onay gerektiren mutasyonlar; temsilî — canlı katalog 12.2.x panel guard + politika ile genişler). Her aksiyon: requires_approval=true + min_quorum. Katalog DIŞI aksiyon → unsupported_action (DENIED, fail-closed): onay politikası bilinmeyen mutasyon bu modül üzerinden commit EDİLMEZ. Aksiyon→gerekli permission-key çözümü 12.1.2'nin; bu modül yalnız onay durum makinesini + SoD'yi zorlar.",
+  "critical_actions": {
+    "agent.publish":              {"requires_approval": true, "min_quorum": 1},
+    "role.assign":                {"requires_approval": true, "min_quorum": 1},
+    "tenant.provision":           {"requires_approval": true, "min_quorum": 1},
+    "breakglass.tier_b":          {"requires_approval": true, "min_quorum": 1},
+    "data.bulk_export":           {"requires_approval": true, "min_quorum": 1},
+    "compliance_profile.update":  {"requires_approval": true, "min_quorum": 2},
+    "retention.policy.update":    {"requires_approval": true, "min_quorum": 2},
+    "tenant.delete":              {"requires_approval": true, "min_quorum": 2}
+  },
+
+  "$idempotency_comment": "İdempotent + replay-güvenli: bir talebin çözülmüş durumu (prior_state ∈ {APPLIED, REJECTED}) bayat/tekrarlı kararla DEĞİŞTİRİLEMEZ — APPLIED talep yeniden uygulanamaz, REJECTED talep onayla diriltilemez (çözülmüş talep yeniden değerlendirme = no-op). expires_at sonrası onay sayılmaz (timebox). Kararlar deterministik (Date.now/random YOK; sanal-saat tick).",
+  "concurrency_policy": {
+    "idempotent_decision": true,
+    "no_resurrect_resolved_request": true
+  },
+
+  "$privacy_comment": "Gizlilik (BRD §17.7 / FR-REC-004): onay kaydından/log'dan/audit'ten ham PII (kullanıcı adı/e-posta) ve ham token YAZILMAZ — yalnız opak actor_ref + aksiyon adı + rol adı + kapsam boyut anahtar/değeri + reason_code + version/tick + enum. Düşük-kardinalite metrik (action_class/result/deny_reason/actor_realm); yüksek-kardinalite (request_id/actor_ref/correlation_id) yalnız trace/log.",
+  "privacy": {
+    "no_raw_pii_in_record": true,
+    "no_raw_token_persisted": true,
+    "actor_reference_opaque": true
+  }
+}

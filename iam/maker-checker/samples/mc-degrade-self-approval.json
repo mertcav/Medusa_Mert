@@ -1,0 +1,42 @@
+{
+  "name": "mc-degrade-self-approval",
+  "request_id": "req-101",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-101",
+  "actor_realm": "tenant",
+  "action": "agent.publish",
+  "reason_code": "rc-prod-release",
+  "now": 10,
+  "expires_at": 100,
+  "resource": {
+    "subject_ref": "agent-7",
+    "scope": {
+      "brand": [
+        "brand-x"
+      ]
+    }
+  },
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "conversation_designer",
+    "authorized": true,
+    "tenant_id": "t-acme",
+    "realm": "tenant"
+  },
+  "approvals": [
+    {
+      "approver_ref": "mk-1",
+      "decision": "approve",
+      "authorized": true,
+      "scope_ok": true,
+      "tenant_id": "t-acme",
+      "realm": "tenant",
+      "at": 20
+    }
+  ],
+  "inject": [
+    "self_approval"
+  ],
+  "$comment": "S3 ÇEKİRDEK degrade: maker'ın kendi onayı quorum'a SAYILIR (talep eden = onaylayan) → sod_violation>0 → APPLIED (yanlış) → kapı eler. 'Aynı kullanıcı hem talep hem onay yapamaz' ihlali.",
+  "expect": "fail"
+}

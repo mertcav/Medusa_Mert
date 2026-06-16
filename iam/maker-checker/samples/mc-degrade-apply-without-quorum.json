@@ -1,0 +1,32 @@
+{
+  "name": "mc-degrade-apply-without-quorum",
+  "request_id": "req-102",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-102",
+  "actor_realm": "tenant",
+  "action": "agent.publish",
+  "reason_code": "rc-prod-release",
+  "now": 10,
+  "expires_at": 100,
+  "resource": {
+    "subject_ref": "agent-7",
+    "scope": {
+      "brand": [
+        "brand-x"
+      ]
+    }
+  },
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "conversation_designer",
+    "authorized": true,
+    "tenant_id": "t-acme",
+    "realm": "tenant"
+  },
+  "approvals": [],
+  "inject": [
+    "apply_without_quorum"
+  ],
+  "$comment": "S5 ÇEKİRDEK degrade: quorum dolmadan commit → applied_without_quorum>0 → APPLIED+committed (yanlış) → kapı eler. 'Onaysız değişiklik canlıya çıkmaz' ihlali.",
+  "expect": "fail"
+}

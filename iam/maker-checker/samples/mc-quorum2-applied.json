@@ -1,0 +1,52 @@
+{
+  "name": "mc-quorum2-applied",
+  "request_id": "req-006",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-006",
+  "actor_realm": "tenant",
+  "action": "compliance_profile.update",
+  "reason_code": "rc-prod-release",
+  "now": 10,
+  "expires_at": 100,
+  "resource": {
+    "subject_ref": "agent-7",
+    "scope": {
+      "brand": [
+        "brand-x"
+      ]
+    }
+  },
+  "maker": {
+    "actor_ref": "mk-1",
+    "role": "conversation_designer",
+    "authorized": true,
+    "tenant_id": "t-acme",
+    "realm": "tenant"
+  },
+  "approvals": [
+    {
+      "approver_ref": "ck-1",
+      "decision": "approve",
+      "authorized": true,
+      "scope_ok": true,
+      "tenant_id": "t-acme",
+      "realm": "tenant",
+      "at": 20
+    },
+    {
+      "approver_ref": "ck-2",
+      "decision": "approve",
+      "authorized": true,
+      "scope_ok": true,
+      "tenant_id": "t-acme",
+      "realm": "tenant",
+      "at": 25
+    }
+  ],
+  "$comment": "quorum=2 aksiyon (compliance_profile.update): iki distinct yetkili onay → APPLIED. S8.",
+  "expect": "pass",
+  "expected": {
+    "terminal": "APPLIED",
+    "committed": true
+  }
+}
