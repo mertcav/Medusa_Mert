@@ -1,0 +1,71 @@
+{
+  "$comment": "WBS 13.1.1 — İki Next.js app DEPLOY TOPOLOJİSİ (frozen kaynak doğruluk; ADR-011 İki düzlemli panel dağıtımı + SAD §14.4.1). probe bunu on-disk frontend/platform-app + frontend/tenant-app iskeletine karşı doğrular. Hiç sır/PII yok — yalnız app/route group/ekran/plane/realm/exposure ENUM. Ortam değişkenleri yalnız ${ENV} referansı (gerçek değer YOK).",
+  "version": "1.0",
+  "frozen": true,
+  "apps": {
+    "platform-app": {
+      "dir": "frontend/platform-app",
+      "plane": "platform_control_plane",
+      "tier": "L0",
+      "network_exposure": "internal_only",
+      "auth_realm": "platform",
+      "origin_class": "private",
+      "deploy_unit": "separate",
+      "public": false,
+      "route_groups": ["(platform)"],
+      "screens": {
+        "(platform)": ["overview", "tenants", "resources", "providers", "billing", "policy", "audit", "releases", "incidents"]
+      },
+      "route_group_url_base": {
+        "$comment": "Tek route group olduğundan düz; URL'ler kök altında (ör. /overview). next build ile doğrulandı.",
+        "(platform)": "/"
+      },
+      "screen_codes": "P-01..P-09",
+      "tenant_business_data_routes": [],
+      "network_controls": ["vpn", "ip_allowlist", "private_endpoint"],
+      "env_refs": ["${PLATFORM_APP_ORIGIN}", "${PLATFORM_AUTH_ISSUER}", "${PLATFORM_API_BASE_URL}"],
+      "trace": "ADR-011 (L0 ayrı internal-only Control Plane), SAD §14.4.1, BRD §17 (P-01..P-09)"
+    },
+    "tenant-app": {
+      "dir": "frontend/tenant-app",
+      "plane": "tenant_application_plane",
+      "tier": "L1+L2",
+      "network_exposure": "public",
+      "auth_realm": "tenant",
+      "origin_class": "public",
+      "deploy_unit": "separate",
+      "public": true,
+      "route_groups": ["(tenant-admin)", "(workspace)"],
+      "screens": {
+        "(tenant-admin)": ["dashboard", "org", "users", "numbers", "integrations", "compliance", "billing", "audit", "quota"],
+        "(workspace)": ["dashboard", "live-calls", "agents", "builder", "flows", "prompts", "voice", "kb", "tools", "campaigns", "recordings", "call", "qa", "analytics", "cost", "test", "versions"]
+      },
+      "screen_codes": "T-01..T-09 (L1) + A-01..A-17 (L2)",
+      "route_group_url_base": {
+        "$comment": "Next.js route group'ları URL'e segment EKLEMEZ; iki group aynı app'te barınınca düz ekran adları path çakışır (ör. iki /dashboard). Çakışmayı önlemek + L1/L2 panel ayrımını URL'de netleştirmek için her group bir URL-base altına yerleşir. next build ile doğrulandı.",
+        "(tenant-admin)": "/admin",
+        "(workspace)": "/workspace"
+      },
+      "tenant_scope": "single_tenant_per_session",
+      "env_refs": ["${TENANT_APP_ORIGIN}", "${TENANT_AUTH_ISSUER}", "${TENANT_API_BASE_URL}"],
+      "trace": "ADR-011 (L1+L2 birlikte public Tenant Application Plane), SAD §14.4.1, BRD §17 (T-01..T-09, A-01..A-17)"
+    }
+  },
+  "forbidden_in_platform_app": {
+    "$comment": "platform-app/app altında FİZİKSEL OLARAK bulunmaması gereken tenant iş verisi route segmentleri (ADR-011 blast-radius çekirdeği, FR-IAM-008, BRD §17.7). Bunların varlığı A5 ihlali.",
+    "route_segments": ["live-calls", "recordings", "call", "transcript", "transcripts", "qa", "kb", "flows", "prompts", "campaigns", "agents", "builder", "voice", "tools", "dashboard-tenant", "org", "users", "numbers", "integrations", "compliance", "quota"]
+  },
+  "expected_counts": {
+    "apps": 2,
+    "platform_screens": 9,
+    "tenant_admin_screens": 9,
+    "workspace_screens": 17
+  },
+  "deploy_isolation": {
+    "$comment": "ADR-011: platform-app ve tenant-app ayrı build/deploy hattı; ayrı origin; ayrı auth realm; ayrı API servisi (12.2.x backend RESİPROKAL). platform-app yalnız iç ağdan erişilir (kullanım kısıtı kabul edildi — ADR-011 Olumsuz/Ödünleşim).",
+    "platform_internal_only": true,
+    "separate_origins": true,
+    "separate_auth_realms": true,
+    "separate_build_pipelines": true
+  }
+}

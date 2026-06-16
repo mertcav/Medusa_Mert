@@ -1,0 +1,25 @@
+{
+  "name": "@chanteur/platform-app",
+  "private": true,
+  "version": "0.1.0",
+  "description": "L0 — Platform Admin Console (cross-tenant). AYRI deploy, internal-only (ADR-011). Sadece (platform) route group; tenant iş verisi route'u YOK.",
+  "comment_adr": "ADR-011: ayrı internal-only Platform Control Plane (VPN/allowlist/private endpoint arkasında). tenant-app'ten BAĞIMSIZ build/deploy birimi.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.4.0"
+  }
+}

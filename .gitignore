@@ -1,6 +1,7 @@
 # Sırlar / kimlik bilgileri — ASLA commit edilmez
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 .git-credentials
@@ -19,6 +20,13 @@ __pycache__/
 .venv/
 dist/
 build/
+
+# Next.js (frontend/*-app) build artifact'leri
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+package-lock.json
 
 # OS / editör
 .DS_Store

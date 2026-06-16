@@ -1,0 +1,173 @@
+{
+  "$comment": "WBS 13.1.1 — İKİ AYRI NEXT.JS APP (platform-app L0 internal-only + tenant-app L1+L2 public). 13. workstream'in (Frontend / Panel) İLK modülü ve 13.1 'Ortak frontend altyapısı' alt-bloğunun TEMELİ; F1-Must. SAD §14.4.1'in 'Yönetim/panel uygulaması Next.js App Router ile ... AYRI deploy' kararını + ADR-011'in (İki düzlemli panel dağıtımı — L0 ayrı internal-only Control Plane; L1+L2 birlikte public Tenant Application Plane) FİZİKSEL App Router iskeletini SAHİPLENİR. İki ayrı Next.js app projesi (ayrı package.json/build/deploy birimi/origin/auth realm) DEPLOY-ZAMANI plane ayrımını zorlar: platform-app SADECE (platform) route group'unu (L0, 9 ekran P-01..P-09) barındırır, internal-only; tenant-app (tenant-admin) (L1, 9 ekran T-01..T-09) + (workspace) (L2, 17 ekran A-01..A-17) route group'larını birlikte barındırır, public. ÇEKİRDEK İNVARYANT: tek-deploy+guard reddedildi (ADR-011 Seçenek 1) — platform-app paylaşılan kod/middleware'de tek bug ile L0'ı AÇAMAZ çünkü tenant iş verisi route'ları (live-calls/recordings/call/transcript) platform-app'te FİZİKSEL OLARAK YOK (blast-radius). Bu modül STATİK YAPISAL kapı: on-disk iki-app iskeletini spec'e/ADR-011'e karşı doğrular (ayrı app + route group ayrımı + ekran kapsamı + platform-app'te yasak-route yokluğu + ayrı origin/auth realm/deploy izolasyon config + paylaşılan-bağımlılık kuplajı yok + sır/credential yok). Yetki KARARI çalışma-anında backend'de (12.2.x) — bu modül UI YAPISAL/dağıtım iskeletini sahiplenir; çalışma-anı oturum/tenant-scope middleware → 13.1.2, tasarım sistemi/i18n → 13.1.3, PII maskeleme → 13.1.4. KAYNAK DOĞRULUK; çelişkide SAD §14.4.1 / ADR-011 esastır.",
+  "version": "1.0",
+  "wbs": "13.1.1",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-IAM-008", "FR-TEN-002", "FR-TST-008"],
+    "srs": ["SR-IAM-008", "SR-TEN-002"],
+    "rtm": ["TC-IAM-008"],
+    "brd": [
+      "§17 (üç katmanlı panel — L0 Platform Admin Console [P-01..P-09] / L1 Tenant Admin Console [T-01..T-09] / L2 Operasyon Paneli [A-01..A-17])",
+      "§17.7 (izolasyon/görünürlük — L0 tenant iş içeriğini [çağrı kaydı/transkript/PII] varsayılan göremez; cross-tenant gezinme yok)"
+    ],
+    "sad": [
+      "§14.4.1 (Frontend — Next.js App Router; platform-app AYRI deploy internal-only [(platform) route group] + tenant-app birlikte public [(tenant-admin)+(workspace) route group]; tenant scope route/middleware seviyesinde; UI yalnız görsel kapı, yetki backend'de)",
+      "§14.4.2 (L0 ayrı servis/auth realm — frontend ayrımının backend karşılığı; L0 iş verisine erişemez)",
+      "§24 (teknoloji yığını — yönetim panelleri Next.js App Router TypeScript, panel başına route group)"
+    ],
+    "adr": [
+      "ADR-011 (İki düzlemli panel dağıtımı — KARAR Seçenek 3: L0 ayrı internal-only Platform Control Plane; L1+L2 birlikte public Tenant Application Plane; bu modül o kararın FİZİKSEL App Router iskeleti)",
+      "ADR-002 (vendor-neutral — Next.js/React framework seçimi; hosting/CDN sağlayıcı-nötr)"
+    ],
+    "threat_model": [
+      "TM-I-02 (L0 platform rolü tenant içeriğini görür — altın kural; platform-app'te tenant iş verisi route'u FİZİKSEL YOK + ayrı deploy/origin → blast-radius azaltımı)",
+      "TM-E-04 (tenant IdP'sinin L0 rolü ataması — ayrı auth realm; platform-app ayrı realm config)"
+    ],
+    "consumes": [
+      "ADR-011 / SAD §14.4.1 route group + ekran şeması (FROZEN tasarım girdisi)",
+      "config/deploy-topology.json (frozen — iki app + plane + origin + auth realm + network exposure + ekran kapsamı + yasak route sınıfları)"
+    ],
+    "consumed_by": [
+      "13.1.2 route group + middleware (oturum + tenant scope + panel ayrımı — bu iskeletin route group'larına çalışma-anı guard ekler)",
+      "13.1.3 tasarım sistemi/komponent kütüphanesi + i18n (TR/EN) (ortak paket; her iki app tüketir)",
+      "13.1.4 PII redaction/maskeleme (tenant-app görüntüleme katmanı)",
+      "13.2.x/13.3.x/13.4.x L0/L1/L2 ekran implementasyonları (bu route group iskeletini doldurur)",
+      "12.2.x backend guard/RLS (çalışma-anı yetki; UI iskeletinin backend karşılığı — RESİPROKAL plane ayrımı)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "İki-app ayrımı, L0⟂tenant izolasyonunun FRONTEND DEPLOY-ZAMANI katmanıdır — 12.2.4 (design-time repository bağımsızlığı) ve 12.2.1/12.2.3 (çalışma-anı guard/RLS) ile AYNI defense-in-depth ailesinin frontend dilimi. platform-app, tenant iş verisi route'larını FİZİKSEL OLARAK İÇERMEZ (ayrı build/deploy birimi); çalışma-anı middleware regrese olsa bile platform-app yüzeyinde tenant içeriği route'u YOKTUR. Bu modül yalnız YAPISAL/DAĞITIM iskeletini + statik kapıyı sahiplenir; çalışma-anı oturum/scope → 13.1.2. Deterministik statik kontrol düzlemi (Date.now/random YOK).",
+    "plane": "frontend deploy-zamanı (App Router iskelet + plane ayrımı; 12.2.x çalışma-anı guard/RLS BACKSTOP'tan BAĞIMSIZ frontend katmanı)",
+    "owns": "SAD §14.4.1 / ADR-011 İKİ AYRI NEXT.JS APP iskeleti: (1) iki ayrı app projesi varlığı (ayrı package.json/build/deploy birimi; A2) + (2) route group ayrımı (platform-app=(platform) yalnız; tenant-app=(tenant-admin)+(workspace); A3) + (3) ekran kapsamı (L0 9 / L1 9 / L2 17; A4) + (4) platform-app'te YASAK tenant iş verisi route'u yokluğu (ÇEKİRDEK; A5) + (5) ayrı origin/auth realm/network exposure (internal_only vs public; ADR-011; A6) + (6) paylaşılan-bağımlılık kuplajı yok (app'ler birbirini import etmez; A7) + (7) deploy izolasyon manifesti + bütünlük hash (A10) + (8) sır/PII yok (A12)",
+    "delegates": "çalışma-anı oturum/tenant-scope middleware → 13.1.2; tasarım sistemi/komponent/i18n → 13.1.3; PII maskeleme → 13.1.4; ekran iç implementasyonu → 13.2/13.3/13.4; backend yetki guard/RLS → 12.2.x; SSO/SCIM auth realm provisioning → 12.1.x/14.4.4",
+    "deterministic": true,
+    "fail_closed": true,
+    "decision_at": "deploy-time (frontend app topolojisi — çalışma-anından BAĞIMSIZ)",
+    "trace": "SAD §14.4.1, ADR-011, FR-IAM-008"
+  },
+
+  "topology": {
+    "$comment": "İki Next.js app birimi (frozen) = config/deploy-topology.json. Her app ayrı package.json/build/deploy/origin/auth realm. platform-app internal_only (VPN/allowlist/private endpoint, ADR-011); tenant-app public. Route group'lar SAD §14.4.1 birebir.",
+    "apps": [
+      {
+        "name": "platform-app",
+        "dir": "frontend/platform-app",
+        "plane": "platform_control_plane",
+        "tier": "L0",
+        "network_exposure": "internal_only",
+        "auth_realm": "platform",
+        "origin_class": "private",
+        "route_groups": ["(platform)"],
+        "screens": ["overview", "tenants", "resources", "providers", "billing", "policy", "audit", "releases", "incidents"],
+        "screen_codes": "P-01..P-09",
+        "tenant_business_data_routes": [],
+        "trace": "ADR-011 (L0 ayrı internal-only), SAD §14.4.1"
+      },
+      {
+        "name": "tenant-app",
+        "dir": "frontend/tenant-app",
+        "plane": "tenant_application_plane",
+        "tier": "L1+L2",
+        "network_exposure": "public",
+        "auth_realm": "tenant",
+        "origin_class": "public",
+        "route_groups": ["(tenant-admin)", "(workspace)"],
+        "screens": {
+          "(tenant-admin)": ["dashboard", "org", "users", "numbers", "integrations", "compliance", "billing", "audit", "quota"],
+          "(workspace)": ["dashboard", "live-calls", "agents", "builder", "flows", "prompts", "voice", "kb", "tools", "campaigns", "recordings", "call", "qa", "analytics", "cost", "test", "versions"]
+        },
+        "screen_codes": "T-01..T-09 (L1) + A-01..A-17 (L2)",
+        "trace": "ADR-011 (L1+L2 birlikte public), SAD §14.4.1"
+      }
+    ],
+    "forbidden_in_platform_app": {
+      "$comment": "platform-app'te FİZİKSEL OLARAK bulunmaması gereken tenant iş verisi (call/transcript/recording/PII) route segmentleri — ADR-011 blast-radius çekirdeği. Bunların platform-app/app altında route'u olursa A5 ihlali (L0 yüzeyinde tenant içeriği).",
+      "route_segments": ["live-calls", "recordings", "call", "transcript", "transcripts", "qa", "kb", "flows", "prompts", "campaigns", "agents", "builder", "voice", "tools"],
+      "trace": "FR-IAM-008, BRD §17.7, ADR-011"
+    }
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ iki-app frontend ayrımı statik kapısı. Önce malformed; sonra iki ayrı app varlığı; sonra route group ayrımı; sonra ekran kapsamı; sonra platform-app yasak-route yokluğu (ÇEKİRDEK); sonra origin/auth realm/exposure ayrımı; sonra kuplaj yokluğu. Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "well_formed", "field": "spec/topology/manifest iyi-biçimli", "invariant": "A1", "outcome": "PASS|FAIL",
+       "rule": "spec + deploy-topology.json + on-disk app dizinleri okunabilir, iki app tanımlı, route group/ekran/exposure alanları mevcut; eksik/bozuk → FAIL (fail-closed)."},
+      {"id": "two_separate_apps", "field": "iki ayrı Next.js app projesi (ayrı package.json/build birimi)", "invariant": "A2", "outcome": "PASS|FAIL",
+       "rule": "frontend/platform-app ve frontend/tenant-app AYRI app projeleridir; her birinin KENDİ package.json + next config + app/ dizini vardır (ayrı build/deploy birimi; ADR-011 Seçenek 1 tek-deploy reddedildi). İki app aynı pakete birleşirse → FAIL. separate_apps=2."},
+      {"id": "route_group_separation", "field": "platform-app=(platform) yalnız; tenant-app=(tenant-admin)+(workspace)", "invariant": "A3", "outcome": "PASS|FAIL",
+       "rule": "platform-app/app altında YALNIZ (platform) route group bulunur; (tenant-admin)/(workspace) BULUNMAZ. tenant-app/app altında (tenant-admin) VE (workspace) bulunur; (platform) BULUNMAZ (SAD §14.4.1). Karışım → FAIL."},
+      {"id": "screen_coverage", "field": "L0 9 + L1 9 + L2 17 ekran route iskeleti", "invariant": "A4", "outcome": "PASS|FAIL",
+       "rule": "platform-app (platform) 9 ekran (overview..incidents); tenant-app (tenant-admin) 9 (dashboard..quota) + (workspace) 17 (dashboard..versions) ekran route dizini (page.tsx) bulunur (SAD §14.4.1, BRD §17). Eksik ekran → FAIL."},
+      {"id": "no_tenant_business_data_in_platform", "field": "platform-app'te tenant iş verisi route'u YOK (ÇEKİRDEK)", "invariant": "A5", "outcome": "PASS|FAIL",
+       "rule": "platform-app/app altında forbidden_in_platform_app.route_segments (live-calls/recordings/call/transcript/qa/...) HİÇBİRİ bulunmaz (FR-IAM-008, BRD §17.7, ADR-011 blast-radius). Bir tane bile bulunursa → FAIL (L0 yüzeyinde tenant içeriği). forbidden_route_in_platform=0."},
+      {"id": "deploy_isolation", "field": "ayrı origin/auth realm/network exposure (internal_only vs public)", "invariant": "A6", "outcome": "PASS|FAIL",
+       "rule": "platform-app deploy config network_exposure=internal_only + auth_realm=platform + origin_class=private (VPN/allowlist/private endpoint; ADR-011); tenant-app network_exposure=public + auth_realm=tenant + origin_class=public. platform-app public'e açılırsa VEYA realm'ler eşitse → FAIL (plane_coupling). plane_coupling=0."},
+      {"id": "no_shared_coupling", "field": "app'ler birbirini import etmez; ortak paket yalnız kontrollü", "invariant": "A7", "outcome": "PASS|FAIL",
+       "rule": "platform-app tenant-app'i (veya tersi) import ETMEZ; paylaşılan kod yalnız açıkça beyan edilen ortak paket(ler) üzerinden (13.1.3) ve tenant iş verisi mantığı içermez. App'ler arası doğrudan import → FAIL (paylaşılan-bug-açar riski; ADR-011 Seçenek 1 reddi). cross_app_import=0."},
+      {"id": "ui_only_no_authz", "field": "UI yalnız görsel kapı; yetki kararı backend'de", "invariant": "A8", "outcome": "PASS|FAIL",
+       "rule": "Frontend iskeleti yetki KARARINI vermez (SAD §14.4.1 'UI yalnız görsel kapıdır; yetki kararı her zaman backend'de'); route group layout'ları yalnız UX guard placeholder'ı taşır, hardcoded yetki/erişim kararı YOK. Frontend'de nihai authz kararı kodlanırsa → FAIL."},
+      {"id": "manifest_integrity", "field": "deploy topoloji frozen + integrity hash", "invariant": "A10", "outcome": "PASS|FAIL",
+       "rule": "deploy-topology.json frozen; topology_hash = sha256(kanonik). On-disk iskelet ile manifest tutarsız (ekran/route group/app sayısı sapması) → FAIL. Topoloji audit-edilebilir/değiştirilemez (ADR-011)."}
+    ],
+    "evaluation": "malformed_then_two_apps_then_route_group_sep_then_screen_coverage_then_no_forbidden_route_then_deploy_isolation_then_no_coupling_then_ui_only_then_integrity",
+    "trace": "SAD §14.4.1, ADR-011, FR-IAM-008"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed iki-app frontend ayrımı statik doğrulama algoritması. Adımlar: (1) malformed (spec/topology/on-disk okunamaz / app sayısı ≠ 2 → FAIL). (2) two_separate_apps: her app kendi package.json+next config+app/ taşır mı. (3) route_group_separation: platform-app yalnız (platform); tenant-app (tenant-admin)+(workspace). (4) screen_coverage: ekran sayıları. (5) no_tenant_business_data_in_platform (ÇEKİRDEK): platform-app'te yasak route segment yok. (6) deploy_isolation: exposure/realm/origin. (7) no_shared_coupling: cross-app import yok. (8) ui_only_no_authz. (9) manifest_integrity. Belirsizlik/eksik → FAIL (fail-closed).",
+    "algorithm": "malformed ⇒ FAIL → app sayısı≠2 ⇒ FAIL → her app kendi package.json/next/app yoksa ⇒ FAIL → platform-app non-(platform) group VEYA tenant-app eksik group ⇒ FAIL → ekran eksik ⇒ FAIL → platform-app'te forbidden route ⇒ FAIL (forbidden_route_in_platform) → platform-app public/realm eşit ⇒ FAIL (plane_coupling) → cross-app import ⇒ FAIL (cross_app_import) → topoloji hash sapması ⇒ FAIL",
+    "default": "FAIL",
+    "fail_safe_terminal": "PASS yalnız tüm A1–A10 kapıları 0-ihlal geçerse; aksi halde FAIL (iskelet deploy edilmez)",
+    "trace": "SR-IAM-008, SAD §14.4.1, ADR-011"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal doğrulama kararları. PASS = iki-app iskeleti ADR-011/SAD §14.4.1'e uygun (deploy edilebilir). FAIL = iskelet ihlal taşır (deploy edilmez; fail-closed default). platform-app'te yasak route veya plane kuplajı = FAIL (blast-radius ihlali).",
+    "list": ["PASS", "FAIL"],
+    "terminal": ["PASS", "FAIL"]
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. forbidden_route_in_platform (A5 ÇEKİRDEK) = platform-app'te tenant iş verisi route'u; plane_coupling (A6) = platform-app public/realm tenant-app ile eşit; cross_app_import (A7) = app'ler arası doğrudan import; missing_app (A2) = iki app projesinden biri yok; route_group_mismatch (A3) = route group ayrımı bozuk; screen_gap (A4) = beklenen ekran route'u yok; topology_mismatch (A10) = on-disk ↔ manifest sapması; frontend_authz (A8) = frontend'de hardcoded yetki kararı; secret_or_pii (A12) = sır/PII. Eşikler MÜHENDİSLİK varsayılanı; gerçek deploy F1 canlı CI'da (next build + topoloji testi) doğrulanır.",
+    "max_forbidden_route_in_platform": 0,
+    "max_plane_coupling": 0,
+    "max_cross_app_import": 0,
+    "max_missing_app": 0,
+    "max_route_group_mismatch": 0,
+    "max_screen_gap": 0,
+    "max_topology_mismatch": 0,
+    "max_frontend_authz": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "İki-app iskelet doğrulaması deploy-zamanı/CI metriklerini yayar (0.4.7). frontend_topology_check_total{app,result} → kapı sayımı; frontend_isolation_violation_total → forbidden_route_in_platform VEYA plane_coupling VEYA cross_app_import (A5/A6/A7 ihlal alarmı, 0 olmalı). app+result DÜŞÜK kardinalite; route/ekran adı orta — yalnız trace/CI log. HAM PII metrik/log'ta YOK (BRD §17.7). forbidden_route_in_platform>0 VEYA plane_coupling>0 → kritik build-fail (L0 blast-radius ihlali; deploy bloklanır).",
+    "metrics": ["frontend_topology_check_total", "frontend_isolation_violation_total"],
+    "low_cardinality_labels": ["app", "result"],
+    "high_cardinality_trace_only": ["route", "screen"],
+    "alarm": "forbidden_route_in_platform>0 (platform-app'te tenant iş verisi route'u — A5 ÇEKİRDEK, FR-IAM-008) VEYA plane_coupling>0 (platform-app public/realm kuplajı — A6, ADR-011) VEYA cross_app_import>0 (A7) → build-fail/deploy blok (SAD §14.4.1, ADR-011)"
+  },
+
+  "invariants": [
+    {"id": "A1", "desc": "Determinizm/tamlık + kanıt: spec + deploy-topology.json + on-disk iskelet okunur, iki app tanımlı, terminal {PASS|FAIL}; aynı girdi → aynı çıktı (deterministik; topology_hash sha256 kanonik JSON; Date.now/random YOK); varsayılan FAIL (fail-closed).", "trace": "SR-IAM-008, SAD §14.4.1"},
+    {"id": "A2", "desc": "İki ayrı app (ADR-011 Seçenek 3): frontend/platform-app ve frontend/tenant-app AYRI projeler; her biri kendi package.json + next config + app/ dizini taşır (ayrı build/deploy birimi). Tek-deploy birleşimi = missing_app/ihlal. separate_apps=2.", "trace": "ADR-011, SAD §14.4.1"},
+    {"id": "A3", "desc": "Route group ayrımı (SAD §14.4.1): platform-app YALNIZ (platform); tenant-app (tenant-admin)+(workspace). Karışım = route_group_mismatch. route_group_mismatch=0.", "trace": "SAD §14.4.1"},
+    {"id": "A4", "desc": "Ekran kapsamı (BRD §17): L0 9 ekran (P-01..P-09) + L1 9 (T-01..T-09) + L2 17 (A-01..A-17) route iskeleti (page.tsx). Eksik = screen_gap. screen_gap=0.", "trace": "BRD §17, SAD §14.4.1"},
+    {"id": "A5", "desc": "ÇEKİRDEK — platform-app'te tenant iş verisi route'u YOK (FR-IAM-008, BRD §17.7, ADR-011 blast-radius): live-calls/recordings/call/transcript/qa/kb/flows/prompts/campaigns/agents/... segmentlerinin HİÇBİRİ platform-app/app altında bulunmaz. Bir tane bile = forbidden_route_in_platform (L0 yüzeyinde tenant içeriği). forbidden_route_in_platform=0.", "trace": "FR-IAM-008, BRD §17.7, ADR-011"},
+    {"id": "A6", "desc": "Deploy izolasyonu (ADR-011): platform-app internal_only + auth_realm=platform + origin private (VPN/allowlist); tenant-app public + auth_realm=tenant + origin public. platform-app public veya realm eşit = plane_coupling. plane_coupling=0.", "trace": "ADR-011, SAD §14.4.1"},
+    {"id": "A7", "desc": "Kuplaj yok (ADR-011 Seçenek 1 reddi): app'ler birbirini import etmez; paylaşılan kod yalnız kontrollü ortak paket (13.1.3) ve tenant iş verisi mantığı içermez. Cross-app doğrudan import = cross_app_import. cross_app_import=0.", "trace": "ADR-011, SAD §14.4.1"},
+    {"id": "A8", "desc": "UI yalnız görsel kapı (SAD §14.4.1): frontend iskeleti nihai yetki kararını VERMEZ; layout guard'ları yalnız UX placeholder. Frontend'de hardcoded authz kararı = frontend_authz. frontend_authz=0.", "trace": "SAD §14.4.1"},
+    {"id": "A10", "desc": "Manifest bütünlüğü: deploy-topology.json frozen + topology_hash = sha256(kanonik); on-disk iskelet ↔ manifest sapması (app/route group/ekran sayısı) = topology_mismatch. Topoloji audit-edilebilir (ADR-011). topology_mismatch=0.", "trace": "ADR-011, SAD §14.4.1"},
+    {"id": "A11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (app/result); route/ekran adı metrikte değil yalnız trace/CI; HAM PII metrik/log'ta yok (0.4.7 label_policy, BRD §17.7).", "trace": "BRD §17.7, 0.4.7 label_policy"},
+    {"id": "A12", "desc": "Sır/PII yok: spec/topology/iskelet ham PII (transcript/recording/contact/telefon/kart/OTP/ad DEĞERİ) veya credential (API anahtarı/connection string/parola DEĞERİ) tutmaz — env yalnız ${ENV} referansı, sahte/placeholder değil. App/route group/ekran/plane/realm/exposure adı PII DEĞİLDİR. secret_or_pii=0.", "trace": "BRD §17.7, FR-REC-004"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/topology/iskelet HAM içerik, PII (TRANSCRIPT/RECORDING/CONTACT içeriği, TELEFON, KART [PAN/CVV], OTP, PAROLA, müşteri ADI DEĞERİ) veya credential (API anahtarı / connection string / DB şifresi DEĞERİ) TUTMAZ — yalnız APP ADLARI (platform-app/tenant-app) + ROUTE GROUP ADLARI ((platform)/(tenant-admin)/(workspace)) + EKRAN ADLARI (overview/tenants/...) + PLANE/REALM/EXPOSURE ENUM (platform_control_plane/internal_only/public) + HASH (sha256). Ortam değişkenleri yalnız ${ENV} referansı olarak; gerçek değer YOK.",
+    "forbids": ["transcript_text_value", "recording_audio_value", "contact_pii_value", "customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "api_key_value", "connection_string_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}
