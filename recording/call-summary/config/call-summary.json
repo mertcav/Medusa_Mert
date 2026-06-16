@@ -1,0 +1,19 @@
+{
+  "$comment": "WBS 11.7 — Çağrı özeti üretimi (BRD §8.1 adım 9 'Çağrıyı özetler ve sonuçlandırır' + FR-ANA-002 'Çağrı sonucu, intent, disposition ve completion durumu çıkarılmalıdır' + DB §21 transcript.summary 'çağrı özeti (BRD §8.1)' + DB §19 call.outcome 'containment/transfer (FR-ANA-002/003)') yapılandırması. MÜHENDİSLİK varsayılanı. KAPALI sözlükler (controlled vocabulary): outcome/disposition/completion bir KAPALI enum'dur — özet alanı serbest LLM metni DEĞİL, deterministik kategoridir (FR-ANA-002 'çıkarılır'). intent tenant intent-kataloğundan (sınırlı; 'other' kuyruğu açık). required_fields: SUMMARIZED için doldurulması zorunlu yapısal alanlar. accepted_redaction_states: özet YALNIZ görüntülemeye-hazır (PII-güvenli) transkriptten üretilir (11.4 çıktısı redacted/not_required); 'pending' YASAK (henüz-redakte-edilmemiş kaynaktan özet → premature_summary BLOCK). execution_plane: SAD §19.2 Analytics Plane async (FR-RES-011); hot_path YASAK. masked_token_pattern: özet anahtar-noktaları YALNIZ maskeli bracket-token taşıyabilir; ham PII değeri YASAK (BRD §17.7). grounding_required: her yapısal alan + anahtar-nokta transkripte (segment seq) DAYANMALI — dayanaksız (halüsinasyon) içerik YASAK (BRD §8.1 özet sadakati). Değerler illüstratif; gerçek taksonomi tenant intent-kataloğu + QA/analitik (FR-ANA-001..013) ile kalibre edilir. Özet PROSE byte üretimi + transcript.summary yazımı SAD §10.2/§10.1 özetleyici (LLM adapter; ADR-001/002) + DB §21'in işidir — bu modül yalnız YAPISAL özet PLANINI + dayanak/sözlük/PII-güvenlik KARARINI verir. Sır/credential/HAM PII YOK.",
+  "version": "1.0",
+  "wbs": "11.7",
+  "outcomes": ["contained", "transferred", "abandoned", "voicemail", "callback_scheduled", "failed"],
+  "dispositions": ["resolved", "unresolved", "follow_up_required", "information_provided", "transaction_completed", "no_action"],
+  "completions": ["completed", "partial", "not_completed"],
+  "intent_catalog": ["billing_inquiry", "payment", "account_update", "technical_support", "complaint", "information_request", "appointment", "cancellation", "other"],
+  "required_fields": ["outcome", "intent", "disposition", "completion"],
+  "summary_sections": ["outcome", "intent", "disposition", "completion", "key_points"],
+  "accepted_redaction_states": ["redacted", "not_required"],
+  "forbidden_redaction_states": ["pending"],
+  "execution_plane": "analytics_async",
+  "forbidden_execution_planes": ["hot_path"],
+  "key_point_max": 12,
+  "masked_token_pattern": "^\\[[A-Z0-9_]+\\]$",
+  "grounding_required": true,
+  "grounding_order_key": ["field", "seq"]
+}

@@ -1,0 +1,194 @@
+{
+  "$comment": "WBS 11.7 — Çağrı özeti üretimi (BRD §8.1 adım 9 'Çağrıyı özetler ve sonuçlandırır'). 11. workstream'in (Kayıt, Transkript & PII Redaction) ÇAĞRI ÖZETİ ÜRETİMİ modülü ve F1-Must temel yeteneği. Çağrının görüntülemeye-hazır (PII-güvenli, redakte-edilmiş) transkriptinden (11.4 pii-redaction çıktısı: redaction_state ∈ {redacted, not_required}) → DETERMİNİSTİK, FAIL-CLOSED, ASENKRON bir YAPISAL özet PLANI (outcome/intent/disposition/completion KAPALI-sözlük alanları + anahtar-noktalar; her alan transkript segmentlerine DAYANAKLI) üretir ve transcript.summary (DB §21) + call.outcome (DB §19, FR-ANA-002/003) için bir terminal {SUMMARIZED | NO_SUMMARY | NO_CONTENT | BLOCK} kararı verir. Modül ANALYTICS PLANE'de ASENKRON çalışır (SAD §10.1 özetleme / Session Memory; SAD §19.2 post-processing; FR-RES-011 — hot-path/medya bütçesi DIŞI; ADR-004/007). Modül 11.3 (transcript-build) + 11.4 (pii-redaction) AŞAĞI AKIŞ TÜKETİCİSİDİR; özet YALNIZ redaction TAMAMLANDIKTAN sonra (access_ready) ÜRETİLİR — henüz-redakte-edilmemiş (pending) kaynaktan özet üretmek PII'yi özete sızdırma riski taşır ⇒ fail-closed BLOCK premature_summary. Özet bir LLM çıktısıdır; LLM-özgü RİSK HALÜSİNASYON/DAYANAKSIZLIK'tır — bu modül özet alanlarının transkripte DAYANDIĞINI (grounding/faithfulness) zorlar. ÇEKİRDEK: (1) K2 DAYANAK/SADAKAT (BRD §8.1 + FR-ANA-002 ÇEKİRDEK) — özetteki HER yapısal alan (outcome/intent/disposition/completion) + HER anahtar-nokta transkriptin en az bir segmentine (seq) DAYANMALI (grounded_in); dayanaksız / uydurulmuş (halüsinasyon) içerik (ungrounded_claim) yasak; (2) K3 KAPALI SÖZLÜK ÇEKİRDEK (FR-ANA-002 'disposition/completion çıkarılır' + DB §19 call.outcome + FR-OUT-011 disposition) — outcome/disposition/completion bir KAPALI enum'dur (serbest LLM metni DEĞİL); intent tenant intent-kataloğundan; sözlük-dışı değer (invalid_field) ⇒ fail-closed BLOCK invalid_summary_field; (3) K4 PII-GÜVENLİ KAYNAK + HAM PII SIZINTISI YOK (FR-REC-004 AŞAĞI AKIŞ + BRD §17.7 ÇEKİRDEK) — özet YALNIZ redaction tamamlanmış (redaction_state ∈ {redacted, not_required}) transkriptten üretilir (pending kaynak ⇒ BLOCK premature_summary); özet alanları/anahtar-noktaları ASLA ham PII değeri taşımaz, yalnız enum + maskeli token + dayanak (ham değer = pii_leak); (4) K5 ATLANAMAZ / FAIL-CLOSED — özet bypass edilemez / dayanaksız 'tamamlandı' işaretlenemez; bypass = summary_skip (BRD §15 alarmı); malformed → fail-closed BLOCK, sessiz özet (failopen) yok; dayanaksız içerikle SUMMARIZED iddiası = false_grounding; (5) K6 İÇERİK KAPISI (FR-REC-002 AŞAĞI AKIŞ) — upstream 11.4 görüntülemeye-hazır içerik üretmediyse (NO_CONTENT/BLOCK) özetlenecek içerik YOK ⇒ NO_CONTENT ∧ no_summary_persisted=true (over_capture yasak); (6) K8 ASENKRON/HOT-PATH DIŞI (FR-RES-011) — çağrı-sonu özet Analytics Plane'de asenkron üretilir, medya hot-path'inde DEĞİL; hot_path yürütme = hotpath_violation. Modül bir DETERMİNİSTİK FAIL-CLOSED motorudur: CallSummaryRequest{request_id, tenant_id, correlation_id, call_id, direction, upstream_redaction_decision[11.4 REDACTED/NOT_REQUIRED/NO_CONTENT/BLOCK], redaction_state[redacted/not_required/pending], execution_plane[analytics_async/hot_path], segments[{seq, speaker}], summary{outcome, intent, disposition, completion, grounded_in{field→[seq]}, key_points[{id, grounded_in[seq]}]}, in_region_storage_required, storage_region, home_region} alır → tenant izolasyonu doğrula (cross_tenant→BLOCK) → upstream geçerli mi (yoksa BLOCK no_upstream) → içerik kapısı (upstream ∉ {REDACTED,NOT_REQUIRED} ⇒ NO_CONTENT) → PII-güvenli kapı (redaction_state=pending ⇒ BLOCK premature_summary) → execution_plane=analytics_async doğrula (hot_path ⇒ hotpath_violation) → boş transkript (0 segment) ⇒ NO_SUMMARY → kapalı-sözlük doğrula (outcome/disposition/completion/intent geçerli; aksi BLOCK invalid_summary_field) → zorunlu alanlar var → dayanak doğrula (her alan + anahtar-nokta grounded_in dolu ∧ referans seg var; aksi ungrounded_claim) → ham-değer sızıntısı yok doğrula → residency → terminal: SUMMARIZED (dayanaklı yapısal özet üretildi) | NO_SUMMARY (içerik var ama boş transkript ⇒ özetlenecek konuşma yok) | NO_CONTENT (11.4 görüntülemeye-hazır içerik yok) | BLOCK (cross-tenant/upstream yok/pending kaynak/sözlük-dışı ⇒ no summary). ÇEKİRDEK INVARIANT (K2): her özet alanı grounded_in ⊆ transkript seq'leri; dayanaksız alan = ungrounded_claim. (K5): SUMMARIZED ⇒ ungrounded_claim=0 (dayanaksız içerikle 'tamamlandı'=false_grounding). Özet ATLANAMAZ (K5 summary_skip=0). Residency: özet in_region iken home_region'da (K7, NFR 10.7). Her karar deterministik+terminal (K1) + kanıt (K9) + audit (K10); metrik düşük-kardinalite + HAM PII yok (K11); spec/config/sample HAM PII (telefon/kart/OTP/ad/adres DEĞERİ) / özet PROSE / transkript metni tutmaz — yalnız enum + dayanak seq + maskeli token + tenant izolasyonu (K12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): içerik/kayıt KARARI + consent + tamamen kapatma → 11.1 (FR-REC-001/002; upstream dolaylı TÜKETİLİR); kanal/track → 11.2 (FR-REC-003); transkript ÜRETİMİ (segment/timeline/sıralama/atıf) → 11.3 (FR-REC-008/BRD §8.1; TÜKETİLİR); PII redaction + redaction_state=redacted + access_ready → 11.4 (FR-REC-004; TÜKETİLİR — özet PII-güvenli kaynaktan üretilir); kart/parola/OTP kayıttan çıkarma → 11.5 (FR-REC-005); erişim audit + görüntüleme yetkisi → 11.6 (FR-REC-008/009); özet PROSE METİN byte ÜRETİMİ (LLM özetleyici) + transcript.summary storage_uri yazımı → SAD §10.1/§10.2 + DB §21 (bu modül YAPISAL özet PLANINI + dayanak/sözlük KARARINI verir, ham özet metni YAZMAZ/GÖRMEZ; LLM serbest prose'u kapalı-sözlük alanlarına BAĞLANIR); intent SINIFLANDIRMA + QA skorlama + containment/transfer raporlama → FR-ANA-001/003..013 (outcome/disposition/completion alanlarını ÜRETİR, raporlamayı DEĞİL); temsilciye handoff bağlam paketi (gerçek-zamanlı özet) → 9.6/FR-HND-004 (AYRI — bu modül ÇAĞRI-SONU asenkron özettir); konuşma-geçmişi token özetlemesi (hot-path) → FR-LLM-005/FR-RES-010 (AYRI — Session Memory); retention/silme → FR-REC-006/007/010; residency depolama UYGULAMASI → DB §8/SAD §12.1; panel sunum → L2 A-12 (transkript+özet) / A-09 (analitik). Spec/config/sample'larda sır/credential ve gerçek PII (telefon/kart/OTP/parola/ad/adres/hesap no/ham ses/ham metin/özet prose DEĞERİ) YOK — yalnız yapısal KİMLİKLER (request/call/tenant/correlation kimlikleri) + ENUM'lar (direction/upstream_redaction_decision/redaction_state/outcome/disposition/completion/intent/execution_plane) + SAYI (segment seq, dayanak seq) + MASKELİ token ([PHONE]/[CARD]/...). KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS/DB/API esastır.",
+  "version": "1.0",
+  "wbs": "11.7",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-ANA-002", "FR-ANA-003", "FR-OUT-011", "FR-REC-004", "FR-REC-002", "FR-REC-008", "FR-REC-009", "FR-RES-011", "FR-TEN-002", "FR-IAM-006", "FR-IAM-011", "FR-TST-008"],
+    "nfr": ["NFR 10.7"],
+    "srs": ["SR-ANA-002", "SR-REC-004", "SR-REC-002", "SR-RES-011"],
+    "rtm": ["TC-ANA-002"],
+    "brd": [
+      "§8.1 (Inbound Müşteri Hizmetleri — adım 9 'Çağrıyı özetler ve sonuçlandırır'; ÇAĞRI ÖZETİ ÜRETİMİ bu modülün sahipliği)",
+      "§9.15 (Analitik ve Kalite Yönetimi — FR-ANA-002 'Çağrı sonucu, intent, disposition ve completion durumu çıkarılmalıdır')",
+      "§9.14 (Çağrı Kayıtları ve Transkript — özet PII-güvenli redakte transkriptten üretilir; FR-REC-004 aşağı akış)",
+      "§15 (kritik alarm — özet atlandı [summary_skip] / dayanaksız özet [ungrounded_claim/false_grounding] / ham PII özette [pii_leak] = bütünlük/gizlilik ihlali)",
+      "§16 (veri varlıkları — Transcript varlık 21: summary; Call varlık 19: outcome)",
+      "§17 (panel — L2 A-12 transkript+özet sunumu; A-09 analitik outcome/disposition)",
+      "§17.7 (PII metrik/log'da yok — ham PII değeri özette/audit'te yok)",
+      "§19 (kabul — (9) çağrı özeti ve sonuçlandırma; analitik alanlar doldurulur)"
+    ],
+    "sad": [
+      "§4.2 (Analytics/Ops Plane — asenkron post-processing; ADR-004 plane ayrımı — özet çağrı-sonu Analytics Plane'de)",
+      "§10.1 (Session Memory / özetleme — kısa süreli diyalog belleği özetlenir, oturum sonunda kalıcılaştırılır; bu modül çağrı-sonu YAPISAL özetin dayanak/sözlük kararını verir)",
+      "§10.2 (Transcript Store + özet — özet PROSE byte üretimi + transcript.summary yazımı; bu modül YAPISAL özet PLANINI verir)",
+      "§12.1/§12.3 (residency + KMS; özet home-region'da, NFR 10.7)",
+      "§13.3 (correlation/tenant context propagation)",
+      "§17.2 (özet atlandı / dayanaksız özet / ham PII sızıntısı → kritik alarm ≤2dk)",
+      "§19.2 (Veri Koruma & PII — özet PII-güvenli redakte transkriptten üretilir)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — özet üretimi analytics düzleminde bir karar fonksiyonu; LLM özetleyiciye doğrudan bağlanmaz, özet adayını dayanak/sözlük sözleşmesi ile tüketir)",
+      "ADR-002 (vendor-neutral — LLM özetleyici sağlayıcı bağımsız; aynı yapısal özet sözleşmesi arkasına gerçek LLM adapter (SAD §8.4))",
+      "ADR-004 (Data/Control/Analytics plane ayrımı — özet Analytics Plane'de asenkron; hot-path DIŞI)",
+      "ADR-007 (async event pipeline (Kafka) — çağrı-sonu post-processing; FR-RES-011)",
+      "ADR-012 (RBAC — özet görüntüleme transcript:read; yetki kapısı 11.6'da)"
+    ],
+    "db": [
+      "DB §21 transcript.summary TEXT — 'çağrı özeti (BRD §8.1)'; bu modül YAPISAL özet PLANINI + dayanak kararını üretir, ham özet PROSE byte'ını LLM özetleyici (SAD §10.2) yazar",
+      "DB §19 call.outcome TEXT — 'containment/transfer (FR-ANA-002/003)'; bu modül outcome kapalı-sözlük değerini üretir",
+      "DB §8 P6 — 'PII en aza indir'; özet PII-güvenli redakte transkriptten + home-region (NFR 10.7)"
+    ],
+    "threat_model": [
+      "TM-I-* (bilgi ifşası — özet henüz-redakte-edilmemiş (pending) kaynaktan üretilirse ham PII özete sızar; PII-güvenli kapı premature_summary BLOCK, K4; ham PII özette/audit/metrik yok pii_leak=0, K4/K11)",
+      "TM-T-* (tahrifat — özet atlama [summary_skip] / dayanaksız uydurma [ungrounded_claim] / sözlük-dışı alan [invalid_field] = özet bütünlük ihlali K2/K3/K5; LLM halüsinasyonu özet sadakatini bozar)",
+      "TM-T-* (tenant izolasyonu — özet yalnız aynı tenant transkriptinden; cross-tenant reddedilir FR-TEN-002, K12)",
+      "TM-R-* (inkâr — her karar [SUMMARIZED/NO_SUMMARY/NO_CONTENT/BLOCK] result + upstream + redaction_state + field/key_point sayımı + grounded ile audit'e yazılır, K10)"
+    ],
+    "consumes": [
+      "11.4 pii-redaction (FR-REC-004) — REDACTED/NOT_REQUIRED kararını (upstream_redaction_decision) + redaction_state (redacted/not_required) + access_ready'i + home_region/storage_region/in_region'ı TÜKETİR (özet YALNIZ PII-güvenli kaynaktan; redaction ÜRETMEZ)",
+      "11.3 transcript-build (FR-REC-008/BRD §8.1) — ÜRETİLMİŞ transkript segmentlerini (seq, speaker) TÜKETİR (özet dayanağı için segment seq referansları; transkript ÜRETMEZ)",
+      "LLM özetleyici (ADR-001/002 sağlayıcı-soyut; SAD §10.1/§10.2/§8.4) — aday özet alanlarını + anahtar-noktalarını {outcome, intent, disposition, completion, grounded_in, key_points} TÜKETİR (serbest prose'u kapalı-sözlüğe + dayanağa BAĞLAR; özet metni byte ÜRETMEZ)",
+      "11.1 recording-policy (FR-REC-002) — içerik politikası DOLAYLI: 11.4 zaten upstream içeriğini tükettiğinden NO_CONTENT/BLOCK aşağı akışta NO_CONTENT'e dönüşür"
+    ],
+    "consumed_by": [
+      "SAD §10.2 Transcript Store + DB §21 transcript.summary — SUMMARIZED yapısal özet PLANINI TÜKETİR (LLM özetleyici ham özet PROSE byte'ını yazar; storage_uri residency/KMS); NO_SUMMARY/NO_CONTENT/BLOCK ⇒ özet YOK",
+      "DB §19 call.outcome + FR-ANA-002/003 — outcome/disposition/completion kapalı-sözlük değerlerini TÜKETİR (containment/transfer raporlama, completion analitiği)",
+      "FR-ANA-001/008/009/010/011 QA & analitik — outcome/intent/disposition/completion alanlarını TÜKETİR (kalite değerlendirme, kritik işaretleme, export)",
+      "11.6 kayıt/transkript erişim audit + görüntüleme (FR-REC-008/009) — özet görüntüleme access_ready'i + bu modülün KARAR audit'ini TÜKETİR; görüntüleme yetkisi (transcript:read) 11.6'da",
+      "L2 A-12 panel (BRD §17) — transkript+özet sunumu (özet PII-güvenli redakte kaynaktan)",
+      "0.4.7 gözlemlenebilirlik — call_summary_* metriklerini tüketir (summary_skip + ungrounded_claim + pii_leak + invalid_field bütünlük alarmı dahil)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Çağrı özeti üretimi, ANALYTICS PLANE'de ASENKRON bir çağrı-sonu post-processing KARAR fonksiyonudur (SAD §10.1 özetleme; SAD §19.2; FR-RES-011 — hot-path/medya bütçesi DIŞI; ADR-004/007). 11.4 görüntülemeye-hazır (redakte) transkripti + LLM özetleyici aday özet alanları verildikten sonra, transcript.summary'ye (DB §21) + call.outcome'a (DB §19) hangi YAPISAL özetin (kapalı-sözlük outcome/intent/disposition/completion + dayanaklı anahtar-noktalar) yazılacağını çözer ve SUMMARIZED | NO_SUMMARY | NO_CONTENT | BLOCK döndürür — upstream içerik yoksa NO_CONTENT GARANTİSİ (FR-REC-002 aşağı akış) + pending kaynaktan özet YASAK (K4 premature_summary) + dayanaksız özet YASAK (K2 ungrounded_claim). Motor ham PII DEĞERİNİ/transkript metnini/özet prose'unu işlemez/görmez/yazmaz (LLM özetleyici prose üretir, dayanak/sözlük bu modülde; DB §21 transcript.summary); deterministik kontrol düzlemi. Vendor-neutral (ADR-001/002): LLM özetleyici sağlayıcı bağımsız; aynı yapısal özet sözleşmesi arkasına gerçek LLM adapter (SAD §8.4).",
+    "plane": "analytics plane (çağrı-sonu özet kapısı — deterministik fail-closed, ASENKRON yapısal özet planı + dayanak/sözlük/PII-güvenlik kararı; hot-path DEĞİL, FR-RES-011)",
+    "owns": "BRD §8.1 adım 9 çağrı özeti üretimi boyutu: CallSummaryRequest → tenant izolasyonu + upstream geçerlilik + içerik kapısı (upstream ∈ {REDACTED,NOT_REQUIRED}) + PII-güvenli kapı (redaction_state ∈ {redacted,not_required}; pending reddi) + execution_plane=analytics_async doğrulama + boş-transkript kapısı (NO_SUMMARY) + kapalı-sözlük doğrulama (outcome/disposition/completion/intent) + zorunlu alanlar + dayanak doğrulama (her alan+anahtar-nokta grounded_in ⊆ segment seq) + ham-değer sızıntısı yok + residency + terminal karar {SUMMARIZED (dayanaklı yapısal özet) | NO_SUMMARY (boş transkript) | NO_CONTENT (içerik yok) | BLOCK (cross-tenant/upstream yok/pending/sözlük-dışı ⇒ no summary)} + dayanaksız içerikle SUMMARIZED yasağı (K2/K5) + pending kaynak yasağı (K4) + karar audit",
+    "delegates": "içerik/kayıt KARARI + tamamen kapatma → 11.1 (FR-REC-001/002); kanal/track → 11.2 (FR-REC-003); transkript ÜRETİMİ → 11.3 (FR-REC-008; segment seq TÜKETİLİR); PII redaction + redacted + access_ready → 11.4 (FR-REC-004; TÜKETİLİR); kart/parola/OTP → 11.5 (FR-REC-005); erişim audit + görüntüleme yetkisi → 11.6 (FR-REC-008/009); özet PROSE METİN byte ÜRETİMİ + transcript.summary storage yazımı → SAD §10.1/§10.2 + DB §21 (YAPISAL özet PLANI + dayanak/sözlük KARARI verilir, ham özet metni YAZILMAZ); intent SINIFLANDIRMA modeli + QA skorlama + containment/transfer RAPORLAMA → FR-ANA-001/003..013 (alanlar ÜRETİLİR, raporlama DEĞİL); handoff bağlam paketi (gerçek-zamanlı özet) → 9.6/FR-HND-004 (AYRI); token özetlemesi (hot-path Session Memory) → FR-LLM-005/FR-RES-010 (AYRI); retention/silme → FR-REC-006/007/010; residency depolama UYGULAMASI → DB §8/SAD §12.1",
+    "deterministic": true,
+    "fail_closed": true,
+    "async": true,
+    "trace": "BRD §8.1, FR-ANA-002, FR-RES-011, SAD §10.1, SAD §10.2, DB §21, DB §19, ADR-001, ADR-002, ADR-004, ADR-007, ADR-012"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — DAYANAKLI + SÖZLÜK-İÇİ + PII-GÜVENLİ çağrı özeti üretimi (BRD §8.1, FR-ANA-002, SAD §10.1/§10.2, DB §21/§19). Önce tenant izolasyonu + upstream geçerliliği doğrulanır; sonra içerik kapısı (K6 — upstream ∈ {REDACTED,NOT_REQUIRED} değilse NO_CONTENT, no summary); sonra PII-güvenli kapı (K4 — redaction_state=pending ise BLOCK premature_summary); sonra execution_plane doğrulanır (K8); sonra kapalı-sözlük doğrulanır (K3); sonra her alan + anahtar-nokta dayanağı doğrulanır (K2 grounding); sonra ham-değer sızıntısı yok doğrulanır (K4); sonra residency (K7). Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "grounding_faithfulness", "field": "her özet alanı (outcome/intent/disposition/completion) + her anahtar-nokta grounded_in ⊆ transkript seq; dayanaksız içerik yok", "invariant": "K2", "outcome": "SUMMARIZED",
+       "rule": "özetteki HER yapısal alan + HER anahtar-nokta transkriptin en az bir segmentine (seq) DAYANMALI (BRD §8.1 özet sadakati; FR-ANA-002 transkripten çıkarılır); transkriptte olmayan içeriği özete koymak (ungrounded_claim) = LLM halüsinasyonu = özet sadakat ihlali"},
+      {"id": "controlled_vocabulary", "field": "outcome/disposition/completion KAPALI enum; intent intent-kataloğundan; sözlük-dışı yok", "invariant": "K3", "outcome": "SUMMARIZED|BLOCK",
+       "rule": "outcome (DB §19 containment/transfer), disposition (FR-OUT-011), completion (FR-ANA-002) bir KAPALI sözlükten gelmeli — serbest LLM metni DEĞİL; intent tenant intent-kataloğundan; sözlük-dışı değer (invalid_field) ⇒ fail-closed BLOCK invalid_summary_field"},
+      {"id": "pii_safe_source", "field": "özet YALNIZ redaction tamamlanmış (redacted/not_required) kaynaktan; ham PII özette yok", "invariant": "K4", "outcome": "SUMMARIZED|BLOCK",
+       "rule": "özet YALNIZ görüntülemeye-hazır (PII-güvenli) transkriptten üretilir (redaction_state ∈ {redacted,not_required}); pending (henüz-redakte-edilmemiş) kaynaktan özet ⇒ BLOCK premature_summary (PII sızma riski); özet alanları/anahtar-noktaları ham PII değeri taşımaz (yalnız enum + maskeli token); ham değer = pii_leak (FR-REC-004 aşağı akış, BRD §17.7)"},
+      {"id": "mandatory_fail_closed", "field": "özet bypass edilemez; dayanaksız 'tamamlandı' yok; malformed → BLOCK", "invariant": "K5", "outcome": "SUMMARIZED|BLOCK",
+       "rule": "özet bypass edilemez (summary_skip yasak — BRD §15 alarmı); dayanaksız içerikle SUMMARIZED iddia etmek (false_grounding) yasak: SUMMARIZED ⇒ ungrounded_claim=0; malformed istek → fail-closed BLOCK, sessiz özet (failopen) yok"},
+      {"id": "content_gate", "field": "upstream ∉ {REDACTED,NOT_REQUIRED} ⇒ NO_CONTENT ∧ no_summary_persisted=true", "invariant": "K6", "outcome": "NO_CONTENT",
+       "rule": "upstream 11.4 görüntülemeye-hazır içerik üretmediyse (NO_CONTENT/BLOCK) özetlenecek içerik YOK ⇒ NO_CONTENT ∧ no_summary_persisted=true (FR-REC-002 aşağı akış koruması); yokken özet üretmek (over_capture) yasak"},
+      {"id": "residency_honored", "field": "SUMMARIZED ∧ in_region_storage_required ⇒ storage_region == home_region", "invariant": "K7", "outcome": "SUMMARIZED",
+       "rule": "özet home-region'da saklanmalı (in_region_storage_required ise storage_region == home_region; NFR 10.7 residency); home-region dışı = residency ihlali"},
+      {"id": "async_offpath", "field": "execution_plane == analytics_async; hot_path yürütme yok", "invariant": "K8", "outcome": "SUMMARIZED|NO_SUMMARY",
+       "rule": "çağrı-sonu özet Analytics Plane'de ASENKRON üretilmeli (SAD §19.2; FR-RES-011; ADR-004/007); medya hot-path'inde yürütme (execution_plane=hot_path) = hotpath_violation (gecikme bütçesi NFR 10.1 ihlali)"}
+    ],
+    "evaluation": "tenant_check_then_authorize_content_then_pii_safe_gate_then_check_async_then_validate_vocabulary_then_ground_all_fields_then_no_leak_then_residency_fail_closed_no_summary",
+    "trace": "BRD §8.1, FR-ANA-002, SR-ANA-002, SAD §10.1, SAD §10.2, DB §21, DB §19, NFR 10.7, FR-RES-011"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed çağrı özeti algoritması. Adımlar: (1) tenant izolasyonunu doğrula (bind mismatch / cross_tenant → BLOCK cross_tenant, K12). (2) upstream geçerli mi: upstream_redaction_decision ∉ {REDACTED,NOT_REQUIRED,NO_CONTENT,BLOCK} ⇒ BLOCK no_upstream. (3) içerik kapısı: upstream ∉ {REDACTED,NOT_REQUIRED} ⇒ NO_CONTENT (no_summary_persisted=true; K6 — özetlenecek içerik yok). (4) PII-güvenli kapı: redaction_state ∉ {redacted,not_required} (pending) ⇒ BLOCK premature_summary (K4 — henüz-redakte-edilmemiş kaynaktan özet PII sızdırır). (5) execution_plane: != analytics_async ⇒ hotpath_violation (K8). (6) boş transkript: 0 segment ⇒ NO_SUMMARY (özetlenecek konuşma yok; geçerli). (7) kapalı-sözlük: outcome/disposition/completion sözlük-dışı VEYA intent katalog-dışı ⇒ BLOCK invalid_summary_field (K3). (8) zorunlu alanlar: required_fields eksik ⇒ BLOCK invalid_summary_field. (9) dayanak: her alan + anahtar-nokta grounded_in dolu ∧ referans seg var; dayanaksız ⇒ ungrounded_claim (K2). (10) ham-değer sızıntısı: özet alanı/anahtar-nokta ham PII değeri ⇒ pii_leak (K4). (11) residency: in_region ise storage_region==home_region (K7). HER terminal ∉ {SUMMARIZED} ile özet üretimi ⇒ over_capture kontrolü (K6). SUMMARIZED ⇒ ungrounded_claim=0 (K5 false_grounding). Belirsizlik/malformed → BLOCK (fail-closed; ASLA fail-open özet).",
+    "algorithm": "tenant_check ⇒ BLOCK(cross_tenant) → upstream∉{REDACTED,NOT_REQUIRED,NO_CONTENT,BLOCK} ⇒ BLOCK(no_upstream) → upstream∉{REDACTED,NOT_REQUIRED} ⇒ NO_CONTENT(no_summary) → redaction_state=pending ⇒ BLOCK(premature_summary) → plane!=analytics_async ⇒ hotpath_violation → 0 segment ⇒ NO_SUMMARY → vocab(outcome/disposition/completion/intent) dışı ⇒ BLOCK(invalid_summary_field) → required eksik ⇒ BLOCK(invalid_summary_field) → ground_all_fields(grounded_in ⊆ seq) → completeness(ungrounded_claim=0) → no_leak(pii_leak=0) → residency(home_region) ⇒ SUMMARIZED",
+    "default": "BLOCK",
+    "fail_safe_terminal": "no_summary (terminal ∉ {SUMMARIZED} ⇒ no_summary_persisted=true ∧ summary_persisted=false)",
+    "trace": "SR-ANA-002, SR-REC-002, SAD §10.2, DB §21, DB §19"
+  },
+
+  "block_reasons": {
+    "$comment": "BLOCK karar taksonomisi (yalnız fail-closed BLOCK durumları). Düşük-kardinalite (metrik label uygun). 'invalid_summary_field' = sözlük-dışı outcome/disposition/completion VEYA katalog-dışı intent VEYA zorunlu alan eksik. 'premature_summary' = redaction_state=pending (henüz-redakte-edilmemiş kaynaktan özet; PII sızma riski). SUMMARIZED/NO_SUMMARY/NO_CONTENT terminal sonuçlardır (BLOCK değil); NO_CONTENT/NO_SUMMARY gizlilik-güvenli normal sonuçtur (özet yok), ihlal DEĞİL.",
+    "list": ["invalid_summary_field", "premature_summary", "cross_tenant", "no_upstream"]
+  },
+
+  "outcomes": {
+    "$comment": "Terminal çağrı-özeti sonuçları. SUMMARIZED = upstream görüntülemeye-hazır (REDACTED/NOT_REQUIRED) ∧ redaction_state ∈ {redacted,not_required} ∧ transkript dolu ⇒ kapalı-sözlük + dayanaklı yapısal özet üretildi + summary_persisted=true. NO_SUMMARY = içerik var ama transkript boş (0 segment) ⇒ özetlenecek konuşma yok; summary_persisted=false (geçerli). NO_CONTENT = upstream ∉ {REDACTED,NOT_REQUIRED} (NO_CONTENT/BLOCK) ⇒ özetlenecek içerik yok (no_summary_persisted=true; FR-REC-002 aşağı akış). BLOCK = cross-tenant / upstream yok / pending kaynak / sözlük-dışı ⇒ fail-closed, özet yok. Dördü de geçerli terminal — NO_CONTENT/NO_SUMMARY ihlal DEĞİL. Her karar audit üretir.",
+    "list": ["SUMMARIZED", "NO_SUMMARY", "NO_CONTENT", "BLOCK"],
+    "terminal": ["SUMMARIZED", "NO_SUMMARY", "NO_CONTENT", "BLOCK"]
+  },
+
+  "summary_fields": {
+    "$comment": "Yapısal özet alanları + kapalı sözlükler (FR-ANA-002 'Çağrı sonucu, intent, disposition ve completion'). outcome → DB §19 call.outcome (containment/transfer; FR-ANA-002/003). disposition → FR-OUT-011 (çağrı disposition'ı). completion → FR-ANA-002 (tamamlanma). intent → tenant intent-kataloğu ('other' kuyruğu açık). Tümü KAPALI/sınırlı; LLM serbest prose'u bu sözlüklere BAĞLANIR. key_points → dayanaklı anahtar-nokta listesi (her biri grounded_in ⊆ seq; yalnız id + maskeli token, ham PII değeri yok). grounded_in → her alan için dayanak segment seq listesi (transkript sadakati; halüsinasyon koruması). Değerler config/call-summary.json'da; illüstratif MÜHENDİSLİK varsayılanı.",
+    "required": ["outcome", "intent", "disposition", "completion"],
+    "vocabularies": ["outcome", "disposition", "completion", "intent"],
+    "groundable": ["outcome", "intent", "disposition", "completion", "key_points"],
+    "masked_token_pattern": "^\\[[A-Z0-9_]+\\]$"
+  },
+
+  "redaction_states": {
+    "$comment": "Özet kaynağının redaction_state sözleşmesi (DB §21 transcript.redaction_state; 11.4 çıktısı). KABUL EDİLEN: redacted (PII maskeli) | not_required (PII yok) — ikisi de görüntülemeye-hazır (PII-güvenli) kaynak. YASAK: pending (henüz-redakte-edilmemiş) — bu kaynaktan özet ⇒ BLOCK premature_summary (K4). Özet bu state'i ÜRETMEZ; YALNIZ TÜKETİR (11.4 üretir).",
+    "accepted_source": ["redacted", "not_required"],
+    "forbidden_source": ["pending"]
+  },
+
+  "execution": {
+    "$comment": "Çağrı özeti pipeline yürütme düzlemi (SAD §19.2 Analytics Plane async; FR-RES-011; ADR-004 plane ayrımı; ADR-007 async event pipeline). Çağrı-sonu post-processing — medya hot-path'inde DEĞİL; gecikme bütçesi (SAD §20, NFR 10.1) DIŞI. execution_plane=hot_path beyanı = hotpath_violation. NOT: hot-path token özetlemesi (FR-LLM-005/FR-RES-010 Session Memory) AYRI bir yetenektir; bu modül çağrı-SONU asenkron özettir.",
+    "plane": "analytics_async",
+    "forbidden_plane": ["hot_path"],
+    "hot_path_excluded": true
+  },
+
+  "authorization": {
+    "$comment": "Çağrı özeti üretimi OTOMATİK asenkron çağrı-sonu post-processing gate'tir (çağrı sonu/transkript-hazır tetikler; ADR-007 event pipeline); RBAC kullanıcı-komutu değildir. Özetin GÖRÜNTÜLENME yetkisi (transcript:read; FR-REC-008) 11.6'da uygulanır. Karar her zaman backend'de.",
+    "view_permission": "transcript:read",
+    "per_call_check": "automatic_async_gate (RBAC değil; fail-closed)",
+    "decision_at": "backend",
+    "trace": "FR-REC-008, FR-IAM-011, ADR-012, SAD §27 RBAC, SAD §10.2"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. ungrounded_claim (K2) = dayanaksız/uydurma özet alanı = LLM halüsinasyonu = BRD §15 bütünlük alarmı; false_grounding (K2/K5) = dayanaksız içerikle SUMMARIZED iddiası; invalid_field (K3) = sözlük-dışı alan kabul edildi (failopen); pii_leak (K4) = ham PII özette/audit'te; premature_summary (K4) = pending kaynaktan özet; summary_skip (K5) = özet atlandı; failopen (K5) = malformed'da sessiz özet; over_capture (K6) = içerik yokken özet; residency_violation (K7) = home-region dışı; hotpath_violation (K8) = hot-path'te yürütme. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1 canlı LLM özetleyici + pilot tenant verisinde doğrulanır.",
+    "max_summary_skip": 0,
+    "max_ungrounded_claim": 0,
+    "max_false_grounding": 0,
+    "max_invalid_field": 0,
+    "max_pii_leak": 0,
+    "max_premature_summary": 0,
+    "max_over_capture": 0,
+    "max_residency_violation": 0,
+    "max_hotpath_violation": 0,
+    "max_failopen": 0,
+    "max_cross_tenant": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "Çağrı özeti motoru her karar için BRD §15 + özet/bütünlük metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. call_summary_decision_total{tenant,result} → karar sayımı (result=SUMMARIZED/NO_SUMMARY/NO_CONTENT/BLOCK); call_summary_field_total{tenant,outcome,disposition,completion} → kapalı-sözlük alan dağılımı (DÜŞÜK-kard enum); call_summary_integrity_violation_total → ungrounded_claim VEYA false_grounding VEYA invalid_field VEYA pii_leak VEYA summary_skip VEYA premature_summary VEYA over_capture VEYA hotpath_violation (K2/K3/K4/K5/K6/K8 ihlal alarmı, 0 olmalı). tenant_id+result+outcome+disposition+completion+direction DÜŞÜK kardinalite (label uygun); request_id/call_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM PII DEĞERİ + özet PROSE metni metrikte VE log'da YOK (FR-ANA-002, BRD §17.7) — yalnız enum + sayım. integrity_violation>0 → kritik alarm ≤2dk (SAD §17.2, NFR 10.1, BRD §15).",
+    "metrics": ["call_summary_decision_total", "call_summary_field_total", "call_summary_integrity_violation_total"],
+    "low_cardinality_labels": ["tenant_id", "result", "outcome", "disposition", "completion", "direction"],
+    "high_cardinality_trace_only": ["request_id", "call_id", "correlation_id"],
+    "alarm": "ungrounded_claim>0 (dayanaksız özet — K2, halüsinasyon) VEYA false_grounding>0 (sahte-dayanak — K5) VEYA pii_leak>0 (ham PII özette — K4) VEYA summary_skip>0 (özet atlandı — K5) VEYA premature_summary>0 (pending kaynak — K4) VEYA invalid_field>0 (sözlük-dışı — K3) VEYA over_capture>0 (içerik yokken özet — K6) VEYA hotpath_violation>0 (hot-path yürütme — K8) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "K1", "desc": "Determinizm/tamlık: her CallSummaryRequest tanımlı tenant→authorize→content_gate→pii_safe_gate→async_check→vocabulary→ground→no_leak→residency algoritması boyunca ilerler ve bir terminal karara {SUMMARIZED|NO_SUMMARY|NO_CONTENT|BLOCK} ulaşır; aynı girdi → aynı çıktı (deterministik kanonik (field,seq) dayanak sırası; Date.now/random YOK); stuck/tanımsız durum yok. stuck_state=0.", "trace": "SR-ANA-002, SAD §10.2"},
+    {"id": "K2", "desc": "Dayanak/sadakat ÇEKİRDEK (BRD §8.1 özet + FR-ANA-002 'transkripten çıkarılır'): özetteki HER yapısal alan (outcome/intent/disposition/completion) + HER anahtar-nokta transkriptin en az bir segmentine (seq) DAYANMALI (grounded_in ⊆ transkript seq'leri ∧ boş değil); transkriptte olmayan içeriği özete koymak (ungrounded_claim) = LLM halüsinasyonu = özet sadakat ihlali. ungrounded_claim=0.", "trace": "BRD §8.1, FR-ANA-002, SR-ANA-002"},
+    {"id": "K3", "desc": "Kapalı sözlük ÇEKİRDEK (FR-ANA-002 'disposition/completion çıkarılır' + DB §19 call.outcome + FR-OUT-011): outcome/disposition/completion bir KAPALI enum'dur (serbest LLM metni DEĞİL); intent tenant intent-kataloğundan. Sözlük-dışı değer (invalid_field) ⇒ fail-closed BLOCK invalid_summary_field; sözlük-dışı alanı geçerli kabul etmek (vocab failopen) yasak. invalid_field=0.", "trace": "FR-ANA-002, DB §19, FR-OUT-011, SR-ANA-002"},
+    {"id": "K4", "desc": "PII-güvenli kaynak + ham PII sızıntısı yok ÇEKİRDEK (FR-REC-004 AŞAĞI AKIŞ + BRD §17.7): özet YALNIZ görüntülemeye-hazır (PII-güvenli) transkriptten üretilir (redaction_state ∈ {redacted,not_required}); pending (henüz-redakte-edilmemiş) kaynaktan özet ⇒ BLOCK premature_summary (PII özete sızar). Özet alanları/anahtar-noktaları YALNIZ enum + maskeli token + dayanak taşır; ham PII değeri (telefon/kart/OTP/ad...) hiçbir alanda yok = pii_leak. premature_summary=0 ∧ pii_leak=0.", "trace": "FR-REC-004, BRD §17.7, SR-REC-004, 0.4.7 label_policy"},
+    {"id": "K5", "desc": "Atlanamaz / fail-closed ÇEKİRDEK (SR-ANA-002): özet üretimi (BRD §8.1 adım 9) bypass edilemez — bypass ile dayanak/sözlük doğrulanmadan SUMMARIZED işaretlenirse summary_skip ihlali = BRD §15 kritik 'çağrı özeti atlandı' alarmı. Dayanaksız içerikle SUMMARIZED iddia etmek (false_grounding) yasak: SUMMARIZED ⇒ ungrounded_claim=0. Malformed istek → fail-closed BLOCK, ASLA sessiz özet (failopen). summary_skip=0 ∧ false_grounding=0 ∧ failopen=0.", "trace": "SR-ANA-002, BRD §15, SAD §17.2"},
+    {"id": "K6", "desc": "İçerik kapısı (FR-REC-002 AŞAĞI AKIŞ KORUMASI): upstream 11.4 görüntülemeye-hazır içerik üretmediyse (upstream_redaction_decision ∉ {REDACTED,NOT_REQUIRED}) özetlenecek içerik YOK ⇒ terminal=NO_CONTENT ∧ no_summary_persisted=true. İçerik yokken özet üretmek (over_capture) = yetkisiz içerik üretimi = gizlilik ihlali (BRD §15 alarm); 11.1/11.4 tamamen-kapatma/içerik garantisini aşağı akışta korur. over_capture=0.", "trace": "FR-REC-002, SR-REC-002, BRD §16, BRD §15, SAD §17.2"},
+    {"id": "K7", "desc": "Residency korunur (NFR 10.7): SUMMARIZED durumunda in_region_storage_required ise storage_region == home_region — özet home-region'da kalıcılaştırılır. Home-region dışı = residency_violation. residency_violation=0.", "trace": "NFR 10.7, SAD §12.3, DB §8"},
+    {"id": "K8", "desc": "Asenkron / hot-path dışı (FR-RES-011, SAD §19.2): çağrı-sonu özet Analytics Plane'de ASENKRON üretilir (ADR-004 plane ayrımı; ADR-007 async event pipeline); medya hot-path'inde (gecikme bütçesi SAD §20, NFR 10.1) DEĞİL. execution_plane=hot_path yürütme = hotpath_violation (özet hot-path'i şişirir → gecikme ihlali). Hot-path token özetlemesi (FR-LLM-005) AYRI yetenektir. hotpath_violation=0.", "trace": "FR-RES-011, SAD §19.2, SAD §20, NFR 10.1, ADR-004, ADR-007"},
+    {"id": "K9", "desc": "Kanıt: her karar request_id + upstream_redaction_decision + redaction_state + field_count + key_point_count + grounded + no_summary_persisted + storage_region taşır; kanıtsız karar yok. missing_evidence=0.", "trace": "FR-IAM-006"},
+    {"id": "K10", "desc": "Audit: her karar (SUMMARIZED/NO_SUMMARY/NO_CONTENT/BLOCK) → audit {result, request_id, call_id, direction, upstream_redaction_decision, redaction_state, outcome, disposition, completion, field_count, key_point_count, grounded, no_summary_persisted, correlation_id, tenant_id} (FR-IAM-006, FR-REC-009); ham PII DEĞERİ + özet PROSE YOK (yalnız enum + sayım). missing_audit=0.", "trace": "FR-IAM-006, FR-REC-009, 0.4.7 label_policy"},
+    {"id": "K11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (result/outcome/disposition/completion/direction); request_id/call_id/correlation_id metrikte yok, yalnız trace; HAM PII DEĞERİ + özet PROSE metni metrikte VE log'da yok (0.4.7 label_policy, FR-ANA-002, BRD §17.7).", "trace": "FR-ANA-002, 0.4.7 label_policy"},
+    {"id": "K12", "desc": "Sır/PII yok + tenant izolasyonu: spec/config/sample HAM PII (telefon/kart/OTP/parola/ad/adres/hesap no DEĞERİ) / transkript metni / özet PROSE / ham ses / credential tutmaz (yalnız enum + dayanak seq + maskeli token + yapısal kimlikler ör. req-001/call-001/t-acme); özet yalnız aynı tenant transkriptinden üretilir, cross-tenant → cross_tenant ihlali (FR-TEN-002). secret_or_pii=0 ∧ cross_tenant=0.", "trace": "BRD §14, BRD §16, FR-TEN-002, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar HAM PII (TELEFON numarası, KART numarası [PAN/CVV], OTP kodu, PAROLA, müşteri ADI, ADRES, HESAP/IBAN numarası DEĞERİ), transkript METNİ, özet PROSE metni, ham SES veya credential TUTMAZ — yalnız yapısal KİMLİKLER (request/call/tenant/correlation kimlikleri ör. req-001 / call-001 / t-acme / corr-001) + ENUM'lar (direction ör. inbound/outbound; upstream_redaction_decision ör. REDACTED/NOT_REQUIRED/NO_CONTENT/BLOCK; redaction_state ör. redacted/not_required/pending; outcome/disposition/completion/intent kapalı-sözlük enum; execution_plane ör. analytics_async/hot_path) + SAYI (segment seq, dayanak seq) + MASKELİ token (ör. [PHONE]/[CARD]). Enum/seq/sayı/maskeli-token PII DEĞİLDİR; tasarımca PII-olmayandır. Ham PII DEĞERİ + özet PROSE HİÇBİR alanda tutulmaz — özet PII-güvenli redakte transkriptten üretilir (LLM özetleyici prose'u DB §21 transcript.summary'ye yazar; bu modül yalnız YAPISAL plan + dayanak/sözlük kararı).",
+    "forbids": ["customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "customer_name_value", "address_value", "account_number_value", "iban_value", "raw_value", "pii_value", "transcript_text", "segment_text", "summary_text", "summary_prose", "raw_audio", "raw_msisdn", "credential", "secret"]
+  }
+}

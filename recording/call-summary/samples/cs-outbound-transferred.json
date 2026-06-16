@@ -1,0 +1,69 @@
+{
+  "name": "cs-outbound-transferred",
+  "$comment": "outbound + insan temsilciye transfer → outcome=transferred/completion=partial; anahtar-nokta human seg'e dayanır",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "call_id": "call-003",
+  "request_id": "req-003",
+  "direction": "outbound",
+  "upstream_redaction_decision": "REDACTED",
+  "redaction_state": "redacted",
+  "execution_plane": "analytics_async",
+  "in_region_storage_required": true,
+  "storage_region": "TR",
+  "home_region": "TR",
+  "segments": [
+    {
+      "seq": 1,
+      "speaker": "agent"
+    },
+    {
+      "seq": 2,
+      "speaker": "caller"
+    },
+    {
+      "seq": 3,
+      "speaker": "human"
+    }
+  ],
+  "summary": {
+    "outcome": "transferred",
+    "intent": "payment",
+    "disposition": "follow_up_required",
+    "completion": "partial",
+    "grounded_in": {
+      "outcome": [
+        3
+      ],
+      "intent": [
+        2
+      ],
+      "disposition": [
+        3
+      ],
+      "completion": [
+        3
+      ]
+    },
+    "key_points": [
+      {
+        "id": "kp-1",
+        "grounded_in": [
+          2
+        ]
+      },
+      {
+        "id": "kp-2",
+        "grounded_in": [
+          3
+        ]
+      }
+    ]
+  },
+  "expect": "pass",
+  "expected": {
+    "terminal": "SUMMARIZED",
+    "grounded": true,
+    "key_point_count": 2
+  }
+}
