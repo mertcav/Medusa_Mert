@@ -1,0 +1,42 @@
+{
+  "$comment": "WBS 10.2.6 Kampanya kapasitesi ≤ agent+trunk (backpressure entegrasyonu) — kampanya-düzeyi kapasite/admission politikaları (SAD §15.2 Resource Manager + §20 Little; vendor-neutral, credential-free). Bu config, her tenant tier/profil için KAMPANYA-DÜZEYİ admission parametrelerini tutar: util_threshold (admission doluluk hedefi — backpressure'in %100'ün ALTINDA devreye girmesi, FR-RES-014 graceful = 0.4.8 backpressure_graceful semantiği) + overflow_policy (kapasite üstü overflow nereye: callback kuyruğu) + reserve_strategy (rezerve inbound handler kaynağı: snapshot'tan reserved_inbound_handlers OKUNUR). Profile ÇÖZÜMLEME (tenant override) DPIA §5/SAD §19.3'tedir; tenant_quota_concurrency TANIMI FR-TEN-004/Quota Service'tedir; bu config admission DAVRANIŞINI taşır. Canlı kapasite SNAPSHOT (agent/trunk/quota/concurrency sayımlar + reserved_inbound) runtime telemetri (0.4.7) tarafından sağlanır; bu config yalnız POLİTİKAYI taşır. PER-DIAL silent-call kapısı → 10.2.4 (bu modül kampanya-düzeyi). Little yasası + worker_capacity MODELİ → 0.4.8 (tüketir). Değerler MÜHENDİSLİK varsayılanı, pilot tenant + runtime telemetri (F2) ile kalibre edilir. Sır/credential ve PII (ham telefon/MSISDN) YOK — yalnız enum/sayı/oran/süre/bayrak.",
+  "version": "1.0",
+  "wbs": "10.2.6",
+  "default_profile": "PROFILE-TR",
+  "channel": "voice",
+  "profiles": {
+    "PROFILE-TR": {
+      "$comment": "TR tenant kampanya-düzeyi admission. util_threshold=0.8: admission kapasitenin %80'ine kadar kabul eder, %20 backpressure headroom bırakır (FR-RES-014 graceful — kapasite %100'e dolmadan pace-down devreye girer, 0.4.8 backpressure_graceful util<1.0 ile hizalı). overflow_policy=callback_queue: kapasite üstü overflow callback'e (2.1.8). Değerler MÜHENDİSLİK varsayılanı.",
+      "country": "TR",
+      "util_threshold": 0.8,
+      "overflow_policy": "callback_queue"
+    },
+    "PROFILE-UK": {
+      "$comment": "UK tenant kampanya-düzeyi admission. Ofcom sıkı pacing bağlamında daha muhafazakar headroom (util_threshold=0.75) → kampanya hızı kapasiteye daha geniş tampon ile sığar; overflow callback'e. (Ofcom abandoned ≤%3 per-dial 10.2.4'te zorlanır; bu modül kampanya-düzeyi sizing.)",
+      "country": "UK",
+      "util_threshold": 0.75,
+      "overflow_policy": "callback_queue"
+    },
+    "PROFILE-EU": {
+      "$comment": "EU tenant kampanya-düzeyi admission. Daha muhafazakar headroom (util_threshold=0.7); overflow callback'e.",
+      "country": "EU",
+      "util_threshold": 0.7,
+      "overflow_policy": "callback_queue"
+    },
+    "PROFILE-US-CALL": {
+      "$comment": "İLLÜSTRATİF ABD profili: util_threshold=0.8; overflow callback'e. Gerçek değerler tenant tier + counsel'a tabi (mühendislik varsayılanı).",
+      "country": "US",
+      "util_threshold": 0.8,
+      "overflow_policy": "callback_queue"
+    }
+  },
+  "consume_from": ["Runtime kapasite telemetri 0.4.7 (agent/trunk/quota/concurrency snapshot + reserved_inbound)", "0.4.8 load-testing (Little + admission util_threshold + worker_capacity modeli)", "SAD §15.2 Resource Manager Quota Service (tenant_quota_concurrency FR-TEN-004)", "10.2.4 per-dial kapasite (BLOCK pace-down sinyali)", "DPIA §5/SAD §19.3 profile çözümleme (tenant override)"],
+  "report_to": ["10.1.x-dialer", "2.1.8-retry-callback", "10.2.4-capacity-control", "SAD §15.2 Backpressure Ctrl", "0.4.7"],
+  "observability": {
+    "metric_prefix": "campaign_capacity_",
+    "alarm_on_oversubscription": true,
+    "alarm_on_capacity_skip": true,
+    "alarm_on_backpressure_fail": true,
+    "alarm_max_latency_seconds": 120
+  }
+}

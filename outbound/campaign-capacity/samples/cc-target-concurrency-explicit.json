@@ -1,0 +1,29 @@
+{
+  "name": "cc-target-concurrency-explicit",
+  "$comment": "design=max(30, ⌈0.1×180=18⌉)=30 (açık target_concurrency Little'dan büyük) ≤ ceiling=40 → ADMIT (effective=30). max() kanıtı. Geçer.",
+  "expect": "pass",
+  "channel": "voice",
+  "campaign_category": "sales",
+  "country": "TR",
+  "target_concurrency": 30,
+  "target_cps": 0.1,
+  "mean_call_seconds": 180,
+  "request_id": "req-tr-009",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-tr-009",
+  "campaign_id": "camp-tr-009",
+  "agent_handlers_total": 100,
+  "agent_handlers_active": 20,
+  "reserved_inbound_handlers": 10,
+  "trunk_channels_total": 80,
+  "trunk_channels_active": 30,
+  "tenant_quota_concurrency": 60,
+  "tenant_concurrency_active": 10,
+  "expected": {
+    "terminal": "ADMIT",
+    "ceiling": 40,
+    "design_concurrency": 30,
+    "effective": 30,
+    "capacity_ok": true
+  }
+}

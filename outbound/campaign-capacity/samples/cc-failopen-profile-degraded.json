@@ -1,0 +1,25 @@
+{
+  "name": "cc-failopen-profile-degraded",
+  "$comment": "DEGRADE [K7]: failopen_profile — bilinmeyen ülke profil çözülemez ama ADMIT (fail-open) → failopen ihlali (fail-closed BLOCK olmalıydı). Kapı ELER.",
+  "expect": "fail",
+  "channel": "voice",
+  "campaign_category": "sales",
+  "country": "ZZ",
+  "target_concurrency": 20,
+  "target_cps": 0,
+  "mean_call_seconds": 0,
+  "request_id": "req-d-008",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-d-008",
+  "campaign_id": "camp-d-008",
+  "agent_handlers_total": 100,
+  "agent_handlers_active": 20,
+  "reserved_inbound_handlers": 10,
+  "trunk_channels_total": 80,
+  "trunk_channels_active": 30,
+  "tenant_quota_concurrency": 60,
+  "tenant_concurrency_active": 10,
+  "inject": [
+    "failopen_profile"
+  ]
+}

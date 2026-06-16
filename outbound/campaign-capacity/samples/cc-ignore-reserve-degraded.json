@@ -1,0 +1,25 @@
+{
+  "name": "cc-ignore-reserve-degraded",
+  "$comment": "DEGRADE [K6]: ignore_reserve — rezerve inbound düşülmez → agent_avail=60 (gerçek 20) → ceiling yanlış yükselir → inbound aç bırakılır. reserve_violation. Kapı ELER.",
+  "expect": "fail",
+  "channel": "voice",
+  "campaign_category": "sales",
+  "country": "TR",
+  "target_concurrency": 16,
+  "target_cps": 0,
+  "mean_call_seconds": 0,
+  "request_id": "req-d-007",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-d-007",
+  "campaign_id": "camp-d-007",
+  "agent_handlers_total": 60,
+  "agent_handlers_active": 0,
+  "reserved_inbound_handlers": 40,
+  "trunk_channels_total": 100,
+  "trunk_channels_active": 0,
+  "tenant_quota_concurrency": 100,
+  "tenant_concurrency_active": 0,
+  "inject": [
+    "ignore_reserve"
+  ]
+}

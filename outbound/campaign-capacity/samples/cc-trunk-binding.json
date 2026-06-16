@@ -1,0 +1,29 @@
+{
+  "name": "cc-trunk-binding",
+  "$comment": "Trunk en kısıtlayıcı kaynak: trunk_avail=10 (40−30) → min(70,10,50)=10 ×0.8=8 → ceiling=8; design=20 → PACE_DOWN (effective=8, overflow=12). Geçer.",
+  "expect": "pass",
+  "channel": "voice",
+  "campaign_category": "sales",
+  "country": "TR",
+  "target_concurrency": 20,
+  "target_cps": 0,
+  "mean_call_seconds": 0,
+  "request_id": "req-tr-006",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-tr-006",
+  "campaign_id": "camp-tr-006",
+  "agent_handlers_total": 100,
+  "agent_handlers_active": 20,
+  "reserved_inbound_handlers": 10,
+  "trunk_channels_total": 40,
+  "trunk_channels_active": 30,
+  "tenant_quota_concurrency": 60,
+  "tenant_concurrency_active": 10,
+  "expected": {
+    "terminal": "PACE_DOWN",
+    "ceiling": 8,
+    "design_concurrency": 20,
+    "effective": 8,
+    "overflow": 12
+  }
+}

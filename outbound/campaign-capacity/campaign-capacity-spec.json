@@ -1,0 +1,162 @@
+{
+  "$comment": "WBS 10.2.6 — Kampanya kapasitesi ≤ agent+trunk kapasitesi (BACKPRESSURE ENTEGRASYONU) (BRD §9.13 / FR-OUT-007 'Kampanya kapasitesi mevcut agent ve trunk kapasitesini aşmamalıdır' [Must] + BRD §10.3 kapasite/ölçeklenme + SR-OUT-007 [yöntem T — 'Kampanya kapasitesi agent+trunk kapasitesini aşmaz (backpressure)'; kabul: 'Kapasite üstü arama backpressure ile sınırlanır (bkz. SR-RES-014)'] / TC-OUT-007 / SAD §15.2 Resource Manager Backpressure Ctrl + SAD §16 ölçek / FR-RES-014 backpressure & graceful degradation [Must] + SR-RES-014). 10. workstream'in (Outbound) Consent & uyumluluk motoru alt-bloğunun KAMPANYA-DÜZEYİ KAPASİTE/BACKPRESSURE (campaign-capacity) modülü ve F2-Must outbound yeteneği. FR-OUT-007 + SR-OUT-007 + SAD §15.2'nin KAMPANYA-DÜZEYİ KAPASİTE PLANLAMA + BACKPRESSURE KARARINI sahiplenir: bir outbound kampanya hız/eş zamanlılık planının (target_concurrency veya target_cps × mean_call_seconds) mevcut AGENT (AI worker/handler) + TRUNK kanalı + TENANT KOTA kapasitesini AŞMADIĞINI garanti eder; aşarsa ÇÖKME yerine KONTROLLÜ DEGRADE (FR-RES-014): dialer hızı düşürülür (PACE_DOWN) ve/veya overflow callback kuyruğuna alınır (DEFER) — SESSİZ DÜŞÜŞ YOK (overflow muhasebelenir). Modül 10.2.4 PER-DIAL silent-call kapısının KAMPANYA-DÜZEYİ tamamlayıcısıdır: 10.2.4 her dial için silent-call kapısı (free handler/abandoned oranı/over-dial/trunk), 10.2.6 KAMPANYA hızının agent+trunk kapasitesine SIĞDIRILMASI (sizing/admission) + backpressure; 10.2.4'ün BLOCK (no_capacity/overdial_cap/trunk_exhausted) çıktısı bu modülün PACE-DOWN GİRDİSİDİR. Modül bir DETERMİNİSTİK FAIL-CLOSED / NO-OVERSUBSCRIPTION MOTORUdur: CampaignCapacityRequest{request_id, tenant_id, correlation_id, campaign_id, country, channel, campaign_category, target_concurrency?, target_cps?, mean_call_seconds?, agent_handlers_total, agent_handlers_active, reserved_inbound_handlers, trunk_channels_total, trunk_channels_active, tenant_quota_concurrency, tenant_concurrency_active, profile_id?} alır → kapasite politikasını çözer (util_threshold + overflow_policy) → KAPASİTE TAVANINI hesaplar (ceiling = max(0, floor(min(agent_avail, trunk_avail, quota_avail) × util_threshold)); agent_avail = agent_total − agent_active − reserved_inbound; trunk_avail = trunk_total − trunk_active; quota_avail = tenant_quota − tenant_active) → KAMPANYA TASARIM EŞ ZAMANLILIĞINI Little yasasıyla boyutlandırır (design_concurrency = max(target_concurrency, ⌈target_cps × mean_call_seconds⌉)) → bir terminal admission/pace kararı {ADMIT (design ≤ ceiling → kampanya tam planlanan hızda; effective = design) | PACE_DOWN (design > ceiling ∧ ceiling > 0 → backpressure: kampanya hızı ceiling'e düşürülür; effective = ceiling; overflow = design − ceiling → callback kuyruğu) | DEFER (ceiling ≤ 0 → kapasite yok → kampanya beklemeye/callback'e; effective = 0; overflow = design) | BLOCK (profil çözümlenemedi / cross-tenant → fail-closed)} + capacity_ok bayrağı üretir. ÇEKİRDEK INVARIANT (FR-OUT-007): effective_admitted_concurrency ≤ ceiling — kampanya ASLA agent+trunk(+kota) kapasitesini AŞMAZ; aşmak (over-subscription) = kapasite üstü çağrı = silent/dropped call riski (BRD §15 alarm tipi); ÇEKİRDEK INVARIANT (FR-RES-014): kapasite üstü yük ÇÖKME yerine GRACEFUL degrade edilir — PACE_DOWN/DEFER ile overflow MUHASEBELENİR (overflow = design − effective → callback), sessiz düşüş/çökme YOK; ÇEKİRDEK INVARIANT (Little, SAD §20): design_concurrency target_cps × mean_call_seconds'i SAYAR — tutma süresini/CPS'i atlamak = under-size = gizli over-subscription. Profil çözümlenemezse fail-closed BLOCK unknown_profile (K7, fail-open YASAK); kapasite kontrolü ATLANAMAZ (K8 capacity_skip=0: bypass = ceiling'i yok sayıp design'ı admit = over-subscription = BRD §15 'kapasite aşımı' kritik alarmı); ceiling min(agent,trunk,quota) hesabı eksik (ignore_trunk/ignore_quota → capacity_error K2) = yanlış (yüksek) tavan = over-subscription; rezerve inbound düşülmez (ignore_reserve → reserve_violation K6) = inbound kapasitesi yenir; effective > ceiling (over_admit → over_subscription K4); overflow muhasebelenmez (ungraceful_drop → backpressure_fail K5); her karar deterministik+terminal (K1) + kanıt (K9) + audit (K10); metrik düşük-kardinalite + PII metrikte/log'da yok (K11); spec/config/sample ham PII/sır tutmaz + tenant izolasyonu (K12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): PER-DIAL silent/abandoned call kapısı (free handler/abandoned oranı/over-dial/trunk per-dial) → 10.2.4 (FR-TEL-015; bu modül KAMPANYA-DÜZEYİ sizing/admission, 10.2.4 BLOCK pace-down GİRDİSİ); arama öncesi consent → 10.2.1 (FR-OUT-003); DNC → 10.2.2 (FR-TEL-014); arama saati → 10.2.3 (FR-TEL-013); SİSTEM-DÜZEYİ yük/kapasite simülasyonu (Little/Poisson/autoscale/admission yük testi) → 0.4.8 load-testing (FR-TST-006; bu modül onun Little/admission MODELİNİ + worker_capacity çıktısını TÜKETİR, yeniden ölçmez); worker density (oturum başı bellek) → 0.3.3; gecikme bütçesi → 0.3.2; autoscale/warm pool GERÇEK uygulama → SAD §15.2 Resource Manager Autoscaler/Scale-to-zero (FR-RES-013); admission control GERÇEK runtime → SAD §15.2 Backpressure Ctrl (bu modül kampanya-düzeyi KARARINI verir, runtime kuyruk/red mekaniği değil); canlı kapasite SNAPSHOT (agent/trunk/quota sayımlar) → runtime telemetri 0.4.7 (OKUR, üretmez); retry/callback ZAMANLAMA → 2.1.8 (overflow'u callback'e alır; bu modül kararı verir, zamanlamaz); kampanya durdurma → 10.1.7; tenant kota TANIMI → FR-TEN-004/Resource Manager Quota Service (değeri TÜKETİR); audit store → 7.1.6/12.x; panel UI 'kapasite/backpressure' render → L2 A-10. Spec/config/sample'larda sır/credential ve gerçek PII (müşteri adı/TELEFON numarası/hesap no/ham transkript) YOK — yalnız yapısal KİMLİKLER (request/campaign/tenant/correlation kimlikleri) + ENUM'lar (channel/country/campaign_category) + KAPASİTE SAYILARI (handler/trunk/quota/concurrency sayıları) + ORANLAR (util_threshold) + SÜRELER (mean_call_seconds) + BAYRAKLAR. KAYNAK DOĞRULUK; çelişkide BRD/SAD/SRS/DB/API esastır.",
+  "version": "1.0",
+  "wbs": "10.2.6",
+  "phase": "F2",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-OUT-007", "FR-RES-014", "FR-TEL-015", "FR-RES-013", "FR-RES-016", "FR-TEN-004", "FR-TEN-002", "FR-TST-006", "FR-IAM-006", "FR-REC-004", "FR-TST-008"],
+    "nfr": ["NFR 10.1", "NFR 10.2", "NFR 10.3"],
+    "srs": ["SR-OUT-007", "SR-RES-014", "SR-TEL-015", "SR-RES-013", "SR-SCAL-004"],
+    "rtm": ["TC-OUT-007"],
+    "brd": [
+      "§9.13 (Outbound Kampanya Yönetimi — FR-OUT-007 'Kampanya kapasitesi mevcut agent ve trunk kapasitesini aşmamalıdır')",
+      "§10.3 (kapasite/ölçeklenme — eş zamanlı çağrı + CPS + 2x burst hedefleri; kampanya hızı kapasiteye sığar)",
+      "§14.3 (Outbound Uyumluluğu — kapasite/silent-call önleme bağlamı; kampanya-düzeyi tamamlayıcı)",
+      "§15 (kritik alarm — kapasite aşımı / silent call oluşması)",
+      "§19 (kabul kriteri — Outbound kapasite ve backpressure kontrolleri doğrulanmalıdır)",
+      "§20 (Faz hedefleri — kapasite ölçek noktaları)"
+    ],
+    "sad": [
+      "§15.2 (Resource Manager — Backpressure Ctrl 'kabul kontrolü (admission); aşırı yükte yeni çağrı reddi/kuyruk' + 'Backpressure örneği: Kapasite eşiğine yaklaşınca yeni outbound dialer hızı düşürülür ve/veya overflow çağrıları callback'e alınır — çökme yerine kontrollü degrade, FR-RES-014/FR-OUT-007'; bu modül o kararı somutlaştırır)",
+      "§15.2 (Quota Service — tenant kota [concurrency, CPS] zorlama; bu modül kota headroom'unu tüketir)",
+      "§16 (Ölçeklenebilirlik — eş zamanlılık/CPS hedefleri; tenant izolasyonu rezerve concurrency)",
+      "§20 (kapasite — Little yasası conc = cps × tutma; design_concurrency boyutlaması)",
+      "§13.3 (correlation/tenant context propagation — karar correlation_id+tenant taşır)",
+      "§14.4 (panel — L2 A-10 'kapasite/backpressure' yüzeyi)",
+      "§17.2 (kapasite aşımı/silent call → kritik alarm ≤2dk)"
+    ],
+    "adr": [
+      "ADR-001 (orchestrator bağımsızlığı — Kampanya-kapasite kapısı outbound kontrol/Resource Manager düzleminde bir karar fonksiyonu; STT/LLM/TTS'e doğrudan bağlanmaz)",
+      "ADR-002 (vendor-neutral — kapasite snapshot/telemetri + trunk sağlayıcı bağımsız; aynı karar sözleşmesi arkasına gerçek runtime kapasite kaynağı)",
+      "ADR-012 (RBAC — kampanya kapasite politikası yönetimi resource:quota:manage; kampanya-düzeyi admission otomatik gate)"
+    ],
+    "db": [
+      "DB §3 tenant — tenant kota (concurrency/CPS, FR-TEN-004) + residency; tenant_quota_concurrency profil/snapshot girdisidir",
+      "DB campaign — campaign_id + hız planı (target_concurrency/target_cps) bu motorun girdisidir; karar opak campaign_id taşır"
+    ],
+    "threat_model": [
+      "TM-T-* (tahrifat — kampanya kapasite kontrolü ATLANAMAZ; bypass=capacity_skip ihlali, K8 = over-subscription = BRD §15 kritik 'kapasite aşımı' alarmı)",
+      "TM-T-* (tenant izolasyonu — kapasite politikası/snapshot/kota yalnız aynı tenant'a ait okunur; cross-tenant okuma reddedilir, FR-TEN-002, K12)",
+      "TM-I-* (bilgi ifşası — karar/metrik/log ham PII taşımaz; yalnız yapısal kimlik+enum+kapasite sayısı+oran+süre, K11/K12)",
+      "TM-R-* (inkâr — her karar [ADMIT/PACE_DOWN/DEFER/BLOCK] ceiling + design + effective + overflow ile audit'e yazılır, K10)",
+      "TM-D-* (hizmet reddi — backpressure GRACEFUL: aşırı yük çökertmez, overflow muhasebelenir [callback]; FR-RES-014, K5)"
+    ],
+    "consumes": [
+      "Runtime kapasite telemetri (0.4.7) — agent_handlers_total/active + reserved_inbound_handlers + trunk_channels_total/active + tenant_concurrency_active SNAPSHOT'ını TÜKETİR (kendisi üretmez)",
+      "0.4.8 load-testing — Little yasası (design_concurrency = max(target_concurrency, ⌈cps×mean_call_seconds⌉)) + admission util_threshold + worker_capacity MODELİNİ TÜKETİR (sistem-düzeyi yük testini yeniden çalıştırmaz)",
+      "SAD §15.2 Resource Manager Quota Service — tenant_quota_concurrency (FR-TEN-004) değerini TÜKETİR",
+      "10.2.4 per-dial kapasite (FR-TEL-015) — BLOCK (no_capacity/overdial_cap/trunk_exhausted) sinyalini pace-down GİRDİSİ olarak TÜKETİR",
+      "10.1.1 kampanya (FR-OUT-001) — campaign_id + hız planı (target_concurrency/target_cps/mean_call_seconds) + campaign_category'yi TÜKETİR"
+    ],
+    "consumed_by": [
+      "Outbound dialer çekirdeği (10.1.x) — ADMIT ise planlanan hızda çevirir; PACE_DOWN ise effective (düşük) hızda çevirir; DEFER ise çevirmez (overflow callback)",
+      "2.1.8 retry/geri-arama (FR-TEL-009) — overflow (design − effective) callback kuyruğuna alınır; bu modül kararı verir, zamanlamaz",
+      "10.2.4 per-dial kapasite — kampanya-düzeyi effective hız 10.2.4 per-dial silent-call kapısının ÜST sınırıdır (iki katman: kampanya sizing ⇒ per-dial gate)",
+      "SAD §15.2 Resource Manager Backpressure Ctrl — kampanya-düzeyi admission kararını runtime kuyruk/red mekaniğine iletir (FR-RES-014)",
+      "7.1.6 + 12.1.8 audit store (FR-IAM-006) — kapasite/admission kararını kalıcılaştırır",
+      "0.4.7 gözlemlenebilirlik — campaign_capacity_* metriklerini tüketir (over_subscription + backpressure alarmı dahil)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Kampanya-kapasite/backpressure kontrolü, outbound kontrol + Resource Manager (SAD §15.2) düzleminde bir KARAR fonksiyonudur: bir kampanya başlatılırken/pace ayarlanırken (admission) bu motora CampaignCapacityRequest gönderilir; motor kapasite politikasını (util_threshold + overflow_policy) çözer, runtime kapasite snapshot'ından TAVANI hesaplar (ceiling = floor(min(agent_avail, trunk_avail, quota_avail) × util_threshold); agent_avail rezerve inbound düşülür), kampanya tasarımını Little yasasıyla boyutlandırır (design = max(target_concurrency, ⌈cps×mean_call_seconds⌉)) ve ADMIT | PACE_DOWN | DEFER | BLOCK döndürür — effective ≤ ceiling GARANTİSİ (FR-OUT-007) + overflow muhasebeli GRACEFUL degrade (FR-RES-014). Motor hot-path medya işlemez; deterministik kontrol/Resource Manager düzlemi (medya bütçesi dışı). KAMPANYA-DÜZEYİ sizing/admission; PER-DIAL silent-call kapısı 10.2.4'tedir (10.2.4 BLOCK bu modülün pace girdisi). Vendor-neutral (ADR-001/002): kapasite snapshot + trunk kaynağı sağlayıcı bağımsız; aynı karar sözleşmesi arkasına gerçek runtime telemetri + Resource Manager.",
+    "plane": "outbound control + Resource Manager plane (Kampanya-kapasite/backpressure kapısı — deterministik fail-closed / no-oversubscription kampanya-düzeyi admission + Little-sizing kararı)",
+    "owns": "FR-OUT-007/SR-OUT-007 + FR-RES-014/SR-RES-014 (kampanya-düzeyi) boyutu: CampaignCapacityRequest → kapasite politika çözümü (util_threshold + overflow_policy) + kapasite tavanı hesabı (ceiling = floor(min(agent_avail, trunk_avail, quota_avail) × util_threshold), agent_avail rezerve inbound düşülür) + Little-sizing (design_concurrency = max(target_concurrency, ⌈target_cps × mean_call_seconds⌉)) + admission kararı {ADMIT | PACE_DOWN (effective=ceiling, overflow→callback) | DEFER (effective=0, overflow→callback) | BLOCK} + effective ≤ ceiling garantisi (no over-subscription) + overflow muhasebeli graceful degrade + capacity_ok + karar audit",
+    "delegates": "PER-DIAL silent/abandoned call kapısı → 10.2.4 (FR-TEL-015; BLOCK pace-down girdisi); consent → 10.2.1; DNC → 10.2.2; arama saati → 10.2.3; sistem-düzeyi yük/kapasite simülasyonu → 0.4.8 (Little/admission MODELİNİ TÜKETİR); autoscale/warm pool gerçek uygulama → SAD §15.2 Autoscaler (FR-RES-013); admission runtime kuyruk/red mekaniği → SAD §15.2 Backpressure Ctrl; kapasite SNAPSHOT → runtime telemetri 0.4.7 (OKUR); tenant kota TANIMI → FR-TEN-004/Quota Service (değeri TÜKETİR); retry/callback ZAMANLAMA → 2.1.8 (overflow'u alır); audit store → 7.1.6/12.x; dialer ÇEVİRME/pace → 10.1.x (karar döndürür, çevirmez); panel UI → L2 A-10",
+    "deterministic": true,
+    "fail_closed": true,
+    "trace": "API §A-10, SAD §15.2, SAD §16, SAD §20, ADR-001, ADR-002, ADR-012"
+  },
+
+  "rules": {
+    "$comment": "FR-OUT-007 + FR-RES-014 ÇEKİRDEK — KAMPANYA-DÜZEYİ KAPASİTE/BACKPRESSURE KARARI (BRD §9.13, SAD §15.2/§20). Önce kapasite TAVANI hesaplanır (ceiling = max(0, floor(min(agent_avail, trunk_avail, quota_avail) × util_threshold)); agent_avail = agent_total − agent_active − reserved_inbound; trunk_avail = trunk_total − trunk_active; quota_avail = tenant_quota − tenant_active; K2 — üç bileşen ve rezerve ATLANAMAZ); sonra kampanya TASARIMI Little yasasıyla boyutlandırılır (design = max(target_concurrency, ⌈target_cps × mean_call_seconds⌉); K3 — CPS/tutma ATLANAMAZ); sonra design ile ceiling karşılaştırılarak admission/pace kararı verilir. Her kural bir invariant'a (K2–K6) eşlenir; profil çözümlenemezse K7 fail-closed unknown_profile.",
+    "list": [
+      {"id": "capacity_ceiling", "field": "ceiling = max(0, floor(min(agent_avail, trunk_avail, quota_avail) × util_threshold)); agent_avail = agent_total − agent_active − reserved_inbound", "invariant": "K2", "outcome": "ADMIT|PACE_DOWN|DEFER",
+       "rule": "kapasite tavanı agent + trunk + kota ÜÇ bileşenin MİNİMUMU (en kısıtlayıcı kaynak) × util_threshold (backpressure headroom < %100) olmalı; rezerve inbound handler agent bileşeninden düşülür; bir bileşeni atlamak = yanlış (yüksek) tavan = over-subscription (FR-OUT-007 çekirdek)"},
+      {"id": "little_sizing", "field": "design_concurrency = max(target_concurrency, ⌈target_cps × mean_call_seconds⌉)", "invariant": "K3", "outcome": "ADMIT|PACE_DOWN|DEFER",
+       "rule": "kampanya tasarım eş zamanlılığı Little yasasıyla boyutlandırılmalı: kararlı durumda conc = cps × tutma süresi; target_cps × mean_call_seconds'i atlamak = under-size = gizli over-subscription (SAD §20)"},
+      {"id": "no_oversubscription", "field": "effective_admitted ≤ ceiling", "invariant": "K4", "outcome": "ADMIT|PACE_DOWN|DEFER",
+       "rule": "kabul edilen effective eş zamanlılık ASLA ceiling'i aşmamalı (FR-OUT-007 'kampanya kapasitesi agent+trunk kapasitesini aşmamalı'); aşmak = kapasite üstü çağrı = silent/dropped call (BRD §15 kapasite aşımı alarmı)"},
+      {"id": "graceful_backpressure", "field": "design > ceiling ⇒ PACE_DOWN/DEFER; overflow = design − effective → callback", "invariant": "K5", "outcome": "PACE_DOWN|DEFER",
+       "rule": "design ceiling'i aşarsa ÇÖKME/sessiz düşüş yerine GRACEFUL degrade (FR-RES-014): effective ceiling'e düşürülür (PACE_DOWN) veya ceiling=0 ise beklemeye alınır (DEFER); overflow (design − effective) MUHASEBELENİR ve callback kuyruğuna alınır — sessiz düşüş YASAK"},
+      {"id": "reserve_respected", "field": "agent_avail = agent_total − agent_active − reserved_inbound_handlers", "invariant": "K6", "outcome": "ADMIT|PACE_DOWN|DEFER",
+       "rule": "rezerve inbound handler kapasitesi outbound kampanya tarafından YENMEZ: agent bileşeninden reserved_inbound_handlers düşülür (tenant izolasyonu/inbound önceliği, SAD §16 rezerve concurrency); rezerveyi atlamak = inbound aç bırakma"}
+    ],
+    "evaluation": "ceiling_then_size_then_admit_fail_closed",
+    "trace": "BRD §9.13, SR-OUT-007, SR-RES-014, SAD §15.2, SAD §16, SAD §20"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed / no-oversubscription kampanya-düzeyi admission algoritması. Adımlar: (1) kapasite politikasını çöz (util_threshold + overflow_policy). Çözümlenemezse fail-closed BLOCK unknown_profile (K7) — bilinen kapasite politikası olmadan kampanya admission = belirsiz over-subscription riski. (2) tenant izolasyonunu doğrula (bind mismatch / cross_tenant → BLOCK cross_tenant, K12). (3) kapasite TAVANINI hesapla: agent_avail = agent_total − agent_active − reserved_inbound; trunk_avail = trunk_total − trunk_active; quota_avail = tenant_quota − tenant_active; ceiling = max(0, floor(min(agent_avail, trunk_avail, quota_avail) × util_threshold)) (K2 — üç bileşen + rezerve + util ATLANAMAZ). (4) kampanya TASARIMINI boyutlandır: design = max(target_concurrency, ⌈target_cps × mean_call_seconds⌉) (K3 Little). (5) karar: design ≤ ceiling ⇒ ADMIT (effective = design, overflow = 0); aksi halde ceiling > 0 ⇒ PACE_DOWN (effective = ceiling, overflow = design − ceiling → callback); ceiling ≤ 0 ⇒ DEFER (effective = 0, overflow = design → callback). HER durumda effective ≤ ceiling (K4 no over-subscription) ∧ overflow muhasebeli (K5 graceful). Belirsizlik/profil çözümlenemedi → BLOCK (fail-closed; ASLA fail-open over-subscription).",
+    "algorithm": "resolve_policy(util_threshold,overflow_policy) | unresolved ⇒ BLOCK(unknown_profile) → tenant_check ⇒ BLOCK(cross_tenant) → ceiling = max(0, floor(min(agent_avail,trunk_avail,quota_avail) × util_threshold)) → design = max(target_concurrency, ceil(target_cps × mean_call_seconds)) → design ≤ ceiling ⇒ ADMIT(effective=design) | ceiling>0 ⇒ PACE_DOWN(effective=ceiling,overflow=design−ceiling) | ceiling≤0 ⇒ DEFER(effective=0,overflow=design)",
+    "default": "BLOCK",
+    "trace": "SR-OUT-007, SR-RES-014, SAD §15.2, SAD §16, SAD §20"
+  },
+
+  "block_reasons": {
+    "$comment": "BLOCK karar taksonomisi (yalnız fail-closed BLOCK durumları: profil çözümlenememe + tenant izolasyonu). Düşük-kardinalite (metrik label uygun). 'capacity_skip' yalnız BYPASS injection'ında (K8 ihlali) görünür — normal akışta üretilmez. ADMIT/PACE_DOWN/DEFER terminal sonuçlardır (BLOCK değil).",
+    "list": ["unknown_profile", "cross_tenant"]
+  },
+
+  "outcomes": {
+    "$comment": "Terminal admission/pace karar sonuçları. ADMIT = design ≤ ceiling → kampanya tam planlanan hızda başlatılabilir (effective = design, overflow = 0). PACE_DOWN = design > ceiling ∧ ceiling > 0 → backpressure: kampanya hızı ceiling'e düşürülür (effective = ceiling), overflow (design − ceiling) callback kuyruğuna alınır (FR-RES-014 graceful). DEFER = ceiling ≤ 0 → kapasite yok → kampanya beklemeye/callback'e (effective = 0, overflow = design). BLOCK = profil çözümlenemedi / cross-tenant → fail-closed reddetme. Dördü de geçerli terminal — PACE_DOWN/DEFER ihlal DEĞİL, FR-RES-014 graceful degrade'in doğru sonucudur (çökme yerine kontrollü sınırlama). Her karar audit üretir.",
+    "list": ["ADMIT", "PACE_DOWN", "DEFER", "BLOCK"],
+    "terminal": ["ADMIT", "PACE_DOWN", "DEFER", "BLOCK"]
+  },
+
+  "authorization": {
+    "$comment": "Kampanya-düzeyi kapasite/admission kontrolü bir OTOMATİK gate'tir (kampanya başlatma/pace tetikler); RBAC kullanıcı-komutu değildir. Kapasite POLİTİKASI (util_threshold, overflow_policy, reserved_inbound) + tenant KOTA yönetimi resource:quota:manage yetkisi ister (platform_owner/tenant_owner/tenant_admin). Admission check yetki sormaz, fail-closed çalışır. Karar her zaman backend'de.",
+    "policy_permission": "resource:quota:manage",
+    "policy_roles": ["platform_owner", "tenant_owner", "tenant_admin"],
+    "per_campaign_check": "automatic_gate (RBAC değil; fail-closed)",
+    "decision_at": "backend",
+    "trace": "FR-IAM-011, FR-TEN-004, ADR-012, SAD §27 RBAC, SAD §15.2"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli; bir senaryoda ihlal varsa kapı eler. over_subscription (K4) ve capacity_skip (K8) = BRD §15 kritik 'kapasite aşımı / silent call' alarmı; capacity_error (K2) = yanlış tavan muhasebesi (bileşen/util atlanması → over-subscription); backpressure_fail (K5) = çökme/sessiz düşüş (FR-RES-014 ihlali); sizing_error (K3) = Little under-size; reserve_violation (K6) = inbound rezervesi yenir. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F2 canlı Resource Manager + runtime kapasite telemetri + pilot tenant verisinde doğrulanır (BRD §22 açık karar).",
+    "max_capacity_skip": 0,
+    "max_capacity_error": 0,
+    "max_sizing_error": 0,
+    "max_over_subscription": 0,
+    "max_backpressure_fail": 0,
+    "max_reserve_violation": 0,
+    "max_failopen": 0,
+    "max_cross_tenant": 0,
+    "max_missing_evidence": 0,
+    "max_missing_audit": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true,
+    "require_decision_record": true
+  },
+
+  "observability": {
+    "$comment": "Kampanya-kapasite motoru her karar için BRD §15 + kapasite/backpressure metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. campaign_capacity_check_total{tenant,result} → karar sayımı (result=ADMIT/PACE_DOWN/DEFER/BLOCK); campaign_pace_down_total{tenant} → backpressure devreye girme (PACE_DOWN/DEFER); campaign_overflow_concurrency{tenant} → callback'e alınan overflow (graceful muhasebe); campaign_oversubscription_total → effective > ceiling (K4 ihlal alarmı, 0 olmalı) VEYA capacity_skip (K8). tenant_id+result+country+campaign_category DÜŞÜK kardinalite (label uygun); request_id/campaign_id/correlation_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). Müşteri PII (ad/telefon/ham numara) metrikte VE log'da YOK (FR-REC-004, BRD §17.7). over_subscription>0 VEYA capacity_skip>0 (K4/K8 ihlali) → kritik alarm ≤2dk (SAD §17.2, NFR 10.1, BRD §15); pace_down ani artışı → kapasite darlığı sinyali (autoscale tetik, FR-RES-013).",
+    "metrics": ["campaign_capacity_check_total", "campaign_pace_down_total", "campaign_overflow_concurrency", "campaign_oversubscription_total"],
+    "low_cardinality_labels": ["tenant_id", "result", "country", "campaign_category"],
+    "high_cardinality_trace_only": ["request_id", "campaign_id", "correlation_id"],
+    "alarm": "over_subscription>0 (kampanya kapasiteyi aştı — K4, FR-OUT-007) VEYA capacity_skip>0 (admission atlandı — K8, BRD §15 'kapasite aşımı') VEYA backpressure_fail>0 (çökme/sessiz düşüş — K5, FR-RES-014) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "K1", "desc": "Determinizm/tamlık: her CampaignCapacityRequest tanımlı ceiling→size→admit algoritması boyunca ilerler ve bir terminal karara {ADMIT|PACE_DOWN|DEFER|BLOCK} ulaşır; aynı girdi → aynı çıktı (deterministik politika çözümü + tamsayı/oran kapasite muhasebesi + Little tamsayı tavan-bölme [math.ceil/floor], sanal snapshot girdisi; Date.now/random YOK); stuck/tanımsız durum yok. stuck_state=0.", "trace": "SR-OUT-007, SAD §15.2"},
+    {"id": "K2", "desc": "Doğru kapasite tavanı ÇEKİRDEK (FR-OUT-007): ceiling = max(0, floor(min(agent_avail, trunk_avail, quota_avail) × util_threshold)); agent_avail = agent_total − agent_active − reserved_inbound; trunk_avail = trunk_total − trunk_active; quota_avail = tenant_quota − tenant_active. ÜÇ bileşenin minimumu (en kısıtlayıcı kaynak) + util_threshold + rezerve ATLANAMAZ; bir bileşeni (trunk/quota) atlamak = yanlış (yüksek) tavan = over-subscription (capacity_error). Yanlış tavanla over-admit = ihlal. capacity_error=0.", "trace": "FR-OUT-007, SR-OUT-007, SAD §15.2, SAD §16"},
+    {"id": "K3", "desc": "Little yasası sizing ÇEKİRDEK (SAD §20): design_concurrency = max(target_concurrency, ⌈target_cps × mean_call_seconds⌉); kararlı durumda eş zamanlılık = CPS × tutma süresi. target_cps × mean_call_seconds'i atlamak (yalnız target_concurrency'e bakmak) = under-size = gizli over-subscription (sizing_error). Under-size ile yanlış ADMIT = ihlal. sizing_error=0.", "trace": "SR-OUT-007, SAD §20, FR-TST-006"},
+    {"id": "K4", "desc": "No over-subscription ÇEKİRDEK (FR-OUT-007): kabul edilen effective_admitted_concurrency ASLA ceiling'i aşmamalı ('kampanya kapasitesi mevcut agent ve trunk kapasitesini aşmamalıdır'); effective > ceiling = kapasite üstü çağrı = silent/dropped call (BRD §15 kapasite aşımı alarmı). Ceiling üstüne admit = ihlal. over_subscription=0.", "trace": "FR-OUT-007, SR-OUT-007, BRD §15, SAD §17.2"},
+    {"id": "K5", "desc": "Graceful backpressure ÇEKİRDEK (FR-RES-014): design ceiling'i aşarsa ÇÖKME/sessiz düşüş yerine GRACEFUL degrade — PACE_DOWN (effective=ceiling) veya DEFER (effective=0); overflow = design − effective MUHASEBELENİR ve callback kuyruğuna alınır (overflow_policy). Overflow'u sessiz düşürmek/çökmek = backpressure_fail. backpressure_fail=0.", "trace": "FR-RES-014, SR-RES-014, SAD §15.2, BRD §10.3"},
+    {"id": "K6", "desc": "Rezerve inbound korunur (SAD §16 rezerve concurrency): agent_avail = agent_total − agent_active − reserved_inbound_handlers; rezerve inbound/etkileşimli kapasite outbound kampanya tarafından YENMEZ (inbound önceliği/tenant izolasyonu). Rezerveyi düşmemek = inbound aç bırakma = reserve_violation. reserve_violation=0.", "trace": "SAD §16, FR-TEN-002, FR-OUT-007"},
+    {"id": "K7", "desc": "Fail-closed bilinmeyen profil (SAD §15.2): kapasite politikası / util_threshold çözümlenemezse fail-closed BLOCK unknown_profile — ASLA fail-open ADMIT (bilinen kapasite politikası olmadan admission = belirsiz over-subscription). Politika belirlenemeden ADMIT = failopen ihlali. failopen=0.", "trace": "SAD §15.2, SR-OUT-007"},
+    {"id": "K8", "desc": "Fail-closed / ATLANAMAZ (SR-OUT-007 ÇEKİRDEK): kampanya kapasite/admission kontrolü bypass edilemez — bypass ile ceiling yok sayılıp design admit edilirse capacity_skip ihlali = over-subscription = BRD §15 kritik 'kapasite aşımı' alarmı. capacity_skip=0.", "trace": "SR-OUT-007, BRD §9.13, BRD §15, SAD §17.2"},
+    {"id": "K9", "desc": "Kanıt: her karar request_id + resolved_profile + util_threshold + agent_avail/trunk_avail/quota_avail + ceiling + design_concurrency + effective + overflow + capacity_ok taşır; kanıtsız karar yok. missing_evidence=0.", "trace": "FR-IAM-006"},
+    {"id": "K10", "desc": "Audit: her karar (ADMIT/PACE_DOWN/DEFER/BLOCK) → audit {result, request_id, campaign_id, country, campaign_category, ceiling, design_concurrency, effective, overflow, correlation_id, tenant_id} (FR-IAM-006); ham PII YOK. missing_audit=0.", "trace": "FR-IAM-006, 0.4.7 label_policy"},
+    {"id": "K11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (result/country/campaign_category); request_id/campaign_id/correlation_id metrikte yok, yalnız trace; müşteri PII (ad/telefon/ham numara) metrikte VE log'da yok (0.4.7 label_policy, FR-REC-004, BRD §17.7).", "trace": "FR-REC-004, 0.4.7 label_policy"},
+    {"id": "K12", "desc": "Sır/PII yok + tenant izolasyonu: spec/config/sample müşteri adı/TELEFON numarası/hesap no/ham transkript/OTP/credential tutmaz (yalnız yapısal kimlikler + enum + kapasite sayısı + oran + süre + bayrak); kapasite politikası/snapshot/kota yalnız aynı tenant'a ait okunur, cross-tenant okuma → cross_tenant ihlali (FR-TEN-002). secret_or_pii=0 ∧ cross_tenant=0.", "trace": "BRD §14, BRD §16, FR-TEN-002, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/sample'lar müşteri ADI, TELEFON numarası, HESAP numarası, ham TRANSKRİPT, OTP, PAROLA, PII DEĞERİ veya credential TUTMAZ — yalnız yapısal KİMLİKLER (request/campaign/tenant/correlation kimlikleri ör. req-001 / camp-001 / t-acme / corr-001) + ENUM'lar (channel ör. voice; country ör. TR/UK/EU/US; campaign_category ör. sales) + KAPASİTE SAYILARI (agent_handlers/trunk_channels/quota/concurrency ör. 100/40/6 — kişiye bağlı değil) + ORANLAR (util_threshold ör. 0.8) + SÜRELER (mean_call_seconds ör. 180) + BAYRAKLAR. Kimlik/enum/sayı/oran/süre/bayrak PII DEĞİLDİR; tasarımca PII-olmayandır. Telefon numarası HİÇBİR alanda tutulmaz (kampanya-düzeyi sizing; per-contact yok).",
+    "forbids": ["customer_name", "customer_phone_value", "account_number_value", "transcript_text", "otp_code_value", "password_value", "credential", "secret", "pii_value", "raw_msisdn"]
+  }
+}

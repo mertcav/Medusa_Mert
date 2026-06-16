@@ -1,0 +1,25 @@
+{
+  "name": "cc-over-admit-degraded",
+  "$comment": "DEGRADE [K4]: over_admit — effective ceiling'i AŞAR (effective=design=100 > ceiling=40) = kapasite üstü çağrı = silent/dropped (FR-OUT-007 ihlali). over_subscription. Kapı ELER.",
+  "expect": "fail",
+  "channel": "voice",
+  "campaign_category": "sales",
+  "country": "TR",
+  "target_concurrency": 100,
+  "target_cps": 0,
+  "mean_call_seconds": 0,
+  "request_id": "req-d-005",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-d-005",
+  "campaign_id": "camp-d-005",
+  "agent_handlers_total": 100,
+  "agent_handlers_active": 20,
+  "reserved_inbound_handlers": 10,
+  "trunk_channels_total": 80,
+  "trunk_channels_active": 30,
+  "tenant_quota_concurrency": 60,
+  "tenant_concurrency_active": 10,
+  "inject": [
+    "over_admit"
+  ]
+}

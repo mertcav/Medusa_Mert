@@ -1,0 +1,30 @@
+{
+  "name": "cc-reserve-applied",
+  "$comment": "Rezerve inbound korunur (K6): agent_avail=20 (60−0−40 reserved) → min(20,100,100)=20 ×0.8=16 → ceiling=16; design=16 → ADMIT. Rezerve düşülmeseydi ceiling=48 olurdu. Geçer.",
+  "expect": "pass",
+  "channel": "voice",
+  "campaign_category": "sales",
+  "country": "TR",
+  "target_concurrency": 16,
+  "target_cps": 0,
+  "mean_call_seconds": 0,
+  "request_id": "req-tr-008",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-tr-008",
+  "campaign_id": "camp-tr-008",
+  "agent_handlers_total": 60,
+  "agent_handlers_active": 0,
+  "reserved_inbound_handlers": 40,
+  "trunk_channels_total": 100,
+  "trunk_channels_active": 0,
+  "tenant_quota_concurrency": 100,
+  "tenant_concurrency_active": 0,
+  "expected": {
+    "terminal": "ADMIT",
+    "ceiling": 16,
+    "design_concurrency": 16,
+    "effective": 16,
+    "overflow": 0,
+    "capacity_ok": true
+  }
+}

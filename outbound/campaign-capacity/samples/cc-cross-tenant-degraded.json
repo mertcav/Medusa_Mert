@@ -1,0 +1,25 @@
+{
+  "name": "cc-cross-tenant-degraded",
+  "$comment": "DEGRADE [K12]: cross_tenant — kapasite politikası/snapshot/kota başka tenant'tan okunur (FR-TEN-002 ihlali). cross_tenant → fail-closed BLOCK. Kapı ELER.",
+  "expect": "fail",
+  "channel": "voice",
+  "campaign_category": "sales",
+  "country": "TR",
+  "target_concurrency": 20,
+  "target_cps": 0,
+  "mean_call_seconds": 0,
+  "request_id": "req-d-009",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-d-009",
+  "campaign_id": "camp-d-009",
+  "agent_handlers_total": 100,
+  "agent_handlers_active": 20,
+  "reserved_inbound_handlers": 10,
+  "trunk_channels_total": 80,
+  "trunk_channels_active": 30,
+  "tenant_quota_concurrency": 60,
+  "tenant_concurrency_active": 10,
+  "inject": [
+    "cross_tenant"
+  ]
+}

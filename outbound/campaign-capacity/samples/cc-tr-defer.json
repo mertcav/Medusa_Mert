@@ -1,0 +1,30 @@
+{
+  "name": "cc-tr-defer",
+  "$comment": "TR kapasite yok: agent_avail=0 (20−20−0) → min=0 → ceiling=0 → DEFER (effective=0, overflow=design=10 → callback). Geçer.",
+  "expect": "pass",
+  "channel": "voice",
+  "campaign_category": "sales",
+  "country": "TR",
+  "target_concurrency": 10,
+  "target_cps": 0,
+  "mean_call_seconds": 0,
+  "request_id": "req-tr-003",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-tr-003",
+  "campaign_id": "camp-tr-003",
+  "agent_handlers_total": 20,
+  "agent_handlers_active": 20,
+  "reserved_inbound_handlers": 0,
+  "trunk_channels_total": 80,
+  "trunk_channels_active": 0,
+  "tenant_quota_concurrency": 60,
+  "tenant_concurrency_active": 0,
+  "expected": {
+    "terminal": "DEFER",
+    "ceiling": 0,
+    "design_concurrency": 10,
+    "effective": 0,
+    "overflow": 10,
+    "capacity_ok": false
+  }
+}

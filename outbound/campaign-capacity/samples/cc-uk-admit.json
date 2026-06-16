@@ -1,0 +1,30 @@
+{
+  "name": "cc-uk-admit",
+  "$comment": "UK profili: util_threshold=0.75 → ceiling=⌊50×0.75⌋=37; design=20 ≤ 37 → ADMIT. Geçer.",
+  "expect": "pass",
+  "channel": "voice",
+  "campaign_category": "sales",
+  "country": "UK",
+  "profile_id": "PROFILE-UK",
+  "target_concurrency": 20,
+  "target_cps": 0,
+  "mean_call_seconds": 0,
+  "request_id": "req-uk-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-uk-001",
+  "campaign_id": "camp-uk-001",
+  "agent_handlers_total": 100,
+  "agent_handlers_active": 20,
+  "reserved_inbound_handlers": 10,
+  "trunk_channels_total": 80,
+  "trunk_channels_active": 30,
+  "tenant_quota_concurrency": 60,
+  "tenant_concurrency_active": 10,
+  "expected": {
+    "terminal": "ADMIT",
+    "ceiling": 37,
+    "design_concurrency": 20,
+    "effective": 20,
+    "capacity_ok": true
+  }
+}

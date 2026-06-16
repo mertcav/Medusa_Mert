@@ -1,0 +1,30 @@
+{
+  "name": "cc-tr-admit",
+  "$comment": "TR sağlıklı: ceiling=40 (min(agent 70,trunk 50,quota 50)=50 ×0.8); design=max(20, ⌈0.1×180=18⌉)=20 ≤ 40 → ADMIT (effective=20, overflow=0). Geçer.",
+  "expect": "pass",
+  "channel": "voice",
+  "campaign_category": "sales",
+  "country": "TR",
+  "target_concurrency": 20,
+  "target_cps": 0.1,
+  "mean_call_seconds": 180,
+  "request_id": "req-tr-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-tr-001",
+  "campaign_id": "camp-tr-001",
+  "agent_handlers_total": 100,
+  "agent_handlers_active": 20,
+  "reserved_inbound_handlers": 10,
+  "trunk_channels_total": 80,
+  "trunk_channels_active": 30,
+  "tenant_quota_concurrency": 60,
+  "tenant_concurrency_active": 10,
+  "expected": {
+    "terminal": "ADMIT",
+    "ceiling": 40,
+    "design_concurrency": 20,
+    "effective": 20,
+    "overflow": 0,
+    "capacity_ok": true
+  }
+}

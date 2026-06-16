@@ -1,0 +1,29 @@
+{
+  "name": "cc-quota-binding",
+  "$comment": "Tenant kota en kısıtlayıcı: quota_avail=5 (25−20) → min(70,50,5)=5 ×0.8=⌊4.0⌋=4 → ceiling=4; design=20 → PACE_DOWN (effective=4, overflow=16). FR-TEN-004 kota. Geçer.",
+  "expect": "pass",
+  "channel": "voice",
+  "campaign_category": "sales",
+  "country": "TR",
+  "target_concurrency": 20,
+  "target_cps": 0,
+  "mean_call_seconds": 0,
+  "request_id": "req-tr-007",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-tr-007",
+  "campaign_id": "camp-tr-007",
+  "agent_handlers_total": 100,
+  "agent_handlers_active": 20,
+  "reserved_inbound_handlers": 10,
+  "trunk_channels_total": 80,
+  "trunk_channels_active": 30,
+  "tenant_quota_concurrency": 25,
+  "tenant_concurrency_active": 20,
+  "expected": {
+    "terminal": "PACE_DOWN",
+    "ceiling": 4,
+    "design_concurrency": 20,
+    "effective": 4,
+    "overflow": 16
+  }
+}

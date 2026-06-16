@@ -1,0 +1,29 @@
+{
+  "name": "cc-little-cps-sizing",
+  "$comment": "Little yasası: design=⌈1.0×180=180⌉ (target_cps×mean_call_seconds, target_concurrency=5'ten büyük) > ceiling=40 → PACE_DOWN (effective=40, overflow=140). CPS/tutma sizing kanıtı. Geçer.",
+  "expect": "pass",
+  "channel": "voice",
+  "campaign_category": "sales",
+  "country": "TR",
+  "target_concurrency": 5,
+  "target_cps": 1.0,
+  "mean_call_seconds": 180,
+  "request_id": "req-tr-004",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-tr-004",
+  "campaign_id": "camp-tr-004",
+  "agent_handlers_total": 100,
+  "agent_handlers_active": 20,
+  "reserved_inbound_handlers": 10,
+  "trunk_channels_total": 80,
+  "trunk_channels_active": 30,
+  "tenant_quota_concurrency": 60,
+  "tenant_concurrency_active": 10,
+  "expected": {
+    "terminal": "PACE_DOWN",
+    "ceiling": 40,
+    "design_concurrency": 180,
+    "effective": 40,
+    "overflow": 140
+  }
+}
