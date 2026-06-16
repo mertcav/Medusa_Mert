@@ -1,0 +1,59 @@
+{
+  "name": "scim-delete-deprovision",
+  "request_id": "req-007",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-007",
+  "actor_realm": "tenant",
+  "operation": "user.delete",
+  "prior_version": 5,
+  "resource": {
+    "type": "User",
+    "schema": "urn:ietf:params:scim:schemas:core:2.0:User",
+    "subject_ref": "sub-1",
+    "version": 6,
+    "active": true,
+    "groups": [
+      "voiceai-ops-manager"
+    ]
+  },
+  "scim_client": {
+    "authenticated": true,
+    "client_id": "sc-acme",
+    "tenant_id": "t-acme",
+    "realm": "tenant"
+  },
+  "idp_config": {
+    "trusted_client_id": "sc-acme",
+    "group_role_map": {
+      "voiceai-ops-manager": [
+        {
+          "role": "operations_manager",
+          "scope": {
+            "brand": [
+              "brand-x"
+            ]
+          }
+        }
+      ],
+      "voiceai-qa": [
+        {
+          "role": "qa_analyst",
+          "scope": {}
+        }
+      ],
+      "voiceai-designer": [
+        {
+          "role": "conversation_designer",
+          "scope": {}
+        }
+      ]
+    }
+  },
+  "$comment": "S3 ÇEKİRDEK: user.delete → DEPROVISIONED; erişim ANINDA ∅ + oturum iptali. FR-IAM-007.",
+  "expect": "pass",
+  "expected": {
+    "terminal": "DEPROVISIONED",
+    "deprovisioned": true,
+    "sessions_revoked": true
+  }
+}

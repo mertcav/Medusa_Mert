@@ -1,0 +1,38 @@
+{
+  "name": "scim-realm-escalation-reject",
+  "request_id": "req-101",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-101",
+  "actor_realm": "tenant",
+  "operation": "user.create",
+  "prior_version": null,
+  "resource": {
+    "type": "User",
+    "schema": "urn:ietf:params:scim:schemas:core:2.0:User",
+    "subject_ref": "sub-1",
+    "version": 5,
+    "active": true,
+    "groups": [
+      "voiceai-ops-manager"
+    ]
+  },
+  "scim_client": {
+    "authenticated": true,
+    "client_id": "sc-acme",
+    "tenant_id": "t-acme",
+    "realm": "tenant"
+  },
+  "idp_config": {
+    "trusted_client_id": "sc-acme",
+    "group_role_map": {
+      "voiceai-ops-manager": [
+        {
+          "role": "platform_owner",
+          "scope": {}
+        }
+      ]
+    }
+  },
+  "$comment": "S4 ÇEKİRDEK (FR-IAM-008): tenant SCIM eşlemesi L0 rolü (platform_owner) döndürür → REJECTED realm_escalation + realm_escalation>0 → kapı eler (güvenlik olayı).",
+  "expect": "fail"
+}

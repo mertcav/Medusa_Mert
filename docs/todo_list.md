@@ -287,7 +287,7 @@
 - [x] **12.1.3** Scoped assignment (rol + departman/marka/kampanya filtresi) — `F2` · `Must` · →FR-IAM-011, ADR-012
 - [x] **12.1.4** SSO: SAML 2.0 + OIDC — `F2` · `Must` · →FR-IAM-002
 - [x] **12.1.5** MFA — `F1` · `Must` · →FR-IAM-003
-- [ ] **12.1.6** SCIM provisioning + IdP grup→rol eşleme — `F2` · `Should` · →FR-IAM-007, SAD §14.4.4
+- [x] **12.1.6** SCIM provisioning + IdP grup→rol eşleme — `F2` · `Should` · →FR-IAM-007, SAD §14.4.4
 - [ ] **12.1.7** Maker-checker onay akışı — `F2` · `Should` · →FR-IAM-005
 - [ ] **12.1.8** Append-only (WORM) audit log + bütünlük — `F1` · `Must` · →FR-IAM-006
 

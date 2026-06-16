@@ -1,0 +1,74 @@
+{
+  "$comment": "WBS 12.1.6 — SCIM PROVISIONING + IdP GRUP→ROL EŞLEME MODELİ (SCIM 2.0). Bu dosya 12. workstream'in (IAM & Erişim) KULLANICI/GRUP YAŞAM DÖNGÜSÜ senkron yüzeyinin makine-okunur, DEĞİŞMEZ (frozen) KAYNAK DOĞRULUĞUDUR: FR-IAM-007 'SCIM üzerinden kullanıcı provisioning desteklenmelidir' + SAD §14.4.4 'SCIM 2.0 provisioning (kullanıcı + grup senkronu); IdP grupları/attribute'ları tenant bazında RBAC rollerine eşlenir; deprovision → erişim ANINDA düşer; platform rolleri (L0) ayrı bir IdP/dizinden federe edilir, tenant IdP'leri L0 rolü atayamaz (FR-IAM-008)'. ROL BUNDLE'I + REALM 12.1.1'in (config/rbac-roles.json, frozen, IMMUTABLE); GRUP→ROL EŞLEME TABLOSU 12.1.4'ün (SSO) ÜRETTİĞİ ile AYNI yüzeydir (idp_config.group_role_map) — bu modül onu kullanıcı/grup YAŞAM DÖNGÜSÜYLE (create/replace/patch/deactivate/delete) birleştirir ve ÇIKTI olarak etkin erişim (effective_access = {role, scope} ATAMA) üretir; 12.1.3'ün TÜKETTİĞİ scoped atama yüzeyi. ÇEKİRDEK: (1) DEPROVISION → ERİŞİM ANINDA DÜŞER (FR-IAM-007 ÇEKİRDEK) — deactivate/delete edilen subject HİÇBİR rol atamasını korumaz + etkin oturumlar iptal edilir (stale_access=0); (2) yalnız KİMLİĞİ DOĞRULANMIŞ + GÜVENİLİR SCIM istemcisi (bearer/mTLS) provision eder (fail-closed); (3) tenant SCIM istemcisi YALNIZ kendi tenant'ının subject'lerini senkronlar, başka tenant ASLA (FR-TEN-002); (4) grup→rol yalnız tenant eşleme tablosunda KARŞILIĞI olan rolü verir + tenant IdP YALNIZ tenant-realm rol (L0 ASLA, FR-IAM-008). İdempotent + iyimser eşzamanlılık (version/ETag) ile bayat/sıra-dışı/tekrarlı op REDDEDİLİR; deprovision edilen subject bayat op ile DİRİLTİLMEZ. Ham token/credential/PII (bearer token, NameID/e-posta, ad) YOK — yalnız SCIM istemci id + grup adı + rol adı + kapsam boyut anahtar/değeri + opak subject ref (externalId hash) + version (monoton seq) + enum. SİMETRİK SIR: bearer/mTLS doğrulaması bu modülde YAPILMAZ (credential-free, ADR-002 sağlayıcı-nötr) — scim_client.authenticated soyut doğrulama SONUCUDUR; canlı SCIM endpoint/token doğrulaması PoC/F2 entegrasyonunda. ÇELİŞKİDE FR-IAM-007 / SAD §14.4.4 / FR-IAM-008 esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+
+  "$protocol_comment": "SCIM 2.0 (System for Cross-domain Identity Management; RFC 7643 şema + RFC 7644 protokol). Desteklenen şemalar: core User + core Group. resourceType ∈ {User, Group}. Liste dışı şema/resourceType → unsupported_schema (REJECTED, fail-closed). Soyut kaynak modeli: External IdP'den senkron — yalnız opak kimlik (subject_ref/group_name) + grup membership + aktiflik + version.",
+  "scim_version": "2.0",
+  "supported_schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:User",
+    "urn:ietf:params:scim:schemas:core:2.0:Group"
+  ],
+  "resource_types": ["User", "Group"],
+
+  "$operations_comment": "Yaşam döngüsü operasyonları (RFC 7644). user.create (POST /Users), user.replace (PUT), user.patch (PATCH — ör. active=false), user.deactivate (PATCH active:false), user.delete (DELETE), group.create/replace/patch (üyelik senkronu), group.delete. PROVISION sınıfı: create/replace/patch (active≠false) → grup→rol eşleme → etkin erişim. DEPROVISION sınıfı: deactivate/delete VEYA replace/patch (active=false) → etkin erişim ANINDA düşer. Liste dışı op → unsupported_operation (REJECTED).",
+  "operations": {
+    "provision": ["user.create", "user.replace", "user.patch", "group.create", "group.replace", "group.patch"],
+    "deprovision": ["user.deactivate", "user.delete", "group.delete"]
+  },
+
+  "$auth_comment": "SCIM endpoint güveni (provision ÖNCESİ zorunlu). auth_required: kimliği doğrulanmamış SCIM istemcisi provision ETMEZ (bearer token / mTLS — scim_client.authenticated soyut sonucuyla modellenir, credential-free). trusted_client_binding: scim_client.client_id tenant'ın allowlist'inde olmalı; güvenilmez istemci reddedilir. Bu, deprovision'ın bütünlüğünün önkoşuludur — yalnız güvenilir IdP yaşam döngüsü tetikler.",
+  "auth_requirements": {
+    "auth_required": true,
+    "trusted_client_binding": true
+  },
+
+  "$deprovision_comment": "ÇEKİRDEK (FR-IAM-007 / SAD §14.4.4): deprovision → ERİŞİM ANINDA DÜŞER. deactivate/delete edilen subject: (a) etkin erişim = ∅ (hiçbir {role, scope} ataması korunmaz); (b) etkin oturum/token İPTAL edilir (revoke_active_sessions) — gelecekteki login engellenmez yalnız, MEVCUT erişim de anında kesilir; (c) idempotent (zaten deprovision edilmiş subject'i yeniden deprovision = no-op, hata değil). propagation_immediate=true: gecikmeli/eventual değil, karar anında. Bir deprovision'ın erişim bırakması (stale_access) ÇEKİRDEK ihlaldir.",
+  "deprovision_policy": {
+    "drop_access_immediately": true,
+    "revoke_active_sessions": true,
+    "idempotent": true,
+    "propagation_immediate": true
+  },
+
+  "$mapping_comment": "IdP grup → RBAC rol eşlemesi (SAD §14.4.4; tenant bazında konfigüre = idp_config.group_role_map; 12.1.4 SSO ile AYNI yüzey). resolution: User için resource.groups, Group için resource.group_name aday grup(lar)dır; her bilinen grup için tablo girdisinin {role, scope} atamaları toplanır (gruplar arası UNION). unknown_group_ignored: tabloda olmayan grup SESSİZCE atlanır (yabancı/silinmiş grup; hata değil). default_deny: hiçbir grup eşleşmezse erişim YOK (NO_ACCESS) — subject provision olur ama yetki yok (least-privilege). mapped_role_must_exist: eşlenen rol 12.1.1 frozen modelinde olmalı (yoksa unknown_role konfig hatası, REJECTED). scope: {role, scope{department/brand/campaign}} → 12.1.3'ün TÜKETTİĞİ scoped atama (narrowing-only); eşleme tablosu yalnız DARALTIR, immutable bundle'a permission EKLEYEMEZ.",
+  "mapping_policy": {
+    "source": "idp_config.group_role_map",
+    "configured_per": "tenant",
+    "unknown_group_ignored": true,
+    "union_across_groups": true,
+    "default_deny": true,
+    "mapped_role_must_exist": true,
+    "scope_is_narrowing_only": true
+  },
+
+  "$realm_comment": "ÇEKİRDEK (FR-IAM-008): tenant SCIM/IdP YALNIZ tenant-realm (L1/L2) rol eşleyebilir; platform (L0) rolleri AYRI bir IdP/dizinden federe edilir ve tenant IdP'leri ASLA L0 rolü provision edemez. scim_client.realm = actor_realm olmalı; eşlenen HER rolün realm'i (12.1.1 frozen modelinden) = scim_client.realm olmalı. Tenant SCIM'in platform_owner/platform_sre/platform_billing provision etmesi → realm_escalation (REJECTED). Bu, panel-katman rol ayrımının (L0 ⟂ tenant) provisioning kanadıdır (ADR-011).",
+  "realm_separation": {
+    "tenant_idp_grants_only_tenant_roles": true,
+    "platform_idp_separate_directory": true,
+    "assert_role_realm_must_equal_client_realm": true
+  },
+
+  "$tenant_comment": "Tenant izolasyonu (FR-TEN-002) provisioning'in ÜSTÜNDE: bir tenant'ın SCIM istemcisi (scim_client.tenant_id) BAŞKA tenant'ın subject'lerini senkronlayamaz. scim_client.tenant_id = request tenant_id olmalı; aksi → cross_tenant (REJECTED; güvenlik olayı).",
+  "tenant_isolation": {
+    "client_bound_to_tenant": true,
+    "tenant_boundary_above_provisioning": true
+  },
+
+  "$concurrency_comment": "İdempotent + iyimser eşzamanlılık (SCIM RFC 7644 §3.14 ETag / version). version: monoton artan seq (deterministik tamsayı — Date.now YOK). prior_version: aynı subject için son uygulanan version. Kural: prior_version ≠ null ∧ version ≤ prior_version → version_conflict (REJECTED) — bayat/sıra-dışı/tekrarlı op reddedilir. ÖZELLİKLE: deprovision edilen subject'i BAYAT bir create/replace (version ≤ prior) DİRİLTEMEZ — fail-closed. require_monotonic_version=true: sıra güvenliği.",
+  "concurrency_policy": {
+    "idempotent_operations": true,
+    "optimistic_concurrency": true,
+    "require_monotonic_version": true,
+    "stale_op_rejected": true,
+    "no_resurrect_deprovisioned_by_stale_op": true
+  },
+
+  "$privacy_comment": "Gizlilik (BRD §17.7 / FR-REC-004): SCIM payload'undan ham PII (NameID/e-posta/ad/telefon) ve ham token (bearer) provisioning kaydına/log'a/audit'e YAZILMAZ — yalnız opak subject_ref (externalId hash) + SCIM istemci id + grup/rol adı + version + enum. Düşük-kardinalite metrik (operation/result/realm/resource_type); yüksek-kardinalite (request_id/subject_ref/group_name) yalnız trace/log.",
+  "privacy": {
+    "no_raw_pii_in_record": true,
+    "no_raw_token_persisted": true,
+    "subject_reference_opaque": true
+  }
+}

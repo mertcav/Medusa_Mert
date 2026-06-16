@@ -1,0 +1,59 @@
+{
+  "name": "scim-no-role-mapping-noaccess",
+  "request_id": "req-005",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-005",
+  "actor_realm": "tenant",
+  "operation": "user.create",
+  "prior_version": null,
+  "resource": {
+    "type": "User",
+    "schema": "urn:ietf:params:scim:schemas:core:2.0:User",
+    "subject_ref": "sub-1",
+    "version": 5,
+    "active": true,
+    "groups": [
+      "foreign-group-x"
+    ]
+  },
+  "scim_client": {
+    "authenticated": true,
+    "client_id": "sc-acme",
+    "tenant_id": "t-acme",
+    "realm": "tenant"
+  },
+  "idp_config": {
+    "trusted_client_id": "sc-acme",
+    "group_role_map": {
+      "voiceai-ops-manager": [
+        {
+          "role": "operations_manager",
+          "scope": {
+            "brand": [
+              "brand-x"
+            ]
+          }
+        }
+      ],
+      "voiceai-qa": [
+        {
+          "role": "qa_analyst",
+          "scope": {}
+        }
+      ],
+      "voiceai-designer": [
+        {
+          "role": "conversation_designer",
+          "scope": {}
+        }
+      ]
+    }
+  },
+  "$comment": "S8 least-privilege default: hiçbir grup eşleşmez → NO_ACCESS (provision oldu, yetki yok). Default-deny; meşru, ihlal yok.",
+  "expect": "pass",
+  "expected": {
+    "terminal": "NO_ACCESS",
+    "deny_reason": "no_role_mapping",
+    "provisioned": false
+  }
+}
