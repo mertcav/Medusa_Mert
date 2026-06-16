@@ -1,0 +1,29 @@
+{
+  "name": "mfa-l0-webauthn-pass",
+  "request_id": "req-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "actor_realm": "platform",
+  "actor_role": "platform_owner",
+  "break_glass": false,
+  "now": 1000,
+  "tenant_policy": {},
+  "has_enrolled_factor": true,
+  "failed_attempts": 0,
+  "factor": {
+    "type": "webauthn",
+    "verified": true,
+    "challenge_id": "ch-1",
+    "challenge_expires_at": 5000,
+    "subject_ref": "u-1",
+    "tenant_id": "t-acme"
+  },
+  "seen_challenge_ids": [],
+  "$comment": "ADR-017: platform_owner (L0) → AAL3 + phishing-dirençli ZORUNLU; webauthn → PASS. S4.",
+  "expect": "pass",
+  "expected": {
+    "terminal": "PASS",
+    "required_aal": "aal3",
+    "satisfied": true
+  }
+}

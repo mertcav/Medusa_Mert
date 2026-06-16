@@ -1,0 +1,131 @@
+{
+  "$comment": "WBS 12.1.5 — MFA (çok faktörlü kimlik doğrulama) spec (makine-okunur). FR-IAM-003 + SR-IAM-003 (ayrıcalıklı roller için MFA zorunlu; MFA açıkken faktörsüz erişim reddedilir) + ADR-017 (phishing-resistant MFA WebAuthn/FIDO2 L0/break-glass için zorunlu). MFA doğrulama karar motorunun (mfa_probe.py) sözleşmesi: kurallar + karar + reason taksonomileri + AAL/faktör/politika modeli + kapılar + invariant'lar S1–S12. Kaynak doğruluk config/mfa-policy.json (frozen) + ../rbac-model/config/rbac-roles.json (12.1.1 rol→IMMUTABLE bundle + realm + layer). Ham OTP/credential/faktör sırrı/PII YOK.",
+  "wbs": "12.1.5",
+  "title": "MFA — Çok Faktörlü Kimlik Doğrulama",
+  "phase": "F1",
+  "priority": "Must",
+
+  "trace": {
+    "fr": ["FR-IAM-003", "FR-TEN-002"],
+    "srs": ["SR-IAM-003"],
+    "rtm": ["TC-IAM-003"],
+    "adr": ["ADR-017 (phishing-resistant MFA WebAuthn/FIDO2 — L0/break-glass zorunlu)", "ADR-011 (iki düzlemli panel — L0 ayrı kontrol düzlemi/dizin)", "ADR-002 (sağlayıcı-nötr — faktör doğrulaması credential-free)"],
+    "sad": ["§14.1 IAM (MFA FR-IAM-003)", "§14 Güvenlik (defense in depth)"],
+    "brd": ["§9.2 IAM (FR-IAM-003)", "§17.7 gizlilik (ham PII/sır yazılmaz)"],
+    "consumes": ["12.1.1 RBAC modeli (rol→realm+layer — ayrıcalık/AAL gereksinimi çözümü)", "12.1.4 SSO (authenticate sonrası oturum identity — MFA step-up bunun üstünde)"],
+    "consumed_by": ["12.2.x backend panel guard (oturum AAL → permission-key enforcement; MFA tatmin edilmeden ayrıcalıklı eylem yok)", "12.3.x break-glass (Tier B onaylayıcı AAL3 phishing-dirençli — ADR-017)", "12.1.8 WORM audit (MFA kararı kaydı)"]
+  },
+
+  "placement": {
+    "layer": "Platform AuthN / Tenant Admin Console (T-03 Kullanıcı & Rol Yönetimi) — login + step-up",
+    "fail_closed": true,
+    "decision_at": "backend",
+    "credential_free": true,
+    "$note": "Kriptografik faktör doğrulaması bu modülde YAPILMAZ (factor.verified soyut sonuç); canlı WebAuthn/TOTP/OTP doğrulaması F2/PoC entegrasyonunda."
+  },
+
+  "rules": {
+    "evaluation": "malformed_then_role_then_policy_then_lockout_then_factor_presence_then_verification_then_phishing_then_aal_then_temporal_fail_closed",
+    "list": [
+      {"id": "factor_verification_integrity", "invariant": "S2", "desc": "MFA gerekliyken FAKTÖRSÜZ erişim REDDEDİLİR; doğrulanmamış/sahte faktör authenticate ETMEZ; factorless_accepted=0 ∧ failed_factor_accepted=0 (ÇEKİRDEK; FR-IAM-003/SR-IAM-003)"},
+      {"id": "aal_sufficiency", "invariant": "S3", "desc": "Faktör AAL'i ≥ gereken AAL; zayıf-seviye faktör kabul edilmez; insufficient_aal_accepted=0 (SR-IAM-003)"},
+      {"id": "phishing_resistance_privileged", "invariant": "S4", "desc": "L0/break-glass bağlamında yalnız WebAuthn/FIDO2 (phishing-dirençli); TOTP/SMS/push ASLA; weak_factor_accepted=0 (ÇEKİRDEK; ADR-017)"},
+      {"id": "policy_most_restrictive", "invariant": "S5", "desc": "Gereken AAL = max(platform/rol zemini, tenant politikası); tenant override yalnız-SIKILAŞTIRIR; policy_downgraded=0 (SR-IAM-003)"},
+      {"id": "challenge_temporal_validity", "invariant": "S6", "desc": "Süresi geçmiş challenge reddedilir (clock skew toleransı); challenge_expired DENY"},
+      {"id": "tenant_isolation", "invariant": "S7", "desc": "Faktör tenant'a bağlı; başka tenant oturumunda kullanılamaz; cross_tenant=0 (FR-TEN-002)"},
+      {"id": "replay_lockout_protection", "invariant": "S8", "desc": "challenge_id tek kullanımlık + N başarısızlıkta kilit; replay_accepted=0 ∧ lockout_bypassed=0"}
+    ]
+  },
+
+  "decision": {
+    "default": "BLOCK",
+    "fail_safe_terminal": "BLOCK/DENY ⇒ no access (MFA tatmin edilmez, ayrıcalıklı oturum açılmaz); faktörsüz/zayıf/geçersiz/tekrar/sınır ihlali ⇒ reddedilir"
+  },
+
+  "outcomes": {
+    "list": ["PASS", "CHALLENGE", "DENY", "BLOCK"],
+    "$desc": "PASS = MFA tatmin (faktör gereken AAL'de doğrulandı) ya da MFA gerekmiyor; CHALLENGE = MFA gerekli, faktör kayıtlı, ikinci-faktör DOĞRULAMASI bekleniyor (step-up; meşru); DENY = MFA gerekli ama tatmin edilemedi (faktörsüz / başarısız / zayıf / yetersiz AAL / süresi geçmiş); BLOCK = istek/güvenlik reddi (biçimsiz / desteklenmeyen faktör / replay / kilit / cross-tenant)"
+  },
+
+  "pass_reasons": {
+    "list": ["mfa_not_required", "factor_verified"]
+  },
+
+  "challenge_reasons": {
+    "list": ["step_up_required"]
+  },
+
+  "deny_reasons": {
+    "list": ["mfa_required", "factor_failed", "phishing_vulnerable_factor", "insufficient_aal", "challenge_expired"]
+  },
+
+  "block_reasons": {
+    "list": ["malformed_request", "unknown_role", "unsupported_factor", "challenge_replay", "account_locked", "cross_tenant"]
+  },
+
+  "model": {
+    "frozen": true,
+    "aal_levels": ["none", "aal1", "aal2", "aal3"],
+    "factor_types": ["webauthn", "fido2", "totp", "push", "sms_otp", "email_otp", "recovery_code", "password"],
+    "phishing_resistant_factors": ["webauthn", "fido2"],
+    "rbac_model": "12.1.1 ../rbac-model/config/rbac-roles.json (rol→realm+layer — ayrıcalık çözümü)",
+    "policy_resolution": "most_restrictive_wins",
+    "override_only_tightens": true
+  },
+
+  "verification": {
+    "presence_gate": "MFA gerekli ∧ faktör sunulmadı ∧ kayıtlı faktör var ⇒ CHALLENGE step_up_required; kayıtlı faktör YOK ⇒ DENY mfa_required (faktörsüz erişim reddi — SR-IAM-003)",
+    "integrity_gate": "factor.verified (soyut kriptografik sonuç); ¬verified ⇒ DENY factor_failed",
+    "phishing_gate": "phishing_resistant_required ∧ ¬factor.phishing_resistant ⇒ DENY phishing_vulnerable_factor (L0/break-glass yalnız WebAuthn/FIDO2 — ADR-017)",
+    "aal_gate": "factor.aal ≥ required_aal (katalog türetimli); aksi DENY insufficient_aal",
+    "temporal_gate": "now ≤ challenge_expires_at + skew; aksi DENY challenge_expired",
+    "replay_gate": "challenge_id ∉ seen_challenge_ids (tek kullanımlık)",
+    "lockout_gate": "failed_attempts < max_failed_attempts; aksi BLOCK account_locked",
+    "policy_rule": "required_aal = max(platform_l0/break_glass/privileged_role/tenant_policy); phishing_required = ∃ katkı phishing ister (ADR-017)",
+    "tenant_rule": "factor.tenant_id = request tenant_id; aksi cross_tenant BLOCK (FR-TEN-002)",
+    "decision_at": "backend"
+  },
+
+  "gates": {
+    "max_factorless_accepted": 0,
+    "max_failed_factor_accepted": 0,
+    "max_weak_factor_accepted": 0,
+    "max_insufficient_aal_accepted": 0,
+    "max_policy_downgraded": 0,
+    "max_replay_accepted": 0,
+    "max_lockout_bypassed": 0,
+    "max_cross_tenant": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "metrics": ["mfa_verification_total", "mfa_challenge_total", "mfa_factor_failure_total", "mfa_policy_violation_total"],
+    "low_cardinality_labels": ["factor_type", "result", "required_aal", "deny_reason", "block_reason", "actor_realm"],
+    "high_cardinality_trace_only": ["request_id", "correlation_id", "subject_ref", "challenge_id"],
+    "alarm": "factorless_accepted / failed_factor_accepted / weak_factor_accepted / insufficient_aal_accepted / replay_accepted / lockout_bypassed / cross_tenant > 0 ⇒ ≤2dk (NFR 10.1; güvenlik olayı)",
+    "$pii_note": "Ham OTP kodu / faktör sırrı (TOTP seed, WebAuthn key) / NameID/e-posta label OLAMAZ ve log/audit'e ham yazılmaz (BRD §17.7, FR-REC-004); subject_ref/challenge_id opak."
+  },
+
+  "invariants": [
+    {"id": "S1", "claim": "Her senaryo terminal sonuca ulaşır (PASS|CHALLENGE|DENY|BLOCK); stuck state yok"},
+    {"id": "S2", "claim": "Faktör doğrulama bütünlüğü (ÇEKİRDEK): MFA gerekliyken faktörsüz erişim reddedilir; doğrulanmamış/sahte faktör geçmez; factorless_accepted=0 ∧ failed_factor_accepted=0 (FR-IAM-003/SR-IAM-003)"},
+    {"id": "S3", "claim": "AAL yeterliliği: faktör AAL'i ≥ gereken AAL; insufficient_aal_accepted=0 (SR-IAM-003)"},
+    {"id": "S4", "claim": "Ayrıcalıkta phishing-direnci (ÇEKİRDEK): L0/break-glass yalnız WebAuthn/FIDO2; weak_factor_accepted=0 (ADR-017)"},
+    {"id": "S5", "claim": "Politika most-restrictive-wins: gereken AAL = max(zemin, tenant); tenant yalnız sıkılaştırır; policy_downgraded=0 (SR-IAM-003)"},
+    {"id": "S6", "claim": "Challenge zaman geçerliliği: süresi geçmiş challenge reddedilir; challenge_expired DENY"},
+    {"id": "S7", "claim": "Tenant izolasyonu: faktör başka tenant oturumunda kullanılamaz; cross_tenant=0 (FR-TEN-002)"},
+    {"id": "S8", "claim": "Replay + kilit koruması: challenge_id tek kullanımlık + N başarısızlıkta kilit; replay_accepted=0 ∧ lockout_bypassed=0"},
+    {"id": "S9", "claim": "Her karar yapısal kanıt taşır (ham OTP/sır/PII yok); missing_evidence=0"},
+    {"id": "S10", "claim": "Model bütünlük manifesti (mfa-policy + rbac sha256); model_tampered=0"},
+    {"id": "S11", "claim": "Gözlemlenebilirlik düşük-kardinalite + ham PII yok (subject/challenge opak)"},
+    {"id": "S12", "claim": "Model/spec/sample ham OTP/credential/faktör sırrı/PII tutmaz — yalnız faktör türü + rol/realm + opak ref + enum"}
+  ],
+
+  "no_secrets": "Sır/credential/faktör sırrı (TOTP seed, WebAuthn private key) ve ham OTP kodu/PII (NameID/e-posta) repoya yazılmaz. Faktör doğrulaması soyut (factor.verified). Canlı doğrulama yalnız --url/ortam değişkeniyle (run_live_test.sh).",
+
+  "$$end": true
+}

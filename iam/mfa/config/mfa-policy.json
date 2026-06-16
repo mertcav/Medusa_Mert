@@ -1,0 +1,64 @@
+{
+  "$comment": "WBS 12.1.5 — MFA POLİTİKA MODELİ (çok faktörlü kimlik doğrulama). Bu dosya 12. workstream'in (IAM & Erişim) MFA yüzeyinin makine-okunur, DEĞİŞMEZ (frozen) KAYNAK DOĞRULUĞUDUR: FR-IAM-003 'Çok faktörlü kimlik doğrulama (MFA) desteklenmelidir' + SR-IAM-003 'Ayrıcalıklı roller için MFA zorunlu kılınabilir; MFA açıkken faktörsüz erişim reddedilir' + ADR-017 'Phishing-resistant MFA (WebAuthn/FIDO2) L0 yöneticileri ve break-glass onaylayıcıları için ZORUNLU; tenant için politika'. ROL BUNDLE'I + REALM + LAYER 12.1.1'in (config/rbac-roles.json, frozen, IMMUTABLE); bu modül oturuma yansıyan rolden + actor_realm'den + break-glass bağlamından + tenant politikasından gereken AAL'i (kimlik doğrulama güvence seviyesi) MOST-RESTRICTIVE-WINS ile çözer ve sunulan faktörü o seviyeye karşı doğrular. ÇEKİRDEK: (1) MFA gerekliyken FAKTÖRSÜZ erişim REDDEDİLİR (SR-IAM-003); doğrulanmamış/sahte faktör ASLA geçmez (fail-closed); (2) ayrıcalıklı (L0/break-glass) bağlamda phishing'e açık faktör (TOTP/SMS/push) ASLA kabul edilmez — yalnız WebAuthn/FIDO2 (ADR-017); (3) faktör AAL'i gereken seviyenin ALTINDA olamaz; (4) tenant override yalnız-SIKILAŞTIRIR (zemin platform/rol gereksinimidir, gevşetemez). Ham OTP kodu/credential/secret/PII (faktör sırrı, gizli anahtar, NameID) YOK — faktör doğrulaması SOYUT (factor.verified soyut sonuç); yalnız faktör TÜRÜ + opak challenge-id + opak subject ref + enum + sanal-saat tamsayı. SİMETRİK SIR / SAĞLAYICI-NÖTR (ADR-002): kriptografik faktör doğrulaması (WebAuthn attestation/assertion, TOTP HMAC, OTP teslimi) bu modülde YAPILMAZ (credential-free) — canlı doğrulama PoC/F2 entegrasyonunda. ÇELİŞKİDE FR-IAM-003 / SR-IAM-003 / ADR-017 esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+
+  "$aal_comment": "Kimlik doğrulama güvence seviyeleri (AAL — NIST 800-63B ruhu, ordinal). none < aal1 (tek faktör) < aal2 (iki faktör: bilinen + sahip/öz) < aal3 (donanım-tabanlı phishing-dirençli kriptografik authenticator). Gereken AAL most-restrictive-wins ile çözülür; faktör AAL'i ≥ gereken AAL olmalı (aksi insufficient_aal).",
+  "aal_levels": ["none", "aal1", "aal2", "aal3"],
+
+  "$factor_comment": "Faktör kataloğu (faktör türü → max_aal + phishing_resistant). KAYNAK DOĞRULUK: faktörün AAL'i ve phishing-direnci bu katalogdan TÜRETİLİR (istek alanı değil) — credential-free. webauthn/fido2: donanım-tabanlı phishing-DİRENÇLİ (ADR-017; AAL3). totp/push/sms_otp/email_otp: ikinci faktör ama phishing'e AÇIK (AAL2). recovery_code: tek-kullanımlık yedek (AAL2). password: tek faktör (AAL1; tek başına MFA değil). Liste dışı tür → unsupported_factor (BLOCK).",
+  "factor_catalog": {
+    "webauthn":      {"max_aal": "aal3", "phishing_resistant": true},
+    "fido2":         {"max_aal": "aal3", "phishing_resistant": true},
+    "totp":          {"max_aal": "aal2", "phishing_resistant": false},
+    "push":          {"max_aal": "aal2", "phishing_resistant": false},
+    "sms_otp":       {"max_aal": "aal2", "phishing_resistant": false},
+    "email_otp":     {"max_aal": "aal2", "phishing_resistant": false},
+    "recovery_code": {"max_aal": "aal2", "phishing_resistant": false},
+    "password":      {"max_aal": "aal1", "phishing_resistant": false}
+  },
+
+  "$role_req_comment": "Rol/bağlam → gereken AAL (SR-IAM-003 'ayrıcalıklı roller için MFA zorunlu kılınabilir' + ADR-017). platform L0 rolleri (rbac layer=L0 ya da actor_realm=platform) ve break-glass onaylayıcıları → AAL3 + phishing-dirençli ZORUNLU (ADR-017). privileged_tenant_roles → AAL2 zorunlu (ayrıcalıklı tenant rolleri: kullanıcı/rol, compliance, API). Diğer tenant rolleri → tenant politikasına bağlı (varsayılan MFA opsiyonel). Gereken AAL bu katkıların + tenant politikasının MOST-RESTRICTIVE-WINS birleşimidir.",
+  "role_requirements": {
+    "platform_l0_aal": "aal3",
+    "platform_l0_phishing_resistant": true,
+    "break_glass_aal": "aal3",
+    "break_glass_phishing_resistant": true,
+    "privileged_tenant_aal": "aal2",
+    "privileged_tenant_roles": ["tenant_owner", "tenant_admin", "security_compliance_officer", "api_developer"]
+  },
+
+  "$tenant_policy_comment": "Tenant politikası (T-03 Kullanıcı & Rol Yönetimi'nden konfigüre): required_aal (none|aal1|aal2|aal3) + phishing_resistant_required. ÇEKİRDEK (override_only_tightens): tenant override yalnız-SIKILAŞTIRIR — gereken AAL = max(platform/rol zemini, tenant politikası); tenant, platform/rol gereksinimini GEVŞETEMEZ (most-restrictive-wins). tenant_policy.required_aal=none yalnızca KATKI vermez (zemini değiştirmez). DPIA/compliance profile most-restrictive-wins deseniyle birebir (BRD §14).",
+  "tenant_policy_model": {
+    "configurable_keys": ["required_aal", "phishing_resistant_required"],
+    "override_only_tightens": true,
+    "default_required_aal": "none"
+  },
+
+  "$lockout_comment": "Brute-force/deneme koruması (panel MFA tarafı; 8.4 çağrı-tarafı analoğu): art arda başarısız faktör doğrulaması max_failed_attempts'e ulaşınca hesap kilitlenir (account_locked, BLOCK) — kilitliyken doğrulama denenemez. lockout_window_seconds penceresi içinde sayılır.",
+  "lockout_policy": {
+    "max_failed_attempts": 5,
+    "lockout_window_seconds": 900
+  },
+
+  "$challenge_comment": "Challenge (faktör meydan okuması) tazeliği + tek-kullanımlık. challenge_id (WebAuthn challenge / OTP nonce) pencere içinde TEK KULLANIMLIK; tekrar → challenge_replay (BLOCK). challenge_expires_at geçmişse → challenge_expired (DENY); clock_skew toleransı uygulanır. Deterministik sanal saat (Date.now YOK).",
+  "challenge_policy": {
+    "single_use": true,
+    "honor_expires_at": true,
+    "default_clock_skew_seconds": 60
+  },
+
+  "$tenant_isolation_comment": "Tenant izolasyonu (FR-TEN-002) MFA'nın üstünde: bir tenant'a kayıtlı faktör (factor.tenant_id) BAŞKA tenant'ın oturumunda kullanılamaz; factor.tenant_id = request tenant_id olmalı, aksi → cross_tenant (BLOCK; güvenlik olayı).",
+  "tenant_isolation": {
+    "factor_bound_to_tenant": true,
+    "tenant_boundary_above_mfa": true
+  },
+
+  "$privacy_comment": "Gizlilik (BRD §17.7 / FR-REC-004): faktör sırrı (TOTP seed, WebAuthn private key), ham OTP kodu, NameID/e-posta oturuma/log'a/audit'e YAZILMAZ — yalnız faktör TÜRÜ + opak challenge_id + opak subject_ref + sonuç enum. Düşük-kardinalite metrik (factor_type/result/required_aal/actor_realm); yüksek-kardinalite (request_id/subject_ref/challenge_id) yalnız trace/log.",
+  "privacy": {
+    "no_raw_otp_persisted": true,
+    "no_factor_secret_persisted": true,
+    "subject_reference_opaque": true
+  }
+}

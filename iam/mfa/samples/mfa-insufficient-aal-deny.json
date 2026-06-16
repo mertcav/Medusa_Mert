@@ -1,0 +1,29 @@
+{
+  "name": "mfa-insufficient-aal-deny",
+  "request_id": "req-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "actor_realm": "tenant",
+  "actor_role": "tenant_admin",
+  "break_glass": false,
+  "now": 1000,
+  "tenant_policy": {},
+  "has_enrolled_factor": true,
+  "failed_attempts": 0,
+  "factor": {
+    "type": "password",
+    "verified": true,
+    "challenge_id": "ch-1",
+    "challenge_expires_at": 5000,
+    "subject_ref": "u-1",
+    "tenant_id": "t-acme"
+  },
+  "seen_challenge_ids": [],
+  "$comment": "tenant_admin (AAL2) + password (AAL1, tek faktör) → DENY insufficient_aal. Meşru reddetme. S3.",
+  "expect": "pass",
+  "expected": {
+    "terminal": "DENY",
+    "deny_reason": "insufficient_aal",
+    "required_aal": "aal2"
+  }
+}

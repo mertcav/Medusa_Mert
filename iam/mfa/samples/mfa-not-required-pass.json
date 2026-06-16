@@ -1,0 +1,22 @@
+{
+  "name": "mfa-not-required-pass",
+  "request_id": "req-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "actor_realm": "tenant",
+  "actor_role": "qa_analyst",
+  "break_glass": false,
+  "now": 1000,
+  "tenant_policy": {},
+  "has_enrolled_factor": false,
+  "failed_attempts": 0,
+  "factor": null,
+  "seen_challenge_ids": [],
+  "$comment": "Sade tenant rolü (qa_analyst, ayrıcalıklı değil) + tenant politikası yok → MFA gerekmiyor → PASS mfa_not_required.",
+  "expect": "pass",
+  "expected": {
+    "terminal": "PASS",
+    "pass_reason": "mfa_not_required",
+    "required_aal": "none"
+  }
+}

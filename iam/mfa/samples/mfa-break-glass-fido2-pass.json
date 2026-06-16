@@ -1,0 +1,29 @@
+{
+  "name": "mfa-break-glass-fido2-pass",
+  "request_id": "req-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "actor_realm": "tenant",
+  "actor_role": "security_compliance_officer",
+  "break_glass": true,
+  "now": 1000,
+  "tenant_policy": {},
+  "has_enrolled_factor": true,
+  "failed_attempts": 0,
+  "factor": {
+    "type": "fido2",
+    "verified": true,
+    "challenge_id": "ch-1",
+    "challenge_expires_at": 5000,
+    "subject_ref": "u-1",
+    "tenant_id": "t-acme"
+  },
+  "seen_challenge_ids": [],
+  "$comment": "ADR-017: break-glass onaylayıcı → AAL3 + phishing-dirençli ZORUNLU; fido2 → PASS. S4.",
+  "expect": "pass",
+  "expected": {
+    "terminal": "PASS",
+    "required_aal": "aal3",
+    "satisfied": true
+  }
+}

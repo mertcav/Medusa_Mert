@@ -1,0 +1,20 @@
+{
+  "name": "mfa-degrade-accept-factorless",
+  "request_id": "req-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "actor_realm": "tenant",
+  "actor_role": "tenant_admin",
+  "break_glass": false,
+  "now": 1000,
+  "tenant_policy": {},
+  "has_enrolled_factor": false,
+  "failed_attempts": 0,
+  "factor": null,
+  "seen_challenge_ids": [],
+  "inject": [
+    "accept_factorless"
+  ],
+  "$comment": "DEGRADE: MFA gerekli + faktör yok + kayıtsız, faktörsüzü KABUL et (inject) → factorless_accepted>0 → PASS (yanlış) → kapı ELER. SR-IAM-003 ihlali.",
+  "expect": "fail"
+}

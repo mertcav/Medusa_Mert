@@ -1,0 +1,30 @@
+{
+  "name": "mfa-degrade-accept-weak-factor",
+  "request_id": "req-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "actor_realm": "tenant",
+  "actor_role": "tenant_admin",
+  "break_glass": false,
+  "now": 1000,
+  "tenant_policy": {
+    "required_aal": "aal2",
+    "phishing_resistant_required": true
+  },
+  "has_enrolled_factor": true,
+  "failed_attempts": 0,
+  "factor": {
+    "type": "totp",
+    "verified": true,
+    "challenge_id": "ch-1",
+    "challenge_expires_at": 5000,
+    "subject_ref": "u-1",
+    "tenant_id": "t-acme"
+  },
+  "seen_challenge_ids": [],
+  "inject": [
+    "accept_weak_factor"
+  ],
+  "$comment": "DEGRADE (ADR-017 ihlali): phishing AAL2'de istenir; totp (AAL2 ama phishing'e açık) zayıf faktörü KABUL et (inject) → weak_factor_accepted>0 → PASS (yanlış) → kapı ELER. S4.",
+  "expect": "fail"
+}

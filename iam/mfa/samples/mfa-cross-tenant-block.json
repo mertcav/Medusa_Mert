@@ -1,0 +1,24 @@
+{
+  "name": "mfa-cross-tenant-block",
+  "request_id": "req-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "actor_realm": "tenant",
+  "actor_role": "tenant_admin",
+  "break_glass": false,
+  "now": 1000,
+  "tenant_policy": {},
+  "has_enrolled_factor": true,
+  "failed_attempts": 0,
+  "factor": {
+    "type": "webauthn",
+    "verified": true,
+    "challenge_id": "ch-1",
+    "challenge_expires_at": 1300,
+    "subject_ref": "u-1",
+    "tenant_id": "t-other"
+  },
+  "seen_challenge_ids": [],
+  "$comment": "GÜVENLİK OLAYI: faktör başka tenant'a (t-other) kayıtlı → BLOCK cross_tenant + cross_tenant>0 → kapı ELER (meşru reddetme ama güvenlik olayı sayacı). FR-TEN-002/S7.",
+  "expect": "fail"
+}
