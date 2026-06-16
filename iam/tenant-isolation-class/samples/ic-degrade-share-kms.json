@@ -1,0 +1,9 @@
+{
+  "name": "DEGRADE — paylaşılan/çakışan KMS key ile commit (R7 — NFR 10.6 ihlali)",
+  "request_id": "req-d07", "op": "assign", "actor_realm": "platform",
+  "plane": "platform_control_plane", "actor_permissions": ["tenant:provision"],
+  "tenant_id": "t-d07", "isolation_mode": "shared", "runtime_placement": "shared_pool",
+  "rls_enabled": true, "kms_key_ref": "kms-shared-x", "existing_kms_keys": ["kms-shared-x"],
+  "surface_region": "EU", "home_region": "EU", "audit_emitted": true,
+  "inject": ["share_kms"], "expect": "fail"
+}

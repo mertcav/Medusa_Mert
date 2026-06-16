@@ -1,0 +1,9 @@
+{
+  "name": "DEGRADE — dedicated yüzeyde RLS kaldırılıp commit (R6 — DB.md §6 ihlali)",
+  "request_id": "req-d06", "op": "provision_surface", "actor_realm": "platform",
+  "plane": "platform_control_plane", "actor_permissions": ["tenant:provision"],
+  "tenant_id": "t-d06", "isolation_mode": "dedicated", "runtime_placement": "dedicated_cluster",
+  "rls_enabled": true, "kms_key_ref": "kms-eu-d06", "surface_region": "EU", "home_region": "EU",
+  "audit_emitted": true,
+  "inject": ["waive_rls"], "expect": "fail"
+}

@@ -1,0 +1,9 @@
+{
+  "name": "DEGRADE — mod yüzeye eşlenmiyor ama commit (R4)",
+  "request_id": "req-d03", "op": "assign", "actor_realm": "platform",
+  "plane": "platform_control_plane", "actor_permissions": ["tenant:provision"],
+  "tenant_id": "t-d03", "isolation_mode": "shared", "runtime_placement": "shared_pool",
+  "rls_enabled": true, "kms_key_ref": "kms-eu-d03", "surface_region": "EU", "home_region": "EU",
+  "audit_emitted": true,
+  "inject": ["mode_mismatch"], "expect": "fail"
+}

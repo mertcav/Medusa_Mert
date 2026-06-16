@@ -1,0 +1,10 @@
+{
+  "name": "DEGRADE — mutasyon WORM audit'siz commit (R9)",
+  "request_id": "req-d09", "op": "migrate", "actor_realm": "platform",
+  "plane": "platform_control_plane", "actor_permissions": ["tenant:provision"],
+  "tenant_id": "t-d09", "isolation_mode": "dedicated", "current_mode": "shared",
+  "runtime_placement": "dedicated_cluster", "rls_enabled": true, "kms_key_ref": "kms-eu-d09",
+  "surface_region": "EU", "home_region": "EU", "migration_plan": "MP-d09", "confirm": true,
+  "audit_emitted": true,
+  "inject": ["skip_audit"], "expect": "fail"
+}

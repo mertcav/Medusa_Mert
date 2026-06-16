@@ -1,0 +1,171 @@
+{
+  "$comment": "WBS 12.4.2 — DEDICATED vs SHARED TENANT (FR-TEN-005 'Dedicated tenant ve shared tenant seçenekleri desteklenmelidir'; SAD §13.1 izolasyon modeli; ADR-006 'shared (RLS) varsayılan + dedicated opsiyon'; DB.md §5.1 tenant.isolation_mode CHECK [shared/dedicated] + §6 'dedicated modda da tenant RLS aynıdır'). 12. workstream'in (IAM & Erişim) TENANT İZOLASYON-SINIFI modülü ve F2-Should yeteneği. 12.4.1 (tenant CRUD/provisioning) izolasyon SINIFININ seçimi/sağlanmasını BU modüle DELEGE eder. İzolasyon sınıfını DETERMİNİSTİK, FAIL-CLOSED bir BAĞLAMA (binding) kararı olarak modeller: bir IsolationRequest (op + actor_realm + plane + actor_permissions + tenant_id + isolation_mode [target] + current_mode + runtime_placement + rls_enabled + kms_key_ref/existing_kms_keys + surface_region/home_region + migration_plan/confirm + audit_emitted) alır → COMMIT (izolasyon sınıfı atanır/sağlanır/değiştirilir) | REJECT (fail-closed default). İşlemler: assign/provision_surface/migrate/read. ÇEKİRDEK garantiler: (1) R2 REALM İZOLASYONU — izolasyon sınıfı seçimi YALNIZ platform realm + platform_control_plane (FR-IAM-008; ADR-011); tenant realm değiştirirse cross_realm_op. (2) R3 YETKİLENDİRME — op tenant:provision gerektirir (12.1.2 katalog; platform_owner 12.1.1); yetkisiz commit = unauthorized_op. (3) R4 MOD→YÜZEY BAĞLAMASI — isolation_mode ∈ {shared,dedicated} (DB.md §5.1 CHECK) + yüzey moda eşlenmeli (shared⇒shared_pool+RLS-mantıksal; dedicated⇒dedicated namespace/cluster) + migrate migration_plan+confirm gerektirir (sessiz flip yasak); uyumsuz/korumasız commit = mode_surface_mismatch. (5) R5 DEDICATED AYRIM — dedicated tenant shared havuza (shared_pool) YERLEŞTİRİLEMEZ (SAD §13.1 fiziksel/ayrılmış izolasyon); shared_pool'da dedicated commit = dedicated_in_shared_pool. (6) R6 RLS HER İKİ MODDA — Row-Level Security shared VE dedicated'da açık kalır (DB.md §6 'dedicated modda da tenant RLS aynıdır'; savunma-derinliği); rls_enabled=false commit = rls_waived. (7) R7 TENANT-BAŞINA KMS — her iki modda tenant kendi kms_key_ref'ini alır (NFR 10.6; FR-TEN-002); paylaşılan/boş key commit = shared_kms_key. (8) R8 RESIDENCY TUTARLILIĞI — surface_region == home_region (NFR 10.7 UK/EU/NA/ME); uyumsuz commit = residency_mismatch. (9) R9 WORM AUDIT — her mutasyon audit_log'a (FR-REC-009/FR-IAM-006; 12.1.8); audit'siz = missing_audit. Motor DETERMİNİSTİK FAIL-CLOSED (Date.now/random YOK; model_hash sha256). Her karar terminal (R1) + kanıt + model bütünlük manifesti (R10); metrik düşük-kardinalite + ham PII yok (R11); model/spec/sample ham içerik/PII/credential (kms key materyali) tutmaz (R12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): tenant CRUD + yaşam döngüsü durum makinesi → 12.4.1; PostgreSQL RLS çalışma-anı zorlama/çift-kontrol → 12.2.3; tenant içi org yapısı (L1) → 12.4.3; tenant dil/saat/bölge/saklama TERCİHİ (L1) → 12.4.4; rol→permission-key bundle → 12.1.1; permission katalog → 12.1.2; WORM audit AKIŞI → 12.1.8; repo/grant bağımsızlık → 12.2.4; kaynak kotası → FR-TEN-006/007; plan/billing (dedicated faturalama) → WBS 15; gerçek veri taşıma/cutover (migrate yürütme) → F1 kod + ops runbook; gerçek IaC namespace/cluster sağlama → 0.4.2/0.4.3. KAYNAK DOĞRULUK; çelişkide FR-TEN-005 / SAD §13.1 / ADR-006 / DB.md §5.1 esastır.",
+  "version": "1.0",
+  "wbs": "12.4.2",
+  "phase": "F2",
+  "priority": "Should",
+  "trace": {
+    "fr": ["FR-TEN-005", "FR-TEN-002", "FR-IAM-008", "FR-IAM-006", "FR-REC-009", "FR-BIL-005", "FR-TST-008"],
+    "srs": ["SR-TEN-005", "SR-TEN-002"],
+    "rtm": ["TC-TEN-005"],
+    "brd": [
+      "FR-TEN-005 ('Dedicated tenant ve shared tenant seçenekleri desteklenmelidir' — Should)",
+      "§16 (28 ana varlık — Tenant kök varlık; isolation_mode)",
+      "§14.4 (panel mimarisi — izolasyon sınıfı L0 yaşam döngüsü)",
+      "FR-BIL-005 ('Dedicated altyapı maliyetleri ayrıca faturalandırılabilmelidir' — Should)"
+    ],
+    "sad": [
+      "§13.1 (izolasyon modeli — shared mantıksal [tek havuz + RLS + tenant KMS] / dedicated fiziksel-ayrılmış [ayrı namespace/cluster/region])",
+      "§13.2 (kota/noisy-neighbor — dedicated güçlü izolasyon)",
+      "§14.4.1 (L0 ayrı internal-only Platform Control Plane — izolasyon sınıfı L0'da)"
+    ],
+    "adr": [
+      "ADR-006 (tenant izolasyonu — shared [RLS] varsayılan + dedicated opsiyon; isolation_mode)",
+      "ADR-011 (iki düzlemli panel — L0 internal-only; izolasyon sınıfı platform_control_plane'de)",
+      "ADR-012 (sabit rol bundle — platform_owner tenant:provision taşır)",
+      "ADR-001 (deterministik karar fonksiyonu deseni)"
+    ],
+    "threat_model": [
+      "TM-I-02 (dedicated tenant shared havuza yerleşir — izolasyon regresyonu; R5 dedicated_in_shared_pool)",
+      "TM-T-03 (yetkisiz izolasyon sınıfı değişimi — permission-key zorunluluğu R3 + WORM audit R9)",
+      "TM-E-04 (tenant realm L0 izolasyon sınıfını değiştirir — cross_realm_op; R2)"
+    ],
+    "consumes": [
+      "12.4.1 tenant-provisioning config/tenant-lifecycle-model.json (isolation_modes shared/dedicated + tenant başına KMS; izolasyon SINIFI seçimi 12.4.2'ye DELEGE — RESİPROKAL) — TÜKETİLİR",
+      "12.2.3 rls-double-check config/rls-model.json (RLS her iki modda zorunlu; dedicated RLS'i kaldırmaz — RESİPROKAL R6) — TÜKETİLİR",
+      "12.1.2 permission-catalog config/permission-catalog.json (tenant:provision MEVCUT; yeni anahtar icat edilmez) — TÜKETİLİR",
+      "12.1.1 rbac-model config/rbac-roles.json (platform_owner bundle tenant:provision taşır; L0 realm) — TÜKETİLİR",
+      "12.2.4 l0-repo-independence config/repo-independence-model.json (table_class_of.tenant = platform — RESİPROKAL) — TÜKETİLİR",
+      "isolation-class-model.json (frozen — isolation_modes + operations + op_permission + surface_binding + rls + kms + residency + migration + audit)"
+    ],
+    "consumed_by": [
+      "1.x F1 kod (gerçek L0 izolasyon sağlama: IaC namespace/cluster [0.4.2/0.4.3] + RLS politikaları + KMS tahsisi + migrate cutover)",
+      "12.4.3 org yapısı (L1) + 12.4.4 tenant tercihleri (L1)",
+      "WBS 15 billing (dedicated ayrı faturalama; FR-BIL-005) + 0.4.7 gözlemlenebilirlik"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Dedicated vs shared tenant, L0 Platform Admin Console (ADR-011) izolasyon-sınıfı iş mantığıdır. 12.4.1 (tenant CRUD/lifecycle) izolasyon SINIFININ seçimi/sağlanmasını buraya DELEGE eder. Tenant izolasyon sınıfını DETERMİNİSTİK bir BAĞLAMA kararıyla yönetir: mod (shared|dedicated; ADR-006) → izolasyon yüzeyi (shared_pool+RLS | dedicated namespace/cluster) tutarlı eşlenir; dedicated shared havuza yerleşemez; RLS + tenant başına KMS her iki modda korunur; residency tutarlı; mod değişimi (migrate) plan+confirm gerektirir. YALNIZ platform realm + platform_control_plane (FR-IAM-008); op tenant:provision gerektirir. Motor yalnız KARAR + kanıt + model bütünlük manifesti üretir (gerçek IaC namespace/cluster + RLS politikası + KMS tahsisi + migrate cutover F1 kod aşamasında); deterministik kontrol düzlemi (Date.now/random YOK). Vendor-neutral (ADR-002/006/011).",
+    "plane": "L0 izolasyon-sınıfı iş mantığı (platform_control_plane; 12.4.1 lifecycle'ın DELEGE ettiği izolasyon SINIFI kararı; RLS çalışma-anı zorlama [12.2.3] kararının ÜSTÜNDE; isolation_mode = platform-sınıf 12.2.4)",
+    "owns": "FR-TEN-005 DEDICATED vs SHARED TENANT: IsolationRequest → malformed kapısı + realm/plane izolasyonu (platform-only; R2) + yetkilendirme (op→tenant:provision; R3) + mod→yüzey bağlaması (shared/dedicated geçerli + yüzey moda eşlenir + migrate korumalı; R4) + dedicated ayrım (shared havuza yerleşemez; R5) + RLS her iki modda (R6) + tenant başına KMS her iki modda (R7) + residency tutarlılığı (surface==home_region; R8) + WORM audit (R9) + terminal {COMMIT|REJECT} + model bütünlük manifesti (R10) + karar kanıtı",
+    "delegates": "tenant CRUD/lifecycle → 12.4.1; RLS çalışma-anı çift-kontrol → 12.2.3; tenant içi org → 12.4.3; tenant tercih (L1) → 12.4.4; rol bundle → 12.1.1; permission katalog → 12.1.2; WORM audit akışı → 12.1.8; repo/grant bağımsızlık → 12.2.4; kaynak kotası → FR-TEN-006/007; dedicated faturalama → WBS 15; migrate cutover/veri taşıma → F1 kod + ops runbook; IaC namespace/cluster sağlama → 0.4.2/0.4.3",
+    "deterministic": true,
+    "fail_closed": true,
+    "decision_at": "L0 kontrol düzlemi (deterministik; çalışma-anı yan etkiden BAĞIMSIZ karar)",
+    "trace": "FR-TEN-005, SAD §13.1, ADR-006, DB.md §5.1"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ L0 izolasyon-sınıfı bağlama kararı. Önce malformed; sonra realm/plane izolasyonu; sonra yetkilendirme; sonra mod→yüzey bağlaması; sonra dedicated ayrım; sonra RLS; sonra tenant başına KMS; sonra residency; sonra WORM audit. Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "realm_isolation", "field": "izolasyon sınıfı seçimi YALNIZ platform realm + platform_control_plane", "invariant": "R2", "outcome": "COMMIT|REJECT",
+       "rule": "IsolationRequest yalnız actor_realm=platform + plane=platform_control_plane ile yürütülür (FR-IAM-008 altın kural; ADR-011 L0 internal-only). tenant realm (L1/L2) izolasyon sınıfını değiştirirse güven sınırı çöker = cross_realm_op. cross_realm_op=0"},
+      {"id": "authorization", "field": "op gerekli permission-key'i gerektirir (backend kararı)", "invariant": "R3", "outcome": "COMMIT|REJECT",
+       "rule": "her op tenant:provision permission-key'i taşıyan aktör gerektirir (op_permission; 12.1.2 katalog; platform_owner bundle 12.1.1/ADR-012). Yetki kararı HER ZAMAN backend'de (BRD §17.7). Gerekli key olmadan op commit = unauthorized_op. unauthorized_op=0"},
+      {"id": "mode_surface_binding", "field": "isolation_mode geçerli + yüzey moda eşlenir + migrate korumalı", "invariant": "R4", "outcome": "COMMIT|REJECT",
+       "rule": "isolation_mode ∈ {shared,dedicated} (DB.md §5.1 CHECK; ADR-006). Yüzey moda eşlenmeli (SAD §13.1): shared ⇒ runtime_placement=shared_pool (mantıksal izolasyon); dedicated ⇒ runtime_placement ∈ {dedicated_namespace,dedicated_cluster} (fiziksel/ayrılmış). migrate (current_mode≠mode) migration_plan + confirm gerektirir (sessiz flip yasak; izolasyon yüzeyleri arası veri taşıması). Geçersiz mod / yanlış yüzey eşlemesi / korumasız migrate commit = mode_surface_mismatch. mode_surface_mismatch=0"},
+      {"id": "dedicated_separation", "field": "dedicated tenant shared havuza yerleşemez", "invariant": "R5", "outcome": "COMMIT|REJECT",
+       "rule": "dedicated mod fiziksel/ayrılmış izolasyon gerektirir (SAD §13.1 'ayrı namespace/cluster/region'). dedicated tenant shared_pool'a (paylaşılan runtime havuzu) yerleştirilirse izolasyon vaadi çöker = dedicated_in_shared_pool. dedicated_in_shared_pool=0"},
+      {"id": "rls_always_on", "field": "RLS her iki izolasyon modunda açık", "invariant": "R6", "outcome": "COMMIT|REJECT",
+       "rule": "Row-Level Security shared VE dedicated modda açık kalır (DB.md §6 'dedicated modda da tenant RLS ... aynıdır'; savunma-derinliği — fiziksel ayrım RLS'in YERİNE geçmez, ona EKLENİR; 12.2.3 RESİPROKAL). rls_enabled=false (herhangi modda) commit = rls_waived. rls_waived=0"},
+      {"id": "per_tenant_kms", "field": "her iki modda tenant kendi kms_key_ref'ini alır", "invariant": "R7", "outcome": "COMMIT|REJECT",
+       "rule": "tenant başına AYRI KMS key shared VE dedicated modda zorunlu (NFR 10.6 'tenant bazında ayrı encryption key'; FR-TEN-002 — izolasyon modu KMS izolasyonunun YERİNE geçmez). kms_key_ref boş VEYA başka tenant'ın anahtarıyla aynı (existing_kms_keys çakışması) commit = shared_kms_key. shared_kms_key=0"},
+      {"id": "residency_consistency", "field": "izolasyon yüzeyi bölgesi home_region ile eşleşir", "invariant": "R8", "outcome": "COMMIT|REJECT",
+       "rule": "izolasyon yüzeyinin bölgesi (surface_region) tenant.home_region ile eşleşmeli (NFR 10.7 UK/EU/NA/ME; SAD §12.3 data residency). dedicated cluster yanlış bölgede VEYA surface_region≠home_region commit = residency_mismatch. residency_mismatch=0"},
+      {"id": "worm_audit", "field": "her mutasyon WORM audit_log'a yazılır", "invariant": "R9", "outcome": "COMMIT|REJECT",
+       "rule": "her mutasyon op'u (assign/provision_surface/migrate) WORM append-only audit_log'a kaydedilir (DB.md §5.1 audit_log WORM + hash chain; FR-IAM-006/FR-REC-009; akış 12.1.8'e DELEGE). read mutasyon değildir. Audit'siz mutasyon commit = missing_audit. missing_audit=0"},
+      {"id": "model_integrity", "field": "izolasyon-sınıfı modeli frozen + model_hash sha256", "invariant": "R10", "outcome": "COMMIT|REJECT",
+       "rule": "model (isolation_modes/operations/op_permission/surface_binding/rls/kms/residency/migration/audit) frozen; model_hash = sha256(kanonik); çalışma anında tahrif (ör. RLS'i opsiyonel yapma / dedicated'ı shared_pool'a izin verme / realm zorunluluğunu kaldırma) yeniden-hesaplanan hash'le yakalanır → model_tampered. İzolasyon-sınıfı yüzeyi audit edilebilir (ADR-006/011). model_tampered=0"}
+    ],
+    "evaluation": "malformed_then_realm_isolation_then_authorization_then_mode_surface_binding_then_dedicated_separation_then_rls_always_on_then_per_tenant_kms_then_residency_consistency_then_worm_audit",
+    "trace": "FR-TEN-005, SAD §13.1, ADR-006, DB.md §5.1/§6, NFR 10.6/10.7"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed L0 izolasyon-sınıfı algoritması. Adımlar: (1) malformed (request_id eksik / op geçersiz / actor_realm-plane geçersiz / isolation_mode geçersiz → REJECT malformed). (2) realm/plane: platform-dışı → REJECT (commit edilirse cross_realm_op). (3) yetki: tenant:provision yoksa REJECT (commit edilirse unauthorized_op). (4) mod→yüzey: geçersiz mod / yanlış yüzey / korumasız migrate → REJECT (commit edilirse mode_surface_mismatch). (5) dedicated ayrım: dedicated shared_pool'da → REJECT (commit edilirse dedicated_in_shared_pool). (6) RLS: rls_enabled=false → REJECT (commit edilirse rls_waived). (7) KMS: boş/paylaşılan key → REJECT (commit edilirse shared_kms_key). (8) residency: surface≠home_region → REJECT (commit edilirse residency_mismatch). (9) audit (mutasyon): audit yok → REJECT (commit edilirse missing_audit). Tümü geçerse COMMIT. Belirsizlik/malformed → REJECT (fail-closed; ASLA fail-open COMMIT).",
+    "algorithm": "malformed ⇒ REJECT(malformed) → ¬(platform ∧ platform_control_plane) ⇒ REJECT [commit ⇒ cross_realm_op] → tenant:provision ∉ actor_permissions ⇒ REJECT [commit ⇒ unauthorized_op] → ¬valid_mode_surface(mode,placement,migrate) ⇒ REJECT [commit ⇒ mode_surface_mismatch] → dedicated ∧ placement=shared_pool ⇒ REJECT [commit ⇒ dedicated_in_shared_pool] → ¬rls_enabled ⇒ REJECT [commit ⇒ rls_waived] → ¬kms_distinct ⇒ REJECT [commit ⇒ shared_kms_key] → surface_region≠home_region ⇒ REJECT [commit ⇒ residency_mismatch] → mutating ∧ ¬audit ⇒ REJECT [commit ⇒ missing_audit] → COMMIT",
+    "default": "REJECT",
+    "fail_safe_terminal": "no op (terminal=REJECT ⇒ izolasyon sınıfı atanmaz/sağlanmaz/değişmez; malformed/yetkisiz/uyumsuz-yüzey/RLS-kaldırma/residency-uyumsuz ⇒ REJECT)",
+    "trace": "SR-TEN-005, FR-TEN-005, SAD §13.1"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal kararlar. COMMIT = izolasyon sınıfı atanır/yüzey sağlanır/mod değişir. REJECT = işlem reddedilir (fail-closed default). Uyumsuz/korumasız op'un REJECT'i DOĞRU çıktıdır (ihlal değil). İhlal sayaçları YALNIZ unsafe koşul + commit birlikte olunca artar (degrade ispatı).",
+    "list": ["COMMIT", "REJECT"],
+    "terminal": ["COMMIT", "REJECT"]
+  },
+
+  "model": {
+    "$comment": "İzolasyon-sınıfı modeli özeti = config/isolation-class-model.json (frozen). isolation_modes (shared default/dedicated) + operations (assign/provision_surface/migrate/read; mutating 3) + op_permission (tenant:provision) + surface_binding (shared⇒shared_pool+RLS / dedicated⇒namespace,cluster) + rls (her iki modda zorunlu) + kms (her iki modda tenant başına) + residency (surface==home_region; UK/EU/NA/ME) + migration (plan+confirm) + audit (WORM). Karar deterministik (çalışma-anı yan etkiden BAĞIMSIZ).",
+    "frozen": true,
+    "decision_at": "L0 kontrol düzlemi",
+    "isolation_modes": ["shared", "dedicated"],
+    "default_mode": "shared",
+    "operations": ["assign", "provision_surface", "migrate", "read"],
+    "mutating_operations": ["assign", "provision_surface", "migrate"],
+    "valid_runtime_placements": ["shared_pool", "dedicated_namespace", "dedicated_cluster"],
+    "regions": ["UK", "EU", "NA", "ME"],
+    "required_actor_realm": "platform",
+    "required_plane": "platform_control_plane"
+  },
+
+  "enforcement": {
+    "$comment": "L0 izolasyon-sınıfı enforcement (FR-TEN-005, SAD §13.1, ADR-006). realm_layer: platform realm + platform_control_plane (ADR-011). authz_layer: op→tenant:provision (12.1.2; platform_owner 12.1.1). binding_layer: mod→yüzey eşlemesi (shared⇒shared_pool / dedicated⇒namespace,cluster) + migrate korumalı. separation_layer: dedicated shared havuza yerleşemez. rls_layer: RLS her iki modda (DB.md §6; 12.2.3). kms_layer: tenant başına KMS her iki modda (NFR 10.6). residency_layer: surface==home_region (NFR 10.7). audit_layer: her mutasyon WORM audit_log (12.1.8). Karar deterministik.",
+    "realm_layer": "actor_realm=platform ∧ plane=platform_control_plane (FR-IAM-008 altın kural; ADR-011 L0 internal-only)",
+    "authz_layer": "op_permission[op]=tenant:provision ∈ actor_permissions (12.1.2 katalog; backend kararı BRD §17.7)",
+    "binding_layer": "isolation_mode ∈ {shared,dedicated} + yüzey moda eşlenir (shared⇒shared_pool / dedicated⇒dedicated_namespace,dedicated_cluster) + migrate migration_plan+confirm (SAD §13.1, ADR-006)",
+    "separation_layer": "dedicated tenant shared_pool'a yerleşemez (fiziksel/ayrılmış izolasyon; SAD §13.1)",
+    "rls_layer": "RLS shared VE dedicated modda açık (DB.md §6; 12.2.3 RESİPROKAL — dedicated RLS'i kaldırmaz)",
+    "kms_layer": "tenant başına AYRI KMS key her iki modda (NFR 10.6; FR-TEN-002)",
+    "residency_layer": "surface_region == home_region (NFR 10.7 UK/EU/NA/ME; SAD §12.3)",
+    "audit_layer": "her mutasyon → WORM append-only audit_log (FR-REC-009/FR-IAM-006; 12.1.8)",
+    "decision_at": "L0 kontrol düzlemi",
+    "trace": "FR-TEN-005, SAD §13.1, ADR-006, DB.md §5.1/§6, NFR 10.6/10.7, ADR-011/012"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. cross_realm_op (R2) = tenant realm izolasyon sınıfını değiştirdi; unauthorized_op (R3) = tenant:provision olmadan commit; mode_surface_mismatch (R4) = geçersiz mod/yanlış yüzey/korumasız migrate commit; dedicated_in_shared_pool (R5) = dedicated tenant shared havuzda commit; rls_waived (R6) = RLS kapalı commit; shared_kms_key (R7) = paylaşılan/boş KMS key commit; residency_mismatch (R8) = surface≠home_region commit; missing_audit (R9) = mutasyon WORM audit'siz commit; model_tampered (R10) = model bütünlük manifesti tutmuyor. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1 canlı (IaC namespace/cluster + RLS politikası + KMS tahsisi) verisinde doğrulanır.",
+    "max_cross_realm_op": 0,
+    "max_unauthorized_op": 0,
+    "max_mode_surface_mismatch": 0,
+    "max_dedicated_in_shared_pool": 0,
+    "max_rls_waived": 0,
+    "max_shared_kms_key": 0,
+    "max_residency_mismatch": 0,
+    "max_missing_audit": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "İzolasyon-sınıfı her karar için bağlama metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. isolation_decision_total{op,result,isolation_mode,runtime_placement} → karar sayımı (result=COMMIT/REJECT); isolation_violation_total → cross_realm_op VEYA unauthorized_op VEYA mode_surface_mismatch VEYA dedicated_in_shared_pool VEYA rls_waived VEYA shared_kms_key VEYA residency_mismatch VEYA missing_audit VEYA model_tampered (R2–R10 ihlal alarmı, 0 olmalı). op+result+isolation_mode+runtime_placement+actor_realm DÜŞÜK kardinalite (label uygun); tenant_id/request_id/kms_key_ref YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM İÇERİK/PII/KMS key materyali metrikte VE log'da YOK (BRD §17.7/FR-REC-004). cross_realm_op>0 VEYA dedicated_in_shared_pool>0 VEYA rls_waived>0 VEYA shared_kms_key>0 VEYA model_tampered>0 → kritik alarm ≤2dk (SAD §17.2, NFR 10.1) = tenant izolasyon güvenlik olayı.",
+    "metrics": ["isolation_decision_total", "isolation_violation_total"],
+    "low_cardinality_labels": ["op", "result", "isolation_mode", "runtime_placement", "actor_realm"],
+    "high_cardinality_trace_only": ["tenant_id", "request_id", "kms_key_ref"],
+    "alarm": "cross_realm_op>0 (tenant realm izolasyon sınıfını değiştirdi — R2, FR-IAM-008) VEYA dedicated_in_shared_pool>0 (dedicated tenant shared havuzda — R5, SAD §13.1) VEYA rls_waived>0 (RLS kaldırıldı — R6, DB.md §6) VEYA shared_kms_key>0 (tenant KMS izolasyonu çöktü — R7, NFR 10.6) VEYA model_tampered>0 (R10) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "R1", "desc": "Determinizm/tamlık + kanıt: her IsolationRequest tanımlı malformed→realm→authz→mode_surface→dedicated_separation→rls→kms→residency→audit algoritması boyunca ilerler ve bir terminal karara {COMMIT|REJECT} ulaşır; aynı girdi → aynı çıktı (deterministik; model_hash sha256 kanonik JSON; Date.now/random YOK); varsayılan REJECT (fail-closed; no op); her karar kanıt taşır (request_id + op + actor_realm + plane + isolation_mode + runtime_placement + terminal + model_hash). stuck_state=0, missing_evidence=0.", "trace": "SR-TEN-005, FR-TEN-005"},
+    {"id": "R2", "desc": "Realm/plane izolasyonu (FR-IAM-008 altın kural; ADR-011): izolasyon sınıfı seçimi/değişimi YALNIZ actor_realm=platform + plane=platform_control_plane (L0 internal-only) ile yürütülür; tenant realm (L1/L2) izolasyon sınıfını değiştirirse = cross_realm_op. cross_realm_op=0.", "trace": "FR-IAM-008, ADR-011, SAD §14.4.1"},
+    {"id": "R3", "desc": "Yetkilendirme (BRD §17.7, ADR-012): her op tenant:provision permission-key'i taşıyan aktör gerektirir (op_permission; 12.1.2 katalog; platform_owner bundle 12.1.1). Yetki kararı her zaman backend'de. Gerekli key olmadan op commit = unauthorized_op. unauthorized_op=0.", "trace": "FR-TEN-005, BRD §17.7, ADR-012, 12.1.1/12.1.2"},
+    {"id": "R4", "desc": "Mod→yüzey bağlaması ÇEKİRDEK (ADR-006, SAD §13.1, DB.md §5.1 CHECK): isolation_mode ∈ {shared,dedicated}; yüzey moda eşlenmeli (shared⇒shared_pool+RLS-mantıksal; dedicated⇒dedicated_namespace/cluster fiziksel-ayrılmış); migrate (current_mode≠mode) migration_plan+confirm gerektirir (sessiz flip yasak — izolasyon yüzeyleri arası veri taşıması). Geçersiz mod / yanlış yüzey / korumasız migrate commit = mode_surface_mismatch. mode_surface_mismatch=0.", "trace": "FR-TEN-005, ADR-006, SAD §13.1, DB.md §5.1"},
+    {"id": "R5", "desc": "Dedicated ayrım ÇEKİRDEK (SAD §13.1 fiziksel/ayrılmış izolasyon): dedicated tenant ayrı namespace/cluster gerektirir; shared_pool'a (paylaşılan runtime havuzu) yerleştirilirse izolasyon vaadi çöker = dedicated_in_shared_pool. dedicated_in_shared_pool=0.", "trace": "FR-TEN-005, SAD §13.1, ADR-006"},
+    {"id": "R6", "desc": "RLS her iki modda ÇEKİRDEK (DB.md §6 'dedicated modda da tenant RLS ... aynıdır'; 12.2.3 RESİPROKAL): Row-Level Security shared VE dedicated modda açık kalır (savunma-derinliği — fiziksel ayrım RLS'in YERİNE geçmez, ona EKLENİR). rls_enabled=false commit = rls_waived. rls_waived=0.", "trace": "FR-TEN-002, DB.md §6, 12.2.3"},
+    {"id": "R7", "desc": "Tenant-başına KMS her iki modda ÇEKİRDEK (NFR 10.6 'tenant bazında ayrı encryption key'; FR-TEN-002): tenant başına AYRI kms_key_ref shared VE dedicated modda zorunlu (izolasyon modu KMS izolasyonunun YERİNE geçmez); boş veya başka tenant'ın anahtarıyla aynı (existing_kms_keys çakışması) commit = shared_kms_key. shared_kms_key=0.", "trace": "FR-TEN-002, NFR 10.6, DB.md §5.1"},
+    {"id": "R8", "desc": "Residency tutarlılığı (NFR 10.7 UK/EU/NA/ME; SAD §12.3): izolasyon yüzeyinin bölgesi (surface_region) tenant.home_region ile eşleşmeli; dedicated cluster yanlış bölgede veya surface_region≠home_region commit = residency_mismatch. residency_mismatch=0.", "trace": "FR-TEN-005, NFR 10.7, SAD §12.3"},
+    {"id": "R9", "desc": "WORM audit (FR-IAM-006/FR-REC-009; DB.md §5.1 audit_log WORM + hash chain): her mutasyon op'u (assign/provision_surface/migrate) WORM append-only audit_log'a yazılır (akış 12.1.8'e delege). read mutasyon değildir. Audit'siz mutasyon commit = missing_audit. missing_audit=0.", "trace": "FR-IAM-006, FR-REC-009, DB.md §5.1, 12.1.8"},
+    {"id": "R10", "desc": "Model bütünlük manifesti: izolasyon-sınıfı modeli frozen (isolation_modes/operations/op_permission/surface_binding/rls/kms/residency/migration/audit) + model_hash = sha256(kanonik) deterministik; çalışma anında tahrif (ör. RLS'i opsiyonel yapma / dedicated'ı shared_pool'a izin verme / realm zorunluluğunu kaldırma) yeniden-hesaplanan hash tutmaz → model_tampered. İzolasyon-sınıfı yüzeyinin değiştirilemez olduğunu test edilebilir kılar (ADR-006/011). model_tampered=0.", "trace": "FR-TEN-005, ADR-006/011"},
+    {"id": "R11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (op/result/isolation_mode/runtime_placement/actor_realm); tenant_id/request_id/kms_key_ref metrikte yok, yalnız trace; HAM İÇERİK/PII/KMS key materyali metrikte VE log'da yok (0.4.7 label_policy, BRD §17.7/FR-REC-004).", "trace": "BRD §17.7, 0.4.7 label_policy"},
+    {"id": "R12", "desc": "Sır/içerik yok: model/spec/sample HAM içerik / PII (müşteri ADI/telefon/transcript DEĞERİ) / credential (KMS key MATERYALİ / DB şifresi / connection string DEĞERİ) tutmaz — yalnız OP enum (assign/migrate) + MODE enum (shared/dedicated) + PLACEMENT enum (shared_pool/dedicated_cluster) + REALM/PLANE enum + permission-key (tenant:provision) + REGION enum (UK/EU/NA/ME) + yapısal tenant/request KİMLİK (slug; t-001, req-001) + kms_key_ref REFERANSI (key id, materyal DEĞİL) + HASH. Kimlik/enum/key-referansı/hash PII DEĞİLDİR. Bu modül izolasyon-sınıfı KARARINI verir — ham satır içeriği / key materyali AKMAZ. secret_or_pii=0.", "trace": "BRD §17.7, FR-REC-004, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/model/sample'lar HAM içerik, PII (müşteri ADI / TELEFON numarası / TRANSCRIPT değeri) veya credential (KMS KEY MATERYALİ [ham anahtar baytları] / DB şifresi / connection string DEĞERİ) TUTMAZ — yalnız OP ENUM (assign/provision_surface/migrate/read) + MODE ENUM (shared/dedicated) + PLACEMENT ENUM (shared_pool/dedicated_namespace/dedicated_cluster) + REALM ENUM (platform/tenant) + PLANE ENUM (platform_control_plane/tenant_application_plane) + PERMISSION-KEY (tenant:provision) + REGION ENUM (UK/EU/NA/ME) + result ENUM (COMMIT/REJECT) + yapısal tenant/request KİMLİK (SENTETİK slug ör. t-001/req-001) + kms_key_ref REFERANSI (anahtar KİMLİĞİ ör. kms-eu-001, anahtar MATERYALİ DEĞİL) + HASH (sha256). Kimlik/enum/key-referansı/hash PII DEĞİLDİR; tasarımca PII-olmayandır. Bu modül izolasyon-sınıfı BAĞLAMA KARARINI verir — ham satır içeriği / KMS key materyali bu modülde AKMAZ.",
+    "forbids": ["customer_name_value", "customer_phone_value", "transcript_text_value", "kms_key_material_value", "db_password_value", "connection_string_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}

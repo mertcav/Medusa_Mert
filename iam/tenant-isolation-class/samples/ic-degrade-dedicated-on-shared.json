@@ -1,0 +1,9 @@
+{
+  "name": "DEGRADE — dedicated tenant shared havuza yerleşip commit (R5)",
+  "request_id": "req-d05", "op": "provision_surface", "actor_realm": "platform",
+  "plane": "platform_control_plane", "actor_permissions": ["tenant:provision"],
+  "tenant_id": "t-d05", "isolation_mode": "dedicated", "runtime_placement": "dedicated_cluster",
+  "rls_enabled": true, "kms_key_ref": "kms-eu-d05", "surface_region": "EU", "home_region": "EU",
+  "audit_emitted": true,
+  "inject": ["dedicated_on_shared"], "expect": "fail"
+}

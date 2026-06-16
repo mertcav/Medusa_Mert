@@ -1,0 +1,85 @@
+{
+  "$comment": "WBS 12.4.2 — DEDICATED vs SHARED TENANT izolasyon-sınıfı modeli (FR-TEN-005 'Dedicated tenant ve shared tenant seçenekleri desteklenmelidir'; SAD §13.1 izolasyon modeli; ADR-006 'shared (RLS) varsayılan + dedicated opsiyon'; DB.md §5.1 tenant.isolation_mode CHECK [shared/dedicated]). FROZEN kontrol-düzlemi modeli: tenant izolasyon SINIFININ (shared|dedicated) seçilmesi/sağlanması/değiştirilmesi L0-only deterministik bir BAĞLAMA (binding) kararı olarak modellenir. İki sınıf (SAD §13.1): (1) SHARED = mantıksal izolasyon (varsayılan) — tek runtime havuzu (shared_pool); her satır/istek tenant_id ile etiketli + PostgreSQL Row-Level Security; tenant başına AYRI KMS key (NFR 10.6). (2) DEDICATED = fiziksel/ayrılmış izolasyon — ayrı namespace/cluster/region; regüle sektörler + büyük müşteriler için (Faz 2/3); ayrıca faturalandırılabilir (FR-BIL-005). ÇEKİRDEK BAĞLAMA KURALLARI: mod→yüzey eşlemesi tutarlı olmalı (shared⇒shared_pool, dedicated⇒dedicated namespace/cluster); dedicated tenant shared havuza YERLEŞTİRİLEMEZ (izolasyon regresyonu); RLS HER İKİ MODDA da açık kalır (dedicated RLS'i KALDIRMAZ — DB.md §6 'dedicated modda da tenant RLS ... aynıdır'; savunma-derinliği); her iki modda tenant başına AYRI KMS key (NFR 10.6/FR-TEN-002); izolasyon yüzeyinin bölgesi tenant home_region ile eşleşmeli (NFR 10.7); mod DEĞİŞİMİ (migrate shared↔dedicated) migration_plan + confirm gerektirir (izolasyon yüzeyleri arası veri taşıması — sessiz flip YASAK); her mutasyon WORM audit'e. Seçim/değişim YALNIZ platform realm + platform_control_plane (FR-IAM-008; ADR-011) + tenant:provision permission-key (12.1.2 katalog; platform_owner 12.1.1). Bu dosya FROZEN — model_hash sha256 ile audit edilebilir. Kaynak doğruluk FR-TEN-005, SAD §13.1, ADR-006, DB.md §5.1/§6, NFR 10.6/10.7; çelişkide onlar esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+  "realm": {
+    "$comment": "İzolasyon-sınıfı seçimi/sağlanması/değişimi YALNIZ L0 platform realm + platform_control_plane'de yürütülür (FR-IAM-008 altın kural; ADR-011 L0 internal-only). tenant realm (L1/L2) izolasyon sınıfını değiştiremez — cross_realm_op.",
+    "required_actor_realm": "platform",
+    "required_plane": "platform_control_plane",
+    "valid_realms": ["platform", "tenant"],
+    "valid_planes": ["platform_control_plane", "tenant_application_plane"],
+    "trace": "FR-IAM-008, ADR-011, SAD §14.4.1"
+  },
+  "isolation_modes": {
+    "$comment": "DB.md §5.1 tenant.isolation_mode CHECK (shared/dedicated); ADR-006. shared = varsayılan (mantıksal izolasyon). dedicated = fiziksel/ayrılmış (opt-in; regüle/büyük müşteri; Faz 2/3).",
+    "list": ["shared", "dedicated"],
+    "default": "shared"
+  },
+  "operations": {
+    "$comment": "İzolasyon-sınıfı işlemleri. read mutasyon değildir (yüzeyi değiştirmez; audit-zorunlu değil). assign/provision_surface/migrate mutasyon (WORM audit zorunlu). assign = create sırasında mod ata (12.4.1'den delege; FR-TEN-001). provision_surface = somut izolasyon yüzeyini sağla (shared⇒shared_pool+RLS; dedicated⇒namespace/cluster/region). migrate = modu değiştir (shared↔dedicated; migration_plan+confirm gerektirir).",
+    "list": ["assign", "provision_surface", "migrate", "read"],
+    "mutating": ["assign", "provision_surface", "migrate"],
+    "mode_changing": ["migrate"]
+  },
+  "op_permission": {
+    "$comment": "İşlem → gerekli permission-key (resource:action; 12.1.2 katalog; yeni anahtar İCAT EDİLMEZ). İzolasyon sınıfı tenant yaşam döngüsü/sağlama yetkisidir → tenant:provision (12.4.1 ile aynı bundle; platform_owner 12.1.1/ADR-012). Yetki kararı HER ZAMAN backend'de (BRD §17.7).",
+    "assign": "tenant:provision",
+    "provision_surface": "tenant:provision",
+    "migrate": "tenant:provision",
+    "read": "tenant:provision"
+  },
+  "surface_binding": {
+    "$comment": "Mod → izolasyon yüzeyi eşlemesi (SAD §13.1). shared: tek runtime havuzu (shared_pool) + RLS (mantıksal izolasyon) — varsayılan. dedicated: ayrı namespace/cluster (fiziksel/ayrılmış izolasyon) — ayrı runtime. RLS HER İKİ MODDA açık (DB.md §6 — dedicated RLS'i kaldırmaz). runtime_placement geçerli değerleri: shared_pool (shared) | dedicated_namespace, dedicated_cluster (dedicated).",
+    "shared": {"runtime": ["shared_pool"], "db_isolation": "rls_logical", "rls_required": true},
+    "dedicated": {"runtime": ["dedicated_namespace", "dedicated_cluster"], "db_isolation": "rls_plus_dedicated_infra", "rls_required": true},
+    "valid_runtime_placements": ["shared_pool", "dedicated_namespace", "dedicated_cluster"],
+    "shared_pool_placement": "shared_pool",
+    "dedicated_runtime_placements": ["dedicated_namespace", "dedicated_cluster"],
+    "trace": "SAD §13.1, ADR-006, DB.md §6"
+  },
+  "rls": {
+    "$comment": "Row-Level Security HER İKİ izolasyon modunda zorunlu (DB.md §6 'dedicated modda da tenant RLS ... aynıdır'; savunma-derinliği). dedicated yüzey RLS'i KALDIRMAZ — fiziksel ayrım RLS'in YERİNE geçmez, ona EKLENİR. rls_enabled=false (her iki modda) = rls_waived.",
+    "required_in_all_modes": true,
+    "trace": "DB.md §6, FR-TEN-002, 12.2.3 rls-double-check"
+  },
+  "kms": {
+    "$comment": "Tenant başına AYRI KMS key HER İKİ modda zorunlu (NFR 10.6 'tenant bazında ayrı encryption key'; FR-TEN-002). dedicated/shared fark etmez; izolasyon modu KMS izolasyonunun YERİNE geçmez. Boş veya başka tenant'ın anahtarıyla aynı = shared_kms_key.",
+    "per_tenant_key_all_modes": true,
+    "trace": "NFR 10.6, FR-TEN-002, DB.md §5.1"
+  },
+  "residency": {
+    "$comment": "İzolasyon yüzeyinin bölgesi (surface_region) tenant.home_region ile eşleşmeli (NFR 10.7 UK/EU/NA/ME; SAD §12.3 data residency). dedicated cluster yanlış bölgede = residency_mismatch. shared_pool da home_region'da konumlanır.",
+    "regions": ["UK", "EU", "NA", "ME"],
+    "surface_region_must_match_home_region": true,
+    "trace": "NFR 10.7, SAD §12.3, DB.md §5.1"
+  },
+  "migration": {
+    "$comment": "İzolasyon modu DEĞİŞİMİ (migrate shared↔dedicated) izolasyon yüzeyleri arası veri taşımasıdır → migration_plan + confirm zorunlu (sessiz flip YASAK; veri kaybı/sızıntı riski). current_mode != target mode olduğunda migrate. Korumasız (plan/confirm yok) migrate = unguarded_migration (mode_surface_mismatch sayacı). Gerçek veri taşıması/cutover F1 kod + ops runbook'a delege.",
+    "requires_migration_plan": true,
+    "requires_confirm": true,
+    "delegated_execution": "F1 kod + ops runbook (gerçek veri taşıma/cutover); bu modül KARARINI verir",
+    "trace": "FR-TEN-005, SAD §13.1"
+  },
+  "billing": {
+    "$comment": "dedicated altyapı maliyetleri ayrıca faturalandırılabilir (FR-BIL-005 — Should). Bu modül izolasyon-sınıfı KARARINI verir; faturalama atfı WBS 15 billing'e delege (bilgilendirme flag).",
+    "dedicated_separately_billable": true,
+    "delegated_to": "WBS 15 billing (FR-BIL-005)",
+    "trace": "FR-BIL-005"
+  },
+  "audit": {
+    "$comment": "Her mutasyon (assign/provision_surface/migrate) WORM append-only audit_log'a yazılır (DB.md §5.1 audit_log WORM + hash chain; FR-IAM-006/FR-REC-009; akış 12.1.8). read audit-zorunlu değil. Audit'siz mutasyon = missing_audit.",
+    "required_for": ["assign", "provision_surface", "migrate"],
+    "worm": true,
+    "delegated_flow": "12.1.8 worm-audit (audit_log; hash chain bütünlük)",
+    "trace": "FR-IAM-006, FR-REC-009, DB.md §5.1"
+  },
+  "data_class": {
+    "$comment": "isolation_mode tenant tablosunun bir kolonudur → veri-sınıfı = platform (L0 yönetişim verisi; 12.2.4 l0-repo-independence ile RESİPROKAL). L0 izolasyon sınıfını YÖNETİR; tenant İŞ İÇERİĞİNİ (call/transcript/PII) görmez (FR-IAM-008 altın kural).",
+    "isolation_class_table_class": "platform",
+    "reciprocal": "12.2.4 ../l0-repo-independence (table_class_of.tenant = platform)",
+    "trace": "FR-IAM-008, 12.2.4, DB.md §6.3"
+  },
+  "terminal": ["COMMIT", "REJECT"],
+  "trace": "FR-TEN-005, SAD §13.1, ADR-006, DB.md §5.1/§6, NFR 10.6/10.7, FR-BIL-005, 12.4.1/12.2.3/12.1.1/12.1.2/12.2.4/12.1.8"
+}

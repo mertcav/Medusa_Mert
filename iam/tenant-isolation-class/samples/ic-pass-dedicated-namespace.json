@@ -1,0 +1,10 @@
+{
+  "name": "dedicated provision (UK) — dedicated_namespace yüzeyi",
+  "request_id": "req-003", "op": "provision_surface", "actor_realm": "platform",
+  "plane": "platform_control_plane", "actor_permissions": ["tenant:provision"],
+  "tenant_id": "t-003", "isolation_mode": "dedicated", "runtime_placement": "dedicated_namespace",
+  "rls_enabled": true, "kms_key_ref": "kms-uk-003", "surface_region": "UK", "home_region": "UK",
+  "audit_emitted": true,
+  "expect": "pass",
+  "expected": {"terminal": "COMMIT"}
+}
