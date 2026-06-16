@@ -1,0 +1,25 @@
+{
+  "$comment": "PASS platform_mixed: platform realm audit_log tenant_id NULL (platform-genel) satır → PERMIT (DB.md §6.3); tenant satırları için eff gerekir",
+  "name": "rls-pass-platform-mixed-audit",
+  "expect": "pass",
+  "request_id": "req-008",
+  "actor_realm": "platform",
+  "actor_tenant_id": null,
+  "table": "audit_log",
+  "table_class": "platform_mixed",
+  "operation": "select",
+  "db_role": "app_rw",
+  "session": {
+    "tenant_guc": null,
+    "platform": "on",
+    "guc_scope": "SET LOCAL"
+  },
+  "row": {
+    "tenant_id": null
+  },
+  "app_layer": "ALLOW",
+  "expected": {
+    "terminal": "PERMIT",
+    "served": true
+  }
+}

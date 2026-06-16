@@ -1,0 +1,24 @@
+{
+  "name": "rls-degrade-write-bypass",
+  "expect": "fail",
+  "request_id": "req-109",
+  "actor_realm": "tenant",
+  "actor_tenant_id": "t-acme",
+  "table": "transcript",
+  "table_class": "tenant_scoped",
+  "operation": "insert",
+  "db_role": "app_rw",
+  "session": {
+    "tenant_guc": "t-acme",
+    "platform": "off",
+    "guc_scope": "SET LOCAL"
+  },
+  "row": {
+    "tenant_id": "t-other"
+  },
+  "app_layer": "ALLOW",
+  "inject": [
+    "write_bypass"
+  ],
+  "$comment": "DEGRADE write_bypass: WITH CHECK atlanır → cross-tenant insert geçer → cross_tenant_write (R6)"
+}

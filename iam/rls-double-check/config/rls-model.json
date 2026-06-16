@@ -1,0 +1,89 @@
+{
+  "$comment": "WBS 12.2.3 — TENANT SCOPE + RLS ÇİFT KONTROL modeli (defense in depth; DB.md §6, SAD §14.4.2 'tenant scope ... row-level security ile çift kontrol'). FROZEN kontrol-düzlemi modeli: tenant izolasyonu İKİ KATMANDA bağımsız zorlanır (P2) — (1) UYGULAMA katmanı: 12.2.1 backend guard HTTP enforce_tenant_scope (TÜKETİLİR/CONSUMED, app_level); (2) DB katmanı: PostgreSQL Row-Level Security (RLS) aynı tenant_id'yi BAĞIMSIZ zorlar (bu modül, rls_level). Birleşim AND'tir: satır yalnız HER İKİ katman izin verirse servis edilir (served ⟺ app_permit ∧ rls_permit); böylece UYGULAMA bug'ı (scope unutma / yanlış tenant / guard bypass) tenant sızıntısına DÖNÜŞMEZ — RLS bağımsız kapatır. RLS ilkeleri (DB.md §6.1): (a) her oturum başında doğrulanmış tenant kimliği GUC'a SET LOCAL ile yazılır (transaction-scoped; bağlantı havuzunda sızmaz); (b) uygulama RLS'i BYPASS ETMEYEN app_rw rolüyle bağlanır (superuser/BYPASSRLS YOK); (c) tüm iş verisi tablolarında ENABLE + FORCE ROW LEVEL SECURITY (tablo sahibi de RLS'e tabi). Standart politika (DB.md §6.2): USING/WITH CHECK = (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid); NULLIF(...,'') FAIL-CLOSED yapar — GUC set edilmemiş (NULL) ya da havuzda resetlenmiş ('' boş string) → hiçbir satır görünmez (çıplak ''::uuid HATA fırlatırdı = fail-error değil). Tablo sınıfına göre politika matrisi (DB.md §6.3). Break-glass koşullu okuma (DB.md §6.4): platform realm + grant geçerli + süre dolmamış (time-boxed; standing access YOK; FR-IAM-009; 12.3.x). Bu dosya FROZEN — değiştirilemez izolasyon yüzeyi (model_hash sha256 ile audit edilebilir). Kaynak doğruluk DB.md §6 / SAD §14.4.2 / FR-TEN-002 / ADR-011 / ADR-006; çelişkide onlar esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+  "defense_in_depth": "P2 (DB.md §6.1): izolasyon iki katmanlı — uygulama scope'u + DB RLS aynı tenant_id'yi bağımsız zorlar; uygulama bug'ı tenant sızıntısına DÖNÜŞMEZ",
+  "guc": {
+    "$comment": "Oturum-bağlamı GUC'ları (PostgreSQL custom parametreleri). tenant = doğrulanmış session tenant; platform = L0 platform realm bayrağı; bg_* = break-glass grant bağlamı. scope = SET LOCAL (transaction-scoped; bağlantı havuzunda sonraki transaction'a SIZMAZ — DB.md §6.1).",
+    "tenant": "app.tenant_id",
+    "platform": "app.platform",
+    "bg_tenant": "app.bg_tenant_id",
+    "bg_active": "app.bg_active",
+    "scope": "SET LOCAL",
+    "fail_closed_expr": "tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid",
+    "fail_closed_rationale": "current_setting(...,true) GUC yoksa NULL döndürür; NULLIF(...,'') havuzda-resetlenmiş boş string'i de NULL'a çevirir → karşılaştırma NULL → hiçbir satır (gerçek fail-closed). Çıplak ''::uuid HATA fırlatır (fail-error). Scope unutmak veri AÇMAZ, KAPATIR."
+  },
+  "db_role": {
+    "$comment": "Uygulama DB bağlantı rolü. app_rw RLS'i BYPASS ETMEZ (DB.md §6.1); superuser/BYPASSRLS KULLANILMAZ. Tüm iş verisi tablolarında FORCE ROW LEVEL SECURITY (tablo sahibi de RLS'e tabi).",
+    "app": "app_rw",
+    "bypassrls": false,
+    "superuser": false,
+    "force_row_level_security": true
+  },
+  "table_classes": {
+    "$comment": "Tablo sınıfına göre RLS politika matrisi (DB.md §6.3). eff = NULLIF(current_setting('app.tenant_id', true), '')::uuid.",
+    "tenant_scoped": {
+      "policy": "tenant_isolation",
+      "using": "tenant_id = eff",
+      "with_check": "tenant_id = eff",
+      "rls": true,
+      "note": "her iş verisi tablosu — standart §6.2 tenant_isolation; cross-tenant okuma görünmez + cross-tenant yazma WITH CHECK ile reddedilir"
+    },
+    "root_tenant": {
+      "policy": "tenant_self_or_platform",
+      "using": "id = eff OR app.platform = on",
+      "rls": true,
+      "note": "tenant tablosu (kök); tenant kullanıcısı yalnız kendi satırı; platform realm tümünü görür"
+    },
+    "global_reference": {
+      "policy": null,
+      "rls": false,
+      "read_only": true,
+      "note": "role/permission_key/role_permission — salt-okunur referans; RLS yok; yazım yalnız platform migration"
+    },
+    "platform_mixed": {
+      "policy": "tenant_or_platform_null",
+      "using": "tenant_id = eff OR (tenant_id IS NULL AND app.platform = on)",
+      "rls": true,
+      "note": "audit_log/incident — tenant satırları tenant'a; platform-genel (tenant_id NULL) satırlar platform realm'e (audit ayrıca append-only/WORM — 12.1.8)"
+    },
+    "platform_only": {
+      "policy": "platform_only",
+      "using": "app.platform = on",
+      "rls": true,
+      "note": "break_glass_grant — yalnız platform realm; tenant'a görünmez (Tier B bildirimi app katmanında tenant'a gider)"
+    }
+  },
+  "tenant_scoped_tables": [
+    "organisation_unit", "app_user", "agent", "agent_version", "prompt", "conversation_flow",
+    "voice_profile", "model_profile", "stt_profile", "knowledge_base", "kb_document", "kb_chunk",
+    "tool", "phone_number", "sip_trunk", "campaign", "contact", "consent", "call", "call_leg",
+    "transcript", "transcript_segment", "recording", "call_event", "tool_execution",
+    "call_evaluation", "usage_record", "retention_policy", "legal_hold", "user_role_assignment"
+  ],
+  "break_glass": {
+    "$comment": "Break-glass koşullu okuma (Tier B; DB.md §6.4; FR-IAM-009). L0 varsayılan olarak tenant iş verisine bağlı DEĞİL (P3, ADR-011); Tier B açıldığında ek policy geçerli bir grant'i GUC'a yansıtarak okuma açar. Grant expires_at geçince uygulama app.bg_active'i SET ETMEZ → policy false → erişim kapanır (time-boxed; STANDING ACCESS YOK). Her okuma audit_log'a break_glass_id ile yazılır + tenant security_compliance_officer/tenant_owner'a bildirim (app katmanı). Akış 12.3.x'e DELEGE.",
+    "policy": "break_glass_read",
+    "tier": "B",
+    "operations": ["select"],
+    "condition": "app.platform = on AND tenant_id = NULLIF(current_setting('app.bg_tenant_id', true), '')::uuid AND app.bg_active = on",
+    "tables": ["transcript", "transcript_segment", "recording", "contact"],
+    "time_boxed": true,
+    "standing_access": false,
+    "delegated_flow": "12.3.x (break-glass üç katmanlı akış + maker-checker + bildirim)"
+  },
+  "worm_separation": {
+    "$comment": "RLS satır GÖRÜNÜRLÜĞÜNÜ zorlar; WORM/append-only ise DEĞİŞMEZLİĞİ (DB.md §6.5). İki mekanizma ayrı: audit_log/consent/agent_version append-only (REVOKE UPDATE,DELETE + trigger) — bu modülün KAPSAMINDA DEĞİL, 12.1.8'e DELEGE. Bu modül yalnız satır-görünürlüğü/yazım-tenant'ı (USING/WITH CHECK) modeller.",
+    "owned_by": "12.1.8 (WORM audit) + DB.md §6.5"
+  },
+  "double_check": {
+    "$comment": "Tenant scope ÇİFT kontrol (SAD §14.4.2). app_level = 12.2.1 backend guard HTTP enforce_tenant_scope (TÜKETİLİR); rls_level = bu modül (PostgreSQL RLS bağımsız zorlama). Birleşim AND: served ⟺ app_permit ∧ rls_permit. RLS BAĞIMSIZ katman olmalı (app kararını AYNALAMAZ); uygulama bug'ında RLS sızıntıyı kapatır (defense in depth).",
+    "app_level": "12.2.1 backend-guard enforce_tenant_scope (consumed; guard_level)",
+    "rls_level": "12.2.3 (this module; PostgreSQL RLS — bağımsız)",
+    "combine": "served ⟺ app_permit ∧ rls_permit (AND; iki bağımsız katman)",
+    "independence": "RLS app kararını AYNALAMAZ; ayrı GUC + ayrı policy ile bağımsız değerlendirir"
+  },
+  "rls_terminal": ["PERMIT", "DENY"],
+  "trace": "FR-TEN-002, SAD §14.4.2, DB.md §6, ADR-011, ADR-006, 12.2.1 (app_level çift kontrol)"
+}

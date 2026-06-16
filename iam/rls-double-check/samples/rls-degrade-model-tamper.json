@@ -1,0 +1,24 @@
+{
+  "name": "rls-degrade-model-tamper",
+  "expect": "fail",
+  "request_id": "req-112",
+  "actor_realm": "tenant",
+  "actor_tenant_id": "t-acme",
+  "table": "transcript",
+  "table_class": "tenant_scoped",
+  "operation": "select",
+  "db_role": "app_rw",
+  "session": {
+    "tenant_guc": "t-acme",
+    "platform": "off",
+    "guc_scope": "SET LOCAL"
+  },
+  "row": {
+    "tenant_id": "t-acme"
+  },
+  "app_layer": "ALLOW",
+  "inject": [
+    "model_tamper"
+  ],
+  "$comment": "DEGRADE model_tamper: RLS model çalışma anında tahrif (FORCE off / break-glass time-box kaldırma) → model_hash tutmaz → model_tampered (R10)"
+}

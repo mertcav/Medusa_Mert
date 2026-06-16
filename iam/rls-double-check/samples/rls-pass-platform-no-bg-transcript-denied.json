@@ -1,0 +1,25 @@
+{
+  "$comment": "PASS R7 L0 ⟂ tenant: platform realm transcript (tenant_scoped PII) break-glass YOK → eff NULL → DENY; L0 tenant iş verisine default erişemez (FR-IAM-008/ADR-011)",
+  "name": "rls-pass-platform-no-bg-transcript-denied",
+  "expect": "pass",
+  "request_id": "req-010",
+  "actor_realm": "platform",
+  "actor_tenant_id": null,
+  "table": "transcript",
+  "table_class": "tenant_scoped",
+  "operation": "select",
+  "db_role": "app_rw",
+  "session": {
+    "tenant_guc": null,
+    "platform": "on",
+    "guc_scope": "SET LOCAL"
+  },
+  "row": {
+    "tenant_id": "t-acme"
+  },
+  "app_layer": "ALLOW",
+  "expected": {
+    "terminal": "DENY",
+    "served": false
+  }
+}

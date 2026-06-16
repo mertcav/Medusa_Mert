@@ -1,0 +1,25 @@
+{
+  "$comment": "PASS aynı-tenant yazım: insert call, satır t-acme = eff → WITH CHECK geçer → PERMIT (R6 doğru yazım)",
+  "name": "rls-pass-same-tenant-write",
+  "expect": "pass",
+  "request_id": "req-002",
+  "actor_realm": "tenant",
+  "actor_tenant_id": "t-acme",
+  "table": "call",
+  "table_class": "tenant_scoped",
+  "operation": "insert",
+  "db_role": "app_rw",
+  "session": {
+    "tenant_guc": "t-acme",
+    "platform": "off",
+    "guc_scope": "SET LOCAL"
+  },
+  "row": {
+    "tenant_id": "t-acme"
+  },
+  "app_layer": "ALLOW",
+  "expected": {
+    "terminal": "PERMIT",
+    "served": true
+  }
+}

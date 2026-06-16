@@ -1,0 +1,25 @@
+{
+  "$comment": "PASS GÜVENLİK: tenant realm cross-tenant okuma girişimi (satır t-other); app_layer doğru BLOCK + RLS bağımsız DENY → served=false → iki katman da kapatır (cross_tenant_leak=0)",
+  "name": "rls-security-cross-tenant-read-blocked",
+  "expect": "pass",
+  "request_id": "req-012",
+  "actor_realm": "tenant",
+  "actor_tenant_id": "t-acme",
+  "table": "call",
+  "table_class": "tenant_scoped",
+  "operation": "select",
+  "db_role": "app_rw",
+  "session": {
+    "tenant_guc": "t-acme",
+    "platform": "off",
+    "guc_scope": "SET LOCAL"
+  },
+  "row": {
+    "tenant_id": "t-other"
+  },
+  "app_layer": "BLOCK",
+  "expected": {
+    "terminal": "DENY",
+    "served": false
+  }
+}

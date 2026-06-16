@@ -1,0 +1,24 @@
+{
+  "name": "rls-degrade-guc-fail-open",
+  "expect": "fail",
+  "request_id": "req-105",
+  "actor_realm": "tenant",
+  "actor_tenant_id": "t-acme",
+  "table": "transcript",
+  "table_class": "tenant_scoped",
+  "operation": "select",
+  "db_role": "app_rw",
+  "session": {
+    "tenant_guc": null,
+    "platform": "off",
+    "guc_scope": "SET LOCAL"
+  },
+  "row": {
+    "tenant_id": "t-other"
+  },
+  "app_layer": "ALLOW",
+  "inject": [
+    "guc_fail_open"
+  ],
+  "$comment": "DEGRADE guc_fail_open: unset GUC her satırı eşler (fail-open) → cross satır servis → guc_fail_open + leak (R4)"
+}

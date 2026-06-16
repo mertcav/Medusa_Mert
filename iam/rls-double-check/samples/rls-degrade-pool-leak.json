@@ -1,0 +1,24 @@
+{
+  "name": "rls-degrade-pool-leak",
+  "expect": "fail",
+  "request_id": "req-107",
+  "actor_realm": "tenant",
+  "actor_tenant_id": "t-acme",
+  "table": "transcript",
+  "table_class": "tenant_scoped",
+  "operation": "select",
+  "db_role": "app_rw",
+  "session": {
+    "tenant_guc": "t-acme",
+    "platform": "off",
+    "guc_scope": "SET LOCAL"
+  },
+  "row": {
+    "tenant_id": "t-acme"
+  },
+  "app_layer": "ALLOW",
+  "inject": [
+    "pool_leak"
+  ],
+  "$comment": "DEGRADE pool_leak: SET LOCAL yerine SET → tenant GUC bağlantı havuzunda sonraki transaction'a sızar → guc_pool_leak (R9)"
+}

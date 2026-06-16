@@ -1,0 +1,23 @@
+{
+  "$comment": "PASS global_reference: role tablosu salt-okunur referans (RLS yok) → select PERMIT (tenant verisi değil)",
+  "name": "rls-pass-global-reference-read",
+  "expect": "pass",
+  "request_id": "req-007",
+  "actor_realm": "tenant",
+  "actor_tenant_id": "t-acme",
+  "table": "role",
+  "table_class": "global_reference",
+  "operation": "select",
+  "db_role": "app_rw",
+  "session": {
+    "tenant_guc": "t-acme",
+    "platform": "off",
+    "guc_scope": "SET LOCAL"
+  },
+  "row": {},
+  "app_layer": "ALLOW",
+  "expected": {
+    "terminal": "PERMIT",
+    "served": true
+  }
+}

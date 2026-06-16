@@ -1,0 +1,27 @@
+{
+  "$comment": "PASS R8 break-glass MEŞRU: platform + bg_active=on + bg_tenant=t-acme = satır → break_glass_read PERMIT (Tier B time-boxed geçerli grant); bg_standing_access=0",
+  "name": "rls-pass-break-glass-valid",
+  "expect": "pass",
+  "request_id": "req-011",
+  "actor_realm": "platform",
+  "actor_tenant_id": null,
+  "table": "recording",
+  "table_class": "tenant_scoped",
+  "operation": "select",
+  "db_role": "app_rw",
+  "session": {
+    "tenant_guc": null,
+    "platform": "on",
+    "bg_tenant": "t-acme",
+    "bg_active": "on",
+    "guc_scope": "SET LOCAL"
+  },
+  "row": {
+    "tenant_id": "t-acme"
+  },
+  "app_layer": "ALLOW",
+  "expected": {
+    "terminal": "PERMIT",
+    "served": true
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "rls-degrade-app-only-trust",
+  "expect": "fail",
+  "request_id": "req-108",
+  "actor_realm": "tenant",
+  "actor_tenant_id": "t-acme",
+  "table": "transcript",
+  "table_class": "tenant_scoped",
+  "operation": "select",
+  "db_role": "app_rw",
+  "session": {
+    "tenant_guc": "t-acme",
+    "platform": "off",
+    "guc_scope": "SET LOCAL"
+  },
+  "row": {
+    "tenant_id": "t-other"
+  },
+  "app_layer": "ALLOW",
+  "inject": [
+    "app_only_trust"
+  ],
+  "$comment": "DEGRADE app_only_trust: RLS BAĞIMSIZ değil, app kararını AYNALAR → app bug (ALLOW cross) sızıntıya döner → cross_tenant_leak (R5 çift kontrol çöker)"
+}

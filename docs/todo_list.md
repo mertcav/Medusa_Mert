@@ -294,7 +294,7 @@
 ### 12.2 Panel AuthZ enforcement
 - [x] **12.2.1** Backend guard: panel + rol + tenant scope (FastAPI dependency) — `F1` · `Must` · →SAD §14.4.2
 - [x] **12.2.2** L0/L1/L2 ayrı router ağaçları + ayrı OAuth scope — `F1` · `Must` · →SAD §14.4.2
-- [ ] **12.2.3** Tenant scope + RLS çift kontrol — `F1` · `Must` · →FR-TEN-002
+- [x] **12.2.3** Tenant scope + RLS çift kontrol — `F1` · `Must` · →FR-TEN-002
 - [ ] **12.2.4** L0 iş verisi repository bağımsızlığı (tasarımsal izolasyon) — `F1` · `Must` · →FR-IAM-008
 
 ### 12.3 Break-glass (üç katmanlı)

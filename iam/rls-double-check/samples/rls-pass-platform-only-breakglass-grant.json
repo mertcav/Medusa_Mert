@@ -1,0 +1,25 @@
+{
+  "$comment": "PASS platform_only: break_glass_grant tablosu yalnız platform realm → PERMIT; tenant'a görünmez",
+  "name": "rls-pass-platform-only-breakglass-grant",
+  "expect": "pass",
+  "request_id": "req-009",
+  "actor_realm": "platform",
+  "actor_tenant_id": null,
+  "table": "break_glass_grant",
+  "table_class": "platform_only",
+  "operation": "select",
+  "db_role": "app_rw",
+  "session": {
+    "tenant_guc": null,
+    "platform": "on",
+    "guc_scope": "SET LOCAL"
+  },
+  "row": {
+    "tenant_id": "t-acme"
+  },
+  "app_layer": "ALLOW",
+  "expected": {
+    "terminal": "PERMIT",
+    "served": true
+  }
+}

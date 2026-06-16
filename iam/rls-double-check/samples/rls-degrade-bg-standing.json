@@ -1,0 +1,26 @@
+{
+  "name": "rls-degrade-bg-standing",
+  "expect": "fail",
+  "request_id": "req-111",
+  "actor_realm": "platform",
+  "actor_tenant_id": null,
+  "table": "recording",
+  "table_class": "tenant_scoped",
+  "operation": "select",
+  "db_role": "app_rw",
+  "session": {
+    "tenant_guc": null,
+    "platform": "on",
+    "bg_tenant": "t-acme",
+    "bg_active": "off",
+    "guc_scope": "SET LOCAL"
+  },
+  "row": {
+    "tenant_id": "t-acme"
+  },
+  "app_layer": "ALLOW",
+  "inject": [
+    "bg_standing"
+  ],
+  "$comment": "DEGRADE bg_standing: break-glass grant süresi dolmuş (bg_active=off) ama servis edilir → bg_standing_access (R8 time-box atlandı, standing access)"
+}
