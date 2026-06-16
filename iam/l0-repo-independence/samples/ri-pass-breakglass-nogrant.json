@@ -1,0 +1,13 @@
+{
+  "$comment": "PASS (R9): break_glass_plane content ama grant_gated=false → FORBID (geçerli grant yok; standing access yok). Doğru reddetme — bg_standing_binding=0.",
+  "name": "ri-pass-breakglass-nogrant",
+  "expect": "pass",
+  "request_id": "req-011",
+  "plane": "break_glass_plane",
+  "repository": "break_glass_content_repo",
+  "table": "transcript",
+  "db_role": "breakglass_ro",
+  "grant_gated": false,
+  "grant_present": false,
+  "expected": {"terminal": "FORBID"}
+}

@@ -1,0 +1,12 @@
+{
+  "name": "ri-degrade-bg-in-default",
+  "expect": "fail",
+  "request_id": "req-105",
+  "plane": "break_glass_plane",
+  "repository": "break_glass_content_repo",
+  "table": "transcript",
+  "db_role": "breakglass_ro",
+  "grant_gated": true,
+  "inject": ["bg_in_default_plane"],
+  "$comment": "DEGRADE bg_in_default_plane: break-glass content repo ayrı plane yerine default platform_control_plane'e konur → bg_in_default (R8 break-glass ayrımı çöker; içerik default yüzeye sızar)"
+}

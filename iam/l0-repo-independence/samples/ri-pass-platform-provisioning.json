@@ -1,0 +1,12 @@
+{
+  "$comment": "PASS: platform tenant_provisioning_repo (platform tenant tablosu) → PERMIT. Provisioning L0 yönetişim verisi.",
+  "name": "ri-pass-platform-provisioning",
+  "expect": "pass",
+  "request_id": "req-002",
+  "plane": "platform_control_plane",
+  "repository": "tenant_provisioning_repo",
+  "table": "tenant",
+  "db_role": "platform_ro",
+  "grant_present": true,
+  "expected": {"terminal": "PERMIT"}
+}

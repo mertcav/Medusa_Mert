@@ -1,0 +1,11 @@
+{
+  "name": "ri-degrade-expose-endpoint",
+  "expect": "fail",
+  "request_id": "req-104",
+  "plane": "platform_control_plane",
+  "repository": "transcript_repo",
+  "table": "transcript",
+  "db_role": "platform_ro",
+  "inject": ["expose_business_endpoint"],
+  "$comment": "DEGRADE expose_business_endpoint: L0 OpenAPI'sinde iş-verisi endpoint'i (GET /transcripts) exposed → l0_business_endpoint (R7 yüzey bağımsızlığı çöker; API.md FR-IAM-008)"
+}

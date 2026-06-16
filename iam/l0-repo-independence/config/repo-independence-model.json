@@ -1,0 +1,88 @@
+{
+  "$comment": "WBS 12.2.4 — L0 İŞ VERİSİ REPOSITORY BAĞIMSIZLIĞI modeli (tasarımsal/design-time izolasyon; SAD §14.4.2 'Platform endpoint'leri TASARIM GEREĞİ tenant iş verisi [call/transcript/PII] repository'lerine BAĞLI DEĞİLDİR', DB.md P3 'Platform [L0] rolleri tenant iş verisi tablolarına REPOSITORY/GRANT düzeyinde bağlı DEĞİLDİR'). FROZEN kontrol-düzlemi modeli: L0 (platform) ⟂ tenant iş verisi izolasyonu, çalışma-anı (12.2.1 HTTP guard / 12.2.3 RLS) KARARLARINDAN ÖNCE, KOMPOZİSYON (wiring) ve GRANT seviyesinde tasarımca zorlanır. İKİ BAĞIMSIZ TASARIM KATMANI (defense in depth, P2): (A) WIRING/kompozisyon — platform_control_plane (L0, internal-only, ayrı deploy — ADR-011) kompozisyon kökü hiçbir tenant iş verisi repository'sini (call/transcript/recording/contact/agent/...) WIRE ETMEZ; yalnız platform + tenant_metric (usage/kaynak) + global_reference repo'larını wire eder. (B) GRANT — L0'ın bağlandığı DB rolü (platform_ro) tenant iş verisi tablolarında SELECT/DML GRANT'i TUTMAZ (REVOKE / hiç GRANT verilmez). Birleşim AND: tenant iş verisi L0'dan ANCAK her İKİ katman da regrese olursa erişilebilir (data_reachable ⟺ wired_forbidden_repo ∧ grant_present); tek katman hatası (yanlış wire VEYA stray grant) veriyi açmaz — diğer katman bağımsız kapatır. ÜÇÜNCÜ çalışma-anı backstop: 12.2.3 RLS (platform realm tenant_scoped satırları break-glass'sız göremez). İçeriğe erişim YALNIZ ayrı, kısıtlı break_glass_plane (grant-gated, time-boxed; 12.3.x) ile. L0 OpenAPI'sinde iş-verisi endpoint'i (GET /calls, GET /transcripts) BULUNMAZ (API.md FR-IAM-008). Bu dosya FROZEN — değiştirilemez izolasyon yüzeyi (model_hash sha256 ile audit edilebilir). Kaynak doğruluk SAD §14.4.2 / DB.md P3/§6.3 / FR-IAM-008 / ADR-011; çelişkide onlar esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+  "defense_in_depth": "P2: L0 ⟂ tenant iş verisi izolasyonu İKİ BAĞIMSIZ TASARIM KATMANINDA (wiring/kompozisyon + DB grant) zorlanır; data_reachable ⟺ wired_forbidden_repo ∧ grant_present (AND) — tek katman regresyonu veriyi açmaz. Üçüncü çalışma-anı backstop: 12.2.3 RLS (consumed).",
+  "planes": {
+    "$comment": "Kompozisyon (deploy) düzlemleri. platform_control_plane = L0 (ADR-011 internal-only, ayrı origin/servis/auth realm, ayrı deploy); tenant_application_plane = L1+L2 (public, multi-tenant); break_glass_plane = L0 KISITLI ayrı router (grant-gated content okuma; default platform plane'in PARÇASI DEĞİL; 12.3.x akış).",
+    "platform_control_plane": {"layer": "L0", "deploy_isolation": "internal_only", "allowed_classes": ["platform", "tenant_metric", "global_reference"], "trace": "ADR-011, SAD §14.4.1"},
+    "tenant_application_plane": {"layer": "L1+L2", "deploy_isolation": "public", "allowed_classes": ["tenant_content", "tenant_config", "tenant_metric", "global_reference"], "trace": "ADR-011"},
+    "break_glass_plane": {"layer": "L0", "deploy_isolation": "internal_only_restricted", "allowed_classes": ["tenant_content"], "grant_gated": true, "time_boxed": true, "delegated_flow": "12.3.x", "trace": "DB.md §6.4, FR-IAM-009"}
+  },
+  "data_classes": {
+    "$comment": "Tablo veri-sınıfları (repository bağımsızlığı taksonomisi). forbidden_for_platform = L0 default plane'in WIRE EDEMEYECEĞİ/GRANT TUTAMAYACAĞI tenant iş verisi (FR-IAM-008 'çağrı kaydı, transkript, müşteri/PII' = tenant_content; + tenant_config tenant işletme verisi). allowed_for_platform = L0'ın görebileceği metrik/kaynak + platform yönetişim + salt-okunur referans.",
+    "forbidden_for_platform": ["tenant_content", "tenant_config"],
+    "allowed_for_platform": ["platform", "tenant_metric", "global_reference"],
+    "content_class": "tenant_content",
+    "tenant_content_note": "çağrı içeriği + PII (FR-IAM-008): break-glass dışında L0'a kapalı; break-glass tabloları transcript/transcript_segment/recording/contact (12.2.3 break_glass.tables ile RESİPROKAL)",
+    "tenant_config_note": "tenant işletme konfig/operasyon verisi (agent/prompt/campaign/...); L0 tenant'ın işini yönetmez — tasarımca kapalı",
+    "tenant_metric_note": "usage_record (kullanım/kaynak metriği) — L0 YALNIZ metrik/kaynak verisi görür (FR-IAM-008); resource:quota/billing repo'ları okur; satır düzeyi yine 12.2.3 RLS'e tabi",
+    "platform_note": "tenant(provisioning)/audit_log(platform satır)/incident/break_glass_grant — L0 yönetişim verisi",
+    "global_reference_note": "role/permission_key/role_permission — salt-okunur paylaşılan referans"
+  },
+  "table_class_of": {
+    "$comment": "BRD §16 / DB.md §6.3 varlık → veri-sınıfı eşlemesi. tenant_content (10) + tenant_config (19) + tenant_metric (1) + platform (4) + global_reference (3). tenant_content ∪ tenant_config = forbidden_for_platform (tenant iş verisi).",
+    "call": "tenant_content", "call_leg": "tenant_content", "transcript": "tenant_content",
+    "transcript_segment": "tenant_content", "recording": "tenant_content", "call_event": "tenant_content",
+    "tool_execution": "tenant_content", "contact": "tenant_content", "consent": "tenant_content",
+    "call_evaluation": "tenant_content",
+    "organisation_unit": "tenant_config", "app_user": "tenant_config", "agent": "tenant_config",
+    "agent_version": "tenant_config", "prompt": "tenant_config", "conversation_flow": "tenant_config",
+    "voice_profile": "tenant_config", "model_profile": "tenant_config", "stt_profile": "tenant_config",
+    "knowledge_base": "tenant_config", "kb_document": "tenant_config", "kb_chunk": "tenant_config",
+    "tool": "tenant_config", "phone_number": "tenant_config", "sip_trunk": "tenant_config",
+    "campaign": "tenant_config", "retention_policy": "tenant_config", "legal_hold": "tenant_config",
+    "user_role_assignment": "tenant_config",
+    "usage_record": "tenant_metric",
+    "tenant": "platform", "audit_log": "platform", "incident": "platform", "break_glass_grant": "platform",
+    "role": "global_reference", "permission_key": "global_reference", "role_permission": "global_reference"
+  },
+  "repositories": {
+    "$comment": "Repository (data-access) kayıt defteri: her repo bir veri-sınıfına ve ait olduğu plane'e bağlanır. platform_control_plane YALNIZ platform/tenant_metric/global_reference repo'larını wire eder (tenant_content/tenant_config repo'su YOK). break_glass_content_repo YALNIZ break_glass_plane'de (kind=break_glass_content).",
+    "tenant_provisioning_repo": {"data_class": "platform", "plane": "platform_control_plane", "tables": ["tenant"]},
+    "resource_quota_repo": {"data_class": "tenant_metric", "plane": "platform_control_plane", "tables": ["usage_record"]},
+    "platform_billing_repo": {"data_class": "tenant_metric", "plane": "platform_control_plane", "tables": ["usage_record"]},
+    "platform_audit_repo": {"data_class": "platform", "plane": "platform_control_plane", "tables": ["audit_log"]},
+    "incident_repo": {"data_class": "platform", "plane": "platform_control_plane", "tables": ["incident"]},
+    "break_glass_grant_repo": {"data_class": "platform", "plane": "platform_control_plane", "tables": ["break_glass_grant"]},
+    "reference_repo": {"data_class": "global_reference", "plane": "platform_control_plane", "tables": ["role", "permission_key", "role_permission"]},
+    "call_repo": {"data_class": "tenant_content", "plane": "tenant_application_plane", "tables": ["call", "call_leg", "call_event"]},
+    "transcript_repo": {"data_class": "tenant_content", "plane": "tenant_application_plane", "tables": ["transcript", "transcript_segment"]},
+    "recording_repo": {"data_class": "tenant_content", "plane": "tenant_application_plane", "tables": ["recording"]},
+    "contact_repo": {"data_class": "tenant_content", "plane": "tenant_application_plane", "tables": ["contact", "consent"]},
+    "agent_repo": {"data_class": "tenant_config", "plane": "tenant_application_plane", "tables": ["agent", "prompt", "conversation_flow"]},
+    "campaign_repo": {"data_class": "tenant_config", "plane": "tenant_application_plane", "tables": ["campaign"]},
+    "break_glass_content_repo": {"data_class": "tenant_content", "plane": "break_glass_plane", "kind": "break_glass_content", "grant_gated": true, "tables": ["transcript", "transcript_segment", "recording", "contact"]}
+  },
+  "db_roles": {
+    "$comment": "DB bağlantı rolleri (grant-seviyesi bağımsızlık — DB.md P3). platform_ro = L0 servisinin bağlandığı rol; tenant iş verisi tablolarında GRANT TUTMAZ (yalnız platform + usage_record metrik + global_reference). app_rw = tenant plane rolü (12.2.3; tenant iş verisi, RLS-bağlı). breakglass_ro = break_glass_plane KISITLI rolü (content tablolarında KOŞULLU/grant-gated; default L0 bağlantısı DEĞİL).",
+    "platform_ro": {"plane": "platform_control_plane", "grants_on_forbidden": false, "grant_tables": ["tenant", "audit_log", "incident", "break_glass_grant", "usage_record", "role", "permission_key", "role_permission"]},
+    "app_rw": {"plane": "tenant_application_plane", "rls_bound": "12.2.3", "note": "tenant iş verisi grant'i RLS'e tabi (BYPASSRLS yok)"},
+    "breakglass_ro": {"plane": "break_glass_plane", "grant_gated": true, "time_boxed": true, "note": "content tablolarında koşullu grant; default L0 bağlantısı değil"}
+  },
+  "break_glass": {
+    "$comment": "Break-glass content erişim yolu (DB.md §6.4; FR-IAM-009). AYRI, kısıtlı break_glass_plane (default platform plane'in parçası DEĞİL); break_glass_content_repo + breakglass_ro; grant-gated + time-boxed (standing access YOK). Akış (maker-checker + bildirim + grant yaşam döngüsü) 12.3.x'e DELEGE; satır-düzeyi koşul 12.2.3 break_glass_read policy ile RESİPROKAL.",
+    "plane": "break_glass_plane",
+    "repo": "break_glass_content_repo",
+    "db_role": "breakglass_ro",
+    "content_tables": ["transcript", "transcript_segment", "recording", "contact"],
+    "grant_gated": true,
+    "time_boxed": true,
+    "standing_access": false,
+    "delegated_flow": "12.3.x",
+    "rls_reciprocal": "12.2.3 break_glass_read policy (DB.md §6.4)"
+  },
+  "endpoint_surface": {
+    "$comment": "API yüzey bağımsızlığı (API.md FR-IAM-008): L0 OpenAPI'sinde GET /calls, GET /transcripts gibi iş-verisi endpoint'i BULUNMAZ. İçerik yalnız onaylı break-glass grant ile ayrı kısıtlı router üzerinden; her erişim WORM audit'e (DB §6, FR-REC-009).",
+    "l0_business_data_endpoints": "none",
+    "trace": "API.md (L0 OpenAPI notu FR-IAM-008), FR-REC-009"
+  },
+  "consumes": {
+    "$comment": "RESİPROKAL bağlantılar. 12.2.1 backend-guard l0_business_data.delegated_to = '12.2.4 (repository bağımsızlığı)' (bu modül o delegasyonu karşılar). 12.2.3 RLS = çalışma-anı backstop (platform realm tenant_scoped satırları break-glass'sız göremez — R7 platform_overreach=0).",
+    "guard_model": "12.2.1 ../backend-guard/config/guard-model.json (l0_business_data.delegated_to → 12.2.4)",
+    "rls_model": "12.2.3 ../rls-double-check/config/rls-model.json (RLS çalışma-anı backstop; break_glass.tables RESİPROKAL)"
+  },
+  "terminal": ["PERMIT", "FORBID"],
+  "trace": "FR-IAM-008, SAD §14.4.2, DB.md P3/§6.3, ADR-011, API.md, 12.2.1 (l0_business_data delegasyon), 12.2.3 (RLS backstop)"
+}

@@ -1,0 +1,12 @@
+{
+  "$comment": "PASS: tenant_application_plane call_repo (tenant_content) → PERMIT. Tenant plane tenant iş verisini meşru olarak işler (app_rw, 12.2.3 RLS-bağlı).",
+  "name": "ri-pass-tenant-content",
+  "expect": "pass",
+  "request_id": "req-008",
+  "plane": "tenant_application_plane",
+  "repository": "call_repo",
+  "table": "call",
+  "db_role": "app_rw",
+  "grant_present": true,
+  "expected": {"terminal": "PERMIT"}
+}

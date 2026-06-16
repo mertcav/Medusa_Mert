@@ -1,0 +1,12 @@
+{
+  "name": "ri-degrade-bg-standing",
+  "expect": "fail",
+  "request_id": "req-106",
+  "plane": "break_glass_plane",
+  "repository": "break_glass_content_repo",
+  "table": "recording",
+  "db_role": "breakglass_ro",
+  "grant_gated": false,
+  "inject": ["bg_standing"],
+  "$comment": "DEGRADE bg_standing: break_glass_plane content geçerli grant olmadan (grant_gated=false) admit edilir → bg_standing_binding (R9 time-box/standing-access çöker; FR-IAM-009)"
+}

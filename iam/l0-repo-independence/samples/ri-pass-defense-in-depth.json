@@ -1,0 +1,12 @@
+{
+  "$comment": "PASS ÇEKİRDEK (R6 defense in depth): platform kompozisyon kökü recording_repo (content) için FORBID döner (wiring katmanı bağımsız reddeder) VE platform_ro grant tutmaz (grant katmanı). data_reachable=0 — iki bağımsız tasarım katmanı. Çalışma-anı backstop: 12.2.3 RLS.",
+  "name": "ri-pass-defense-in-depth",
+  "expect": "pass",
+  "request_id": "req-007",
+  "plane": "platform_control_plane",
+  "repository": "recording_repo",
+  "table": "recording",
+  "db_role": "platform_ro",
+  "grant_present": false,
+  "expected": {"terminal": "FORBID"}
+}

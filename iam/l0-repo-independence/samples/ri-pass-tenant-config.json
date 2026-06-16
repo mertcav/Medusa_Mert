@@ -1,0 +1,12 @@
+{
+  "$comment": "PASS: tenant_application_plane agent_repo (tenant_config) → PERMIT. Tenant operasyonu agent/prompt/flow yönetir.",
+  "name": "ri-pass-tenant-config",
+  "expect": "pass",
+  "request_id": "req-009",
+  "plane": "tenant_application_plane",
+  "repository": "agent_repo",
+  "table": "agent",
+  "db_role": "app_rw",
+  "grant_present": true,
+  "expected": {"terminal": "PERMIT"}
+}

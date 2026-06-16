@@ -1,0 +1,12 @@
+{
+  "name": "ri-degrade-unclassify",
+  "expect": "fail",
+  "request_id": "req-108",
+  "plane": "platform_control_plane",
+  "repository": "mystery_repo",
+  "table": "mystery_table",
+  "data_class": null,
+  "db_role": "platform_ro",
+  "inject": ["unclassify"],
+  "$comment": "DEGRADE unclassify: sınıflandırılmamış repo/table fail-closed yerine zorla kabul edilir (fail-open) → unclassified_binding (R3 classification coverage çöker; bilinmeyen=tenant iş verisi varsayımı atlandı)"
+}

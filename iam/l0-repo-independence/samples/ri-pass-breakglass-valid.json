@@ -1,0 +1,13 @@
+{
+  "$comment": "PASS (R9): break_glass_plane break_glass_content_repo (content transcript) + grant_gated=true → PERMIT (Tier B meşru; time-boxed). Ayrı kısıtlı plane, geçerli grant. Akış 12.3.x.",
+  "name": "ri-pass-breakglass-valid",
+  "expect": "pass",
+  "request_id": "req-010",
+  "plane": "break_glass_plane",
+  "repository": "break_glass_content_repo",
+  "table": "transcript",
+  "db_role": "breakglass_ro",
+  "grant_gated": true,
+  "grant_present": true,
+  "expected": {"terminal": "PERMIT"}
+}

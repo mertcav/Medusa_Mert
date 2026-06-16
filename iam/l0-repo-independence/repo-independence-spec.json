@@ -1,0 +1,161 @@
+{
+  "$comment": "WBS 12.2.4 — L0 İŞ VERİSİ REPOSITORY BAĞIMSIZLIĞI (tasarımsal/design-time izolasyon; SAD §14.4.2 'Platform endpoint'leri TASARIM GEREĞİ tenant iş verisi repository'lerine BAĞLI DEĞİLDİR', DB.md P3 'repository/grant düzeyinde bağlı değildir', FR-IAM-008). 12. workstream'in (IAM & Erişim) TASARIM-ZAMANI L0⟂tenant İZOLASYON modülü ve F1-Must yeteneği. 12.2.1 (HTTP guard, çalışma-anı) + 12.2.3 (RLS, çalışma-anı) KARARLARINDAN ÖNCEKİ katman: L0 platform plane'inin tenant iş verisine erişimi KOMPOZİSYON (wiring) ve DB GRANT seviyesinde tasarımca DIŞLANIR — çalışma-anı guard bug'ı olsa bile L0 kodu tenant iş verisi tablosuna ULAŞAMAZ (repository binding + grant yok). Bir RepoBindingRequest (plane + repository + table + data_class + db_role + grant_present + grant_gated + endpoint_exposed + deploy_isolation + via_break_glass) alır → DETERMİNİSTİK, FAIL-CLOSED bir kompozisyon admission kararı verir: PERMIT (binding plane'e kabul) | FORBID (binding tasarımca reddedilir → deploy edilmez). İKİ BAĞIMSIZ TASARIM KATMANI (defense in depth, P2): (A) WIRING — platform_control_plane (L0 internal-only, ADR-011) tenant_content/tenant_config repo'su WIRE ETMEZ; (B) GRANT — platform_ro DB rolü tenant iş verisi tablolarında GRANT TUTMAZ (DB.md P3). Birleşim AND: data_reachable ⟺ wired_forbidden_repo ∧ grant_present; tek katman regresyonu (yanlış wire VEYA stray grant) veriyi AÇMAZ — diğer katman bağımsız kapatır. ÜÇÜNCÜ çalışma-anı backstop: 12.2.3 RLS (consumed). ÇEKİRDEK: (1) R4 WIRING BAĞIMSIZLIĞI — L0 default plane tenant iş verisi repo'su wire etmez (wired_forbidden_repo=0); (2) R5 GRANT BAĞIMSIZLIĞI (DB.md P3) — platform_ro tenant iş verisi tablosunda grant tutmaz (grant_on_content=0); (3) R6 BİRLEŞİK DEFENSE IN DEPTH — tenant iş verisi L0'dan ANCAK her iki katman regrese olursa erişilebilir (data_reachable=0); (4) R7 ENDPOINT YÜZEY BAĞIMSIZLIĞI (API.md) — L0 OpenAPI iş-verisi endpoint'i yok (l0_business_endpoint=0); (5) R8 BREAK-GLASS AYRIMI — content repo yalnız ayrı break_glass_plane'de, default'ta değil (bg_in_default=0); (6) R9 BREAK-GLASS GRANT-GATED (time-boxed; 12.3.x) — content admission geçerli grant gerektirir; standing yok (bg_standing_binding=0). Motor DETERMİNİSTİK FAIL-CLOSED (Date.now/random YOK; model_hash sha256). Her karar terminal (R1) + kanıt + model bütünlük manifesti (R10); metrik düşük-kardinalite + ham PII yok (R11); model/spec/sample ham içerik/PII/credential tutmaz (R12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): HTTP enforce_tenant_scope (çalışma-anı) → 12.2.1; RLS çalışma-anı zorlama → 12.2.3 (CONSUMED backstop); rol→permission-key/rol+scope → 12.1.1/12.1.3; ayrı router/scope → 12.2.2; break-glass AKIŞI (maker-checker+bildirim+grant yaşam döngüsü) → 12.3.x; WORM audit → 12.1.8; repo/grant migration CI → 0.4.4. KAYNAK DOĞRULUK; çelişkide SAD §14.4.2 / DB.md P3 / FR-IAM-008 esastır.",
+  "version": "1.0",
+  "wbs": "12.2.4",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-IAM-008", "FR-IAM-009", "FR-TEN-002", "FR-REC-009", "FR-TST-008"],
+    "srs": ["SR-IAM-008", "SR-TEN-002"],
+    "rtm": ["TC-IAM-008"],
+    "brd": [
+      "§17 (üç katmanlı panel — L0 Platform Admin / L1 Tenant Admin / L2 Operasyon; FR-IAM-008 panel-katman rol ayrımı)",
+      "§17.7 (izolasyon/görünürlük — Platform rolleri tenant iş içeriğini [çağrı kaydı/transkript/müşteri PII] varsayılan göremez; yalnız metrik/kaynak)",
+      "§5 (kimlik & erişim — platform rolleri tenant rollerinden tamamen ayrı)"
+    ],
+    "sad": [
+      "§14.4.2 (Backend — 'Platform endpoint'leri TASARIM GEREĞİ tenant iş verisi [call/transcript/PII] repository'lerine BAĞLI DEĞİLDİR; erişim yalnız break-glass akışıyla' — bu modülün TEMEL kararı: design-time repository bağımsızlığı)",
+      "§14.4.1 (iki düzlemli panel — L0 ayrı internal-only Platform Control Plane; L1+L2 public)",
+      "§14.4.4 (platform rolleri ayrı IdP/dizinden federe; tenant IdP L0 rolü atayamaz)"
+    ],
+    "adr": [
+      "ADR-011 (iki düzlemli panel dağıtımı — L0 ayrı internal-only servis/realm; default tenant iş verisine bağlı değil)",
+      "ADR-001 (orchestrator bağımsızlığı — deterministik karar fonksiyonu deseni)",
+      "ADR-002 (vendor-neutral — kompozisyon/grant bağımsızlığı açık tasarım ilkesi)"
+    ],
+    "threat_model": [
+      "TM-I-02 (L0 platform rolü tenant içeriğini [transkript/kayıt/PII] görür — altın kural ihlali; design-time repo+grant bağımsızlığı + RLS backstop; data_reachable=0)",
+      "TM-E-04 (tenant IdP'sinin L0 rolü ataması — L0 ayrı IdP/federasyon; kapsam SAD §14.4.4)"
+    ],
+    "consumes": [
+      "12.2.1 backend-guard config/guard-model.json (l0_business_data.delegated_to = '12.2.4 (repository bağımsızlığı)' — RESİPROKAL; bu modül o delegasyonu KARŞILAR) — TÜKETİLİR",
+      "12.2.3 rls-double-check config/rls-model.json (RLS ÇALIŞMA-ANI BACKSTOP — platform realm tenant_scoped satırları break-glass'sız göremez; break_glass.tables RESİPROKAL) — TÜKETİLİR",
+      "repo-independence-model.json (frozen — planes + data_classes + table_class_of + repositories + db_roles + break_glass)"
+    ],
+    "consumed_by": [
+      "12.3.x break-glass (ayrı break_glass_plane + grant-gated content okuma akışı — bu modül plane ayrımını + grant-gated koşulu tasarımca zorlar)",
+      "1.x F1 kod (gerçek FastAPI kompozisyon kökü [L0 ayrı app] + DB GRANT/REVOKE DDL [platform_ro] + L0 OpenAPI [iş-verisi endpoint'i yok])",
+      "0.4.4 repo/grant bağımsızlık CI kontrolü (L0 import grafiği + grant manifesti); 0.4.7 gözlemlenebilirlik"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Repository bağımsızlığı, L0⟂tenant izolasyonunun TASARIM-ZAMANI (design-time) katmanıdır — 12.2.1 (HTTP guard) ve 12.2.3 (RLS) ÇALIŞMA-ANI kararlarından ÖNCE gelir. L0 (Platform Control Plane, ADR-011 ayrı internal-only servis) kompozisyon kökü tenant iş verisi repository'lerini WIRE ETMEZ; bağlandığı platform_ro DB rolü tenant iş verisi tablolarında GRANT TUTMAZ. Böylece çalışma-anı guard regresse olsa bile L0 kodu tenant iş verisine ULAŞAMAZ (binding + grant yok). İçeriğe erişim yalnız ayrı kısıtlı break_glass_plane (grant-gated, time-boxed) ile. Motor yalnız KARAR + kanıt + model bütünlük manifesti üretir (gerçek FastAPI kompozisyon + GRANT/REVOKE DDL + L0 OpenAPI F1 kod aşamasında); deterministik kontrol düzlemi (Date.now/random YOK). Vendor-neutral (ADR-002/011).",
+    "plane": "tasarım-zamanı kompozisyon + DB grant (design-time; çalışma-anı guard [12.2.1] + RLS [12.2.3] BACKSTOP'tan BAĞIMSIZ üçüncü/öncel katman)",
+    "owns": "SAD §14.4.2 / DB.md P3 DESIGN-TIME L0⟂tenant REPOSITORY BAĞIMSIZLIĞI: RepoBindingRequest → malformed kapısı + plane separation (ADR-011 internal-only; R2) + repo/table classification coverage (fail-closed; R3) + WIRING bağımsızlığı (platform default tenant iş verisi repo'su wire etmez; R4) + GRANT bağımsızlığı (platform_ro tenant iş verisi grant'i tutmaz; DB.md P3; R5) + birleşik defense-in-depth (data_reachable ⟺ wiring ∧ grant; R6) + endpoint yüzey bağımsızlığı (L0 OpenAPI iş-verisi endpoint'i yok; API.md; R7) + break-glass plane ayrımı (R8) + break-glass grant-gated (R9) + terminal {PERMIT|FORBID} + model bütünlük manifesti (R10) + karar kanıtı",
+    "delegates": "HTTP enforce_tenant_scope (çalışma-anı) → 12.2.1; RLS çalışma-anı zorlama → 12.2.3 (CONSUMED backstop); rol→permission-key/scope → 12.1.1/12.1.3; ayrı router/scope → 12.2.2; break-glass akışı → 12.3.x; WORM audit → 12.1.8; repo/grant CI → 0.4.4",
+    "deterministic": true,
+    "fail_closed": true,
+    "decision_at": "design-time (kompozisyon + DB grant — çalışma-anından BAĞIMSIZ)",
+    "trace": "FR-IAM-008, SAD §14.4.2, DB.md P3, ADR-011"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ design-time L0⟂tenant repository bağımsızlığı. Önce malformed; sonra plane separation (deploy); sonra repo/table classification coverage; sonra WIRING bağımsızlığı; sonra GRANT bağımsızlığı; sonra birleşik reachability; sonra endpoint yüzey + break-glass ayrım/grant-gated. Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "plane_separation", "field": "L0 platform_control_plane internal-only, ayrı deploy (ADR-011)", "invariant": "R2", "outcome": "PERMIT|FORBID",
+       "rule": "platform_control_plane (L0) ayrı, internal-only servis/origin/auth realm olarak deploy edilir (ADR-011, SAD §14.4.1); tenant_application_plane (L1+L2 public) ile co-deploy/public origin paylaşmaz. deploy_isolation=internal_only kaybolursa (couple) güven sınırı çöker. plane_coupling=0"},
+      {"id": "classification_coverage", "field": "her repo/table veri-sınıfına sınıflandırılır; bilinmeyen → fail-closed FORBID", "invariant": "R3", "outcome": "PERMIT|FORBID",
+       "rule": "her repository ve table bir veri-sınıfına (tenant_content/tenant_config/tenant_metric/platform/global_reference) sınıflandırılmalı (table_class_of / repositories kayıt defteri). Sınıflandırılmamış repo/table → FAIL-CLOSED FORBID (bilinmeyen = tenant iş verisi varsay; binding reddedilir). Sınıflandırılmamış binding kabul edilirse fail-open. unclassified_binding=0"},
+      {"id": "wiring_independence", "field": "L0 default plane tenant iş verisi repo'su WIRE ETMEZ", "invariant": "R4", "outcome": "PERMIT|FORBID",
+       "rule": "platform_control_plane kompozisyon kökü yalnız platform + tenant_metric + global_reference repo'larını wire eder; tenant_content/tenant_config (call/transcript/recording/contact/agent/...) repo'su WIRE ETMEZ (SAD §14.4.2 'tasarım gereği bağlı değildir'). Forbidden-sınıf repo platform default'a wire edilirse (admit) tasarım izolasyonu çöker. wired_forbidden_repo=0"},
+      {"id": "grant_independence", "field": "platform_ro DB rolü tenant iş verisi tablosunda GRANT TUTMAZ (DB.md P3)", "invariant": "R5", "outcome": "PERMIT|FORBID",
+       "rule": "L0'ın bağlandığı platform_ro rolü tenant iş verisi tablolarında (tenant_content/tenant_config) SELECT/DML GRANT'i TUTMAZ — REVOKE / hiç GRANT verilmez (DB.md P3 'repository/GRANT düzeyinde bağlı değildir'). Stray grant verilirse (grant_present) grant bağımsızlığı çöker. grant_on_content=0"},
+      {"id": "defense_in_depth_reachability", "field": "data_reachable ⟺ wired_forbidden_repo ∧ grant_present (AND)", "invariant": "R6", "outcome": "PERMIT|FORBID",
+       "rule": "tenant iş verisi L0'dan ANCAK HER İKİ tasarım katmanı (wiring + grant) regrese olursa erişilebilir: data_reachable ⟺ wired_forbidden_repo ∧ grant_present. Tek katman hatası (yanlış wire VEYA stray grant) veriyi AÇMAZ — diğer katman bağımsız kapatır (P2 defense in depth). Üçüncü çalışma-anı backstop: 12.2.3 RLS (platform realm tenant_scoped satırları break-glass'sız göremez). data_reachable=0"},
+      {"id": "endpoint_surface_independence", "field": "L0 OpenAPI'sinde iş-verisi endpoint'i (GET /calls, GET /transcripts) yok", "invariant": "R7", "outcome": "PERMIT|FORBID",
+       "rule": "L0 OpenAPI yüzeyinde tenant iş-verisi endpoint'i (GET /calls, GET /transcripts) BULUNMAZ (API.md FR-IAM-008); içerik yalnız onaylı break-glass grant ile ayrı kısıtlı router üzerinden; her erişim WORM audit'e (FR-REC-009). Default L0 plane'inde forbidden-sınıf endpoint exposed edilirse yüzey bağımsızlığı çöker. l0_business_endpoint=0"},
+      {"id": "break_glass_plane_separation", "field": "content repo yalnız ayrı break_glass_plane'de, default L0'da değil", "invariant": "R8", "outcome": "PERMIT|FORBID",
+       "rule": "break_glass_content_repo (content okuma) YALNIZ ayrı, kısıtlı break_glass_plane'de compose edilir (DB.md §6.4); default platform_control_plane'in PARÇASI DEĞİL. Break-glass content repo default L0 plane'ine konursa (bg_in_default) ayrım çöker — içerik default yüzeye sızar. bg_in_default=0"},
+      {"id": "break_glass_grant_gated", "field": "break-glass content admission geçerli grant gerektirir; standing yok (time-boxed; 12.3.x)", "invariant": "R9", "outcome": "PERMIT|FORBID",
+       "rule": "break_glass_plane content binding'i YALNIZ geçerli, süre-dolmamış grant (grant_gated=true) ile admit edilir (time-boxed; STANDING ACCESS YOK; FR-IAM-009; akış 12.3.x; satır-koşulu 12.2.3 break_glass_read ile RESİPROKAL). Grant'siz/standing content admission = bg_standing_binding. bg_standing_binding=0"},
+      {"id": "model_integrity", "field": "repo bağımsızlık modeli frozen + model_hash sha256", "invariant": "R10", "outcome": "PERMIT|FORBID",
+       "rule": "model (planes/data_classes/table_class_of/repositories/db_roles/break_glass) frozen; model_hash = sha256(kanonik); çalışma anında tahrif (ör. forbidden sınıfı allowed yapma / break-glass grant-gated kaldırma) yeniden-hesaplanan hash'le yakalanır → model_tampered. İzolasyon yüzeyi audit edilebilir (ADR-011). model_tampered=0"}
+    ],
+    "evaluation": "malformed_then_plane_separation_then_classification_coverage_then_wiring_independence_then_grant_independence_then_combined_reachability_then_endpoint_and_break_glass",
+    "trace": "FR-IAM-008, SAD §14.4.2, DB.md P3, ADR-011"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed design-time repository bağımsızlığı algoritması. Adımlar: (1) malformed (request_id eksik / plane geçersiz / data_class+table sınıflandırılamaz / db_role geçersiz → FORBID malformed). (2) plane separation: platform default deploy_isolation kaybı → plane_coupling. (3) classification: data_class bilinmiyor → fail-closed (admit=False); zorla kabul → unclassified_binding. (4) admission hesapla: platform_control_plane forbidden-sınıf → FORBID; break_glass_plane content ∧ grant_gated → PERMIT; tenant_application_plane tenant-sınıf → PERMIT. (5) WIRING bağımsızlığı: platform default forbidden-sınıf admit → wired_forbidden_repo. (6) GRANT bağımsızlığı: platform_ro forbidden tabloda grant_present → grant_on_content. (7) birleşik reachability: data_reachable = wired_forbidden_repo ∧ grant_present. (8) endpoint/break-glass ayrım/grant-gated. Belirsizlik/malformed/bilinmeyen-sınıf → FORBID (fail-closed; ASLA fail-open PERMIT).",
+    "algorithm": "malformed ⇒ FORBID(malformed) → deploy_isolation kaybı ⇒ plane_coupling → data_class bilinmiyor ⇒ fail-closed (admit=False); zorla kabul ⇒ unclassified_binding → admit (platform: ¬forbidden; break_glass: content ∧ grant_gated; tenant: tenant-sınıf) → terminal = PERMIT if admit else FORBID → platform_default ∧ forbidden ∧ PERMIT ⇒ wired_forbidden_repo → platform_role ∧ forbidden ∧ grant_present ⇒ grant_on_content → data_reachable = wired_forbidden_repo ∧ grant_present → endpoint_exposed/bg_in_default/bg_standing kontrolleri",
+    "default": "FORBID",
+    "fail_safe_terminal": "no binding (terminal=FORBID ⇒ binding deploy edilmez; malformed/bilinmeyen-sınıf/forbidden-platform ⇒ FORBID; data_reachable ⟺ wired_forbidden_repo ∧ grant_present)",
+    "trace": "SR-IAM-008, SAD §14.4.2, DB.md P3"
+  },
+
+  "outcomes": {
+    "$comment": "Terminal admission kararları. PERMIT = binding plane'e kabul (compose/deploy edilir). FORBID = binding tasarımca reddedilir (compose edilmez; fail-closed default). Forbidden-sınıf repo'nun platform default'ta FORBID'i DOĞRU çıktıdır (ihlal değil) — tasarım izolasyonu. data_reachable (defense in depth) ⟺ wired_forbidden_repo ∧ grant_present — tenant iş verisi YALNIZ iki tasarım katmanı da regrese olursa erişilebilir.",
+    "list": ["PERMIT", "FORBID"],
+    "terminal": ["PERMIT", "FORBID"]
+  },
+
+  "model": {
+    "$comment": "Repo bağımsızlık modeli özeti = config/repo-independence-model.json (frozen). planes (platform_control_plane internal-only / tenant_application_plane public / break_glass_plane restricted grant-gated) + data_classes (forbidden_for_platform = tenant_content ∪ tenant_config; allowed_for_platform = platform/tenant_metric/global_reference) + table_class_of (37 varlık) + repositories (kayıt defteri) + db_roles (platform_ro grant'siz / app_rw RLS-bağlı / breakglass_ro grant-gated) + break_glass (ayrı plane; time-boxed). Karar design-time (çalışma-anından BAĞIMSIZ).",
+    "frozen": true,
+    "decision_at": "design-time",
+    "forbidden_for_platform": ["tenant_content", "tenant_config"],
+    "allowed_for_platform": ["platform", "tenant_metric", "global_reference"],
+    "data_classes": ["tenant_content", "tenant_config", "tenant_metric", "platform", "global_reference"],
+    "planes": ["platform_control_plane", "tenant_application_plane", "break_glass_plane"],
+    "db_roles": ["platform_ro", "app_rw", "breakglass_ro"],
+    "defense_in_depth": "wiring (A) ∧ grant (B) bağımsız; data_reachable ⟺ wired_forbidden_repo ∧ grant_present; RLS (12.2.3) çalışma-anı backstop"
+  },
+
+  "enforcement": {
+    "$comment": "Design-time repository bağımsızlığı enforcement (SAD §14.4.2, DB.md P3). İKİ BAĞIMSIZ TASARIM KATMANI: (A) wiring_layer — platform_control_plane kompozisyon kökü forbidden-sınıf repo wire etmez; (B) grant_layer — platform_ro tenant iş verisi tablolarında grant tutmaz. data_reachable ⟺ wired_forbidden_repo ∧ grant_present (AND). Üçüncü çalışma-anı backstop: 12.2.3 RLS (consumed). İçerik erişimi yalnız ayrı break_glass_plane (grant-gated, time-boxed). Karar design-time (çalışma-anından bağımsız).",
+    "wiring_layer": "platform_control_plane (L0 internal-only, ADR-011) kompozisyon kökü yalnız platform + tenant_metric + global_reference repo'larını wire eder; tenant_content/tenant_config repo'su YOK (SAD §14.4.2 tasarım gereği)",
+    "grant_layer": "platform_ro DB rolü tenant iş verisi tablolarında GRANT TUTMAZ (REVOKE/hiç GRANT; DB.md P3)",
+    "combine": "data_reachable ⟺ wired_forbidden_repo ∧ grant_present (AND; iki bağımsız tasarım katmanı defense in depth)",
+    "rls_backstop": "12.2.3 RLS (CONSUMED) — platform realm tenant_scoped satırları break-glass'sız göremez (R7 platform_overreach=0); design-time bağımsızlık + çalışma-anı RLS = üçlü savunma",
+    "break_glass": "ayrı break_glass_plane (grant-gated; time-boxed; standing access yok; 12.3.x akış; 12.2.3 break_glass_read RESİPROKAL)",
+    "endpoint_surface": "L0 OpenAPI iş-verisi endpoint'i (GET /calls, GET /transcripts) YOK (API.md FR-IAM-008)",
+    "decision_at": "design-time",
+    "trace": "FR-IAM-008, SAD §14.4.2, DB.md P3, ADR-011, API.md"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. wired_forbidden_repo (R4) = L0 default plane forbidden-sınıf repo wire etti; grant_on_content (R5) = platform_ro tenant iş verisi tablosunda grant tutuyor; data_reachable (R6 ÇEKİRDEK) = iki tasarım katmanı da regrese (wiring ∧ grant) → tenant iş verisi L0'dan erişilebilir; l0_business_endpoint (R7) = L0 OpenAPI iş-verisi endpoint'i exposed; bg_in_default (R8) = break-glass content repo default L0 plane'inde; bg_standing_binding (R9) = break-glass content grant'sız/standing admit; plane_coupling (R2) = platform plane internal-only deploy izolasyonu kaybı; unclassified_binding (R3) = sınıflandırılmamış binding kabul (fail-open); model_tampered (R10) = model bütünlük manifesti tutmuyor. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1 canlı (FastAPI kompozisyon + GRANT/REVOKE DDL + L0 OpenAPI) verisinde doğrulanır.",
+    "max_data_reachable": 0,
+    "max_wired_forbidden_repo": 0,
+    "max_grant_on_content": 0,
+    "max_l0_business_endpoint": 0,
+    "max_bg_in_default": 0,
+    "max_bg_standing_binding": 0,
+    "max_plane_coupling": 0,
+    "max_unclassified_binding": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "Repo bağımsızlığı her admission kararı için izolasyon metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. repo_binding_decision_total{plane,data_class,db_role,result} → karar sayımı (result=PERMIT/FORBID); repo_independence_violation_total → data_reachable VEYA wired_forbidden_repo VEYA grant_on_content VEYA l0_business_endpoint VEYA bg_in_default VEYA bg_standing_binding VEYA plane_coupling VEYA model_tampered (R2/R4/R5/R6/R7/R8/R9/R10 ihlal alarmı, 0 olmalı). plane+data_class+db_role+result DÜŞÜK kardinalite (label uygun); repository adı/table adı/request_id YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM İÇERİK/PII metrikte VE log'da YOK (BRD §17.7/FR-REC-004). data_reachable>0 VEYA wired_forbidden_repo>0 VEYA grant_on_content>0 → kritik alarm ≤2dk (SAD §17.2, NFR 10.1) = L0⟂tenant izolasyon ihlali güvenlik olayı.",
+    "metrics": ["repo_binding_decision_total", "repo_independence_violation_total"],
+    "low_cardinality_labels": ["plane", "data_class", "db_role", "result"],
+    "high_cardinality_trace_only": ["repository", "table", "request_id"],
+    "alarm": "data_reachable>0 (L0 tenant iş verisine erişebilir — R6 ÇEKİRDEK, FR-IAM-008) VEYA wired_forbidden_repo>0 (L0 forbidden repo wire — R4) VEYA grant_on_content>0 (platform_ro stray grant — R5, DB.md P3) VEYA bg_in_default>0 (break-glass default'ta — R8) VEYA model_tampered>0 (R10) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "R1", "desc": "Determinizm/tamlık + kanıt: her RepoBindingRequest tanımlı malformed→plane→classification→wiring→grant→reachability→endpoint/break-glass algoritması boyunca ilerler ve bir terminal karara {PERMIT|FORBID} ulaşır; aynı girdi → aynı çıktı (deterministik; model_hash sha256 kanonik JSON; Date.now/random YOK); varsayılan FORBID (fail-closed; no binding); her karar kanıt taşır (request_id + plane + repository + table + data_class + db_role + terminal + grant_present + grant_gated + model_hash). stuck_state=0, missing_evidence=0.", "trace": "SR-IAM-008, SAD §14.4.2"},
+    {"id": "R2", "desc": "Plane separation deploy (ADR-011, SAD §14.4.1): platform_control_plane (L0) ayrı, internal-only servis/origin/auth realm olarak deploy edilir; tenant_application_plane (L1+L2 public) ile co-deploy/public origin paylaşmaz. deploy_isolation=internal_only kaybı = plane_coupling. plane_coupling=0.", "trace": "ADR-011, SAD §14.4.1"},
+    {"id": "R3", "desc": "Classification coverage fail-closed: her repository/table bir veri-sınıfına (tenant_content/tenant_config/tenant_metric/platform/global_reference) sınıflandırılmalı; sınıflandırılmamış → FAIL-CLOSED FORBID (bilinmeyen = tenant iş verisi varsay). Sınıflandırılmamış binding kabul edilirse fail-open = unclassified_binding. unclassified_binding=0.", "trace": "FR-IAM-008, DB.md P3"},
+    {"id": "R4", "desc": "Wiring bağımsızlığı ÇEKİRDEK (SAD §14.4.2 'Platform endpoint'leri tasarım gereği tenant iş verisi repository'lerine bağlı değildir'): platform_control_plane kompozisyon kökü yalnız platform + tenant_metric + global_reference repo'larını wire eder; tenant_content/tenant_config repo'su WIRE ETMEZ. Forbidden-sınıf repo platform default'a admit edilirse = wired_forbidden_repo. wired_forbidden_repo=0.", "trace": "FR-IAM-008, SAD §14.4.2"},
+    {"id": "R5", "desc": "Grant bağımsızlığı ÇEKİRDEK (DB.md P3 'tenant iş verisi tablolarına repository/GRANT düzeyinde bağlı değildir'): L0'ın bağlandığı platform_ro rolü tenant iş verisi tablolarında (tenant_content/tenant_config) SELECT/DML GRANT'i TUTMAZ (REVOKE/hiç GRANT). Stray grant = grant_on_content. grant_on_content=0.", "trace": "FR-IAM-008, DB.md P3"},
+    {"id": "R6", "desc": "Birleşik defense-in-depth ÇEKİRDEK (P2): tenant iş verisi L0'dan ANCAK HER İKİ tasarım katmanı (wiring ∧ grant) regrese olursa erişilebilir — data_reachable ⟺ wired_forbidden_repo ∧ grant_present. Tek katman hatası (yanlış wire VEYA stray grant) veriyi AÇMAZ; diğer katman bağımsız kapatır. Üçüncü çalışma-anı backstop: 12.2.3 RLS (platform realm tenant_scoped break-glass'sız göremez). data_reachable=0.", "trace": "FR-IAM-008, SAD §14.4.2, DB.md P3, 12.2.3"},
+    {"id": "R7", "desc": "Endpoint yüzey bağımsızlığı (API.md FR-IAM-008): L0 OpenAPI yüzeyinde tenant iş-verisi endpoint'i (GET /calls, GET /transcripts) BULUNMAZ; içerik yalnız onaylı break-glass grant ile ayrı kısıtlı router üzerinden; her erişim WORM audit'e (FR-REC-009). Default L0 forbidden-sınıf endpoint exposed = l0_business_endpoint. l0_business_endpoint=0.", "trace": "FR-IAM-008, API.md, FR-REC-009"},
+    {"id": "R8", "desc": "Break-glass plane ayrımı (DB.md §6.4, ADR-011): break_glass_content_repo YALNIZ ayrı, kısıtlı break_glass_plane'de compose edilir; default platform_control_plane'in PARÇASI DEĞİL. Break-glass content repo default L0 plane'inde = bg_in_default. bg_in_default=0.", "trace": "FR-IAM-009, DB.md §6.4, ADR-011"},
+    {"id": "R9", "desc": "Break-glass grant-gated (DB.md §6.4, FR-IAM-009): break_glass_plane content binding'i YALNIZ geçerli, süre-dolmamış grant (grant_gated=true) ile admit edilir (time-boxed; STANDING ACCESS YOK; akış 12.3.x; satır-koşulu 12.2.3 break_glass_read RESİPROKAL). Grant'siz/standing content admission = bg_standing_binding. bg_standing_binding=0.", "trace": "FR-IAM-009, DB.md §6.4, 12.2.3"},
+    {"id": "R10", "desc": "Model bütünlük manifesti: repo bağımsızlık modeli frozen (planes/data_classes/table_class_of/repositories/db_roles/break_glass) + model_hash = sha256(kanonik) deterministik; çalışma anında model tahrif edilirse (ör. forbidden sınıfı allowed yapma / break-glass grant-gated kaldırma) yeniden-hesaplanan hash tutmaz → model_tampered. İzolasyon yüzeyinin değiştirilemez olduğunu test edilebilir kılar (ADR-011). model_tampered=0.", "trace": "FR-IAM-008, ADR-011"},
+    {"id": "R11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (plane/data_class/db_role/result); repository/table/request_id metrikte yok, yalnız trace; HAM İÇERİK/PII (transcript/recording/contact DEĞERİ) metrikte VE log'da yok (0.4.7 label_policy, BRD §17.7/FR-REC-004).", "trace": "BRD §17.7, 0.4.7 label_policy"},
+    {"id": "R12", "desc": "Sır/içerik yok: model/spec/sample HAM içerik / PII (transcript/recording/contact/telefon/kart/OTP/ad DEĞERİ) / credential (DB şifresi/connection string DEĞERİ) tutmaz — yalnız REPOSITORY adları (ör. transcript_repo) + TABLO adları (ör. call) + VERİ-SINIFI enum (tenant_content/platform) + PLANE enum (platform_control_plane) + DB ROL adları (platform_ro) + yapısal request KİMLİK (req-001) + HASH. Repo/tablo/sınıf/plane/rol adı/kimlik/hash PII DEĞİLDİR. Bu modül binding KARARINI verir — ham satır içeriği (PII) AKMAZ. secret_or_pii=0.", "trace": "BRD §17.7, FR-REC-004, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/model/sample'lar HAM içerik, PII (TRANSCRIPT/RECORDING/CONTACT içeriği, TELEFON numarası, KART [PAN/CVV], OTP kodu, PAROLA, müşteri ADI DEĞERİ) veya credential (DB şifresi / connection string DEĞERİ) TUTMAZ — yalnız REPOSITORY ADLARI (ör. transcript_repo / call_repo) + TABLO ADLARI (ör. transcript / call / contact) + VERİ-SINIFI ENUM (tenant_content / tenant_config / tenant_metric / platform / global_reference) + PLANE ENUM (platform_control_plane / tenant_application_plane / break_glass_plane) + DB ROL ADLARI (platform_ro / app_rw / breakglass_ro) + result ENUM (PERMIT/FORBID) + yapısal request KİMLİK (SENTETİK slug ör. req-001) + HASH (sha256). Repo/tablo/sınıf/plane/rol adı/kimlik/hash PII DEĞİLDİR; tasarımca PII-olmayandır. Bu modül binding ADMISSION KARARINI verir — ham satır içeriği (transcript/recording/contact PII) bu modülde AKMAZ.",
+    "forbids": ["transcript_text_value", "recording_audio_value", "contact_pii_value", "customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "customer_name_value", "db_password_value", "connection_string_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}

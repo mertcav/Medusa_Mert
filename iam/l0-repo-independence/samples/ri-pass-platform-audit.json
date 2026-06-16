@@ -1,0 +1,12 @@
+{
+  "$comment": "PASS: platform platform_audit_repo (platform audit_log) → PERMIT. L0 platform yönetişim/denetim verisi.",
+  "name": "ri-pass-platform-audit",
+  "expect": "pass",
+  "request_id": "req-004",
+  "plane": "platform_control_plane",
+  "repository": "platform_audit_repo",
+  "table": "audit_log",
+  "db_role": "platform_ro",
+  "grant_present": true,
+  "expected": {"terminal": "PERMIT"}
+}

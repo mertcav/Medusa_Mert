@@ -1,0 +1,12 @@
+{
+  "$comment": "PASS ÇEKİRDEK (R4 tasarım izolasyonu): platform_control_plane transcript_repo (tenant_content) WIRE ETMEZ → kompozisyon kökü FORBID döner (doğru reddetme). wired_forbidden_repo=0. SAD §14.4.2 'tasarım gereği bağlı değildir'.",
+  "name": "ri-pass-design-iso-content",
+  "expect": "pass",
+  "request_id": "req-005",
+  "plane": "platform_control_plane",
+  "repository": "transcript_repo",
+  "table": "transcript",
+  "db_role": "platform_ro",
+  "grant_present": false,
+  "expected": {"terminal": "FORBID"}
+}

@@ -1,0 +1,12 @@
+{
+  "name": "ri-degrade-couple-planes",
+  "expect": "fail",
+  "request_id": "req-107",
+  "plane": "platform_control_plane",
+  "repository": "resource_quota_repo",
+  "table": "usage_record",
+  "db_role": "platform_ro",
+  "grant_present": true,
+  "inject": ["couple_planes"],
+  "$comment": "DEGRADE couple_planes: platform_control_plane internal-only deploy izolasyonunu kaybeder (tenant public plane ile co-deploy) → plane_coupling (R2 güven sınırı çöker; ADR-011)"
+}
