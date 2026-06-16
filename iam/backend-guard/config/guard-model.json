@@ -1,0 +1,44 @@
+{
+  "$comment": "WBS 12.2.1 — BACKEND GUARD modeli (panel + rol + tenant scope; FastAPI dependency; SAD §14.4.2). FROZEN kontrol-düzlemi modeli: her korumalı endpoint ÜÇ boyutta korunur — (1) PANEL: endpoint bir panele (L0/L1/L2) bağlıdır; aktörün doğrulanmış token'ı o panelin auth realm'i (panel_realm) + OAuth scope'u (panel_oauth_scope) ile gelmeli VE aktörün ≥1 atama rolünün katmanı (layer) o paneli kapsamalı (layer_covers); (2) ROL: required permission-key (endpoint'in x-required-permission deklarasyonu, API.md) + assignment scope → 12.1.3 scoped-assignment'a DELEGE edilir (o da 12.1.1 immutable bundle'ı çözer); (3) TENANT SCOPE: tenant panelleri (L1/L2) tek tenant_id'ye bağlı; resource.tenant_id = session tenant (HTTP enforce_tenant_scope) + PostgreSQL RLS çift kontrol (12.2.3'e DELEGE). Karar HER ZAMAN backend'de (decision_at=backend); UI yalnız görsel kapı. Yetki kararı YALNIZ doğrulanmış token'dan (trust_source=verified_token_only); client-supplied rol/permission iddiası ASLA güvenilmez. FAIL-CLOSED: belirsizlik/malformed/kimliksiz → BLOCK (no access). Bu dosya FROZEN — değiştirilemez yetki yüzeyi (model_hash sha256 ile audit edilebilir). Kaynak doğruluk SAD §14.4.2 / ADR-011 / ADR-012; çelişkide onlar esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+  "decision_at": "backend",
+  "trust_source": "verified_token_only",
+  "require_permission_declaration": true,
+  "panels": ["L0", "L1", "L2"],
+  "panel_realm": {"L0": "platform", "L1": "tenant", "L2": "tenant"},
+  "panel_oauth_scope": {"L0": "panel:L0", "L1": "panel:L1", "L2": "panel:L2"},
+  "panel_plane": {
+    "L0": "platform_control_plane (internal-only, ayrı origin/servis/auth realm — ADR-011)",
+    "L1": "tenant_application_plane (multi-tenant, public — ADR-011)",
+    "L2": "tenant_application_plane (multi-tenant, public — ADR-011)"
+  },
+  "layer_covers": {
+    "$comment": "Bir atama rolünün katmanı (layer) hangi panel(ler)i kapsar (12.1.1 rbac-roles.json layer alanı). L1+L2 rolü (tenant_owner/api_developer) hem L1 hem L2'yi kapsar; platform rolleri yalnız L0; cross-katman kapsama YOK (FR-IAM-008).",
+    "L0": ["L0"],
+    "L1": ["L1"],
+    "L2": ["L2"],
+    "L1+L2": ["L1", "L2"]
+  },
+  "http_status": {
+    "$comment": "Guard kararı → HTTP durum kodu. ALLOW → handler çalışır (2xx); DENY → 403 Forbidden (yetkisiz ama meşru); BLOCK → kimlik yoksa 401 Unauthenticated, aksi 403 Forbidden (fail-closed; varlık ifşasını önlemek için 403).",
+    "ALLOW": 200,
+    "DENY": 403,
+    "unauthenticated": 401,
+    "block_default": 403
+  },
+  "tenant_double_check": {
+    "$comment": "Tenant scope ÇİFT kontrol (SAD §14.4.2 'tenant scope ... row-level security ile çift kontrol'). Guard seviyesi (HTTP enforce_tenant_scope) bu modülde; PostgreSQL RLS seviyesi 12.2.3'e DELEGE.",
+    "guard_level": true,
+    "rls_level": "delegated_to_12.2.3"
+  },
+  "l0_business_data": {
+    "$comment": "L0 (platform) tasarım gereği tenant iş içeriğine (call/transcript/PII) erişemez; erişim yalnız break-glass ile (FR-IAM-008/009). Repository bağımsızlığı 12.2.4'e, break-glass akışı 12.3.x'e DELEGE.",
+    "default_access": "denied",
+    "delegated_to": ["12.2.4 (repository bağımsızlığı)", "12.3.x (break-glass)"]
+  },
+  "rbac_model": "12.1.1 ../rbac-model/config/rbac-roles.json (frozen — rol→IMMUTABLE bundle + layer + realm)",
+  "scoped_decision": "12.1.3 ../scoped-assignment/scoped_assignment_probe.py (rol+scope yetki kararı DELEGE — GRANT/DENY/BLOCK)",
+  "trace": "FR-IAM-008, FR-TEN-002, FR-IAM-011, SAD §14.4.2, ADR-011, ADR-012, API.md x-required-permission"
+}

@@ -1,0 +1,176 @@
+{
+  "$comment": "WBS 12.2.1 — BACKEND GUARD: panel + rol + tenant scope (FastAPI dependency; SAD §14.4.2 'Her endpoint üç boyutta korunur: panel + rol + tenant scope. FastAPI dependency'leri (guard) ile uygulanır'). 12. workstream'in (IAM & Erişim) HTTP ENFORCEMENT modülü ve F1-Must yeteneği. Bir HTTP guard isteği (HttpGuardRequest) alır → DETERMİNİSTİK, FAIL-CLOSED bir karar verir: (1) PANEL gate — endpoint paneli (L0/L1/L2) için aktörün doğrulanmış token'ı o panelin auth realm'i (platform↔tenant) + OAuth scope'u ile gelmeli VE ≥1 atama rolünün katmanı (12.1.1 layer) paneli kapsamalı; L0 ⟂ tenant (FR-IAM-008/ADR-011). (2) ROL gate — required permission-key (endpoint x-required-permission deklarasyonu) + assignment scope → 12.1.3 scoped-assignment'a DELEGE (o da 12.1.1 IMMUTABLE bundle'ı çözer). (3) TENANT SCOPE gate — tenant panellerinde session tek tenant_id'ye bağlı; resource.tenant_id = session tenant (HTTP enforce_tenant_scope + PostgreSQL RLS çift kontrol 12.2.3). Karar HER ZAMAN backend'de (decision_at=backend; UI yalnız görsel kapı); yetki YALNIZ doğrulanmış token'dan (trust_source=verified_token_only). Terminal: ALLOW(200) | DENY(403: missing_permission/insufficient_scope/out_of_scope — 12.1.3'ten) | BLOCK(401 unauthenticated / 403 malformed/panel_realm_mismatch/oauth_scope_mismatch/panel_not_covered/cross_tenant_resource/unknown_role/realm_layer_mismatch). ÇEKİRDEK: (1) S2 PANEL İZOLASYONU (FR-IAM-008/ADR-011) — L0 endpoint tenant token'ıyla (veya tersi) açılamaz; panel_violation/realm_violation/scope_violation=0; (2) S4 DELEGE DOĞRULUĞU (SAD §14.4.2) — ALLOW ⟺ 12.1.3 GRANT; guard fail-open YAPMAZ; fail_open_grant=0; (3) S5 TENANT SCOPE (FR-TEN-002) — cross-tenant kaynak BLOCK; cross_tenant=0; (4) S6 BACKEND OTORİTESİ (SAD §14.4.2) — client-supplied iddia güvenilmez; client_trust_violation=0; (5) S3 DEKLARASYON ZORUNLU (API.md x-required-permission) — undeclared_endpoint=0. Motor DETERMİNİSTİK FAIL-CLOSED (Date.now/random YOK; model_hash sha256). Her karar terminal (S1) + kanıt (S9) + model bütünlük manifesti (S10); metrik düşük-kardinalite + ham PII yok (S11); model/spec/sample ham içerik/PII/credential tutmaz (S12). KAPSAM DIŞI (bilinçli, başka modül SAHİBİ): rol→permission-key bundle çözümü (immutable) → 12.1.1 (TÜKETİLİR); rol+scope yetki kararı (narrowing) → 12.1.3 (DELEGE); permission-key gramer/katalog → 12.1.2; ayrı router ağaçları + ayrı deploy → 12.2.2; PostgreSQL RLS politikaları → 12.2.3 (RLS DELEGE); L0 repository bağımsızlığı → 12.2.4; break-glass → 12.3.x; WORM audit → 12.1.8. KAYNAK DOĞRULUK; çelişkide SAD §14.4.2 / ADR-011 / ADR-012 esastır.",
+  "version": "1.0",
+  "wbs": "12.2.1",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-IAM-008", "FR-TEN-002", "FR-IAM-011", "FR-IAM-001", "FR-TST-008"],
+    "srs": ["SR-IAM-008", "SR-TEN-002", "SR-IAM-011"],
+    "rtm": ["TC-IAM-008", "TC-TEN-002"],
+    "brd": [
+      "§17 (Üç katmanlı panel mimarisi — L0 Platform Admin / L1 Tenant Admin / L2 Operasyon; her endpoint panel+rol+tenant boyutunda korunur)",
+      "§17.6 (RBAC erişim matrisi — permission-key'ler; endpoint x-required-permission deklarasyonu)",
+      "§17.7 (izolasyon/görünürlük — tenant scope; cross-tenant kaynak erişimi yok, FR-TEN-002; L0 iş içeriği görmez, FR-IAM-008)",
+      "§5 (kimlik & erişim yönetimi — backend guard üç boyutlu enforcement)"
+    ],
+    "sad": [
+      "§14.4.2 (Backend (FastAPI) — Her endpoint üç boyutta korunur: panel + rol + tenant scope. FastAPI dependency'leri (guard) ile uygulanır; require(perm, panel) + auth_ctx + enforce_tenant_scope; ayrı router/scopes + ayrı deploy; tenant scope RLS çift kontrol; UI yalnız görsel kapı, yetki kararı her zaman backend'de — bu modülün TEMEL kararı)",
+      "§14.4.1 (Frontend yalnız görsel kapı; tenant scope route/middleware seviyesinde — UI tarafı)",
+      "§14.4.3 (RBAC rol→permission-key bundle — 12.1.1 modeli; bu modül enforcement'ı sağlar)"
+    ],
+    "adr": [
+      "ADR-011 (iki düzlemli panel dağıtımı — L0 ayrı internal-only Platform Control Plane + ayrı auth realm; L1+L2 Tenant Application Plane; panel gate'in TEMEL kararı; L0 ⟂ tenant)",
+      "ADR-012 (sabit rol bundle + scoped assignment — guard hem permission-key'i hem scope'u zorlar; 12.1.3 DELEGE)",
+      "ADR-001 (orchestrator bağımsızlığı — guard deterministik karar fonksiyonu; iş verisine bağlanmaz)",
+      "ADR-002 (vendor-neutral — guard IdP/sağlayıcı bağımsız; aynı karar sözleşmesi)"
+    ],
+    "threat_model": [
+      "TM-E-* (yetki yükseltme — panel izolasyonu S2 + delege doğruluğu S4 [fail-open yasak] + backend otoritesi S6 [client iddia güvenilmez])",
+      "TM-I-* (bilgi ifşası / tenant sızıntısı — cross-tenant kaynak BLOCK S5, FR-TEN-002; L0 ⟂ tenant)",
+      "TM-S-* (kimlik sahteleme — authn kapısı + token realm = panel realm S2; doğrulanmış token zorunlu)",
+      "TM-T-* (tahrifat — guard model frozen + model_hash sha256; çalışma-anı tahrifi yakalanır S10)"
+    ],
+    "consumes": [
+      "12.1.1 RBAC modeli (config/rbac-roles.json — rol→IMMUTABLE bundle + layer + realm) — panel kapsama (layer_covers) + realm; TÜKETİLİR",
+      "12.1.3 scoped-assignment (scoped_assignment_probe.py — rol+scope yetki kararı) — rol gate DELEGE EDİLİR (GRANT/DENY/BLOCK); o da 12.1.1 bundle'ı çözer",
+      "API.md x-required-permission konvansiyonu — endpoint deklarasyonu (permission-key) zorunlu (S3)",
+      "guard-model.json (frozen — panels + panel_realm + panel_oauth_scope + layer_covers + http_status)"
+    ],
+    "consumed_by": [
+      "12.2.2 ayrı router ağaçları + ayrı OAuth scope — panel boyutunun router/deploy topolojisi (bu modül panel kararını verir, topoloji orada)",
+      "12.2.3 tenant scope + RLS çift kontrol — DB seviyesi RLS (bu modül HTTP enforce_tenant_scope'u zorlar, RLS DELEGE)",
+      "12.2.4 L0 iş verisi repository bağımsızlığı (tasarımsal izolasyon — FR-IAM-008)",
+      "12.3.x break-glass — Tier B kapsam-üstü erişim ayrı yetkilendirme yolu (FR-IAM-009/010)",
+      "12.1.8 WORM audit — guard kararını append-only hash-chained audit'e yazar (FR-IAM-006)",
+      "0.4.7 gözlemlenebilirlik — guard_decision_total + guard_integrity_violation_total metrikleri"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Backend guard, panel/yönetim API'sinin (FastAPI, Control & Analytics plane) HTTP enforcement katmanıdır. Her korumalı endpoint'in handler'ı ÇALIŞMADAN ÖNCE FastAPI dependency (require(perm, panel) + auth_ctx + enforce_tenant_scope) bu kararı çağırır: (1) PANEL gate (token realm+OAuth scope + rol-katman kapsama; L0 ⟂ tenant); (2) ROL gate (required permission-key + scope → 12.1.3 DELEGE → 12.1.1 bundle); (3) TENANT SCOPE gate (resource.tenant_id = session tenant; RLS çift kontrol 12.2.3). ALLOW → handler çalışır; DENY/BLOCK → handler ASLA çalışmaz (403/401). Karar HER ZAMAN backend'de (UI yalnız görsel kapı). Motor yalnız KARAR + kanıt + model bütünlük manifesti üretir (gerçek HTTP wiring kod aşamasında; WORM audit 12.1.8); deterministik kontrol düzlemi (Date.now/random YOK). Vendor-neutral (ADR-001/002/011/012).",
+    "plane": "control/analytics plane (FastAPI panel API HTTP guard — deterministik fail-closed; panel + delege rol/scope [12.1.3] + tenant scope kesişimi)",
+    "owns": "SAD §14.4.2 BACKEND GUARD üç boyutu: HttpGuardRequest → malformed kapısı + authn kapısı + PANEL gate (panel realm [platform↔tenant] + OAuth scope + rol-katman kapsama [12.1.1 layer]; L0 ⟂ tenant FR-IAM-008/ADR-011) + TENANT SCOPE gate (resource.tenant_id = session tenant; HTTP enforce_tenant_scope; RLS çift kontrol DELEGE 12.2.3; FR-TEN-002) + ROL gate DELEGE (required permission-key + scope → 12.1.3 scoped-assignment → 12.1.1 bundle) + terminal karar {ALLOW(200) | DENY(403) | BLOCK(401/403)} + HTTP durum eşlemesi + backend otoritesi (client iddia güvenilmez S6) + deklarasyon zorunlu (x-required-permission S3) + model bütünlük manifesti (S10) + karar kanıtı",
+    "delegates": "rol→permission-key bundle çözümü (immutable) → 12.1.1 (TÜKETİLİR); rol+scope yetki kararı (department/brand/campaign narrowing) → 12.1.3 (DELEGE); permission-key gramer/katalog → 12.1.2; ayrı router ağaçları + ayrı deploy → 12.2.2; PostgreSQL RLS politikaları → 12.2.3; L0 repository bağımsızlığı → 12.2.4; break-glass → 12.3.x; WORM audit → 12.1.8",
+    "deterministic": true,
+    "fail_closed": true,
+    "decision_at": "backend",
+    "trust_source": "verified_token_only",
+    "trace": "FR-IAM-008, FR-TEN-002, FR-IAM-011, SAD §14.4.2, ADR-011, ADR-012"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ + SIZINTISIZ backend guard uygulaması (SAD §14.4.2). Önce malformed; sonra authn; sonra PANEL gate (realm + OAuth scope + rol-katman kapsama); sonra TENANT SCOPE gate (enforce_tenant_scope); sonra ROL gate DELEGE (12.1.3). Her kural bir invariant'a eşlenir.",
+    "list": [
+      {"id": "panel_isolation", "field": "endpoint paneli için token realm + OAuth scope + rol-katman kapsama; L0 ⟂ tenant", "invariant": "S2", "outcome": "ALLOW|BLOCK",
+       "rule": "endpoint paneli (L0/L1/L2) için: (a) token realm = panel realm (L0→platform, L1/L2→tenant; actor_realm da uyar); (b) token OAuth scope = panel scope (panel:L0/L1/L2); (c) ≥1 atama rol katmanı (12.1.1 layer; L1+L2 → {L1,L2}) paneli kapsar. Aksi → BLOCK (panel_realm_mismatch/oauth_scope_mismatch/panel_not_covered). L0 endpoint tenant token'ıyla AÇILAMAZ (FR-IAM-008/ADR-011); panel_violation/realm_violation/scope_violation=0"},
+      {"id": "declaration_required", "field": "endpoint geçerli x-required-permission deklare etmeli", "invariant": "S3", "outcome": "ALLOW|BLOCK",
+       "rule": "her korumalı endpoint geçerli bir required permission-key (kaynak:eylem; API.md x-required-permission) deklare etmeli; eksik/biçimsiz deklarasyon → fail-closed BLOCK malformed_request (deklarasyonsuz endpoint asla erişilebilir olamaz); undeclared_endpoint=0"},
+      {"id": "delegated_authorization", "field": "rol+scope yetki kararı 12.1.3'e DELEGE; ALLOW ⟺ GRANT", "invariant": "S4", "outcome": "ALLOW|DENY|BLOCK",
+       "rule": "required permission-key + assignment scope → 12.1.3 scoped-assignment'a DELEGE (o da 12.1.1 IMMUTABLE bundle'ı çözer + ':own' + narrowing). HTTP ALLOW ⟺ delege GRANT; delege DENY → HTTP 403 (deny_reason taşınır); delege BLOCK → HTTP 403 (block_reason taşınır). Guard ASLA fail-open yapmaz (delege GRANT değilken ALLOW yasak); fail_open_grant=0"},
+      {"id": "tenant_scope", "field": "resource.tenant_id = session tenant; cross-tenant BLOCK; RLS çift kontrol", "invariant": "S5", "outcome": "ALLOW|BLOCK",
+       "rule": "tenant panellerinde (L1/L2) session tek tenant_id'ye bağlı; resource.tenant_id ≠ session tenant → BLOCK cross_tenant_resource (HTTP enforce_tenant_scope, FR-TEN-002, BRD §17.7); PostgreSQL RLS DB seviyesinde çift kontrol (12.2.3 DELEGE). cross_tenant=0"},
+      {"id": "backend_authority", "field": "yetki YALNIZ doğrulanmış token'dan; client iddia güvenilmez", "invariant": "S6", "outcome": "ALLOW|DENY|BLOCK",
+       "rule": "yetki kararı HER ZAMAN backend'de (decision_at=backend); rol/permission/panel/tenant YALNIZ doğrulanmış token'dan türetilir (trust_source=verified_token_only); client-supplied rol/permission/scope iddiası ASLA güvenilmez (UI yalnız görsel kapı); client_trust_violation=0"},
+      {"id": "fail_closed_default", "field": "belirsizlik/malformed/kimliksiz → BLOCK (no access)", "invariant": "S1", "outcome": "BLOCK",
+       "rule": "varsayılan BLOCK; malformed istek (endpoint/panel/required eksik|biçimsiz, atama yok, resource yok) → BLOCK malformed_request; doğrulanmış kimlik yok → BLOCK unauthenticated (401); herhangi bir belirsizlik fail-open GRANT'a ASLA dönüşmez (no access). stuck_state=0"},
+      {"id": "model_integrity", "field": "guard model frozen + model_hash sha256", "invariant": "S10", "outcome": "ALLOW|DENY|BLOCK",
+       "rule": "guard modeli (panel_realm/panel_oauth_scope/layer_covers/fail_closed/trust_source) + 12.1.1 rbac frozen; model_hash = sha256(kanonik); çalışma anında tahrif (model_tamper) yeniden-hesaplanan hash'le yakalanır → model_tampered. Yetki yüzeyi audit edilebilir (ADR-011/012). model_tampered=0"}
+    ],
+    "evaluation": "malformed_then_authn_then_panel_then_tenant_then_delegated_authz_fail_closed",
+    "trace": "FR-IAM-008, FR-TEN-002, FR-IAM-011, SAD §14.4.2, ADR-011, ADR-012"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed backend guard algoritması. Adımlar: (1) malformed (request_id/actor_user_id eksik / actor_realm geçersiz / endpoint panel geçersiz / required_permission eksik veya biçimsiz [deklarasyon zorunlu, S3] / atama yok / resource yok → BLOCK malformed_request). (2) authn (authenticated=false → BLOCK unauthenticated, 401). (3) PANEL gate: token realm ≠ panel realm → BLOCK panel_realm_mismatch; token OAuth scope ≠ panel scope → BLOCK oauth_scope_mismatch; hiçbir atama rol katmanı paneli kapsamaz → BLOCK panel_not_covered (S2). (4) TENANT SCOPE gate: tenant panelinde resource.tenant_id ≠ session tenant → BLOCK cross_tenant_resource (S5). (5) ROL gate DELEGE: required permission-key + scope → 12.1.3; GRANT → ALLOW(200); DENY → DENY(403, deny_reason); BLOCK → BLOCK(403, block_reason) (S4). model bütünlük manifesti (model_hash sha256; S10). Belirsizlik/malformed/kimliksiz/panel-uyumsuz/cross-tenant → BLOCK (fail-closed; ASLA fail-open ALLOW).",
+    "algorithm": "malformed ⇒ BLOCK(malformed_request) → kimlik yok ⇒ BLOCK(unauthenticated,401) → token realm ≠ panel realm ⇒ BLOCK(panel_realm_mismatch) → token scope ≠ panel scope ⇒ BLOCK(oauth_scope_mismatch) → hiçbir rol katmanı paneli kapsamaz ⇒ BLOCK(panel_not_covered) → resource.tenant_id ≠ session tenant ⇒ BLOCK(cross_tenant_resource) → DELEGE 12.1.3: GRANT ⇒ ALLOW(200) | DENY ⇒ DENY(403) | BLOCK ⇒ BLOCK(403)",
+    "default": "BLOCK",
+    "fail_safe_terminal": "no access (terminal=BLOCK ⇒ allowed=false; malformed/unauthenticated/panel mismatch/cross-tenant ⇒ BLOCK; delege DENY ⇒ DENY 403)",
+    "trace": "SR-IAM-008, SAD §14.4.2, ADR-011, ADR-012"
+  },
+
+  "block_reasons": {
+    "$comment": "BLOCK karar taksonomisi (fail-closed BLOCK durumları). Düşük-kardinalite (metrik label uygun). 'malformed_request' = endpoint/panel/required eksik veya biçimsiz / atama/resource yok; 'unauthenticated' = doğrulanmış kimlik yok (401); 'panel_realm_mismatch' = token realm ≠ panel realm (L0↔tenant, S2); 'oauth_scope_mismatch' = token OAuth scope ≠ panel scope (S2); 'panel_not_covered' = hiçbir atama rol katmanı paneli kapsamaz (S2); 'cross_tenant_resource' = resource.tenant_id ≠ session tenant (tenant izolasyonu, S5 FR-TEN-002); 'unknown_role'/'realm_layer_mismatch' = 12.1.3 delege BLOCK'undan taşınır. ALLOW/DENY terminal sonuçlardır; DENY yetkisiz-ama-meşru sonuçtur, ihlal DEĞİL.",
+    "list": ["malformed_request", "unauthenticated", "panel_realm_mismatch", "oauth_scope_mismatch", "panel_not_covered", "cross_tenant_resource", "unknown_role", "realm_layer_mismatch"]
+  },
+
+  "deny_reasons": {
+    "$comment": "DENY karar taksonomisi (yetkisiz — handler çalışmaz, 403, meşru terminal). 12.1.3 scoped-assignment delege kararından DEVRALINIR. 'missing_permission' = hiçbir atamanın rolü required key'i taşımaz; 'insufficient_scope' = yalnız ':own' yetki var ama sahiplik=other; 'out_of_scope' = permission var ama resource hiçbir atamanın scope'unda değil (department/brand/campaign narrowing). DENY ihlal DEĞİL — guard'ın doğru çıktısı.",
+    "list": ["missing_permission", "insufficient_scope", "out_of_scope"]
+  },
+
+  "outcomes": {
+    "$comment": "Terminal backend guard sonuçları. ALLOW = panel+tenant gate geçer ∧ 12.1.3 delege GRANT ⇒ handler çalışır (HTTP 200). DENY = delege DENY ⇒ handler çalışmaz (403). BLOCK = malformed / unauthenticated (401) / panel uyumsuz / cross-tenant / delege BLOCK ⇒ fail-closed, handler çalışmaz (403/401). Üçü de geçerli terminal — DENY/BLOCK ihlal DEĞİL. allowed ⟺ ALLOW ⟺ delege GRANT (S4).",
+    "list": ["ALLOW", "DENY", "BLOCK"],
+    "terminal": ["ALLOW", "DENY", "BLOCK"]
+  },
+
+  "model": {
+    "$comment": "Backend guard modeli özeti. Guard modeli = config/guard-model.json (frozen): panels (L0/L1/L2) + panel_realm (L0→platform, L1/L2→tenant) + panel_oauth_scope (panel:L0/L1/L2) + layer_covers (12.1.1 layer → kapsadığı paneller; L1+L2 → {L1,L2}) + http_status + fail_closed + trust_source=verified_token_only + require_permission_declaration. Rol modeli = 12.1.1 (config/rbac-roles.json — frozen, IMMUTABLE; layer/realm/bundle; TÜKETİLİR). Rol+scope kararı = 12.1.3 (DELEGE). UI yalnız görsel kapı; karar backend'de.",
+    "frozen": true,
+    "decision_at": "backend",
+    "trust_source": "verified_token_only",
+    "require_permission_declaration": true,
+    "panels": ["L0", "L1", "L2"],
+    "panel_realm": {"L0": "platform", "L1": "tenant", "L2": "tenant"},
+    "panel_oauth_scope": {"L0": "panel:L0", "L1": "panel:L1", "L2": "panel:L2"},
+    "layer_covers": {"L0": ["L0"], "L1": ["L1"], "L2": ["L2"], "L1+L2": ["L1", "L2"]},
+    "rbac_model": "12.1.1 config/rbac-roles.json (frozen, IMMUTABLE — layer/realm + bundle)",
+    "scoped_decision": "12.1.3 scoped_assignment_probe.py (rol+scope yetki kararı DELEGE — GRANT/DENY/BLOCK)"
+  },
+
+  "enforcement": {
+    "$comment": "Backend guard enforcement (SAD §14.4.2). ÜÇ GATE: (1) PANEL gate — token realm = panel realm (platform↔tenant) ∧ token OAuth scope = panel scope ∧ ≥1 atama rol katmanı paneli kapsar (L0 ⟂ tenant). (2) ROL gate — required permission-key + assignment scope → 12.1.3 DELEGE → 12.1.1 bundle. (3) TENANT SCOPE gate — resource.tenant_id = session tenant (HTTP enforce_tenant_scope; RLS çift kontrol 12.2.3). Karar HER ZAMAN backend'de; yetki YALNIZ doğrulanmış token'dan. ALLOW ⟺ üç gate ∧ delege GRANT. 'require(perm=\"calls:read\", panel=\"L2\")' (SAD §14.4.2 örneği): endpoint L2 panelinde calls:read gerektirir; aktör L2 token'ı + calls:read taşıyan rol + kapsam içi kaynak + aynı tenant ile ALLOW.",
+    "panel_gate": "token realm = panel realm (L0→platform, L1/L2→tenant; actor_realm da uyar) ∧ token OAuth scope = panel scope (panel:L0/L1/L2) ∧ ≥1 atama rol katmanı (12.1.1 layer; L1+L2 → {L1,L2}) endpoint panelini kapsar",
+    "delegated_authorization": "required permission-key + assignment scope → 12.1.3 scoped-assignment DELEGE (o da 12.1.1 IMMUTABLE bundle'ı çözer + ':own' + department/brand/campaign narrowing); ALLOW ⟺ GRANT",
+    "tenant_gate": "tenant panellerinde resource.tenant_id = session tenant (HTTP enforce_tenant_scope, FR-TEN-002) + PostgreSQL RLS çift kontrol (12.2.3 DELEGE)",
+    "decision_at": "backend",
+    "trust_source": "verified_token_only",
+    "http_status": {"ALLOW": 200, "DENY": 403, "unauthenticated": 401, "block_default": 403},
+    "trace": "FR-IAM-008, FR-TEN-002, FR-IAM-011, SAD §14.4.2, ADR-011, ADR-012"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. panel_violation (S2 ÇEKİRDEK) = panel kapısı atlandı (yanlış panelde erişim); scope_violation (S2) = yanlış/eksik OAuth panel scope kabul edildi; realm_violation (S2) = yanlış realm token'ı (L0↔tenant) kabul edildi; cross_tenant (S5) = cross-tenant kaynak erişimi (BLOCK olması gereken); fail_open_grant (S4 ÇEKİRDEK) = delege GRANT değilken ALLOW (fail-open); client_trust_violation (S6) = client-supplied iddiaya güvenildi; undeclared_endpoint (S3) = deklarasyonsuz endpoint erişilebilir kılındı; model_tampered (S10) = guard model bütünlük manifesti tutmuyor. Eşikler MÜHENDİSLİK varsayılanı; gerçek değerler F1 canlı IAM (FastAPI guard wiring + pilot tenant) verisinde doğrulanır.",
+    "max_panel_violation": 0,
+    "max_scope_violation": 0,
+    "max_realm_violation": 0,
+    "max_cross_tenant": 0,
+    "max_fail_open_grant": 0,
+    "max_client_trust_violation": 0,
+    "max_undeclared_endpoint": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "Backend guard her karar için yetki/güvenlik metriklerini hesaplar ve gözlemlenebilirliğe (0.4.7) yayar. guard_decision_total{tenant,result,panel,actor_realm} → karar sayımı (result=ALLOW/DENY/BLOCK); guard_integrity_violation_total → panel_violation VEYA scope_violation VEYA realm_violation VEYA cross_tenant VEYA fail_open_grant VEYA client_trust_violation VEYA undeclared_endpoint VEYA model_tampered (S2/S3/S4/S5/S6/S10 ihlal alarmı, 0 olmalı). tenant_id+result+panel+actor_realm DÜŞÜK kardinalite (label uygun); request_id/actor_user_id/required_permission/resource attribute YÜKSEK kardinalite → yalnız trace/exemplar (0.4.7 label_policy). HAM İÇERİK/PII metrikte VE log'da YOK (BRD §17.7). integrity_violation>0 → kritik alarm ≤2dk (SAD §17.2, NFR 10.1, BRD §15) = yetki yükseltme/panel-bypass/tenant sızıntısı/fail-open güvenlik olayı.",
+    "metrics": ["guard_decision_total", "guard_integrity_violation_total"],
+    "low_cardinality_labels": ["tenant_id", "result", "panel", "actor_realm"],
+    "high_cardinality_trace_only": ["request_id", "actor_user_id", "required_permission", "resource_attributes"],
+    "alarm": "panel_violation>0 (panel izolasyonu ihlali — S2, FR-IAM-008) VEYA cross_tenant>0 (tenant sızıntısı — S5, FR-TEN-002) VEYA fail_open_grant>0 (fail-open — S4) VEYA client_trust_violation>0 (backend otoritesi ihlali — S6) VEYA model_tampered>0 (model tahrifatı — S10) → alarm ≤2dk (SAD §17.2, NFR 10.1)"
+  },
+
+  "invariants": [
+    {"id": "S1", "desc": "Determinizm/tamlık: her HttpGuardRequest tanımlı malformed→authn→panel→tenant→delege algoritması boyunca ilerler ve bir terminal karara {ALLOW|DENY|BLOCK} ulaşır; aynı girdi → aynı çıktı (deterministik; model_hash sha256 kanonik JSON; Date.now/random YOK); varsayılan BLOCK (fail-closed; no access). stuck_state=0.", "trace": "SR-IAM-008, SAD §14.4.2"},
+    {"id": "S2", "desc": "Panel izolasyonu ÇEKİRDEK (FR-IAM-008/ADR-011 'roller üç panel katmanına göre ayrı; platform rolleri tenant rollerinden bağımsız'): endpoint paneli (L0/L1/L2) için token realm = panel realm (L0→platform, L1/L2→tenant) ∧ token OAuth scope = panel scope ∧ ≥1 atama rol katmanı (12.1.1 layer) paneli kapsar; L0 endpoint tenant token'ıyla (veya tersi) AÇILAMAZ. panel_violation=0, scope_violation=0, realm_violation=0.", "trace": "FR-IAM-008, ADR-011, SAD §14.4.2"},
+    {"id": "S3", "desc": "Deklarasyon zorunlu (API.md x-required-permission): her korumalı endpoint geçerli bir required permission-key (kaynak:eylem) deklare etmeli; eksik/biçimsiz deklarasyon → fail-closed BLOCK (deklarasyonsuz endpoint asla erişilebilir olamaz; sessiz açık-kapı yasak). undeclared_endpoint=0.", "trace": "API.md, SAD §14.4.2"},
+    {"id": "S4", "desc": "Delege doğruluğu ÇEKİRDEK (SAD §14.4.2 'guard hem permission-key'i hem assignment scope'unu kaynak attribute'larına karşı doğrular'): required permission-key + assignment scope → 12.1.3 scoped-assignment DELEGE (o da 12.1.1 bundle'ı çözer). HTTP ALLOW ⟺ delege GRANT; delege DENY → 403; delege BLOCK → 403; guard ASLA fail-open yapmaz (delege GRANT değilken ALLOW yasak). allowed ⟺ ALLOW ⟺ GRANT. fail_open_grant=0.", "trace": "FR-IAM-011, SAD §14.4.2, ADR-012"},
+    {"id": "S5", "desc": "Tenant scope ÇEKİRDEK (FR-TEN-002, BRD §17.7): tenant panellerinde (L1/L2) session tek tenant_id'ye bağlı; resource.tenant_id ≠ session tenant → BLOCK cross_tenant_resource (HTTP enforce_tenant_scope; PostgreSQL RLS DB seviyesinde çift kontrol 12.2.3). Cross-tenant kaynak erişimi = tenant sızıntısı. cross_tenant=0.", "trace": "FR-TEN-002, BRD §17.7, SAD §14.4.2"},
+    {"id": "S6", "desc": "Backend otoritesi ÇEKİRDEK (SAD §14.4.2 'UI yalnız görsel kapıdır; yetki kararı her zaman backend'de'): rol/permission/panel/tenant YALNIZ doğrulanmış token'dan türetilir (trust_source=verified_token_only); client-supplied rol/permission/scope iddiası ASLA güvenilmez. client_trust_violation=0.", "trace": "SAD §14.4.2"},
+    {"id": "S7", "desc": "L0 ⟂ tenant iş verisi (FR-IAM-008): platform (L0) endpoint'leri tasarım gereği tenant iş içeriği (call/transcript/PII) repository'lerine bağlı değil; erişim yalnız break-glass ile (12.3.x). Repository bağımsızlığı 12.2.4'e DELEGE; bu modül panel realm ayrımıyla L0↔tenant geçişini engeller (S2 ile birlikte).", "trace": "FR-IAM-008, SAD §14.4.2"},
+    {"id": "S8", "desc": "Immutable bundle korunur (12.1.1/12.1.3'ten DEVRALINIR): guard rol bundle'ına permission EKLEYEMEZ; required permission-key kararı 12.1.3 üzerinden 12.1.1 IMMUTABLE bundle'a karşı verilir; guard yalnız ENFORCEMENT (yetki yüzeyini değiştirmez). permission_added (delege seviyesinde) =0.", "trace": "FR-IAM-011, ADR-012"},
+    {"id": "S9", "desc": "Kanıt: her karar request_id + actor_realm + endpoint_panel + required_permission + atamalar (rol+scope) + resource (tenant/department/brand/campaign) + ownership + allowed + terminal + deny_reason/block_reason + http_status + delegated_terminal + model_hash taşır; kanıtsız karar yok. missing_evidence=0.", "trace": "FR-IAM-006"},
+    {"id": "S10", "desc": "Model bütünlük manifesti: guard model frozen (panel_realm/panel_oauth_scope/layer_covers/fail_closed/trust_source) + 12.1.1 rbac frozen; model_hash = sha256(kanonik) deterministik; çalışma anında model tahrif edilirse (model_tamper; ör. L0'ı tenant realm'e açma) yeniden-hesaplanan hash tutmaz → model_tampered. Yetki yüzeyinin değiştirilemez olduğunu test edilebilir kılar (ADR-011/012). model_tampered=0.", "trace": "FR-IAM-006, ADR-011, ADR-012"},
+    {"id": "S11", "desc": "Gözlemlenebilirlik kardinalite: metrikler düşük-kardinalite (result/panel/actor_realm); request_id/actor_user_id/required_permission/resource attribute metrikte yok, yalnız trace; HAM İÇERİK/PII metrikte VE log'da yok (0.4.7 label_policy, BRD §17.7).", "trace": "BRD §17.7, 0.4.7 label_policy"},
+    {"id": "S12", "desc": "Sır/içerik yok: model/spec/sample HAM içerik / PII (telefon/kart/OTP/parola/ad/adres/hesap no DEĞERİ) / credential tutmaz — yalnız ROL ADLARI (ör. operations_manager) + PERMISSION-KEY'ler (ör. calls:read) + PANEL/REALM/SCOPE enum (L0/L1/L2, platform/tenant, panel:L2) + KAPSAM BOYUT ID (brand-x/dept-sales/camp-1) + yapısal KİMLİK (req-001/t-acme/u-1) + HASH. Rol adı/permission-key/panel/scope/kapsam ID/kimlik/hash PII DEĞİLDİR. Guard yetki KARARINI verir — iş içeriği (kayıt/transkript/PII) bu modülde AKMAZ. secret_or_pii=0.", "trace": "BRD §17.7, BRD §14, 0.4.7 label_policy"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/model/sample'lar HAM içerik, PII (TELEFON numarası, KART [PAN/CVV], OTP kodu, PAROLA, müşteri ADI, ADRES, HESAP/IBAN numarası DEĞERİ) veya credential (bearer token DEĞERİ dahil) TUTMAZ — yalnız ROL ADLARI (ör. operations_manager / tenant_admin) + PERMISSION-KEY'ler (ör. calls:read / campaign:manage — 'kaynak:eylem') + PANEL/REALM/SCOPE ENUM'ları (panel L0/L1/L2; realm platform/tenant; OAuth scope panel:L0/L1/L2; result ALLOW/DENY/BLOCK; http 200/401/403) + KAPSAM BOYUT ID (department/brand/campaign → SENTETİK yapısal ID ör. brand-x / dept-sales / camp-1) + yapısal KİMLİK (request/tenant/actor kimlikleri ör. req-001 / t-acme / u-1) + HASH (sha256). Rol adı/permission-key/panel/scope/kapsam ID/kimlik/hash PII DEĞİLDİR; tasarımca PII-olmayandır. Backend guard yetki KARARINI verir — iş içeriği (kayıt/transkript/PII) bu modülde AKMAZ; token DEĞERİ değil yalnız doğrulanmış CLAIM (realm/scope) modellenir.",
+    "forbids": ["customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "customer_name_value", "address_value", "account_number_value", "iban_value", "raw_value", "pii_value", "credential", "secret", "bearer_token_value"]
+  }
+}

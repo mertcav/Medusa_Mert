@@ -1,0 +1,35 @@
+{
+  "$comment": "ALLOW: platform_owner (L0) → L0 tenant:provision (platform realm + panel:L0; ADR-011)",
+  "name": "guard-allow-l0-platform",
+  "expect": "pass",
+  "request_id": "req-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "actor_user_id": "u-1",
+  "actor_realm": "platform",
+  "authenticated": true,
+  "token": {
+    "realm": "platform",
+    "panel_scope": "panel:L0"
+  },
+  "endpoint": {
+    "panel": "L0",
+    "required_permission": "tenant:provision",
+    "method": "POST"
+  },
+  "assignments": [
+    {
+      "role": "platform_owner",
+      "scope": {}
+    }
+  ],
+  "ownership": "other",
+  "resource": {
+    "tenant_id": "t-acme"
+  },
+  "expected": {
+    "terminal": "ALLOW",
+    "allowed": true,
+    "http_status": 200
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "$comment": "ALLOW: tenant_admin (L1) → L1 user:manage, tenant-geneli",
+  "name": "guard-allow-l1-admin",
+  "expect": "pass",
+  "request_id": "req-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "actor_user_id": "u-1",
+  "actor_realm": "tenant",
+  "authenticated": true,
+  "token": {
+    "realm": "tenant",
+    "panel_scope": "panel:L1"
+  },
+  "endpoint": {
+    "panel": "L1",
+    "required_permission": "user:manage",
+    "method": "POST"
+  },
+  "assignments": [
+    {
+      "role": "tenant_admin",
+      "scope": {}
+    }
+  ],
+  "ownership": "other",
+  "resource": {
+    "tenant_id": "t-acme"
+  },
+  "expected": {
+    "terminal": "ALLOW",
+    "allowed": true,
+    "http_status": 200
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "$comment": "WBS 12.1.8 — Append-only (WORM) audit log + bütünlük spec (makine-okunur). FR-IAM-006 (kullanıcı işlemleri değiştirilemez audit log'a kaydedilir) + SR-IAM-006 (append-only WORM; kayıt değiştirilemez/silinemez; güncelleme/silme reddedilir; bütünlük hash/zincir doğrulanır) + SAD §14 (append-only/WORM audit) + SEC-10 (WORM + hash zincirleme tamper-evident) + ADR-016 (hash zinciri + dış mühürleme) + FR-TEN-002 (tenant/chain izolasyonu). WORM+bütünlük doğrulama motorunun (worm_audit_probe.py) sözleşmesi: kurallar + karar + reject/tamper taksonomileri + WORM/hash-zincir/seq/tenant/tamamlılık/gizlilik modeli + kapılar + invariant'lar W1–W12. Kaynak doğruluk config/worm-audit-model.json (frozen) + DB §27/§6.5 audit_log şeması. İzin/kapsam kararı bu modülde YAPILMAZ (credential-free). Ham token/credential/PII YOK.",
+  "wbs": "12.1.8",
+  "title": "Append-only (WORM) audit log + bütünlük",
+  "phase": "F1",
+  "priority": "Must",
+
+  "trace": {
+    "fr": ["FR-IAM-006", "FR-TEN-002", "FR-REC-009"],
+    "srs": ["SR-IAM-006"],
+    "rtm": ["TC-IAM-006"],
+    "adr": ["ADR-016 (audit log tamper-evidence: hash zinciri + periyodik dış mühürleme)", "ADR-013 (break-glass audit)", "ADR-002 (sağlayıcı-nötr — WORM/bütünlük doğrulama credential-free)"],
+    "sad": ["§14 Audit: tüm kullanıcı/sistem işlemleri append-only/WORM (FR-IAM-006)", "§14.4.2 panel erişimleri + hassas görüntülemeler audit'e yazılır", "§17 gözlemlenebilirlik"],
+    "threat_model": ["§10 TM-T-03 (audit log tahrifatı/silme)", "SEC-10 (audit bütünlüğü: WORM + hash zincirleme tamper-evident + ayrı erişim domeni)"],
+    "db": ["§27 audit_log (prev_hash/row_hash zinciri, partition)", "§6.5 WORM/append-only zorlama (REVOKE UPDATE/DELETE/TRUNCATE + trg_audit_immutable)"],
+    "brd": ["§9.2 FR-IAM-006", "§15 gözlemlenebilirlik", "§17.7 gizlilik (ham PII yazılmaz)"],
+    "consumes": ["12.1.7 maker-checker (onay kararı + reason_code → audit olayı)", "FR-IAM-009 break-glass (break_glass_id → audit olayı)"],
+    "consumed_by": ["12.2.x backend panel guard (kritik işlem → audit olayı)", "12.3.x break-glass (Tier B erişim → tam audit)", "0.4.7 gözlemlenebilirlik (audit_* metrikleri)", "DB retention motoru (WORM saklama + partition drop)"]
+  },
+
+  "placement": {
+    "layer": "Audit kayıt değişmezlik + hash-zincir bütünlük doğrulama (backend durum makinesi; DB §27/§6.5)",
+    "fail_closed": true,
+    "decision_at": "backend",
+    "credential_free": true,
+    "$note": "İzin/kapsam doğrulaması bu modülde YAPILMAZ; canlı audit yazımı + DB trigger/grant + dış mühürleme DB §6.5/§27 + F1 §14.1'de. Bu modül WORM değişmezliği + hash-zincir bütünlüğü + tenant/chain izolasyonu durum makinesini zorlar."
+  },
+
+  "rules": {
+    "evaluation": "malformed_then_op_dispatch_then_worm_then_append_validation_or_chain_verify_fail_closed",
+    "list": [
+      {"id": "append_only_worm", "invariant": "W2", "desc": "WORM: kayda YALNIZ append; UPDATE/DELETE/TRUNCATE REDDEDİLİR; worm_violation=0 (ÇEKİRDEK; FR-IAM-006 / SR-IAM-006 / DB §6.5)"},
+      {"id": "hash_chain_integrity", "invariant": "W3", "desc": "row_hash=H(seq,prev_hash,olay); herhangi alan/hash tahrifatı TESPİT edilir (hash_mismatch/forged_tail); tamper_undetected=0 (ÇEKİRDEK; ADR-016 / SEC-10)"},
+      {"id": "chain_link_integrity", "invariant": "W4", "desc": "prev_hash = önceki kaydın row_hash'i; kırık bağ kabul edilmez; chain_broken_accepted=0 (ADR-016)"},
+      {"id": "sequence_integrity", "invariant": "W5", "desc": "seq monoton+bitişik; gap/reorder/silme TESPİT; sequence_violation=0"},
+      {"id": "completeness", "invariant": "W6", "desc": "silinen kayıt (eksik seq) tespit; missing_record_undetected=0 (tüm işlemler kaydı korunur)"},
+      {"id": "tenant_chain_isolation", "invariant": "W7", "desc": "her tenant (+platform) AYRI zincir; yabancı-tenant kaydı zincire alınmaz; cross_chain=0 (FR-TEN-002)"},
+      {"id": "required_fields", "invariant": "W8", "desc": "zorunlu olay alanı (action/actor_realm/occurred_at) eksik kayıt reddedilir; missing_field=0 (FR-IAM-006 tamamlılık)"}
+    ]
+  },
+
+  "decision": {
+    "default": "REJECTED",
+    "fail_safe_terminal": "REJECTED ⇒ kayıt zincire alınmaz (geçersiz/WORM-ihlali append); MALFORMED ⇒ işlem geçersiz; TAMPER_DETECTED ⇒ zincir bütünlüğü kırık (tahrifat tespit edildi — alarm)"
+  },
+
+  "outcomes": {
+    "list": ["VERIFIED", "TAMPER_DETECTED", "REJECTED", "MALFORMED"],
+    "$desc": "VERIFIED = zincir bütünlüğü doğrulandı (untampered) VEYA geçerli append zincire eklendi + WORM korundu; TAMPER_DETECTED = bütünlük doğrulaması tahrifatı TESPİT etti (hash_mismatch/broken_link/seq_break/forged_tail/cross_chain/missing_field — doğru tespit, ama zincir kompromize); REJECTED = WORM op (update/delete/truncate) reddi VEYA geçersiz append (raw_pii/cross_chain/missing_field/broken_link — fail-closed default); MALFORMED = işlem yapısal geçersiz (fail-closed)"
+  },
+
+  "reject_reasons": {
+    "list": ["worm_forbidden", "raw_pii", "cross_chain", "missing_field", "broken_link"]
+  },
+
+  "tamper_types": {
+    "list": ["hash_mismatch", "broken_link", "seq_break", "forged_tail", "cross_chain", "missing_field"]
+  },
+
+  "model": {
+    "frozen": true,
+    "config": "config/worm-audit-model.json (frozen — WORM/hash-zincir/seq/tenant/tamamlılık/gizlilik)",
+    "append_only": true,
+    "hash_algo": "sha256",
+    "hash_chain": true,
+    "external_seal": true,
+    "per_tenant_chain": true,
+    "reject_raw_pii_append": true,
+    "required_event_fields": ["action", "actor_realm", "occurred_at"]
+  },
+
+  "engine": {
+    "op_dispatch": "op ∈ {verify, append, update, delete, truncate}; worm op (update/delete/truncate) → REJECTED(worm_forbidden); append → doğrulama; verify → hash-zincir bütünlük",
+    "worm_gate": "update/delete/truncate REDDEDİLİR (W2 ÇEKİRDEK; DB §6.5); kabulü worm_violation",
+    "append_gate": "geçerli append zincire eklenir ⟺ zorunlu alanlar dolu ∧ raw_pii yok ∧ olay tenant = zincir tenant; aksi REJECTED",
+    "verify_gate": "her kayıt: zorunlu alan → tenant/chain → seq bitişik → prev_hash bağı → row_hash=H(...) recompute; sonra dış mühür (seal: son seq+row_hash). İlk anomali → TAMPER_DETECTED (tip+first_bad_seq)",
+    "hash_rule": "row_hash = sha256(kanonik{seq, prev_hash, tenant_id, actor_ref, actor_realm, action, resource_type, resource_id, reason_code, break_glass_id, occurred_at}); genesis prev_hash = sha256(genesis_anchor + chain_id)",
+    "seal_rule": "periyodik dış mühür son (seq, row_hash)'a bağlanır (ADR-016); kuyruk-budama/yeniden-yazma seal uyumsuzluğu (forged_tail) ile yakalanır",
+    "decision_at": "backend",
+    "produces": "VERIFIED ⇒ integrity_ok=true + audit olayı zincire bağlı; TAMPER_DETECTED ⇒ integrity_ok=false + alarm (NFR 10.1 ≤2dk); kanıt (chain_id, record_count, sealed_last_seq, model_hash) — ham PII/token YOK"
+  },
+
+  "gates": {
+    "max_worm_violation": 0,
+    "max_tamper_undetected": 0,
+    "max_chain_broken_accepted": 0,
+    "max_sequence_violation": 0,
+    "max_missing_record_undetected": 0,
+    "max_cross_chain": 0,
+    "max_missing_field": 0,
+    "max_pii_in_record": 0,
+    "max_model_tampered": 0,
+    "max_missing_evidence": 0,
+    "max_stuck_state": 0,
+    "max_secret_or_pii": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "metrics": ["audit_append_total", "audit_verify_total", "audit_tamper_detected_total", "audit_worm_violation_total", "audit_integrity_fail_total"],
+    "low_cardinality_labels": ["op", "result", "tamper_type", "reject_reason", "actor_realm", "chain_class"],
+    "high_cardinality_trace_only": ["record_id", "correlation_id", "actor_ref", "resource_id", "chain_id", "prev_hash", "row_hash"],
+    "alarm": "tamper_undetected / worm_violation / chain_broken_accepted / sequence_violation / missing_record_undetected / cross_chain > 0 VEYA result=TAMPER_DETECTED ⇒ ≤2dk (NFR 10.1; SEC-10 audit bütünlüğü güvenlik olayı)",
+    "$pii_note": "Ham kullanıcı adı/e-posta/telefon/token/hash baytı label OLAMAZ ve audit kaydına ham yazılmaz (BRD §17.7, FR-REC-004); actor_ref opak; row_hash/prev_hash yalnız trace."
+  },
+
+  "invariants": [
+    {"id": "W1", "claim": "Her senaryo terminal sonuca ulaşır (VERIFIED|TAMPER_DETECTED|REJECTED|MALFORMED); stuck state yok"},
+    {"id": "W2", "claim": "WORM/append-only (ÇEKİRDEK): UPDATE/DELETE/TRUNCATE REDDEDİLİR; worm_violation=0 (FR-IAM-006 / SR-IAM-006 / DB §6.5)"},
+    {"id": "W3", "claim": "Hash-zincir bütünlüğü (ÇEKİRDEK): row_hash=H(seq,prev_hash,olay); alan/hash tahrifatı TESPİT edilir; tamper_undetected=0 (ADR-016 / SEC-10)"},
+    {"id": "W4", "claim": "Zincir bağ bütünlüğü: prev_hash = önceki kaydın row_hash'i; kırık bağ kabul edilmez; chain_broken_accepted=0"},
+    {"id": "W5", "claim": "Sıra bütünlüğü: seq monoton+bitişik; gap/reorder/silme tespit; sequence_violation=0"},
+    {"id": "W6", "claim": "Tamamlılık: silinen kayıt (eksik seq) tespit; missing_record_undetected=0 (tüm işlemler kaydı korunur)"},
+    {"id": "W7", "claim": "Tenant/chain izolasyonu: her tenant (+platform) AYRI zincir; cross_chain=0 (FR-TEN-002)"},
+    {"id": "W8", "claim": "Zorunlu olay alanları (action/actor_realm/occurred_at) eksik kayıt reddedilir; missing_field=0 (FR-IAM-006 tamamlılık)"},
+    {"id": "W9", "claim": "Her karar yapısal kanıt taşır (ham token/PII yok); missing_evidence=0"},
+    {"id": "W10", "claim": "Model bütünlük manifesti (worm-audit modeli sha256); model_tampered=0"},
+    {"id": "W11", "claim": "Gözlemlenebilirlik düşük-kardinalite + ham PII yok (actor_ref/row_hash opak/trace); pii_in_record=0"},
+    {"id": "W12", "claim": "Model/spec/sample ham token/credential/PII tutmaz — yalnız opak actor_ref + aksiyon/kaynak ID + reason_code + tick + enum + tamper-marker"}
+  ],
+
+  "no_secrets": "Sır/credential/anahtar ve ham token/PII (kullanıcı adı/e-posta/telefon/token) repoya yazılmaz. Hash'ler RUNTIME hesaplanır (fixture'larda ham hash YOK). raw_pii sentetik marker'dır (gerçek PII değil). İzin/kapsam doğrulaması yapılmaz (credential-free). Canlı audit yazımı/dış mühürleme yalnız --url/ortam değişkeniyle (run_live_test.sh).",
+
+  "$$end": true
+}

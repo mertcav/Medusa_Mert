@@ -1,0 +1,62 @@
+{
+  "$comment": "WBS 12.1.8 — APPEND-ONLY (WORM) AUDIT LOG + BÜTÜNLÜK MODELİ. Bu dosya 12. workstream'in (IAM & Erişim) DEĞİŞMEZ AUDIT KAYDI yüzeyinin makine-okunur, DEĞİŞMEZ (frozen) KAYNAK DOĞRULUĞUDUR: FR-IAM-006 'Kullanıcı işlemleri değiştirilemez audit log'a kaydedilmelidir' + SR-IAM-006 'Tüm kullanıcı işlemleri append-only (WORM) audit log'a yazılır; kayıt değiştirilemez/silinemez; kayıt güncelleme/silme reddedilir; bütünlük (hash/zincir) doğrulanır' + SAD §14 (Audit: tüm kullanıcı/sistem işlemleri append-only/WORM) + SEC-10 (THREAT_MODEL §10: WORM + hash zincirleme tamper-evident + ayrı erişim domeni) + ADR-016 (tamper-evidence: hash zinciri + periyodik dış mühürleme). DB §27 audit_log şemasını (prev_hash/row_hash zinciri, REVOKE UPDATE/DELETE/TRUNCATE, trg_audit_immutable, partition) durum-makinesi/doğrulama düzeyinde somutlaştırır; izin/kapsam kararını değil, YALNIZ WORM değişmezliğini + hash-zincir bütünlüğünü + tenant/chain izolasyonunu zorlar. ÇEKİRDEK: (1) WORM/APPEND-ONLY (FR-IAM-006 ÇEKİRDEK) — kayda YALNIZ ekleme (append); UPDATE/DELETE/TRUNCATE REDDEDİLİR (worm_violation=0, fail-closed); (2) HASH-ZİNCİR BÜTÜNLÜĞÜ (ADR-016 ÇEKİRDEK) — her kayıt row_hash=H(seq, prev_hash, olay alanları); prev_hash önceki kaydın row_hash'i; herhangi bir alan/sıra/silme tahrifatı zinciri kırar ve TESPİT edilir (tamper_undetected=0); kuyruk-yeniden-yazma/budama periyodik DIŞ MÜHÜR (seal: son seq + son row_hash) ile yakalanır; (3) SIRA BÜTÜNLÜĞÜ — seq monoton+bitişik; gap/reorder/silme tespit (sequence_violation=0); (4) tenant/chain izolasyonu (FR-TEN-002) — her tenant (+platform) AYRI zincir; yabancı-tenant kaydı zincire alınmaz (cross_chain=0); (5) tamamlılık — tüm işlemler kaydedilir; zorunlu olay alanları (action/actor_realm/occurred_at) eksik kayıt reddedilir (missing_field=0); (6) gizlilik (BRD §17.7/FR-REC-004) — kayda ham PII/token YAZILMAZ, yalnız opak actor_ref + aksiyon + kaynak ID + reason_code + tick (pii_in_record=0). Kararlar deterministik (Date.now/random YOK; sanal-saat tick tamsayı; genesis anchor + chain_id'den prev_hash). SİMETRİK SIR: izin/kapsam doğrulaması bu modülde YAPILMAZ (credential-free, ADR-002) — bu modül yalnız WORM+bütünlük durum makinesini zorlar; canlı audit yazımı + DB trigger/grant + dış mühürleme entegrasyonu DB §6.5/§27 + F1 §14.1'de. ÇELİŞKİDE FR-IAM-006 / SR-IAM-006 / SAD §14 / ADR-016 esastır.",
+  "version": "1.0",
+  "frozen": true,
+  "fail_closed": true,
+
+  "$worm_comment": "ÇEKİRDEK WORM / append-only (FR-IAM-006): audit kaydına YALNIZ ekleme (append) yapılabilir. UPDATE/DELETE/TRUNCATE işlemleri REDDEDİLİR (DB §6.5: REVOKE UPDATE,DELETE,TRUNCATE ON audit_log + trg_audit_immutable trigger). append_only=true: mevcut kayıt geçmişi DEĞİŞTİRİLEMEZ; düzeltme = yeni satır (consent/agent_version aynı deseni). worm op'unun kabul edilmesi (allow_mutation) ÇEKİRDEK worm_violation ihlalidir.",
+  "worm_policy": {
+    "append_only": true,
+    "reject_update": true,
+    "reject_delete": true,
+    "reject_truncate": true,
+    "correction_is_new_row": true
+  },
+
+  "$integrity_comment": "ÇEKİRDEK hash-zincir bütünlüğü (ADR-016 / SEC-10): row_hash = sha256(kanonik{seq, prev_hash, tenant_id, actor_ref, actor_realm, action, resource_type, resource_id, reason_code, break_glass_id, occurred_at}); prev_hash = önceki kaydın row_hash'i; zincir başı (genesis) prev_hash = sha256(genesis_anchor + chain_id). Bir alan tahrifatı → row_hash uyumsuzluğu (hash_mismatch); kuyruk-dışı kayıt forge edilse de sonraki prev_hash kırılır (broken_link); tüm kuyruk yeniden yazılsa periyodik DIŞ MÜHÜR (external_seal: son seq + son row_hash, WORM/ledger'a yazılı) uyumsuzluğu (forged_tail) yakalar. Tahrifatın TESPİT edilmemesi (skip_chain_verify) tamper_undetected ÇEKİRDEK ihlalidir.",
+  "integrity_policy": {
+    "hash_algo": "sha256",
+    "hash_chain": true,
+    "prev_hash_links_previous_row": true,
+    "genesis_anchor": "audit-genesis-v1",
+    "external_seal": true,
+    "seal_commits_head": true
+  },
+
+  "$sequence_comment": "Sıra bütünlüğü: zincir içinde seq tamsayı, monoton ARTAN ve BİTİŞİK (0,1,2,...); kayıt silme bir gap (eksik seq) + zincir kırığı yaratır; iki kaydın yeri değiştirilirse (reorder) prev_hash bağları kırılır. Gap/reorder/silmenin kabulü (accept_seq_gap) sequence_violation; bir kaydın tespitsiz silinmesi ayrıca missing_record_undetected ihlalidir (tamamlılık: tüm işlemler kaydı korunur).",
+  "sequence_policy": {
+    "monotonic_seq": true,
+    "contiguous_seq": true,
+    "detect_gap": true,
+    "detect_reorder": true,
+    "detect_deletion": true
+  },
+
+  "$tenant_comment": "Tenant/chain izolasyonu (FR-TEN-002): her tenant kendi audit zincirine yazar; platform işlemleri (tenant_id=NULL) AYRI platform zincirine. Bir kaydın olay tenant_id'si zincirin tenant'ından farklıysa o kayıt zincire alınmaz (cross_chain). Yabancı-tenant kaydının zincire kabulü (cross_chain_link) cross_chain ihlalidir. DB §6.5: audit_log RLS = tenant_id eşleşme VEYA platform.",
+  "tenant_isolation": {
+    "per_tenant_chain": true,
+    "platform_chain_separate": true,
+    "reject_foreign_tenant_record": true
+  },
+
+  "$completeness_comment": "Tamamlılık (FR-IAM-006 'tüm kullanıcı işlemleri kaydedilir'): her audit kaydı zorunlu olay alanlarını taşımalı — action (ne yapıldı), actor_realm (hangi düzlem), occurred_at (ne zaman). Eksik alanlı kayıt append'te REDDEDİLİR. Eksik-alanlı kaydın kabulü (accept_missing_field) missing_field ihlalidir. (actor_ref sistem işleminde NULL olabilir; tenant_id platform işleminde NULL olabilir — bunlar eksik sayılmaz.)",
+  "completeness_policy": {
+    "required_event_fields": ["action", "actor_realm", "occurred_at"],
+    "reject_missing_required": true
+  },
+
+  "$privacy_comment": "Gizlilik (BRD §17.7 / FR-REC-004): audit kaydına ham PII (kullanıcı adı/e-posta/telefon/kart) ve ham token YAZILMAZ — yalnız opak actor_ref + aksiyon adı + kaynak tipi/ID + reason_code (opak kod) + break_glass_id + sanal-saat tick. raw_pii işaretli (sentetik marker; gerçek PII repoya yazılmaz) bir kaydın append'i REDDEDİLİR; kabulü (persist_raw_pii) pii_in_record ihlalidir. Düşük-kardinalite metrik (op/result/tamper_type/actor_realm); yüksek-kardinalite (record_id/actor_ref/correlation_id/row_hash) yalnız trace/log.",
+  "privacy": {
+    "no_raw_pii_in_record": true,
+    "no_raw_token_persisted": true,
+    "actor_reference_opaque": true,
+    "reject_raw_pii_append": true
+  },
+
+  "$access_comment": "Audit erişim domeni (SEC-10): audit'in kendisi de en-az-yetki; ayrı erişim domeni. WORM saklama retention süresi boyunca (DB §9); süre sonunda yalnız partition drop. Bu modül erişim/retention'ı zorlamaz (DB/retention motoru sahibi) — yalnız WORM değişmezliği + hash-zincir bütünlüğünü doğrular.",
+  "access_policy": {
+    "separate_access_domain": true,
+    "least_privilege": true,
+    "worm_retained_until_policy_end": true
+  }
+}

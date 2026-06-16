@@ -1,0 +1,42 @@
+{
+  "$comment": "BLOCK oauth_scope_mismatch (403): L2 endpoint panel:L1 scope'uyla açılamaz (S2 OAuth scope)",
+  "name": "guard-block-oauth-scope",
+  "expect": "pass",
+  "request_id": "req-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "actor_user_id": "u-1",
+  "actor_realm": "tenant",
+  "authenticated": true,
+  "token": {
+    "realm": "tenant",
+    "panel_scope": "panel:L1"
+  },
+  "endpoint": {
+    "panel": "L2",
+    "required_permission": "calls:read",
+    "method": "GET"
+  },
+  "assignments": [
+    {
+      "role": "operations_manager",
+      "scope": {
+        "brand": [
+          "brand-x"
+        ]
+      }
+    }
+  ],
+  "ownership": "other",
+  "resource": {
+    "tenant_id": "t-acme",
+    "brand": "brand-x",
+    "campaign": "camp-1"
+  },
+  "expected": {
+    "terminal": "BLOCK",
+    "allowed": false,
+    "http_status": 403,
+    "block_reason": "oauth_scope_mismatch"
+  }
+}

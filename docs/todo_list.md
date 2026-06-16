@@ -289,10 +289,10 @@
 - [x] **12.1.5** MFA — `F1` · `Must` · →FR-IAM-003
 - [x] **12.1.6** SCIM provisioning + IdP grup→rol eşleme — `F2` · `Should` · →FR-IAM-007, SAD §14.4.4
 - [x] **12.1.7** Maker-checker onay akışı — `F2` · `Should` · →FR-IAM-005, SR-IAM-005, SAD §14.4.2
-- [ ] **12.1.8** Append-only (WORM) audit log + bütünlük — `F1` · `Must` · →FR-IAM-006
+- [?] **12.1.8** Append-only (WORM) audit log + bütünlük — `F1` · `Must` · →FR-IAM-006
 
 ### 12.2 Panel AuthZ enforcement
-- [ ] **12.2.1** Backend guard: panel + rol + tenant scope (FastAPI dependency) — `F1` · `Must` · →SAD §14.4.2
+- [x] **12.2.1** Backend guard: panel + rol + tenant scope (FastAPI dependency) — `F1` · `Must` · →SAD §14.4.2
 - [ ] **12.2.2** L0/L1/L2 ayrı router ağaçları + ayrı OAuth scope — `F1` · `Must` · →SAD §14.4.2
 - [ ] **12.2.3** Tenant scope + RLS çift kontrol — `F1` · `Must` · →FR-TEN-002
 - [ ] **12.2.4** L0 iş verisi repository bağımsızlığı (tasarımsal izolasyon) — `F1` · `Must` · →FR-IAM-008

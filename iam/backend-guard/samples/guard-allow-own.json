@@ -1,0 +1,36 @@
+{
+  "$comment": "ALLOW: human_agent calls:read:own + ownership=own (':own' disiplini 12.1.3'ten devralınır)",
+  "name": "guard-allow-own",
+  "expect": "pass",
+  "request_id": "req-001",
+  "tenant_id": "t-acme",
+  "correlation_id": "corr-001",
+  "actor_user_id": "u-1",
+  "actor_realm": "tenant",
+  "authenticated": true,
+  "token": {
+    "realm": "tenant",
+    "panel_scope": "panel:L2"
+  },
+  "endpoint": {
+    "panel": "L2",
+    "required_permission": "calls:read",
+    "method": "GET"
+  },
+  "assignments": [
+    {
+      "role": "human_agent",
+      "scope": {}
+    }
+  ],
+  "ownership": "own",
+  "resource": {
+    "tenant_id": "t-acme",
+    "campaign": "camp-1"
+  },
+  "expected": {
+    "terminal": "ALLOW",
+    "allowed": true,
+    "http_status": 200
+  }
+}
