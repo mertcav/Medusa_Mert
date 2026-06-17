@@ -1,0 +1,21 @@
+{
+  "$comment": "İllüstratif T-03 snapshot — sağlıklı durum: tüm aktif kullanıcılar MFA'lı, geçersiz rol referansı yok, SSO+SCIM bağlı. HİJYEN: yalnız kimlik + RBAC/SSO/SCIM metadatası (son-müşteri PII / SSO-SCIM sırrı YOK).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "tenantRef": "TEN-1001",
+  "tenantName": "Acme Lojistik A.Ş.",
+  "users": [
+    { "id": "U1", "principal": "owner@acme.example", "displayName": "Aslı Demir", "roles": ["tenant_owner"], "scope": null, "source": "local", "mfaEnabled": true, "status": "active" },
+    { "id": "U2", "principal": "admin@acme.example", "displayName": "Mert Yılmaz", "roles": ["tenant_admin"], "scope": null, "source": "sso", "mfaEnabled": true, "status": "active" },
+    { "id": "U3", "principal": "ops@acme.example", "displayName": "Can Öz", "roles": ["operations_manager"], "scope": "BR-A", "source": "scim", "mfaEnabled": true, "status": "active" },
+    { "id": "U4", "principal": "qa@acme.example", "displayName": "Deniz Ak", "roles": ["qa_analyst"], "scope": "DP-A", "source": "scim", "mfaEnabled": true, "status": "invited" }
+  ],
+  "roles": [
+    { "key": "tenant_owner", "tier": "L1+L2", "immutable": true },
+    { "key": "tenant_admin", "tier": "L1", "immutable": true },
+    { "key": "operations_manager", "tier": "L2", "immutable": true },
+    { "key": "qa_analyst", "tier": "L2", "immutable": true }
+  ],
+  "sso": { "protocol": "oidc", "state": "connected", "idpLabel": "Acme Kurumsal Dizin", "mfaEnforced": true, "jitProvisioning": true, "defaultRole": "human_agent" },
+  "scim": { "state": "connected", "tokenConfigured": true, "lastSyncAt": "2026-06-17T06:30:00.000Z", "syncedUsers": 2, "groupMappings": 4 },
+  "$expect": { "active_users": 3, "scoped": 2, "missing_mfa": [], "invalid_roles": [] }
+}

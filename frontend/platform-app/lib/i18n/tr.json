@@ -972,6 +972,102 @@
         "paused": "Duraklatıldı",
         "archived": "Arşivli"
       }
+    },
+    "t03": {
+      "title": "Kullanıcı & Rol Yönetimi",
+      "subtitle": "Tenant içi RBAC, SSO (SAML/OIDC) ve SCIM ayarları — yalnız kendi tenant'ınızın kullanıcı ve rolleri.",
+      "scope_note": "Bu ekran yalnız kendi tenant'ınızın kullanıcılarını, rol atamalarını ve SSO/SCIM ayarlarını gösterir ve yönetir; ham çağrı kaydı/transkript/müşteri verisi ve SSO/SCIM sırrı buraya gömülmez. Roller değişmez (immutable) bundle'lardır; esneklik yalnız atama kapsam (scope) filtresiyle sağlanır.",
+      "as_of": "Veri zamanı: {time}",
+      "tenant": "Tenant",
+      "mfa_alert": "{count} aktif kullanıcının çok faktörlü kimlik doğrulaması (MFA) etkin değil — güvenlik politikasını gözden geçirin.",
+      "invalid_alert": "{count} kullanıcı, tanımlı olmayan bir role atanmış — rol referanslarını gözden geçirin.",
+      "scope_hint": "Rol atamaları departman/marka/kampanya kapsamına daraltılabilir; tam custom permission rolleri Faz 3 (enterprise/dedicated) kapsamındadır.",
+      "scope_all": "Tüm tenant",
+      "roles_hint": "Roller değişmez permission bundle'lardır (FR-IAM-011); v1'de custom permission-builder yoktur. Nihai yetki kararı backend'de verilir.",
+      "federation_hint": "SSO sertifikası ve SCIM token'ı bu ekranda saklanmaz/gösterilmez; yalnız bağlantı durumu görüntülenir. Gizli değerler backend secret store'da tutulur.",
+      "yes": "Evet",
+      "no": "Hayır",
+      "no_users": "Tanımlı kullanıcı yok",
+      "no_roles": "Tanımlı rol yok",
+      "users_caption": "Tenant yönetim kullanıcıları, rolleri, kapsamı, kaynağı ve durumu",
+      "roles_caption": "Tenant rolleri (değişmez bundle) ve atanan kullanıcı sayısı",
+      "role_immutable": "Değişmez",
+      "role_custom": "Özel",
+      "section": {
+        "summary": "Özet",
+        "users": "Kullanıcılar",
+        "roles": "Roller",
+        "federation": "SSO & SCIM"
+      },
+      "kpi": {
+        "users": "Kullanıcı",
+        "active_users": "Aktif Kullanıcı",
+        "active_users_hint": "toplam {total} kullanıcı",
+        "roles": "Rol",
+        "roles_hint": "değişmez bundle",
+        "scoped": "Kapsamlı Atama",
+        "scoped_hint": "departman/marka/kampanya"
+      },
+      "action": {
+        "new_user": "Yeni Kullanıcı",
+        "configure_sso": "SSO Yapılandır",
+        "configure_scim": "SCIM Yapılandır"
+      },
+      "col": {
+        "user": "Kullanıcı",
+        "principal": "Oturum Kimliği",
+        "roles": "Roller",
+        "scope": "Kapsam",
+        "source": "Kaynak",
+        "mfa": "MFA",
+        "status": "Durum",
+        "role": "Rol",
+        "tier": "Katman",
+        "assigned": "Atanan",
+        "kind": "Tür"
+      },
+      "status_label": {
+        "active": "Aktif",
+        "invited": "Davetli",
+        "suspended": "Askıya Alındı"
+      },
+      "source": {
+        "local": "Yerel",
+        "sso": "SSO",
+        "scim": "SCIM"
+      },
+      "tier": {
+        "L1": "L1 — Yönetim",
+        "L2": "L2 — Operasyon",
+        "L1+L2": "L1+L2"
+      },
+      "conn": {
+        "connected": "Bağlı",
+        "disabled": "Devre dışı",
+        "error": "Hata"
+      },
+      "protocol": {
+        "saml": "SAML 2.0",
+        "oidc": "OpenID Connect",
+        "none": "Yok"
+      },
+      "sso": {
+        "heading": "SSO (SAML / OIDC)",
+        "protocol": "Protokol",
+        "idp": "Kimlik Sağlayıcı (IdP)",
+        "mfa_enforced": "MFA Zorunlu",
+        "jit": "JIT Provisioning",
+        "default_role": "Varsayılan Rol"
+      },
+      "scim": {
+        "heading": "SCIM Provisioning",
+        "token": "Bearer Token",
+        "token_set": "Yapılandırıldı",
+        "token_unset": "Yapılandırılmadı",
+        "last_sync": "Son Senkron",
+        "synced_users": "Senkron Kullanıcı",
+        "group_mappings": "Grup→Rol Eşlemesi"
+      }
     }
   }
 }

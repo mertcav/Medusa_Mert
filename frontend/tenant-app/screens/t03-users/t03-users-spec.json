@@ -1,0 +1,56 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.3.3",
+  "screen": "T-03",
+  "title": "Kullanıcı & Rol Yönetimi (RBAC/SSO/SCIM)",
+  "plane": "tenant_application_plane",
+  "tier": "L1",
+  "source": ["BRD §17.4", "BRD §17.6 (RBAC)", "BRD §17.7 (hijyen)", "FR-IAM-001 (RBAC)", "FR-IAM-002 (SSO SAML/OIDC)", "FR-IAM-007 (SCIM)", "FR-IAM-011 (sabit rol bundle + scoped assignment, ADR-012)", "FR-IAM-003 (MFA)", "FR-TEN-002 (tenant scope)", "SAD §14.4.1", "NFR 10.6 (sır)"],
+  "rbac": {
+    "tenant_owner": "manage",
+    "tenant_admin": "manage",
+    "security_compliance_officer": "view",
+    "billing_viewer": "none",
+    "api_developer": "none",
+    "note": "UI yalnız görsel kapı; nihai yetki backend'de (12.2.x) + RLS. Rol→permission kararı bu katmanda YOK (A8). Yönet aksiyonları (yeni kullanıcı, SSO/SCIM yapılandır) görsel kapıdır; oluşturma/düzenleme istemci submit + backend zorlama 12.2.x'te."
+  },
+  "content_brd_17_4": [
+    "tenant içi RBAC",
+    "SSO (SAML/OIDC)",
+    "SCIM"
+  ],
+  "invariants": {
+    "S1": "T-03 ekran sayfası mevcut + data-screen=\"T-03\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/tenant/users) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.t03.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK son-müşteri PII/iş-içeriği taşımaz (FORBIDDEN_PII_KEYS) + SSO/SCIM sırrı taşımaz (FORBIDDEN_SECRET_KEYS) + assertNoPii çağrılır (HİJYEN BRD §17.7 + GÜVENLİK NFR 10.6).",
+    "S5": "BRD §17.4 üç içerik öğesi (RBAC/SSO/SCIM) i18n bölüm + alt-anahtarlarıyla karşılanır; immutable rol bundle (FR-IAM-011) + scope filtresi gösterilir.",
+    "S6": "screen.t03.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (countUserStatus/countUserSource/usersForRole/scopedAssignmentCount/usersMissingMfa/invalidRoleRefs/tone'lar) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002): veri seam belirli IdP/SaaS bağlamaz; sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "scope_note", "as_of", "tenant",
+    "mfa_alert", "invalid_alert", "scope_hint", "scope_all", "roles_hint", "federation_hint",
+    "yes", "no",
+    "no_users", "no_roles", "users_caption", "roles_caption",
+    "role_immutable", "role_custom",
+    "section.summary", "section.users", "section.roles", "section.federation",
+    "kpi.users", "kpi.active_users", "kpi.active_users_hint", "kpi.roles", "kpi.roles_hint", "kpi.scoped", "kpi.scoped_hint",
+    "action.new_user", "action.configure_sso", "action.configure_scim",
+    "col.user", "col.principal", "col.roles", "col.scope", "col.source", "col.mfa", "col.status", "col.role", "col.tier", "col.assigned", "col.kind",
+    "status_label.active", "status_label.invited", "status_label.suspended",
+    "source.local", "source.sso", "source.scim",
+    "tier.L1", "tier.L2", "tier.L1+L2",
+    "conn.connected", "conn.disabled", "conn.error",
+    "protocol.saml", "protocol.oidc", "protocol.none",
+    "sso.heading", "sso.protocol", "sso.idp", "sso.mfa_enforced", "sso.jit", "sso.default_role",
+    "scim.heading", "scim.token", "scim.token_set", "scim.token_unset", "scim.last_sync", "scim.synced_users", "scim.group_mappings"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "mfa_alert": ["count"],
+    "invalid_alert": ["count"],
+    "kpi.active_users_hint": ["total"]
+  }
+}

@@ -972,6 +972,102 @@
         "paused": "Paused",
         "archived": "Archived"
       }
+    },
+    "t03": {
+      "title": "User & Role Management",
+      "subtitle": "Tenant-scoped RBAC, SSO (SAML/OIDC) and SCIM settings — only your own tenant's users and roles.",
+      "scope_note": "This screen shows and manages only your own tenant's users, role assignments and SSO/SCIM settings; raw call recordings/transcripts/customer data and SSO/SCIM secrets are not embedded here. Roles are immutable bundles; flexibility comes solely from the assignment scope filter.",
+      "as_of": "As of: {time}",
+      "tenant": "Tenant",
+      "mfa_alert": "{count} active user(s) do not have multi-factor authentication (MFA) enabled — review the security policy.",
+      "invalid_alert": "{count} user(s) are assigned to an undefined role — review role references.",
+      "scope_hint": "Role assignments can be narrowed to a department/brand/campaign scope; fully custom permission roles are in scope for Phase 3 (enterprise/dedicated).",
+      "scope_all": "Whole tenant",
+      "roles_hint": "Roles are immutable permission bundles (FR-IAM-011); there is no custom permission builder in v1. The final authorization decision is made in the backend.",
+      "federation_hint": "The SSO certificate and SCIM token are neither stored nor shown on this screen; only the connection state is displayed. Secret values are held in the backend secret store.",
+      "yes": "Yes",
+      "no": "No",
+      "no_users": "No users defined",
+      "no_roles": "No roles defined",
+      "users_caption": "Tenant management users, their roles, scope, source and status",
+      "roles_caption": "Tenant roles (immutable bundles) and assigned user count",
+      "role_immutable": "Immutable",
+      "role_custom": "Custom",
+      "section": {
+        "summary": "Summary",
+        "users": "Users",
+        "roles": "Roles",
+        "federation": "SSO & SCIM"
+      },
+      "kpi": {
+        "users": "Users",
+        "active_users": "Active Users",
+        "active_users_hint": "{total} users total",
+        "roles": "Roles",
+        "roles_hint": "immutable bundles",
+        "scoped": "Scoped Assignments",
+        "scoped_hint": "department/brand/campaign"
+      },
+      "action": {
+        "new_user": "New User",
+        "configure_sso": "Configure SSO",
+        "configure_scim": "Configure SCIM"
+      },
+      "col": {
+        "user": "User",
+        "principal": "Principal",
+        "roles": "Roles",
+        "scope": "Scope",
+        "source": "Source",
+        "mfa": "MFA",
+        "status": "Status",
+        "role": "Role",
+        "tier": "Tier",
+        "assigned": "Assigned",
+        "kind": "Kind"
+      },
+      "status_label": {
+        "active": "Active",
+        "invited": "Invited",
+        "suspended": "Suspended"
+      },
+      "source": {
+        "local": "Local",
+        "sso": "SSO",
+        "scim": "SCIM"
+      },
+      "tier": {
+        "L1": "L1 — Admin",
+        "L2": "L2 — Operations",
+        "L1+L2": "L1+L2"
+      },
+      "conn": {
+        "connected": "Connected",
+        "disabled": "Disabled",
+        "error": "Error"
+      },
+      "protocol": {
+        "saml": "SAML 2.0",
+        "oidc": "OpenID Connect",
+        "none": "None"
+      },
+      "sso": {
+        "heading": "SSO (SAML / OIDC)",
+        "protocol": "Protocol",
+        "idp": "Identity Provider (IdP)",
+        "mfa_enforced": "MFA Enforced",
+        "jit": "JIT Provisioning",
+        "default_role": "Default Role"
+      },
+      "scim": {
+        "heading": "SCIM Provisioning",
+        "token": "Bearer Token",
+        "token_set": "Configured",
+        "token_unset": "Not configured",
+        "last_sync": "Last Sync",
+        "synced_users": "Synced Users",
+        "group_mappings": "Group→Role Mappings"
+      }
     }
   }
 }

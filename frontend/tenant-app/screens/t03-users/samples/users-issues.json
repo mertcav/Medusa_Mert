@@ -1,0 +1,22 @@
+{
+  "$comment": "İllüstratif T-03 snapshot — düzeltme gerektiren durum: MFA'sız aktif kullanıcı + geçersiz rol referansı + SCIM hata. HİJYEN: yalnız kimlik + RBAC/SSO/SCIM metadatası (son-müşteri PII / SSO-SCIM sırrı YOK).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "tenantRef": "TEN-2002",
+  "tenantName": "Beta Telekom Ltd.",
+  "users": [
+    { "id": "U1", "principal": "owner@beta.example", "displayName": "Selin Yıldız", "roles": ["tenant_owner"], "scope": null, "source": "local", "mfaEnabled": true, "status": "active" },
+    { "id": "U2", "principal": "admin@beta.example", "displayName": "Kerem Ata", "roles": ["tenant_admin"], "scope": null, "source": "sso", "mfaEnabled": false, "status": "active" },
+    { "id": "U3", "principal": "ops@beta.example", "displayName": "Pınar Su", "roles": ["operations_manager"], "scope": "BR-A", "source": "scim", "mfaEnabled": false, "status": "active" },
+    { "id": "U4", "principal": "legacy@beta.example", "displayName": "Eski Hesap", "roles": ["ghost_role"], "scope": null, "source": "local", "mfaEnabled": true, "status": "suspended" },
+    { "id": "U5", "principal": "dev@beta.example", "displayName": "Onur Kılıç", "roles": ["api_developer"], "scope": null, "source": "local", "mfaEnabled": true, "status": "invited" }
+  ],
+  "roles": [
+    { "key": "tenant_owner", "tier": "L1+L2", "immutable": true },
+    { "key": "tenant_admin", "tier": "L1", "immutable": true },
+    { "key": "api_developer", "tier": "L1+L2", "immutable": true },
+    { "key": "operations_manager", "tier": "L2", "immutable": true }
+  ],
+  "sso": { "protocol": "saml", "state": "connected", "idpLabel": "Beta IdP", "mfaEnforced": false, "jitProvisioning": false, "defaultRole": null },
+  "scim": { "state": "error", "tokenConfigured": true, "lastSyncAt": "2026-06-15T22:00:00.000Z", "syncedUsers": 1, "groupMappings": 2 },
+  "$expect": { "active_users": 3, "scoped": 1, "missing_mfa": ["U2", "U3"], "invalid_roles": ["U4"] }
+}
