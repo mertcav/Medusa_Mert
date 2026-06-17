@@ -1,0 +1,61 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.3.4",
+  "screen": "T-04",
+  "title": "Telefon Numarası & SIP/Trunk",
+  "plane": "tenant_application_plane",
+  "tier": "L1",
+  "source": ["BRD §17.4", "BRD §17.6 (RBAC)", "BRD §17.7 (hijyen)", "FR-TEL-001 (inbound/outbound PSTN)", "FR-TEL-002 (SIP trunk + BYOC)", "FR-TEL-004 (E.164)", "FR-TEL-005 (Caller ID + numara havuzu)", "FR-AGT-007 (numara→agent/kampanya atama)", "FR-TEN-002 (tenant scope)", "SAD §14.4.1", "NFR 10.6 (sır)", "NFR 10.7 (residency)"],
+  "rbac": {
+    "tenant_owner": "manage",
+    "tenant_admin": "manage",
+    "security_compliance_officer": "none",
+    "billing_viewer": "none",
+    "api_developer": "view",
+    "note": "UI yalnız görsel kapı; nihai yetki backend'de (12.2.x) + RLS. Numara tahsisi/atama + trunk açma kararı bu katmanda YOK (A8). Yönet aksiyonları (yeni trunk, numara ekle, Caller ID ekle) görsel kapıdır; oluşturma/atama istemci submit + backend zorlama 12.2.x'te."
+  },
+  "content_brd_17_4": [
+    "Numara havuzu",
+    "SIP trunk/BYOC",
+    "Caller ID"
+  ],
+  "invariants": {
+    "S1": "T-04 ekran sayfası mevcut + data-screen=\"T-04\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/tenant/numbers) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.t04.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK son-müşteri PII/iş-içeriği taşımaz (FORBIDDEN_PII_KEYS) + SIP trunk sırrı taşımaz (FORBIDDEN_SECRET_KEYS) + assertNoPii çağrılır (HİJYEN BRD §17.7 + GÜVENLİK NFR 10.6).",
+    "S5": "BRD §17.4 üç içerik öğesi (numara havuzu/SIP trunk-BYOC/Caller ID) i18n bölüm + alt-anahtarlarıyla karşılanır; E.164 (FR-TEL-004) + BYOC (FR-TEL-002) + agent/kampanya atama (FR-AGT-007) gösterilir.",
+    "S6": "screen.t04.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (countNumberStatus/countNumberDirection/unassignedNumbers/numbersForTrunk/invalidTrunkRefs/isValidE164/invalidE164Numbers/trunkUtilizationPct/overCapacityTrunks/unverifiedDefaultCallerIds/tone'lar) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002): veri seam belirli operatör/SaaS bağlamaz (BYOC dahil); sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "scope_note", "as_of", "tenant",
+    "invalid_trunk_alert", "invalid_e164_alert", "capacity_alert", "caller_alert",
+    "trunks_hint", "numbers_hint", "caller_ids_hint",
+    "yes", "no",
+    "no_trunks", "no_numbers", "no_caller_ids",
+    "trunks_caption", "numbers_caption", "caller_ids_caption",
+    "pool_label", "default_yes", "util_pct",
+    "section.summary", "section.trunks", "section.numbers", "section.caller_ids",
+    "kpi.numbers", "kpi.numbers_hint", "kpi.pool", "kpi.pool_hint", "kpi.trunks", "kpi.trunks_hint", "kpi.caller_ids", "kpi.caller_ids_hint",
+    "action.new_trunk", "action.new_number", "action.new_caller_id",
+    "col.trunk", "col.type", "col.region", "col.flow", "col.channels", "col.state", "col.number", "col.label", "col.direction", "col.assignment", "col.status", "col.verification", "col.default",
+    "status_label.active", "status_label.reserved", "status_label.porting", "status_label.released",
+    "direction.inbound", "direction.outbound", "direction.both",
+    "trunk_type.sip_trunk", "trunk_type.byoc", "trunk_type.managed",
+    "conn.connected", "conn.degraded", "conn.disabled", "conn.error",
+    "caller_status.verified", "caller_status.pending", "caller_status.rejected",
+    "flow.in", "flow.out",
+    "badge.invalid_e164"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "invalid_trunk_alert": ["count"],
+    "invalid_e164_alert": ["count"],
+    "capacity_alert": ["count"],
+    "caller_alert": ["count"],
+    "kpi.numbers_hint": ["active"],
+    "util_pct": ["pct"]
+  }
+}

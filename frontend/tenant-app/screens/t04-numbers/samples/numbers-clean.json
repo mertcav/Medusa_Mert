@@ -1,0 +1,20 @@
+{
+  "$comment": "İllüstratif T-04 snapshot — sağlıklı durum: tüm numaralar E.164 geçerli, trunk referansları tutarlı, hiçbir trunk %90 kapasiteyi aşmadı, varsayılan Caller ID doğrulanmış. HİJYEN: yalnız tenant'ın KENDİ telefoni konfigürasyonu (son-müşteri PII / SIP trunk sırrı YOK).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "tenantRef": "TEN-1001",
+  "tenantName": "Acme Lojistik A.Ş.",
+  "trunks": [
+    { "id": "TRK-A", "name": "Birincil SIP Trunk", "type": "sip_trunk", "state": "connected", "region": "eu-west", "inbound": true, "outbound": true, "channels": 200, "channelsInUse": 80 },
+    { "id": "TRK-B", "name": "Operatör BYOC", "type": "byoc", "state": "connected", "region": "eu-west", "inbound": true, "outbound": true, "channels": 100, "channelsInUse": 30 }
+  ],
+  "numbers": [
+    { "id": "N1", "e164": "+902123456789", "label": "Ana Hat", "direction": "inbound", "trunkRef": "TRK-A", "assignedTo": "AGT-SUPPORT", "status": "active" },
+    { "id": "N2", "e164": "+908502222222", "label": "Destek", "direction": "inbound", "trunkRef": "TRK-A", "assignedTo": "AGT-SUPPORT", "status": "active" },
+    { "id": "N3", "e164": "+902129990000", "label": "Tahsilat", "direction": "outbound", "trunkRef": "TRK-B", "assignedTo": null, "status": "active" }
+  ],
+  "callerIds": [
+    { "id": "C1", "e164": "+902123456789", "label": "Kurumsal", "status": "verified", "isDefault": true },
+    { "id": "C2", "e164": "+908502222222", "label": "Destek", "status": "verified", "isDefault": false }
+  ],
+  "$expect": { "active_numbers": 3, "pool": ["N3"], "invalid_trunks": [], "invalid_e164": [], "over_capacity": [], "unverified_default": [] }
+}

@@ -1,0 +1,20 @@
+{
+  "$comment": "İllüstratif T-04 snapshot — sorunlu durum: bir numara geçersiz trunk'a bağlı, bir numara E.164'e uymuyor, bir trunk %90 kapasiteyi aştı, varsayılan Caller ID doğrulanmamış. UI uyarıları tetiklenir. HİJYEN: yine yalnız tenant konfigürasyonu (son-müşteri PII / SIP trunk sırrı YOK).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Telekom A.Ş.",
+  "trunks": [
+    { "id": "TRK-X", "name": "SIP Trunk (Yoğun)", "type": "sip_trunk", "state": "degraded", "region": "eu-central", "inbound": true, "outbound": true, "channels": 100, "channelsInUse": 96 },
+    { "id": "TRK-Y", "name": "BYOC Yedek", "type": "byoc", "state": "connected", "region": "eu-central", "inbound": true, "outbound": false, "channels": 50, "channelsInUse": 10 }
+  ],
+  "numbers": [
+    { "id": "N1", "e164": "+902120000001", "label": "Ana", "direction": "inbound", "trunkRef": "TRK-X", "assignedTo": "AGT-1", "status": "active" },
+    { "id": "N2", "e164": "+902120000002", "label": "Boşta", "direction": "both", "trunkRef": "TRK-X", "assignedTo": null, "status": "active" },
+    { "id": "N3", "e164": "+902120000003", "label": "Kayıp Trunk", "direction": "outbound", "trunkRef": "TRK-Z", "assignedTo": null, "status": "active" },
+    { "id": "N4", "e164": "0212000004", "label": "Hatalı Biçim", "direction": "both", "trunkRef": "TRK-Y", "assignedTo": null, "status": "active" }
+  ],
+  "callerIds": [
+    { "id": "C1", "e164": "+902120000001", "label": "Varsayılan", "status": "pending", "isDefault": true }
+  ],
+  "$expect": { "active_numbers": 4, "pool": ["N2", "N3", "N4"], "invalid_trunks": ["N3"], "invalid_e164": ["N4"], "over_capacity": ["TRK-X"], "unverified_default": ["C1"] }
+}

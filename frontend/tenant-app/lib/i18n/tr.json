@@ -1068,6 +1068,101 @@
         "synced_users": "Senkron Kullanıcı",
         "group_mappings": "Grup→Rol Eşlemesi"
       }
+    },
+    "t04": {
+      "title": "Telefon Numarası & SIP/Trunk",
+      "subtitle": "Numara havuzu, SIP trunk/BYOC bağlantıları ve giden Caller ID — yalnız kendi tenant'ınızın telefoni envanteri.",
+      "scope_note": "Bu ekran yalnız kendi tenant'ınızın telefon numaralarını, SIP trunk/BYOC bağlantılarını ve giden Caller ID ayarlarını gösterir ve yönetir; ham çağrı kaydı/transkript/arayan müşteri numarası ve SIP trunk sırrı (kayıt parolası/auth token) buraya gömülmez. Numaralar E.164 biçimindedir.",
+      "as_of": "Veri zamanı: {time}",
+      "tenant": "Tenant",
+      "invalid_trunk_alert": "{count} numara, tanımlı olmayan bir SIP trunk'a bağlı — trunk referanslarını gözden geçirin.",
+      "invalid_e164_alert": "{count} numara E.164 biçimine uymuyor — numara biçimini düzeltin.",
+      "capacity_alert": "{count} trunk kanal kapasitesinin %90'ını aştı — kapasite planlamasını gözden geçirin.",
+      "caller_alert": "{count} varsayılan Caller ID doğrulanmamış — giden sunumdan önce doğrulayın.",
+      "yes": "Evet",
+      "no": "Hayır",
+      "no_trunks": "Tanımlı SIP trunk yok",
+      "no_numbers": "Tanımlı numara yok",
+      "no_caller_ids": "Tanımlı Caller ID yok",
+      "trunks_caption": "SIP trunk / BYOC bağlantıları, türü, bölgesi, yönü, kanal kapasitesi ve durumu",
+      "numbers_caption": "Tenant telefon numaraları (E.164), yönü, bağlı trunk, ataması ve durumu",
+      "caller_ids_caption": "Giden Caller ID'ler, doğrulama durumu ve varsayılan sunum",
+      "trunks_hint": "SIP trunk ve BYOC (Bring Your Own Carrier) bağlantıları sağlayıcıdan bağımsızdır (ADR-002); kayıt parolası/auth token bu ekranda saklanmaz/gösterilmez, backend secret store'da tutulur.",
+      "numbers_hint": "Numaralar E.164 biçimindedir (FR-TEL-004); bir agent veya kampanyaya atanmamış aktif numaralar havuzda boşta sayılır. Numara tahsisi ve atama nihai olarak backend'de zorlanır.",
+      "caller_ids_hint": "Giden Caller ID, çağrılarda sunulan numaradır; yalnız doğrulanmış numaralar varsayılan sunum olarak kullanılmalıdır. Bu ekran tenant'ın KENDİ sunum numaralarını yönetir, arayan müşteri verisini DEĞİL.",
+      "pool_label": "Havuz",
+      "default_yes": "Varsayılan",
+      "util_pct": "%{pct}",
+      "section": {
+        "summary": "Özet",
+        "trunks": "SIP Trunk & BYOC",
+        "numbers": "Numara Havuzu",
+        "caller_ids": "Caller ID"
+      },
+      "kpi": {
+        "numbers": "Toplam Numara",
+        "numbers_hint": "{active} aktif",
+        "pool": "Havuzda Boşta",
+        "pool_hint": "Agent/kampanyaya atanmamış aktif numara",
+        "trunks": "SIP Trunk / BYOC",
+        "trunks_hint": "Bağlı telefoni hattı",
+        "caller_ids": "Caller ID",
+        "caller_ids_hint": "Giden sunum numarası"
+      },
+      "action": {
+        "new_trunk": "Yeni Trunk",
+        "new_number": "Numara Ekle",
+        "new_caller_id": "Caller ID Ekle"
+      },
+      "col": {
+        "trunk": "Trunk",
+        "type": "Tür",
+        "region": "Bölge",
+        "flow": "Yön",
+        "channels": "Kanal (kullanım/kapasite)",
+        "state": "Durum",
+        "number": "Numara",
+        "label": "Etiket",
+        "direction": "Yön",
+        "assignment": "Atama",
+        "status": "Durum",
+        "verification": "Doğrulama",
+        "default": "Varsayılan"
+      },
+      "status_label": {
+        "active": "Aktif",
+        "reserved": "Rezerve",
+        "porting": "Taşınıyor",
+        "released": "Bırakıldı"
+      },
+      "direction": {
+        "inbound": "Gelen",
+        "outbound": "Giden",
+        "both": "Çift Yönlü"
+      },
+      "trunk_type": {
+        "sip_trunk": "SIP Trunk",
+        "byoc": "BYOC",
+        "managed": "Managed"
+      },
+      "conn": {
+        "connected": "Bağlı",
+        "degraded": "Bozulmuş",
+        "disabled": "Devre Dışı",
+        "error": "Hata"
+      },
+      "caller_status": {
+        "verified": "Doğrulanmış",
+        "pending": "Beklemede",
+        "rejected": "Reddedildi"
+      },
+      "flow": {
+        "in": "Gelen",
+        "out": "Giden"
+      },
+      "badge": {
+        "invalid_e164": "Geçersiz E.164"
+      }
     }
   }
 }

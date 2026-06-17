@@ -1068,6 +1068,101 @@
         "synced_users": "Synced Users",
         "group_mappings": "Group→Role Mappings"
       }
+    },
+    "t04": {
+      "title": "Phone Number & SIP/Trunk",
+      "subtitle": "Number pool, SIP trunk/BYOC connections and outbound Caller ID — only your own tenant's telephony inventory.",
+      "scope_note": "This screen shows and manages only your own tenant's phone numbers, SIP trunk/BYOC connections and outbound Caller ID settings; raw call recordings/transcripts/caller customer numbers and SIP trunk secrets (registration password/auth token) are not embedded here. Numbers are in E.164 format.",
+      "as_of": "As of: {time}",
+      "tenant": "Tenant",
+      "invalid_trunk_alert": "{count} number(s) are bound to an undefined SIP trunk — review trunk references.",
+      "invalid_e164_alert": "{count} number(s) do not match the E.164 format — fix the number format.",
+      "capacity_alert": "{count} trunk(s) exceeded 90% of channel capacity — review capacity planning.",
+      "caller_alert": "{count} default Caller ID(s) are unverified — verify before outbound presentation.",
+      "yes": "Yes",
+      "no": "No",
+      "no_trunks": "No SIP trunk defined",
+      "no_numbers": "No number defined",
+      "no_caller_ids": "No Caller ID defined",
+      "trunks_caption": "SIP trunk / BYOC connections, type, region, flow, channel capacity and state",
+      "numbers_caption": "Tenant phone numbers (E.164), direction, bound trunk, assignment and status",
+      "caller_ids_caption": "Outbound Caller IDs, verification status and default presentation",
+      "trunks_hint": "SIP trunk and BYOC (Bring Your Own Carrier) connections are provider-neutral (ADR-002); registration password/auth token is not stored or shown on this screen, it is kept in the backend secret store.",
+      "numbers_hint": "Numbers are in E.164 format (FR-TEL-004); active numbers not assigned to an agent or campaign are counted as idle in the pool. Number allocation and assignment are ultimately enforced in the backend.",
+      "caller_ids_hint": "The outbound Caller ID is the number presented on calls; only verified numbers should be used as the default presentation. This screen manages the tenant's OWN presentation numbers, NOT caller customer data.",
+      "pool_label": "Pool",
+      "default_yes": "Default",
+      "util_pct": "{pct}%",
+      "section": {
+        "summary": "Summary",
+        "trunks": "SIP Trunk & BYOC",
+        "numbers": "Number Pool",
+        "caller_ids": "Caller ID"
+      },
+      "kpi": {
+        "numbers": "Total Numbers",
+        "numbers_hint": "{active} active",
+        "pool": "Idle in Pool",
+        "pool_hint": "Active numbers not assigned to an agent/campaign",
+        "trunks": "SIP Trunk / BYOC",
+        "trunks_hint": "Connected telephony line",
+        "caller_ids": "Caller ID",
+        "caller_ids_hint": "Outbound presentation number"
+      },
+      "action": {
+        "new_trunk": "New Trunk",
+        "new_number": "Add Number",
+        "new_caller_id": "Add Caller ID"
+      },
+      "col": {
+        "trunk": "Trunk",
+        "type": "Type",
+        "region": "Region",
+        "flow": "Flow",
+        "channels": "Channels (in use/capacity)",
+        "state": "State",
+        "number": "Number",
+        "label": "Label",
+        "direction": "Direction",
+        "assignment": "Assignment",
+        "status": "Status",
+        "verification": "Verification",
+        "default": "Default"
+      },
+      "status_label": {
+        "active": "Active",
+        "reserved": "Reserved",
+        "porting": "Porting",
+        "released": "Released"
+      },
+      "direction": {
+        "inbound": "Inbound",
+        "outbound": "Outbound",
+        "both": "Bidirectional"
+      },
+      "trunk_type": {
+        "sip_trunk": "SIP Trunk",
+        "byoc": "BYOC",
+        "managed": "Managed"
+      },
+      "conn": {
+        "connected": "Connected",
+        "degraded": "Degraded",
+        "disabled": "Disabled",
+        "error": "Error"
+      },
+      "caller_status": {
+        "verified": "Verified",
+        "pending": "Pending",
+        "rejected": "Rejected"
+      },
+      "flow": {
+        "in": "In",
+        "out": "Out"
+      },
+      "badge": {
+        "invalid_e164": "Invalid E.164"
+      }
     }
   }
 }
