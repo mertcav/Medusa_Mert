@@ -1,0 +1,51 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.3.2",
+  "screen": "T-02",
+  "title": "Organizasyon & Yapı",
+  "plane": "tenant_application_plane",
+  "tier": "L1",
+  "source": ["BRD §17.4", "BRD §17.6 (RBAC)", "BRD §17.7 (hijyen)", "FR-TEN-003 (marka/departman/ülke/proje)", "FR-TEN-002 (tenant scope)", "FR-IAM-011 (rol scope bağı)", "SAD §14.4.1"],
+  "rbac": {
+    "tenant_owner": "manage",
+    "tenant_admin": "manage",
+    "security_compliance_officer": "none",
+    "billing_viewer": "none",
+    "api_developer": "none",
+    "note": "UI yalnız görsel kapı; nihai yetki backend'de (12.2.x) + RLS. Rol→permission kararı bu katmanda YOK (A8). Yönet aksiyonları (yeni birim/proje) görsel kapıdır; oluşturma/düzenleme istemci submit + backend zorlama 12.2.x'te."
+  },
+  "content_brd_17_4": [
+    "marka",
+    "departman",
+    "ülke",
+    "proje"
+  ],
+  "invariants": {
+    "S1": "T-02 ekran sayfası mevcut + data-screen=\"T-02\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/tenant/organization) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.t02.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK PII/iş-içeriği taşımaz (FORBIDDEN_PII_KEYS) + assertNoPii çağrılır (HİJYEN, BRD §17.7).",
+    "S5": "BRD §17.4 dört içerik öğesi (marka/departman/ülke/proje) i18n tür + bölüm anahtarlarıyla karşılanır.",
+    "S6": "screen.t02.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (countByType/countByStatus/childrenOf/rootUnits/projectsForUnit/orphanProjects/unitStatusTone/projectStatusTone) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002): veri seam belirli SaaS/sağlayıcı bağlamaz; sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "scope_note", "as_of", "tenant",
+    "orphan_alert", "orphan_badge", "scope_hint",
+    "no_units", "no_projects", "units_caption", "projects_caption",
+    "section.summary", "section.units", "section.projects",
+    "kpi.brands", "kpi.departments", "kpi.countries", "kpi.projects", "kpi.active_units", "kpi.active_units_hint",
+    "action.new_unit", "action.new_project",
+    "col.code", "col.name", "col.type", "col.parent", "col.users", "col.agents", "col.projects", "col.status",
+    "col.brand", "col.department", "col.country",
+    "type.brand", "type.department", "type.country",
+    "unit_status.active", "unit_status.inactive", "unit_status.archived",
+    "project_status.active", "project_status.paused", "project_status.archived"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "orphan_alert": ["count"],
+    "kpi.active_units_hint": ["total"]
+  }
+}

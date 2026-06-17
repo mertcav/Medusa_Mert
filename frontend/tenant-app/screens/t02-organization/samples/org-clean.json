@@ -1,0 +1,18 @@
+{
+  "$comment": "İllüstratif T-02 snapshot — tutarlı yapı: tüm birimler aktif, öksüz referans yok. HİJYEN: yalnız konfigürasyon metadatası (PII/iş-içeriği YOK).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "tenantRef": "TEN-1001",
+  "tenantName": "Acme Lojistik A.Ş.",
+  "units": [
+    { "id": "BR-A", "code": "BR-A", "name": "Perakende", "type": "brand", "parentId": null, "status": "active", "userCount": 12, "agentCount": 5 },
+    { "id": "BR-B", "code": "BR-B", "name": "Kurumsal", "type": "brand", "parentId": null, "status": "active", "userCount": 8, "agentCount": 3 },
+    { "id": "DP-A", "code": "DP-A", "name": "Destek", "type": "department", "parentId": "BR-A", "status": "active", "userCount": 9, "agentCount": 4 },
+    { "id": "DP-B", "code": "DP-B", "name": "Satış", "type": "department", "parentId": "BR-B", "status": "active", "userCount": 6, "agentCount": 2 },
+    { "id": "CN-TR", "code": "CN-TR", "name": "Türkiye", "type": "country", "parentId": null, "status": "active", "userCount": 20, "agentCount": 8 }
+  ],
+  "projects": [
+    { "id": "P1", "code": "P1", "name": "Gelen Karşılama", "brandRef": "BR-A", "departmentRef": "DP-A", "countryRef": "CN-TR", "status": "active", "agentCount": 4 },
+    { "id": "P2", "code": "P2", "name": "Satış Outbound", "brandRef": "BR-B", "departmentRef": "DP-B", "countryRef": "CN-TR", "status": "active", "agentCount": 2 }
+  ],
+  "$expect": { "by_type": [2, 2, 1], "active_units": 5, "orphans": [] }
+}

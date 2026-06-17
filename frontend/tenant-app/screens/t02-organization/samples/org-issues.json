@@ -1,0 +1,21 @@
+{
+  "$comment": "İllüstratif T-02 snapshot — yapı düzeltmesi gerektiren durum: arşivli/pasif birimler + öksüz proje referansı. HİJYEN: yalnız konfigürasyon metadatası (PII/iş-içeriği YOK).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "tenantRef": "TEN-2002",
+  "tenantName": "Beta Telekom Ltd.",
+  "units": [
+    { "id": "BR-A", "code": "BR-A", "name": "Perakende", "type": "brand", "parentId": null, "status": "active", "userCount": 10, "agentCount": 4 },
+    { "id": "BR-B", "code": "BR-B", "name": "Eski Marka", "type": "brand", "parentId": null, "status": "archived", "userCount": 0, "agentCount": 0 },
+    { "id": "DP-A", "code": "DP-A", "name": "Destek", "type": "department", "parentId": "BR-A", "status": "active", "userCount": 7, "agentCount": 3 },
+    { "id": "DP-B", "code": "DP-B", "name": "Tahsilat", "type": "department", "parentId": "BR-A", "status": "inactive", "userCount": 2, "agentCount": 0 },
+    { "id": "DP-C", "code": "DP-C", "name": "Pazarlama", "type": "department", "parentId": "BR-B", "status": "inactive", "userCount": 1, "agentCount": 0 },
+    { "id": "CN-TR", "code": "CN-TR", "name": "Türkiye", "type": "country", "parentId": null, "status": "active", "userCount": 18, "agentCount": 7 },
+    { "id": "CN-DE", "code": "CN-DE", "name": "Almanya", "type": "country", "parentId": null, "status": "active", "userCount": 4, "agentCount": 1 }
+  ],
+  "projects": [
+    { "id": "P1", "code": "P1", "name": "Gelen Karşılama", "brandRef": "BR-A", "departmentRef": "DP-A", "countryRef": "CN-TR", "status": "active", "agentCount": 3 },
+    { "id": "P2", "code": "P2", "name": "Tahsilat Kampanyası", "brandRef": "BR-B", "departmentRef": "DP-C", "countryRef": "CN-TR", "status": "paused", "agentCount": 1 },
+    { "id": "P3", "code": "P3", "name": "DE Pilotu", "brandRef": "BR-X", "departmentRef": null, "countryRef": "CN-DE", "status": "active", "agentCount": 1 }
+  ],
+  "$expect": { "by_type": [2, 3, 2], "active_units": 4, "orphans": ["P3"] }
+}

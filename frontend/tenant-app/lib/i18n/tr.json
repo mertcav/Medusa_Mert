@@ -913,6 +913,65 @@
         "scale": "Ölçek",
         "enterprise": "Kurumsal"
       }
+    },
+    "t02": {
+      "title": "Organizasyon & Yapı",
+      "subtitle": "Tenant altında marka, departman, ülke ve proje yapıları — yalnız kendi tenant'ınızın organizasyonu.",
+      "scope_note": "Bu ekran yalnız kendi tenant'ınızın organizasyon yapısını gösterir ve yönetir; ham çağrı kaydı/transkript/müşteri verisi buraya gömülmez. Burada tanımlanan marka/departman, kullanıcı rol atamalarının kapsam (scope) filtresine kaynaklık eder.",
+      "as_of": "Veri zamanı: {time}",
+      "tenant": "Tenant",
+      "orphan_alert": "{count} proje, mevcut olmayan bir organizasyon birimine bağlı — yapı referanslarını gözden geçirin.",
+      "orphan_badge": "Öksüz referans",
+      "scope_hint": "Marka ve departman birimleri, rol atamalarının kapsam filtresinde (departman/marka/kampanya) kullanılır.",
+      "no_units": "Tanımlı organizasyon birimi yok",
+      "no_projects": "Tanımlı proje yok",
+      "units_caption": "Tenant organizasyon birimleri (marka, departman, ülke) ve hiyerarşisi",
+      "projects_caption": "Tenant projeleri ve bağlı organizasyon birimleri",
+      "section": {
+        "summary": "Özet",
+        "units": "Organizasyon Birimleri",
+        "projects": "Projeler"
+      },
+      "kpi": {
+        "brands": "Marka",
+        "departments": "Departman",
+        "countries": "Ülke",
+        "projects": "Proje",
+        "active_units": "Aktif Birim",
+        "active_units_hint": "toplam {total} birim"
+      },
+      "action": {
+        "new_unit": "Yeni Birim",
+        "new_project": "Yeni Proje"
+      },
+      "col": {
+        "code": "Kod",
+        "name": "Ad",
+        "type": "Tür",
+        "parent": "Üst Birim",
+        "users": "Kullanıcı",
+        "agents": "Agent",
+        "projects": "Proje",
+        "status": "Durum",
+        "brand": "Marka",
+        "department": "Departman",
+        "country": "Ülke"
+      },
+      "type": {
+        "brand": "Marka",
+        "department": "Departman",
+        "country": "Ülke"
+      },
+      "unit_status": {
+        "active": "Aktif",
+        "inactive": "Pasif",
+        "archived": "Arşivli"
+      },
+      "project_status": {
+        "active": "Aktif",
+        "paused": "Duraklatıldı",
+        "archived": "Arşivli"
+      }
     }
   }
 }

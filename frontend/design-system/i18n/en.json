@@ -913,6 +913,65 @@
         "compute_vcpu": "Compute (vCPU)",
         "compute_memory_gb": "Memory"
       }
+    },
+    "t02": {
+      "title": "Organisation & Structure",
+      "subtitle": "Brand, department, country and project structures under the tenant — your own tenant's organisation only.",
+      "scope_note": "This screen shows and manages your own tenant's organisation structure only; raw call recordings/transcripts/customer data are not embedded here. The brands/departments defined here feed the scope filter of user role assignments.",
+      "as_of": "As of: {time}",
+      "tenant": "Tenant",
+      "orphan_alert": "{count} project(s) reference a non-existent organisation unit — review structure references.",
+      "orphan_badge": "Orphan reference",
+      "scope_hint": "Brand and department units are used in the scope filter (department/brand/campaign) of role assignments.",
+      "no_units": "No organisation units defined",
+      "no_projects": "No projects defined",
+      "units_caption": "Tenant organisation units (brand, department, country) and hierarchy",
+      "projects_caption": "Tenant projects and linked organisation units",
+      "section": {
+        "summary": "Summary",
+        "units": "Organisation Units",
+        "projects": "Projects"
+      },
+      "kpi": {
+        "brands": "Brands",
+        "departments": "Departments",
+        "countries": "Countries",
+        "projects": "Projects",
+        "active_units": "Active Units",
+        "active_units_hint": "{total} units total"
+      },
+      "action": {
+        "new_unit": "New Unit",
+        "new_project": "New Project"
+      },
+      "col": {
+        "code": "Code",
+        "name": "Name",
+        "type": "Type",
+        "parent": "Parent",
+        "users": "Users",
+        "agents": "Agents",
+        "projects": "Projects",
+        "status": "Status",
+        "brand": "Brand",
+        "department": "Department",
+        "country": "Country"
+      },
+      "type": {
+        "brand": "Brand",
+        "department": "Department",
+        "country": "Country"
+      },
+      "unit_status": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "archived": "Archived"
+      },
+      "project_status": {
+        "active": "Active",
+        "paused": "Paused",
+        "archived": "Archived"
+      }
     }
   }
 }
