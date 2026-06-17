@@ -1,0 +1,22 @@
+{
+  "$comment": "İllüstratif T-05 snapshot — sağlıklı durum: tüm tool'lar geçerli entegrasyona bağlı + schema doğrulamalı, yazma tool'ları müşteri teyidi gerektiriyor, tüm webhook'lar HTTPS + son teslimat başarılı. HİJYEN: yalnız tenant'ın KENDİ entegrasyon konfigürasyonu (son-müşteri PII / sır YOK).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "tenantRef": "TEN-1001",
+  "tenantName": "Acme Lojistik A.Ş.",
+  "integrations": [
+    { "id": "INT-CRM", "name": "Kurumsal CRM", "type": "crm", "authMethod": "oauth2", "state": "connected", "region": "eu-west", "lastSyncAt": "2026-06-17T08:55:00.000Z" },
+    { "id": "INT-ERP", "name": "Finans ERP", "type": "erp", "authMethod": "mtls", "state": "connected", "region": "eu-west", "lastSyncAt": "2026-06-17T08:40:00.000Z" }
+  ],
+  "tools": [
+    { "id": "TL-1", "name": "Müşteri Sorgula", "protocol": "rest", "access": "read", "schemaValidated": true, "confirmRequired": false, "integrationRef": "INT-CRM", "enabled": true },
+    { "id": "TL-2", "name": "Sipariş Oluştur", "protocol": "rest", "access": "write", "schemaValidated": true, "confirmRequired": true, "integrationRef": "INT-ERP", "enabled": true }
+  ],
+  "apiKeys": [
+    { "id": "KEY-1", "name": "Üretim", "scopes": ["calls:read"], "status": "active", "createdAt": "2026-05-01T10:00:00.000Z", "lastUsedAt": "2026-06-17T08:50:00.000Z" },
+    { "id": "KEY-2", "name": "Eski", "scopes": ["calls:read"], "status": "revoked", "createdAt": "2026-01-01T10:00:00.000Z", "lastUsedAt": null }
+  ],
+  "webhooks": [
+    { "id": "WH-1", "url": "https://erp.acme.example/hooks", "events": ["call.completed"], "status": "active", "lastDeliveryAt": "2026-06-17T08:58:00.000Z", "lastDeliveryOk": true }
+  ],
+  "$expect": { "connected": 2, "invalid_refs": [], "write_no_confirm": [], "no_schema": [], "insecure_webhooks": [], "failing_webhooks": [], "active_keys": ["KEY-1"] }
+}

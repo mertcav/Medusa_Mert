@@ -1163,6 +1163,119 @@
       "badge": {
         "invalid_e164": "Geçersiz E.164"
       }
+    },
+    "t05": {
+      "title": "Entegrasyon, Tool & API Key/Webhook",
+      "subtitle": "CRM/ERP/ticketing bağlantıları, tool tanımları, API anahtarları ve webhook'lar — yalnız kendi tenant'ınızın entegrasyon konfigürasyonu.",
+      "scope_note": "Bu ekran yalnız kendi tenant'ınızın kurumsal sistem entegrasyonlarını, tool tanımlarını, API anahtarlarını ve webhook tanımlarını gösterir ve yönetir; ham çağrı kaydı/transkript/müşteri PII ve sırlar (API key secret, webhook signing secret, entegrasyon credential) buraya gömülmez. Sır yalnız oluşturmada bir kez döner; backend secret store'da tutulur.",
+      "as_of": "Veri zamanı: {time}",
+      "tenant": "Tenant",
+      "never": "Hiç",
+      "invalid_ref_alert": "{count} tool, tanımlı olmayan bir entegrasyona bağlı — entegrasyon referanslarını gözden geçirin.",
+      "insecure_webhook_alert": "{count} webhook HTTPS kullanmıyor — şifresiz teslimat engellenir, HTTPS zorunludur.",
+      "write_confirm_alert": "{count} yazma yetkili tool müşteri teyidi gerektirmiyor — kritik işlem için teyit ekleyin (FR-TOOL-006/007).",
+      "no_schema_alert": "{count} tool JSON schema doğrulaması olmadan tanımlı — giriş/çıkış doğrulaması ekleyin (FR-TOOL-002).",
+      "failing_webhook_alert": "{count} webhook son teslimatta başarısız — endpoint sağlığını gözden geçirin.",
+      "yes": "Evet",
+      "no": "Hayır",
+      "inline_label": "Bağımsız",
+      "no_integrations": "Tanımlı entegrasyon yok",
+      "no_tools": "Tanımlı tool yok",
+      "no_api_keys": "Tanımlı API anahtarı yok",
+      "no_webhooks": "Tanımlı webhook yok",
+      "integrations_caption": "Kurumsal sistem entegrasyonları, türü, kimlik doğrulama yöntemi, bölgesi, son senkronu ve durumu",
+      "tools_caption": "Tool tanımları, protokolü, erişim seviyesi, schema doğrulaması, teyit gereksinimi ve bağlı entegrasyon",
+      "api_keys_caption": "API anahtarları, kapsamları (scope), son kullanımı ve durumu",
+      "webhooks_caption": "Webhook endpoint'leri, abone olunan event'ler, son teslimat ve durumu",
+      "integrations_hint": "Entegrasyonlar sağlayıcıdan bağımsızdır (ADR-002); kimlik bilgisi (OAuth client secret/bearer token/parola) bu ekranda saklanmaz/gösterilmez, backend secret store'da tutulur. Kimlik doğrulama yalnız yöntem adıyla gösterilir.",
+      "tools_hint": "Tool'lar REST/SOAP/GraphQL/webhook protokollerini destekler (FR-TOOL-001); yazma işlemleri ayrı güvenlik seviyesindedir (FR-TOOL-005) ve kritik işlem öncesi müşteri teyidi gerektirir (FR-TOOL-006/007). Tool çağırma yetkisi agent bazında nihai olarak backend'de zorlanır (FR-TOOL-004).",
+      "api_keys_hint": "API anahtarı gizli değeri (secret) yalnız oluşturma anında bir kez gösterilir; sunucu yalnız hash saklar (API.md §7.2). Bu ekran yalnız ad, kapsam ve durum metadatasını gösterir; anahtar değeri burada saklanmaz. Anahtar rotasyonu ve iptali nihai olarak backend'de zorlanır.",
+      "webhooks_hint": "Webhook URL'leri HTTPS zorunludur (API.md §10); imza doğrulama sırrı (signing_secret) yalnız oluşturmada bir kez döner ve burada saklanmaz/gösterilmez. Teslimat at-least-once'tır; tüketici idempotent olmalıdır.",
+      "section": {
+        "summary": "Özet",
+        "integrations": "Entegrasyonlar",
+        "tools": "Tool'lar",
+        "api_keys": "API Anahtarları",
+        "webhooks": "Webhook'lar"
+      },
+      "kpi": {
+        "integrations": "Entegrasyon",
+        "integrations_hint": "{connected} bağlı",
+        "tools": "Tool",
+        "tools_hint": "Tanımlı iş süreci tool'u",
+        "api_keys": "API Anahtarı",
+        "api_keys_hint": "{active} aktif",
+        "webhooks": "Webhook",
+        "webhooks_hint": "Giden olay endpoint'i"
+      },
+      "action": {
+        "new_integration": "Yeni Entegrasyon",
+        "new_tool": "Yeni Tool",
+        "new_api_key": "API Anahtarı Oluştur",
+        "new_webhook": "Webhook Ekle"
+      },
+      "col": {
+        "integration": "Entegrasyon",
+        "type": "Tür",
+        "auth": "Kimlik Doğrulama",
+        "region": "Bölge",
+        "last_sync": "Son Senkron",
+        "state": "Durum",
+        "tool": "Tool",
+        "protocol": "Protokol",
+        "access": "Erişim",
+        "schema": "Schema",
+        "confirm": "Teyit",
+        "key": "Anahtar",
+        "scopes": "Kapsam",
+        "last_used": "Son Kullanım",
+        "status": "Durum",
+        "url": "URL",
+        "events": "Event'ler",
+        "last_delivery": "Son Teslimat"
+      },
+      "integration_type": {
+        "crm": "CRM",
+        "erp": "ERP",
+        "ticketing": "Ticketing",
+        "custom": "Özel"
+      },
+      "auth": {
+        "oauth2": "OAuth 2.0",
+        "api_key": "API Anahtarı",
+        "basic": "Basic",
+        "mtls": "mTLS"
+      },
+      "conn": {
+        "connected": "Bağlı",
+        "degraded": "Bozulmuş",
+        "disabled": "Devre Dışı",
+        "error": "Hata"
+      },
+      "protocol": {
+        "rest": "REST",
+        "soap": "SOAP",
+        "graphql": "GraphQL",
+        "webhook": "Webhook"
+      },
+      "access": {
+        "read": "Okuma",
+        "write": "Yazma"
+      },
+      "key_status": {
+        "active": "Aktif",
+        "revoked": "İptal Edildi",
+        "expired": "Süresi Doldu"
+      },
+      "webhook_status": {
+        "active": "Aktif",
+        "disabled": "Devre Dışı",
+        "failing": "Başarısız"
+      },
+      "badge": {
+        "insecure": "HTTPS değil",
+        "delivery_failed": "Teslimat başarısız"
+      }
     }
   }
 }

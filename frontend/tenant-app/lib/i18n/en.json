@@ -1163,6 +1163,119 @@
       "badge": {
         "invalid_e164": "Invalid E.164"
       }
+    },
+    "t05": {
+      "title": "Integration, Tool & API Key/Webhook",
+      "subtitle": "CRM/ERP/ticketing connections, tool definitions, API keys and webhooks — only your own tenant's integration configuration.",
+      "scope_note": "This screen shows and manages only your own tenant's enterprise system integrations, tool definitions, API keys and webhook definitions; raw call recordings/transcripts/customer PII and secrets (API key secret, webhook signing secret, integration credential) are not embedded here. A secret is returned only once on creation; it is kept in the backend secret store.",
+      "as_of": "As of: {time}",
+      "tenant": "Tenant",
+      "never": "Never",
+      "invalid_ref_alert": "{count} tool(s) are bound to an undefined integration — review integration references.",
+      "insecure_webhook_alert": "{count} webhook(s) do not use HTTPS — unencrypted delivery is blocked, HTTPS is mandatory.",
+      "write_confirm_alert": "{count} write-access tool(s) do not require customer confirmation — add confirmation for critical actions (FR-TOOL-006/007).",
+      "no_schema_alert": "{count} tool(s) are defined without JSON schema validation — add input/output validation (FR-TOOL-002).",
+      "failing_webhook_alert": "{count} webhook(s) failed on last delivery — review endpoint health.",
+      "yes": "Yes",
+      "no": "No",
+      "inline_label": "Standalone",
+      "no_integrations": "No integration defined",
+      "no_tools": "No tool defined",
+      "no_api_keys": "No API key defined",
+      "no_webhooks": "No webhook defined",
+      "integrations_caption": "Enterprise system integrations, type, authentication method, region, last sync and state",
+      "tools_caption": "Tool definitions, protocol, access level, schema validation, confirmation requirement and bound integration",
+      "api_keys_caption": "API keys, scopes, last use and status",
+      "webhooks_caption": "Webhook endpoints, subscribed events, last delivery and status",
+      "integrations_hint": "Integrations are provider-neutral (ADR-002); credentials (OAuth client secret/bearer token/password) are not stored or shown on this screen, they are kept in the backend secret store. Authentication is shown by method name only.",
+      "tools_hint": "Tools support REST/SOAP/GraphQL/webhook protocols (FR-TOOL-001); write operations have a separate security level (FR-TOOL-005) and require customer confirmation before critical actions (FR-TOOL-006/007). Tool invocation authority is ultimately enforced per agent in the backend (FR-TOOL-004).",
+      "api_keys_hint": "The API key secret value is shown only once at creation; the server stores only a hash (API.md §7.2). This screen shows only name, scope and status metadata; the key value is not stored here. Key rotation and revocation are ultimately enforced in the backend.",
+      "webhooks_hint": "Webhook URLs must use HTTPS (API.md §10); the signature verification secret (signing_secret) is returned only once on creation and is not stored or shown here. Delivery is at-least-once; the consumer must be idempotent.",
+      "section": {
+        "summary": "Summary",
+        "integrations": "Integrations",
+        "tools": "Tools",
+        "api_keys": "API Keys",
+        "webhooks": "Webhooks"
+      },
+      "kpi": {
+        "integrations": "Integrations",
+        "integrations_hint": "{connected} connected",
+        "tools": "Tools",
+        "tools_hint": "Defined business-process tools",
+        "api_keys": "API Keys",
+        "api_keys_hint": "{active} active",
+        "webhooks": "Webhooks",
+        "webhooks_hint": "Outbound event endpoint"
+      },
+      "action": {
+        "new_integration": "New Integration",
+        "new_tool": "New Tool",
+        "new_api_key": "Create API Key",
+        "new_webhook": "Add Webhook"
+      },
+      "col": {
+        "integration": "Integration",
+        "type": "Type",
+        "auth": "Authentication",
+        "region": "Region",
+        "last_sync": "Last Sync",
+        "state": "State",
+        "tool": "Tool",
+        "protocol": "Protocol",
+        "access": "Access",
+        "schema": "Schema",
+        "confirm": "Confirm",
+        "key": "Key",
+        "scopes": "Scopes",
+        "last_used": "Last Used",
+        "status": "Status",
+        "url": "URL",
+        "events": "Events",
+        "last_delivery": "Last Delivery"
+      },
+      "integration_type": {
+        "crm": "CRM",
+        "erp": "ERP",
+        "ticketing": "Ticketing",
+        "custom": "Custom"
+      },
+      "auth": {
+        "oauth2": "OAuth 2.0",
+        "api_key": "API Key",
+        "basic": "Basic",
+        "mtls": "mTLS"
+      },
+      "conn": {
+        "connected": "Connected",
+        "degraded": "Degraded",
+        "disabled": "Disabled",
+        "error": "Error"
+      },
+      "protocol": {
+        "rest": "REST",
+        "soap": "SOAP",
+        "graphql": "GraphQL",
+        "webhook": "Webhook"
+      },
+      "access": {
+        "read": "Read",
+        "write": "Write"
+      },
+      "key_status": {
+        "active": "Active",
+        "revoked": "Revoked",
+        "expired": "Expired"
+      },
+      "webhook_status": {
+        "active": "Active",
+        "disabled": "Disabled",
+        "failing": "Failing"
+      },
+      "badge": {
+        "insecure": "Not HTTPS",
+        "delivery_failed": "Delivery failed"
+      }
     }
   }
 }

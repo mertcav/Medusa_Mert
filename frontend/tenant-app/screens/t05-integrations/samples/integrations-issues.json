@@ -1,0 +1,25 @@
+{
+  "$comment": "İllüstratif T-05 snapshot — sorunlu durum: bir tool geçersiz entegrasyona bağlı, bir yazma tool'u teyit gerektirmiyor, bir tool schema doğrulaması yok, bir webhook HTTPS değil, bir webhook son teslimatta başarısız. UI uyarıları tetiklenir. HİJYEN: yine yalnız tenant konfigürasyonu (son-müşteri PII / sır YOK).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Telekom A.Ş.",
+  "integrations": [
+    { "id": "INT-TKT", "name": "Destek Ticketing", "type": "ticketing", "authMethod": "api_key", "state": "degraded", "region": "eu-central", "lastSyncAt": "2026-06-17T06:10:00.000Z" },
+    { "id": "INT-X", "name": "Özel Sistem", "type": "custom", "authMethod": "basic", "state": "error", "region": "eu-central", "lastSyncAt": null }
+  ],
+  "tools": [
+    { "id": "TL-1", "name": "Bakiye Sorgula", "protocol": "soap", "access": "read", "schemaValidated": true, "confirmRequired": false, "integrationRef": "INT-TKT", "enabled": true },
+    { "id": "TL-2", "name": "Hesap Sil", "protocol": "rest", "access": "write", "schemaValidated": true, "confirmRequired": false, "integrationRef": "INT-X", "enabled": true },
+    { "id": "TL-3", "name": "Kayıp Ref Tool", "protocol": "graphql", "access": "read", "schemaValidated": true, "confirmRequired": false, "integrationRef": "INT-GHOST", "enabled": true },
+    { "id": "TL-4", "name": "Schemasız Tool", "protocol": "webhook", "access": "read", "schemaValidated": false, "confirmRequired": false, "integrationRef": null, "enabled": true }
+  ],
+  "apiKeys": [
+    { "id": "KEY-1", "name": "Aktif", "scopes": ["agents:read"], "status": "active", "createdAt": "2026-05-01T10:00:00.000Z", "lastUsedAt": "2026-06-16T10:00:00.000Z" },
+    { "id": "KEY-2", "name": "Süresi Dolan", "scopes": ["calls:read"], "status": "expired", "createdAt": "2025-06-01T10:00:00.000Z", "lastUsedAt": "2026-01-01T10:00:00.000Z" }
+  ],
+  "webhooks": [
+    { "id": "WH-1", "url": "http://insecure.beta.example/hooks", "events": ["call.completed"], "status": "active", "lastDeliveryAt": "2026-06-17T08:00:00.000Z", "lastDeliveryOk": true },
+    { "id": "WH-2", "url": "https://beta.example/hooks", "events": ["transcript.ready"], "status": "failing", "lastDeliveryAt": "2026-06-17T07:00:00.000Z", "lastDeliveryOk": false }
+  ],
+  "$expect": { "connected": 0, "invalid_refs": ["TL-3"], "write_no_confirm": ["TL-2"], "no_schema": ["TL-4"], "insecure_webhooks": ["WH-1"], "failing_webhooks": ["WH-2"], "active_keys": ["KEY-1"] }
+}

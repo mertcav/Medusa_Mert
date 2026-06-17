@@ -1,0 +1,62 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.3.5",
+  "screen": "T-05",
+  "title": "Entegrasyon, Tool & API Key/Webhook",
+  "plane": "tenant_application_plane",
+  "tier": "L1",
+  "source": ["BRD §17.4", "BRD §17.6 (RBAC)", "BRD §17.7 (hijyen)", "FR-TOOL-001 (REST/SOAP/GraphQL/webhook)", "FR-TOOL-002 (JSON schema doğrulama)", "FR-TOOL-004 (tool yetkisi agent bazında)", "FR-TOOL-005 (okuma/yazma ayrı güvenlik)", "FR-TOOL-006/007 (kritik işlem teyidi)", "API.md §7 (API key/webhook kaynakları)", "API.md §10 (webhook event + imzalama)", "FR-TEN-002 (tenant scope)", "SAD §14.4.1", "NFR 10.6 (sır)", "NFR 10.7 (residency)"],
+  "rbac": {
+    "tenant_owner": "manage",
+    "tenant_admin": "manage",
+    "security_compliance_officer": "view",
+    "billing_viewer": "none",
+    "api_developer": "manage",
+    "note": "UI yalnız görsel kapı; nihai yetki backend'de (12.2.x) + RLS. Tool çağırma/anahtar oluşturma/webhook gönderme kararı bu katmanda YOK (A8). Yönet aksiyonları (yeni entegrasyon/tool/API anahtarı/webhook) görsel kapıdır; oluşturma/rotasyon/iptal istemci submit + backend zorlama 12.2.x'te. api_developer T-05'te Yönet (BRD §17.6)."
+  },
+  "content_brd_17_4": [
+    "CRM/ticketing/ERP bağlantıları",
+    "credential",
+    "webhook tanımları"
+  ],
+  "invariants": {
+    "S1": "T-05 ekran sayfası mevcut + data-screen=\"T-05\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/tenant/integrations) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.t05.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK son-müşteri PII/iş-içeriği taşımaz (FORBIDDEN_PII_KEYS) + entegrasyon/anahtar/webhook sırrı taşımaz (FORBIDDEN_SECRET_KEYS) + assertNoPii çağrılır (HİJYEN BRD §17.7 + GÜVENLİK NFR 10.6).",
+    "S5": "BRD §17.4 üç içerik öğesi (CRM/ERP/ticketing entegrasyon / tool+credential / webhook) i18n bölüm + alt-anahtarlarıyla karşılanır; protokol (FR-TOOL-001) + okuma/yazma (FR-TOOL-005) + teyit (FR-TOOL-006/007) + schema (FR-TOOL-002) + API key/webhook (API.md §7/§10) gösterilir.",
+    "S6": "screen.t05.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (countIntegrationState/countIntegrationType/toolsForIntegration/invalidIntegrationRefs/writeToolsWithoutConfirmation/toolsWithoutSchema/isHttpsUrl/insecureWebhookUrls/failingWebhooks/apiKeysByStatus/tone'lar) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002): veri seam belirli CRM/ERP/SaaS markası bağlamaz; sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "scope_note", "as_of", "tenant", "never",
+    "invalid_ref_alert", "insecure_webhook_alert", "write_confirm_alert", "no_schema_alert", "failing_webhook_alert",
+    "yes", "no", "inline_label",
+    "no_integrations", "no_tools", "no_api_keys", "no_webhooks",
+    "integrations_caption", "tools_caption", "api_keys_caption", "webhooks_caption",
+    "integrations_hint", "tools_hint", "api_keys_hint", "webhooks_hint",
+    "section.summary", "section.integrations", "section.tools", "section.api_keys", "section.webhooks",
+    "kpi.integrations", "kpi.integrations_hint", "kpi.tools", "kpi.tools_hint", "kpi.api_keys", "kpi.api_keys_hint", "kpi.webhooks", "kpi.webhooks_hint",
+    "action.new_integration", "action.new_tool", "action.new_api_key", "action.new_webhook",
+    "col.integration", "col.type", "col.auth", "col.region", "col.last_sync", "col.state", "col.tool", "col.protocol", "col.access", "col.schema", "col.confirm", "col.key", "col.scopes", "col.last_used", "col.status", "col.url", "col.events", "col.last_delivery",
+    "integration_type.crm", "integration_type.erp", "integration_type.ticketing", "integration_type.custom",
+    "auth.oauth2", "auth.api_key", "auth.basic", "auth.mtls",
+    "conn.connected", "conn.degraded", "conn.disabled", "conn.error",
+    "protocol.rest", "protocol.soap", "protocol.graphql", "protocol.webhook",
+    "access.read", "access.write",
+    "key_status.active", "key_status.revoked", "key_status.expired",
+    "webhook_status.active", "webhook_status.disabled", "webhook_status.failing",
+    "badge.insecure", "badge.delivery_failed"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "invalid_ref_alert": ["count"],
+    "insecure_webhook_alert": ["count"],
+    "write_confirm_alert": ["count"],
+    "no_schema_alert": ["count"],
+    "failing_webhook_alert": ["count"],
+    "kpi.integrations_hint": ["connected"],
+    "kpi.api_keys_hint": ["active"]
+  }
+}
