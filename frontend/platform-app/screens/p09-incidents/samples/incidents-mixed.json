@@ -1,0 +1,35 @@
+{
+  "$comment": "İllüstratif P-09 snapshot — DEGRADE durum: al-2 firing + üretim gecikmesi 150s (NFR 10.1 ≤120s bütçe aşımı); al-3 pending + 200s (bütçe aşımı); al-4 security firing (consent/sızıntı sinyali); in-1 sev1 open + in-2 sev2 mitigated + in-5 sev1 acknowledged (kritik açık incident); ev-2/ev-4 escalated (IR eskalasyon). ALTIN KURAL: yalnız platform-geneli alarm/incident metadatası (iş-içeriği/son-müşteri PII YOK); scope vendor-nötr bileşen/bölge (tenant kimliği değil), on-call assigneeRole ROL'dür. Alarm adları SAD §17.2 kataloğu (vendor-nötr; ADR-002).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "alarms": [
+    { "id": "al-1", "name": "E2EP95LatencyHigh", "severity": "critical", "signal": "latency", "scope": "orchestrator/EU", "state": "acknowledged", "detectionLatencySec": 45, "firedAt": "2026-06-17T08:40:00.000Z", "mappedReq": "BRD §15 / SR-PERF-008" },
+    { "id": "al-2", "name": "TenantCapacity80", "severity": "warning", "signal": "capacity", "scope": "voice-runtime/global", "state": "firing", "detectionLatencySec": 150, "firedAt": "2026-06-17T08:50:00.000Z", "mappedReq": "BRD §15" },
+    { "id": "al-3", "name": "LLMProviderErrorRateHigh", "severity": "critical", "signal": "error_rate", "scope": "orchestrator/NA", "state": "pending", "detectionLatencySec": 200, "firedAt": "2026-06-17T08:55:00.000Z", "mappedReq": "BRD §15" },
+    { "id": "al-4", "name": "ConsentSkipDetected", "severity": "critical", "signal": "security", "scope": "policy-engine/global", "state": "firing", "detectionLatencySec": 30, "firedAt": "2026-06-17T08:58:00.000Z", "mappedReq": "BRD §15 / FR-CMP-003" },
+    { "id": "al-5", "name": "ResourceBudgetExceeded", "severity": "info", "signal": "resource", "scope": "voice-runtime/UK", "state": "resolved", "detectionLatencySec": 60, "firedAt": "2026-06-16T22:00:00.000Z", "mappedReq": "BRD §15 / SR-RES-016" }
+  ],
+  "incidents": [
+    { "id": "in-1", "title": "voice-runtime-capacity-pressure", "severity": "sev1", "status": "open", "assigneeRole": "platform_sre", "linkedAlarm": "TenantCapacity80", "scope": "voice-runtime/global", "openedAt": "2026-06-17T08:51:00.000Z", "mappedReq": "NFR 10.6 / SR-SEC-008" },
+    { "id": "in-2", "title": "orchestrator-latency-regression", "severity": "sev2", "status": "mitigated", "assigneeRole": "platform_sre", "linkedAlarm": "E2EP95LatencyHigh", "scope": "orchestrator/EU", "openedAt": "2026-06-17T08:42:00.000Z", "mappedReq": "NFR 10.6" },
+    { "id": "in-3", "title": "resource-budget-watch", "severity": "sev3", "status": "open", "assigneeRole": "platform_sre", "linkedAlarm": "ResourceBudgetExceeded", "scope": "voice-runtime/UK", "openedAt": "2026-06-16T22:05:00.000Z", "mappedReq": "NFR 10.6" },
+    { "id": "in-4", "title": "llm-provider-error-burst", "severity": "sev2", "status": "resolved", "assigneeRole": "platform_sre", "linkedAlarm": "LLMProviderErrorRateHigh", "scope": "orchestrator/NA", "openedAt": "2026-06-17T07:12:00.000Z", "mappedReq": "NFR 10.6" },
+    { "id": "in-5", "title": "consent-guard-incident", "severity": "sev1", "status": "acknowledged", "assigneeRole": "platform_owner", "linkedAlarm": "ConsentSkipDetected", "scope": "policy-engine/global", "openedAt": "2026-06-17T08:59:00.000Z", "mappedReq": "NFR 10.6 / FR-CMP-003" }
+  ],
+  "events": [
+    { "id": "ev-1", "occurredAt": "2026-06-17T08:51:00.000Z", "type": "triggered", "actorRole": "platform_sre", "target": "in-1", "mappedReq": "NFR 10.6" },
+    { "id": "ev-2", "occurredAt": "2026-06-17T08:55:00.000Z", "type": "escalated", "actorRole": "platform_sre", "target": "in-1", "mappedReq": "NFR 10.6" },
+    { "id": "ev-3", "occurredAt": "2026-06-17T08:45:00.000Z", "type": "acknowledged", "actorRole": "platform_sre", "target": "in-2", "mappedReq": "NFR 10.6" },
+    { "id": "ev-4", "occurredAt": "2026-06-17T09:00:00.000Z", "type": "escalated", "actorRole": "platform_owner", "target": "in-5", "mappedReq": "NFR 10.6" },
+    { "id": "ev-5", "occurredAt": "2026-06-17T07:30:00.000Z", "type": "resolved", "actorRole": "platform_sre", "target": "in-4", "mappedReq": "NFR 10.6" }
+  ],
+  "$expect": {
+    "count_by_severity": { "critical": 3, "warning": 1, "info": 1 },
+    "firing_alarms": ["al-2", "al-4"],
+    "unacknowledged_alarms": ["al-2", "al-3", "al-4"],
+    "budget_breaches": ["al-2", "al-3"],
+    "open_incidents": ["in-1", "in-2", "in-3", "in-5"],
+    "critical_open_incidents": ["in-1", "in-2", "in-5"],
+    "escalation_events": ["ev-2", "ev-4"],
+    "resolved_incidents": ["in-4"]
+  }
+}

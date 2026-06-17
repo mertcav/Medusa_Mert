@@ -742,6 +742,106 @@
         "outcome": "Sonuç",
         "requirement": "Gereksinim"
       }
+    },
+    "p09": {
+      "title": "Alarm & Incident (SRE)",
+      "subtitle": "Platform alarmları (kritik alarm kataloğu) ve incident (SRE) yönetimi — tenant iş içeriği değil, yalnız platform-geneli alarm/incident metadatası.",
+      "manage_only_note": "Bu ekran platform_owner ve platform_sre tarafından yönetilir; platform_billing erişemez. Yalnız platform-geneli alarm/incident metadatası gösterilir; tenant iş içeriği (çağrı kaydı, transkript, son-müşteri verisi) görüntülenmez. platform_sre iş içeriği görmez (BRD §17.2).",
+      "backend_authz_note": "Alarm susturma, incident atama/onaylama (acknowledge) ve çözme aksiyonları yalnız görsel kapıdır; nihai yetki ve zorlama backend'de yapılır (alert:manage / incident:manage / incident:acknowledge). Tüm alarm/incident işlemleri audit edilir (P-07).",
+      "as_of": "Veri zamanı: {time}",
+      "declare_action": "Incident Oluştur",
+      "sec_value": "{sec} sn",
+      "firing_ok": "Aktif (firing) alarm yok — platform sağlık göstergeleri eşiklerin altında.",
+      "firing_alert": "{count} alarm aktif (firing) durumda — anlık operasyon riski; SRE müdahalesi gerekir (BRD §15).",
+      "budget_ok": "Tüm alarmlar üretim bütçesi içinde (≤ {budget} sn) — kritik alarm ≤ 2 dk hedefi karşılanıyor (NFR 10.1).",
+      "budget_alert": "{count} alarmın üretim gecikmesi {budget} sn bütçesini aştı — kritik alarm ≤ 2 dk hedefi ihlali (NFR 10.1 / SR-PERF-008).",
+      "critical_ok": "Açık kritik (sev1/sev2) incident yok.",
+      "critical_alert": "{count} kritik (sev1/sev2) incident açık — öncelikli müdahale gerekir (NFR 10.6).",
+      "escalation_ok": "Eskale edilmiş incident olayı yok.",
+      "escalation_alert": "{count} incident eskale edildi — IR runbook eskalasyon adımı izleniyor (NFR 10.6).",
+      "no_alarms": "Alarm yok",
+      "no_incidents": "Incident yok",
+      "no_events": "Incident olayı yok",
+      "alarms_caption": "Platform alarmları: kural adı, önem derecesi, sinyal sınıfı, kapsam (bileşen/bölge), durum, üretim gecikmesi ve tetiklenme zamanı (BRD §15 / SAD §17.2)",
+      "alarms_note": "Alarm kapsamı (scope) vendor-nötr bileşen/bölgedir; tenant kimliği/listesi değildir (altın kural, BRD §17.7). Kritik alarm üretim gecikmesi ≤ {budget} sn olmalıdır (NFR 10.1 / SR-PERF-008).",
+      "incidents_caption": "Incident'ler (SRE): etiket, önem derecesi (sev1/sev2/sev3), durum, on-call rolü, ilişkili alarm, kapsam ve açılış zamanı (NFR 10.6 / SR-SEC-008)",
+      "incidents_note": "On-call atama bir ROL'dür (kişi/PII değil); incident kapsamı vendor-nötr bileşen/bölgedir (altın kural, BRD §17.7).",
+      "events_caption": "Incident olay akışı: zaman, tip (oluşturuldu/onaylandı/eskale/hafifletildi/çözüldü/not), aktör rolü, hedef incident ve gereksinim",
+      "section": {
+        "alarms": "Platform Alarmları",
+        "incidents": "Incident'ler",
+        "events": "Incident Olay Akışı"
+      },
+      "kpi": {
+        "alarms": "Toplam alarm",
+        "firing": "Aktif (firing)",
+        "open_incidents": "Açık incident",
+        "critical_open": "Kritik açık incident",
+        "unacknowledged": "Onay bekleyen alarm",
+        "budget_breaches": "Bütçe aşan alarm"
+      },
+      "actor_role": {
+        "platform_owner": "Platform sahibi",
+        "platform_sre": "Platform SRE",
+        "platform_billing": "Platform faturalandırma"
+      },
+      "alarm_severity": {
+        "critical": "Kritik",
+        "warning": "Uyarı",
+        "info": "Bilgi"
+      },
+      "alarm_state": {
+        "firing": "Aktif",
+        "pending": "Beklemede",
+        "acknowledged": "Onaylandı",
+        "resolved": "Çözüldü"
+      },
+      "alarm_signal": {
+        "latency": "Gecikme",
+        "error_rate": "Hata oranı",
+        "capacity": "Kapasite",
+        "spend": "Harcama",
+        "resource": "Kaynak",
+        "security": "Güvenlik"
+      },
+      "incident_severity": {
+        "sev1": "SEV1",
+        "sev2": "SEV2",
+        "sev3": "SEV3"
+      },
+      "incident_status": {
+        "open": "Açık",
+        "acknowledged": "Onaylandı",
+        "mitigated": "Hafifletildi",
+        "resolved": "Çözüldü"
+      },
+      "incident_event_type": {
+        "triggered": "Oluşturuldu",
+        "acknowledged": "Onaylandı",
+        "escalated": "Eskale edildi",
+        "mitigated": "Hafifletildi",
+        "resolved": "Çözüldü",
+        "note": "Not"
+      },
+      "col": {
+        "alarm": "Alarm kuralı",
+        "severity": "Önem",
+        "signal": "Sinyal",
+        "scope": "Kapsam",
+        "state": "Durum",
+        "detection": "Üretim gecikmesi",
+        "fired": "Tetiklenme",
+        "incident": "Incident",
+        "status": "Durum",
+        "assignee": "On-call",
+        "linked_alarm": "İlişkili alarm",
+        "opened": "Açılış",
+        "time": "Zaman",
+        "event_type": "Olay tipi",
+        "actor": "Aktör",
+        "target": "Hedef",
+        "requirement": "Gereksinim"
+      }
     }
   }
 }

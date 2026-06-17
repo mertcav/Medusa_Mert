@@ -1,0 +1,17 @@
+{
+  "$comment": "İllüstratif P-09 snapshot — BOŞ durum: alarm/incident/olay yok (EmptyState render kanıtı). Tüm türetmeler boş; sağlıklı taban.",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "alarms": [],
+  "incidents": [],
+  "events": [],
+  "$expect": {
+    "count_by_severity": { "critical": 0, "warning": 0, "info": 0 },
+    "firing_alarms": [],
+    "unacknowledged_alarms": [],
+    "budget_breaches": [],
+    "open_incidents": [],
+    "critical_open_incidents": [],
+    "escalation_events": [],
+    "resolved_incidents": []
+  }
+}

@@ -742,6 +742,106 @@
         "outcome": "Outcome",
         "requirement": "Requirement"
       }
+    },
+    "p09": {
+      "title": "Alarm & Incident (SRE)",
+      "subtitle": "Platform alarms (critical alarm catalog) and incident (SRE) management — not tenant business content, only platform-wide alarm/incident metadata.",
+      "manage_only_note": "This screen is managed by platform_owner and platform_sre; platform_billing has no access. Only platform-wide alarm/incident metadata is shown; tenant business content (call recording, transcript, end-customer data) is not displayed. platform_sre cannot see business content (BRD §17.2).",
+      "backend_authz_note": "Alarm silencing, incident assignment/acknowledgement and resolution actions are visual gates only; final authority and enforcement happen in the backend (alert:manage / incident:manage / incident:acknowledge). All alarm/incident operations are audited (P-07).",
+      "as_of": "As of: {time}",
+      "declare_action": "Declare Incident",
+      "sec_value": "{sec} s",
+      "firing_ok": "No firing alarms — platform health indicators are below thresholds.",
+      "firing_alert": "{count} alarms are firing — immediate operational risk; SRE intervention required (BRD §15).",
+      "budget_ok": "All alarms within detection budget (≤ {budget} s) — critical alarm ≤ 2 min target met (NFR 10.1).",
+      "budget_alert": "{count} alarms exceeded the {budget} s detection budget — critical alarm ≤ 2 min target breached (NFR 10.1 / SR-PERF-008).",
+      "critical_ok": "No open critical (sev1/sev2) incidents.",
+      "critical_alert": "{count} critical (sev1/sev2) incidents are open — priority response required (NFR 10.6).",
+      "escalation_ok": "No escalated incident events.",
+      "escalation_alert": "{count} incidents escalated — IR runbook escalation step in progress (NFR 10.6).",
+      "no_alarms": "No alarms",
+      "no_incidents": "No incidents",
+      "no_events": "No incident events",
+      "alarms_caption": "Platform alarms: rule name, severity, signal class, scope (component/region), state, detection latency and fired time (BRD §15 / SAD §17.2)",
+      "alarms_note": "Alarm scope is a vendor-neutral component/region; not a tenant identity/list (golden rule, BRD §17.7). Critical alarm detection latency must be ≤ {budget} s (NFR 10.1 / SR-PERF-008).",
+      "incidents_caption": "Incidents (SRE): label, severity (sev1/sev2/sev3), status, on-call role, linked alarm, scope and opened time (NFR 10.6 / SR-SEC-008)",
+      "incidents_note": "On-call assignment is a ROLE (not a person/PII); incident scope is a vendor-neutral component/region (golden rule, BRD §17.7).",
+      "events_caption": "Incident event stream: time, type (triggered/acknowledged/escalated/mitigated/resolved/note), actor role, target incident and requirement",
+      "section": {
+        "alarms": "Platform Alarms",
+        "incidents": "Incidents",
+        "events": "Incident Event Stream"
+      },
+      "kpi": {
+        "alarms": "Total alarms",
+        "firing": "Firing",
+        "open_incidents": "Open incidents",
+        "critical_open": "Critical open incidents",
+        "unacknowledged": "Unacknowledged alarms",
+        "budget_breaches": "Budget-breaching alarms"
+      },
+      "actor_role": {
+        "platform_owner": "Platform owner",
+        "platform_sre": "Platform SRE",
+        "platform_billing": "Platform billing"
+      },
+      "alarm_severity": {
+        "critical": "Critical",
+        "warning": "Warning",
+        "info": "Info"
+      },
+      "alarm_state": {
+        "firing": "Firing",
+        "pending": "Pending",
+        "acknowledged": "Acknowledged",
+        "resolved": "Resolved"
+      },
+      "alarm_signal": {
+        "latency": "Latency",
+        "error_rate": "Error rate",
+        "capacity": "Capacity",
+        "spend": "Spend",
+        "resource": "Resource",
+        "security": "Security"
+      },
+      "incident_severity": {
+        "sev1": "SEV1",
+        "sev2": "SEV2",
+        "sev3": "SEV3"
+      },
+      "incident_status": {
+        "open": "Open",
+        "acknowledged": "Acknowledged",
+        "mitigated": "Mitigated",
+        "resolved": "Resolved"
+      },
+      "incident_event_type": {
+        "triggered": "Triggered",
+        "acknowledged": "Acknowledged",
+        "escalated": "Escalated",
+        "mitigated": "Mitigated",
+        "resolved": "Resolved",
+        "note": "Note"
+      },
+      "col": {
+        "alarm": "Alarm rule",
+        "severity": "Severity",
+        "signal": "Signal",
+        "scope": "Scope",
+        "state": "State",
+        "detection": "Detection latency",
+        "fired": "Fired",
+        "incident": "Incident",
+        "status": "Status",
+        "assignee": "On-call",
+        "linked_alarm": "Linked alarm",
+        "opened": "Opened",
+        "time": "Time",
+        "event_type": "Event type",
+        "actor": "Actor",
+        "target": "Target",
+        "requirement": "Requirement"
+      }
     }
   }
 }

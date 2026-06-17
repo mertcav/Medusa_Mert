@@ -1,0 +1,64 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.2.9",
+  "screen": "P-09",
+  "title": "Alarm & Incident (SRE)",
+  "plane": "platform_control_plane",
+  "tier": "L0",
+  "source": ["BRD §17.3 (P-09)", "BRD §15 (alarm kataloğu)", "BRD §17.6 (RBAC)", "BRD §17.7 (altın kural)", "SAD §17.1 (izleme omurgası)", "SAD §17.2 (alarm)", "NFR 10.1 / SR-PERF-008 (kritik alarm ≤ 2 dk)", "NFR 10.6 / SR-SEC-008 (incident response + IR runbook)", "FR-IAM-008", "SAD §14.4.1", "ADR-002"],
+  "rbac": {
+    "platform_owner": "manage",
+    "platform_sre": "manage",
+    "platform_billing": "none",
+    "permission_keys": ["alert:read", "alert:manage", "incident:read", "incident:manage", "incident:acknowledge"],
+    "note": "BRD §17.6: P-09 platform_owner=Yönet + platform_sre=Yönet + platform_billing=erişim yok. UI yalnız görsel kapı; nihai yetki + alarm sustur / incident ata / onayla / çöz zorlaması backend'de (12.2.x). SAD §17.2 incident:manage. Rol→permission kararı bu katmanda YOK (A8)."
+  },
+  "content_brd_17_3": [
+    "platform alarmları (kritik alarm kataloğu)",
+    "incident (SRE) yönetimi"
+  ],
+  "req_coverage": {
+    "BRD-15": "kritik alarm kataloğu (latency/error_rate/capacity/spend/resource/security sinyalleri) → alarm.signal + countBySeverity() + firingAlarms()",
+    "SR-PERF-008": "kritik alarm üretimi ≤ 2 dk = 120 sn → alarm.detectionLatencySec + DETECTION_BUDGET_SEC + budgetBreaches() (NFR 10.1)",
+    "SR-SEC-008": "incident response prosedürü + IR runbook → incident.status + escalationEvents() + openIncidents() (NFR 10.6)",
+    "FR-IAM-008": "panel-katman rol ayrımı / altın kural → assertNoPii + tenant iş içeriği yok (scope vendor-nötr bileşen/bölge; on-call ROL, kişi/PII değil)"
+  },
+  "invariants": {
+    "S1": "P-09 ekran sayfası mevcut + data-screen=\"P-09\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/platform/incidents) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.p09.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK iş-içeriği/son-müşteri PII taşımaz (FORBIDDEN_PII_KEYS) + assertNoPii çağrılır (ALTIN KURAL, BRD §17.7). scope VENDOR-NÖTR bileşen/bölge (tenant kimliği değil); on-call assigneeRole ROL'dür (kişi/PII değil).",
+    "S5": "BRD §17.3/§15 içerik öğeleri (alarm kataloğu + incident yönetimi) i18n anahtarlarıyla karşılanır; SR-PERF-008 (≤120s bütçe) + NFR 10.6 (IR) izlenir.",
+    "S6": "screen.p09.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (alarmSeverityTone/alarmStateTone/alarmSignalTone/incidentSeverityTone/incidentStatusTone/incidentEventTypeTone/countBySeverity/firingAlarms/unacknowledgedAlarms/budgetBreaches/openIncidents/criticalOpenIncidents/escalationEvents/resolvedIncidents) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002): veri seam SOMUT sağlayıcı/APM/on-call-SaaS markası bağlamaz (alarm adları/bileşen adları nötr); sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "manage_only_note", "backend_authz_note", "as_of", "declare_action", "sec_value",
+    "firing_ok", "firing_alert", "budget_ok", "budget_alert", "critical_ok", "critical_alert", "escalation_ok", "escalation_alert",
+    "no_alarms", "no_incidents", "no_events",
+    "alarms_caption", "alarms_note", "incidents_caption", "incidents_note", "events_caption",
+    "section.alarms", "section.incidents", "section.events",
+    "kpi.alarms", "kpi.firing", "kpi.open_incidents", "kpi.critical_open", "kpi.unacknowledged", "kpi.budget_breaches",
+    "actor_role.platform_owner", "actor_role.platform_sre", "actor_role.platform_billing",
+    "alarm_severity.critical", "alarm_severity.warning", "alarm_severity.info",
+    "alarm_state.firing", "alarm_state.pending", "alarm_state.acknowledged", "alarm_state.resolved",
+    "alarm_signal.latency", "alarm_signal.error_rate", "alarm_signal.capacity", "alarm_signal.spend", "alarm_signal.resource", "alarm_signal.security",
+    "incident_severity.sev1", "incident_severity.sev2", "incident_severity.sev3",
+    "incident_status.open", "incident_status.acknowledged", "incident_status.mitigated", "incident_status.resolved",
+    "incident_event_type.triggered", "incident_event_type.acknowledged", "incident_event_type.escalated", "incident_event_type.mitigated", "incident_event_type.resolved", "incident_event_type.note",
+    "col.alarm", "col.severity", "col.signal", "col.scope", "col.state", "col.detection", "col.fired",
+    "col.incident", "col.status", "col.assignee", "col.linked_alarm", "col.opened",
+    "col.time", "col.event_type", "col.actor", "col.target", "col.requirement"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "sec_value": ["sec"],
+    "firing_alert": ["count"],
+    "budget_ok": ["budget"],
+    "budget_alert": ["count", "budget"],
+    "critical_alert": ["count"],
+    "escalation_alert": ["count"],
+    "alarms_note": ["budget"]
+  }
+}
