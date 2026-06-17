@@ -1,0 +1,67 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.2.7",
+  "screen": "P-07",
+  "title": "Platform Audit & Güvenlik",
+  "plane": "platform_control_plane",
+  "tier": "L0",
+  "source": ["BRD §17.3", "BRD §17.6 (RBAC)", "BRD §17.7 (altın kural + break-glass)", "FR-IAM-005", "FR-IAM-006", "FR-IAM-008", "FR-IAM-009", "FR-IAM-010", "FR-REC-009", "SAD §13.x (WORM audit)", "SAD §14.4.1", "SAD §17 (gözlemlenebilirlik)", "ADR-002"],
+  "rbac": {
+    "platform_owner": "manage",
+    "platform_sre": "view",
+    "platform_billing": "none",
+    "permission_keys": ["audit:read", "audit:export", "breakglass:approve"],
+    "note": "BRD §17.6: P-07 platform_owner=Yönet + platform_sre=Görüntüle + platform_billing=erişim yok. UI yalnız görsel kapı; nihai yetki + audit dışa aktarım/break-glass onay zorlaması backend'de (12.2.x). Rol→permission kararı bu katmanda YOK (A8)."
+  },
+  "content_brd_17_3": [
+    "platform geneli audit log",
+    "erişim olayları (break-glass)",
+    "güvenlik olayları"
+  ],
+  "fr_coverage": {
+    "FR-IAM-006": "değiştirilemez/WORM audit log → auditEntry.wormAnchored + wormGaps()",
+    "FR-REC-009": "kayıt/transkript erişimi audit'i → audit_category.content_access + break-glass oturum metadatası",
+    "FR-IAM-008": "panel-katman rol ayrımı / altın kural → assertNoPii + tenant iş içeriği yok",
+    "FR-IAM-009": "üç katmanlı break-glass: maker-checker + time-box + bildirim → makerCheckerViolations()/standingAccessViolations()/notificationGaps()",
+    "FR-IAM-010": "regüle tenant onayı → session.tenantApprovalRequired + tenantApprovalGaps()",
+    "FR-IAM-005": "maker-checker (talep eden ≠ onaylayan) → makerCheckerViolations()"
+  },
+  "invariants": {
+    "S1": "P-07 ekran sayfası mevcut + data-screen=\"P-07\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/platform/audit) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.p07.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK iş-içeriği/son-müşteri PII taşımaz (FORBIDDEN_PII_KEYS) + assertNoPii çağrılır (ALTIN KURAL, BRD §17.7). tenant KİMLİĞİ (tenantRef) izinli; son-müşteri verisi değil.",
+    "S5": "BRD §17.3 içerik öğeleri (audit log + erişim/break-glass olayları + güvenlik olayları) i18n anahtarlarıyla karşılanır; FR-IAM-005/006/009/010 + FR-REC-009 izlenir.",
+    "S6": "screen.p07.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (auditOutcomeTone/breakGlassStatusTone/severityTone/securityStatusTone/countByOutcome/wormGaps/countActiveBreakGlass/pendingApprovals/makerCheckerViolations/standingAccessViolations/tenantApprovalGaps/notificationGaps/breakGlassComplianceGaps/openSecurityEvents/criticalOpenEvents) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002): veri seam SOMUT sağlayıcı/SIEM/marka bağlamaz (olay tipleri nötr); sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "manage_only_note", "backend_authz_note", "as_of", "export_action",
+    "min_value", "not_required",
+    "worm_ok", "worm_alert", "compliance_ok", "compliance_alert", "critical_ok", "critical_alert",
+    "no_audit", "no_break_glass", "no_security",
+    "audit_caption", "break_glass_caption", "break_glass_note", "security_caption",
+    "section.audit", "section.break_glass", "section.security",
+    "kpi.audit_events", "kpi.break_glass_active", "kpi.pending_approvals", "kpi.open_security", "kpi.critical_security", "kpi.compliance_gaps",
+    "actor_role.platform_owner", "actor_role.platform_sre", "actor_role.platform_billing",
+    "audit_category.auth", "audit_category.config_change", "audit_category.content_access", "audit_category.provisioning", "audit_category.security",
+    "audit_outcome.success", "audit_outcome.denied", "audit_outcome.error",
+    "tier.A", "tier.B",
+    "break_glass_status.active", "break_glass_status.pending_approval", "break_glass_status.expired", "break_glass_status.revoked", "break_glass_status.denied",
+    "severity.critical", "severity.high", "severity.medium", "severity.low",
+    "security_status.open", "security_status.investigating", "security_status.resolved",
+    "event_type.auth_anomaly", "event_type.rate_limit_breach", "event_type.policy_violation",
+    "bool.yes", "bool.no",
+    "col.time", "col.actor", "col.action", "col.category", "col.tenant", "col.outcome", "col.integrity",
+    "col.tier", "col.status", "col.reason", "col.requested_by", "col.approved_by", "col.time_box", "col.tenant_approval", "col.notified",
+    "col.event_type", "col.severity", "col.requirement"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "min_value": ["remaining", "total"],
+    "worm_alert": ["count"],
+    "compliance_alert": ["count"],
+    "critical_alert": ["count"]
+  }
+}

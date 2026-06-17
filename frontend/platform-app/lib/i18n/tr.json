@@ -542,6 +542,110 @@
         "override": "Yalnız sıkılaştırma",
         "tenants": "Tenant sayısı"
       }
+    },
+    "p07": {
+      "title": "Platform Audit & Güvenlik",
+      "subtitle": "Platform-geneli değiştirilemez (WORM) audit log, break-glass erişim oturumları ve güvenlik olayları — tenant iş içeriği değil, yalnız erişim/işlem metadatası.",
+      "manage_only_note": "Bu ekran platform_owner tarafından yönetilir; platform_sre yalnız görüntüler, platform_billing erişemez. Yalnız platform-geneli audit/erişim/güvenlik metadatası gösterilir; tenant iş içeriği (çağrı kaydı, transkript, son-müşteri verisi) görüntülenmez.",
+      "backend_authz_note": "Audit dışa aktarım ve break-glass onayı yalnız görsel kapıdır; nihai yetki ve zorlama backend'de yapılır (audit:export / breakglass:approve). Audit kaydı değiştirilemez (WORM) depoda tutulur ve erişim de audit edilir.",
+      "as_of": "Veri zamanı: {time}",
+      "export_action": "Audit'i Dışa Aktar",
+      "min_value": "{remaining} / {total} dk",
+      "not_required": "Gerekli değil",
+      "worm_ok": "Tüm audit kayıtları değiştirilemez (WORM) depoya çapalı — integrity boşluğu yok (FR-IAM-006).",
+      "worm_alert": "{count} audit kaydı WORM çapasız — değiştirilebilirlik riski (FR-IAM-006).",
+      "compliance_ok": "Tüm break-glass oturumları uyumlu — maker-checker, time-box ve bildirim kuralları sağlanıyor (FR-IAM-009/010).",
+      "compliance_alert": "{count} break-glass oturumu uyum kuralını ihlal ediyor — maker-checker / time-box / tenant onayı / bildirim (FR-IAM-005/009/010).",
+      "critical_ok": "Açık kritik güvenlik olayı yok.",
+      "critical_alert": "{count} kritik güvenlik olayı açık — acil inceleme gerekli.",
+      "no_audit": "Audit kaydı yok",
+      "no_break_glass": "Break-glass oturumu yok",
+      "no_security": "Güvenlik olayı yok",
+      "audit_caption": "Platform-geneli audit log: zaman, aktör rolü, eylem, kategori, hedef tenant, sonuç ve WORM integrity (FR-IAM-006, FR-REC-009)",
+      "break_glass_caption": "Break-glass erişim oturumları: katman, durum, tenant, gerekçe kodu, talep/onay (maker-checker), time-box, tenant onayı ve bildirim (FR-IAM-009/010)",
+      "break_glass_note": "Break-glass yalnız açık gerekçeli, süreli (max 4 saat, standing access yok) ve audit'li acil erişimdir; bu ekran o akışın uyum görünürlüğüdür — içeriğe erişim burada yapılmaz.",
+      "security_caption": "Platform-geneli güvenlik olayları: zaman, tip, önem derecesi, durum ve izlenebilirlik",
+      "section": {
+        "audit": "Platform Audit Log",
+        "break_glass": "Break-glass Erişim Oturumları",
+        "security": "Güvenlik Olayları"
+      },
+      "kpi": {
+        "audit_events": "Audit kaydı",
+        "break_glass_active": "Aktif break-glass",
+        "pending_approvals": "Onay bekleyen",
+        "open_security": "Açık güvenlik olayı",
+        "critical_security": "Kritik güvenlik olayı",
+        "compliance_gaps": "Break-glass uyum boşluğu"
+      },
+      "actor_role": {
+        "platform_owner": "Platform sahibi",
+        "platform_sre": "Platform SRE",
+        "platform_billing": "Platform faturalandırma"
+      },
+      "audit_category": {
+        "auth": "Kimlik doğrulama",
+        "config_change": "Yapılandırma değişikliği",
+        "content_access": "İçerik erişimi (break-glass)",
+        "provisioning": "Provisioning",
+        "security": "Güvenlik"
+      },
+      "audit_outcome": {
+        "success": "Başarılı",
+        "denied": "Reddedildi",
+        "error": "Hata"
+      },
+      "tier": {
+        "A": "Tier A (metrik/log)",
+        "B": "Tier B (içerik/PII)"
+      },
+      "break_glass_status": {
+        "active": "Aktif",
+        "pending_approval": "Onay bekliyor",
+        "expired": "Süresi doldu",
+        "revoked": "İptal edildi",
+        "denied": "Reddedildi"
+      },
+      "severity": {
+        "critical": "Kritik",
+        "high": "Yüksek",
+        "medium": "Orta",
+        "low": "Düşük"
+      },
+      "security_status": {
+        "open": "Açık",
+        "investigating": "İnceleniyor",
+        "resolved": "Çözüldü"
+      },
+      "event_type": {
+        "auth_anomaly": "Kimlik doğrulama anomalisi",
+        "rate_limit_breach": "Hız limiti aşımı",
+        "policy_violation": "Politika ihlali"
+      },
+      "bool": {
+        "yes": "Evet",
+        "no": "Hayır"
+      },
+      "col": {
+        "time": "Zaman",
+        "actor": "Aktör",
+        "action": "Eylem",
+        "category": "Kategori",
+        "tenant": "Tenant",
+        "outcome": "Sonuç",
+        "integrity": "WORM",
+        "tier": "Katman",
+        "status": "Durum",
+        "reason": "Gerekçe kodu",
+        "requested_by": "Talep eden",
+        "approved_by": "Onaylayan",
+        "time_box": "Kalan / süre",
+        "tenant_approval": "Tenant onayı",
+        "notified": "Bildirildi",
+        "event_type": "Olay tipi",
+        "severity": "Önem",
+        "requirement": "Gereksinim"
+      }
     }
   }
 }

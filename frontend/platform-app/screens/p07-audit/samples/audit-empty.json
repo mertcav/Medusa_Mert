@@ -1,0 +1,20 @@
+{
+  "$comment": "İllüstratif P-07 snapshot — hiç audit kaydı/break-glass oturumu/güvenlik olayı yok (boş durum). Üç tablo da EmptyState render eder; WORM/uyum/kritik boşluğu yok (kayıt yok).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "auditEntries": [],
+  "breakGlassSessions": [],
+  "securityEvents": [],
+  "$expect": {
+    "worm_gaps": [],
+    "count_by_outcome": { "success": 0, "denied": 0, "error": 0 },
+    "active_break_glass": 0,
+    "pending_approvals": [],
+    "maker_checker_violations": [],
+    "standing_access_violations": [],
+    "tenant_approval_gaps": [],
+    "notification_gaps": [],
+    "break_glass_compliance_gaps": [],
+    "open_security": [],
+    "critical_open": []
+  }
+}

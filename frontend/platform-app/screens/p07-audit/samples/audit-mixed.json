@@ -1,0 +1,35 @@
+{
+  "$comment": "İllüstratif P-07 snapshot — DEGRADE durum: a-3/a-4 WORM çapasız (FR-IAM-006 integrity boşluğu); bg-2 maker==checker (FR-IAM-005/009 maker-checker ihlali) + bildirim yok; bg-3 time-box 300 dk > 240 (FR-IAM-009 standing-access ihlali) + tenant onayı alınmamış (FR-IAM-010); se-1 kritik+açık güvenlik olayı. ALTIN KURAL: yalnız platform-geneli audit/erişim/güvenlik metadatası (iş-içeriği/son-müşteri PII YOK). tenantRef tenant KİMLİĞİdir (izinli).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "auditEntries": [
+    { "id": "a-1", "occurredAt": "2026-06-17T08:55:00.000Z", "actorRole": "platform_owner", "action": "tenant:provision", "category": "provisioning", "outcome": "success", "tenantRef": "tenant-aurora", "wormAnchored": true, "mappedFr": "FR-IAM-006" },
+    { "id": "a-2", "occurredAt": "2026-06-17T08:40:00.000Z", "actorRole": "platform_billing", "action": "calls:read", "category": "content_access", "outcome": "denied", "tenantRef": "tenant-borealis", "wormAnchored": true, "mappedFr": "FR-IAM-008" },
+    { "id": "a-3", "occurredAt": "2026-06-17T08:20:00.000Z", "actorRole": "platform_sre", "action": "resource:quota:manage", "category": "config_change", "outcome": "error", "tenantRef": "tenant-cobalt", "wormAnchored": false, "mappedFr": "FR-IAM-006" },
+    { "id": "a-4", "occurredAt": "2026-06-17T08:05:00.000Z", "actorRole": "platform_owner", "action": "breakglass:open", "category": "content_access", "outcome": "success", "tenantRef": "tenant-cobalt", "wormAnchored": false, "mappedFr": "FR-REC-009" }
+  ],
+  "breakGlassSessions": [
+    { "id": "bg-1", "tier": "B", "status": "active", "tenantRef": "tenant-aurora", "reasonCode": "INCIDENT-SUPPORT", "requestedBy": "ops-sre-1", "approvedBy": "ops-owner-1", "durationMin": 60, "remainingMin": 42, "tenantApprovalRequired": true, "tenantApproved": true, "notified": true, "mappedFr": "FR-IAM-009" },
+    { "id": "bg-2", "tier": "B", "status": "active", "tenantRef": "tenant-borealis", "reasonCode": "QA-REVIEW", "requestedBy": "ops-sre-2", "approvedBy": "ops-sre-2", "durationMin": 60, "remainingMin": 15, "tenantApprovalRequired": false, "tenantApproved": false, "notified": false, "mappedFr": "FR-IAM-005" },
+    { "id": "bg-3", "tier": "B", "status": "expired", "tenantRef": "tenant-cobalt", "reasonCode": "INCIDENT-SUPPORT", "requestedBy": "ops-sre-3", "approvedBy": "ops-owner-1", "durationMin": 300, "remainingMin": 0, "tenantApprovalRequired": true, "tenantApproved": false, "notified": true, "mappedFr": "FR-IAM-009" },
+    { "id": "bg-4", "tier": "B", "status": "pending_approval", "tenantRef": "tenant-aurora", "reasonCode": "QA-REVIEW", "requestedBy": "ops-sre-1", "approvedBy": null, "durationMin": 60, "remainingMin": 60, "tenantApprovalRequired": true, "tenantApproved": false, "notified": false, "mappedFr": "FR-IAM-009" },
+    { "id": "bg-5", "tier": "A", "status": "active", "tenantRef": "tenant-borealis", "reasonCode": "METRIC-VIEW", "requestedBy": "ops-sre-2", "approvedBy": "ops-sre-2", "durationMin": 60, "remainingMin": 30, "tenantApprovalRequired": false, "tenantApproved": false, "notified": false, "mappedFr": "FR-IAM-009" }
+  ],
+  "securityEvents": [
+    { "id": "se-1", "type": "policy_violation", "severity": "critical", "status": "open", "occurredAt": "2026-06-17T08:35:00.000Z", "mappedFr": "FR-LLM-007" },
+    { "id": "se-2", "type": "auth_anomaly", "severity": "medium", "status": "investigating", "occurredAt": "2026-06-17T08:15:00.000Z", "mappedFr": "FR-IAM-006" },
+    { "id": "se-3", "type": "rate_limit_breach", "severity": "high", "status": "resolved", "occurredAt": "2026-06-17T07:30:00.000Z", "mappedFr": "FR-IAM-006" }
+  ],
+  "$expect": {
+    "worm_gaps": ["a-3", "a-4"],
+    "count_by_outcome": { "success": 2, "denied": 1, "error": 1 },
+    "active_break_glass": 3,
+    "pending_approvals": ["bg-4"],
+    "maker_checker_violations": ["bg-2"],
+    "standing_access_violations": ["bg-3"],
+    "tenant_approval_gaps": ["bg-3"],
+    "notification_gaps": ["bg-2"],
+    "break_glass_compliance_gaps": ["bg-2", "bg-3"],
+    "open_security": ["se-1", "se-2"],
+    "critical_open": ["se-1"]
+  }
+}

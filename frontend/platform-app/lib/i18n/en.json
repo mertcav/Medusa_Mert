@@ -542,6 +542,110 @@
         "override": "Stricter-only",
         "tenants": "Tenant count"
       }
+    },
+    "p07": {
+      "title": "Platform Audit & Security",
+      "subtitle": "Platform-wide immutable (WORM) audit log, break-glass access sessions and security events — access/operation metadata only, not tenant business content.",
+      "manage_only_note": "This screen is managed by platform_owner; platform_sre can only view, platform_billing has no access. Only platform-wide audit/access/security metadata is shown; tenant business content (call recordings, transcripts, end-customer data) is not displayed.",
+      "backend_authz_note": "Audit export and break-glass approval are visual gates only; final authority and enforcement happen in the backend (audit:export / breakglass:approve). Audit records are kept in immutable (WORM) storage and access is itself audited.",
+      "as_of": "Data as of: {time}",
+      "export_action": "Export Audit",
+      "min_value": "{remaining} / {total} min",
+      "not_required": "Not required",
+      "worm_ok": "All audit records anchored to immutable (WORM) storage — no integrity gap (FR-IAM-006).",
+      "worm_alert": "{count} audit records not WORM-anchored — tamper risk (FR-IAM-006).",
+      "compliance_ok": "All break-glass sessions compliant — maker-checker, time-box and notification rules satisfied (FR-IAM-009/010).",
+      "compliance_alert": "{count} break-glass sessions violate compliance rules — maker-checker / time-box / tenant approval / notification (FR-IAM-005/009/010).",
+      "critical_ok": "No open critical security events.",
+      "critical_alert": "{count} critical security events open — immediate investigation required.",
+      "no_audit": "No audit records",
+      "no_break_glass": "No break-glass sessions",
+      "no_security": "No security events",
+      "audit_caption": "Platform-wide audit log: time, actor role, action, category, target tenant, outcome and WORM integrity (FR-IAM-006, FR-REC-009)",
+      "break_glass_caption": "Break-glass access sessions: tier, status, tenant, reason code, request/approval (maker-checker), time-box, tenant approval and notification (FR-IAM-009/010)",
+      "break_glass_note": "Break-glass is emergency access only — justified, time-boxed (max 4 hours, no standing access) and audited; this screen is the compliance view of that flow — content access is not performed here.",
+      "security_caption": "Platform-wide security events: time, type, severity, status and traceability",
+      "section": {
+        "audit": "Platform Audit Log",
+        "break_glass": "Break-glass Access Sessions",
+        "security": "Security Events"
+      },
+      "kpi": {
+        "audit_events": "Audit records",
+        "break_glass_active": "Active break-glass",
+        "pending_approvals": "Pending approval",
+        "open_security": "Open security events",
+        "critical_security": "Critical security events",
+        "compliance_gaps": "Break-glass compliance gaps"
+      },
+      "actor_role": {
+        "platform_owner": "Platform owner",
+        "platform_sre": "Platform SRE",
+        "platform_billing": "Platform billing"
+      },
+      "audit_category": {
+        "auth": "Authentication",
+        "config_change": "Configuration change",
+        "content_access": "Content access (break-glass)",
+        "provisioning": "Provisioning",
+        "security": "Security"
+      },
+      "audit_outcome": {
+        "success": "Success",
+        "denied": "Denied",
+        "error": "Error"
+      },
+      "tier": {
+        "A": "Tier A (metric/log)",
+        "B": "Tier B (content/PII)"
+      },
+      "break_glass_status": {
+        "active": "Active",
+        "pending_approval": "Pending approval",
+        "expired": "Expired",
+        "revoked": "Revoked",
+        "denied": "Denied"
+      },
+      "severity": {
+        "critical": "Critical",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "security_status": {
+        "open": "Open",
+        "investigating": "Investigating",
+        "resolved": "Resolved"
+      },
+      "event_type": {
+        "auth_anomaly": "Authentication anomaly",
+        "rate_limit_breach": "Rate limit breach",
+        "policy_violation": "Policy violation"
+      },
+      "bool": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "col": {
+        "time": "Time",
+        "actor": "Actor",
+        "action": "Action",
+        "category": "Category",
+        "tenant": "Tenant",
+        "outcome": "Outcome",
+        "integrity": "WORM",
+        "tier": "Tier",
+        "status": "Status",
+        "reason": "Reason code",
+        "requested_by": "Requested by",
+        "approved_by": "Approved by",
+        "time_box": "Remaining / box",
+        "tenant_approval": "Tenant approval",
+        "notified": "Notified",
+        "event_type": "Event type",
+        "severity": "Severity",
+        "requirement": "Requirement"
+      }
     }
   }
 }
