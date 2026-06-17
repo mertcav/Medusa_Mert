@@ -1,0 +1,18 @@
+{
+  "$comment": "İllüstratif P-03 snapshot — hiç tenant kotası yok (boş durum). Tenant tablosu EmptyState render eder; noisy-neighbor riski yok.",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "autoscale": { "minWorkers": 4, "maxWorkers": 240, "targetUtilizationPct": 70, "warmPool": 12, "scaleToZeroIdleSeconds": 900, "burstMultiplier": 2 },
+  "regions": [
+    { "region": "eu", "concurrencyCapacity": 10000, "cpsCapacity": 100, "activeWorkers": 4, "maxWorkers": 240 }
+  ],
+  "tenants": [],
+  "$expect": {
+    "aggregate": {
+      "concurrency": { "limit": 0, "used": 0 },
+      "cps": { "limit": 0, "used": 0 },
+      "vcpu": { "limit": 0, "used": 0 },
+      "memoryGb": { "limit": 0, "used": 0 }
+    },
+    "noisy_neighbor": []
+  }
+}

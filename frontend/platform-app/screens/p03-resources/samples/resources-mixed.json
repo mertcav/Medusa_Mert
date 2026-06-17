@@ -1,0 +1,28 @@
+{
+  "$comment": "İllüstratif P-03 snapshot — karışık kota/izolasyon/scale-to-zero durumları. ALTIN KURAL: yalnız kaynak/kapasite metadatası (iş-içeriği/son-müşteri PII YOK). tn_initech paylaşımlı izolasyonda %93 → noisy-neighbor riski.",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "autoscale": { "minWorkers": 4, "maxWorkers": 240, "targetUtilizationPct": 70, "warmPool": 12, "scaleToZeroIdleSeconds": 900, "burstMultiplier": 2 },
+  "regions": [
+    { "region": "eu", "concurrencyCapacity": 10000, "cpsCapacity": 100, "activeWorkers": 96, "maxWorkers": 240 },
+    { "region": "uk", "concurrencyCapacity": 10000, "cpsCapacity": 100, "activeWorkers": 72, "maxWorkers": 240 },
+    { "region": "na", "concurrencyCapacity": 10000, "cpsCapacity": 100, "activeWorkers": 18, "maxWorkers": 200 },
+    { "region": "me", "concurrencyCapacity": 6000, "cpsCapacity": 60, "activeWorkers": 6, "maxWorkers": 120 }
+  ],
+  "tenants": [
+    { "id": "tn_acme", "name": "Acme Finans A.Ş.", "plan": "enterprise", "region": "eu", "concurrency": { "limit": 1200, "used": 1090 }, "cps": { "limit": 24, "used": 19 }, "vcpu": { "limit": 64, "used": 51 }, "memoryGb": { "limit": 128, "used": 96 }, "reservedConcurrency": 800, "isolation": "reserved", "scaleToZero": "active" },
+    { "id": "tn_globex", "name": "Globex Telekom", "plan": "dedicated", "region": "uk", "concurrency": { "limit": 3000, "used": 1840 }, "cps": { "limit": 60, "used": 31 }, "vcpu": { "limit": 160, "used": 88 }, "memoryGb": { "limit": 320, "used": 171 }, "reservedConcurrency": 3000, "isolation": "reserved", "scaleToZero": "active" },
+    { "id": "tn_initech", "name": "Initech Sigorta", "plan": "growth", "region": "eu", "concurrency": { "limit": 400, "used": 372 }, "cps": { "limit": 10, "used": 9 }, "vcpu": { "limit": 24, "used": 21 }, "memoryGb": { "limit": 48, "used": 41 }, "reservedConcurrency": 0, "isolation": "shared", "scaleToZero": "active" },
+    { "id": "tn_hooli", "name": "Hooli Perakende", "plan": "starter", "region": "me", "concurrency": { "limit": 150, "used": 0 }, "cps": { "limit": 5, "used": 0 }, "vcpu": { "limit": 8, "used": 0 }, "memoryGb": { "limit": 16, "used": 0 }, "reservedConcurrency": 0, "isolation": "shared", "scaleToZero": "scaled_to_zero" },
+    { "id": "tn_umbrella", "name": "Umbrella Sağlık", "plan": "enterprise", "region": "na", "concurrency": { "limit": 800, "used": 60 }, "cps": { "limit": 16, "used": 2 }, "vcpu": { "limit": 48, "used": 7 }, "memoryGb": { "limit": 96, "used": 12 }, "reservedConcurrency": 400, "isolation": "reserved", "scaleToZero": "idle" },
+    { "id": "tn_soylent", "name": "Soylent Lojistik", "plan": "growth", "region": "eu", "concurrency": { "limit": 300, "used": 96 }, "cps": { "limit": 8, "used": 3 }, "vcpu": { "limit": 16, "used": 6 }, "memoryGb": { "limit": 32, "used": 11 }, "reservedConcurrency": 0, "isolation": "shared", "scaleToZero": "active" }
+  ],
+  "$expect": {
+    "aggregate": {
+      "concurrency": { "limit": 5850, "used": 3458 },
+      "cps": { "limit": 123, "used": 64 },
+      "vcpu": { "limit": 320, "used": 173 },
+      "memoryGb": { "limit": 640, "used": 331 }
+    },
+    "noisy_neighbor": ["tn_initech"]
+  }
+}
