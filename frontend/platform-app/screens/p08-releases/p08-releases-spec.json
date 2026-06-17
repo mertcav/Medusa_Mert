@@ -1,0 +1,63 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.2.8",
+  "screen": "P-08",
+  "title": "Sürüm & Dağıtım (Release) Yönetimi",
+  "plane": "platform_control_plane",
+  "tier": "L0",
+  "source": ["BRD §17.3", "BRD §17.6 (RBAC)", "BRD §17.7 (altın kural)", "FR-AGT-005", "FR-AGT-006", "FR-IAM-008", "NFR 10.7 (bölgesel dağıtım)", "SAD §14.4.1", "WBS 20.3 (feature flag + kademeli yayma)", "ADR-002"],
+  "rbac": {
+    "platform_owner": "manage",
+    "platform_sre": "edit",
+    "platform_billing": "none",
+    "permission_keys": ["release:read", "release:deploy", "release:rollback", "featureflag:manage"],
+    "note": "BRD §17.6: P-08 platform_owner=Yönet + platform_sre=Düzenle + platform_billing=erişim yok. UI yalnız görsel kapı; nihai yetki + dağıtım/kademeli yayma/rollback/flag zorlaması backend'de (12.2.x). Rol→permission kararı bu katmanda YOK (A8)."
+  },
+  "content_brd_17_3": [
+    "platform versiyonlama",
+    "feature flag",
+    "kademeli yayma (canary/staged rollout)"
+  ],
+  "fr_coverage": {
+    "FR-AGT-005": "draft/test/staging/production yaşam döngüsü (platform ölçeğinde) → release.stage + countByStage() + canaryRisks()",
+    "FR-AGT-006": "tek-işlem rollback (önceki sürüme dönüş) → release.stage=rolled_back + deployment_type.rollback + failedDeployments()",
+    "FR-IAM-008": "panel-katman rol ayrımı / altın kural → assertNoPii + tenant iş içeriği yok (enabledTenants toplulaştırılmış SAYI)",
+    "NFR-10.7": "bölgesel dağıtım → release.region (global|UK|EU|NA|ME)"
+  },
+  "invariants": {
+    "S1": "P-08 ekran sayfası mevcut + data-screen=\"P-08\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/platform/releases) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.p08.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK iş-içeriği/son-müşteri PII taşımaz (FORBIDDEN_PII_KEYS) + assertNoPii çağrılır (ALTIN KURAL, BRD §17.7). enabledTenants TOPLULAŞTIRILMIŞ SAYI (izinli); tenant listesi/kimliği değil.",
+    "S5": "BRD §17.3 içerik öğeleri (versiyonlama + feature flag + kademeli yayma) i18n anahtarlarıyla karşılanır; FR-AGT-005/006 izlenir.",
+    "S6": "screen.p08.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (releaseStageTone/releaseHealthTone/rolloutStrategyTone/flagStatusTone/deploymentOutcomeTone/deploymentTypeTone/countByStage/activeFlagCount/failingReleases/canaryRisks/failedDeployments/rollbackEvents/flagConfigGaps/percentageRollouts) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002): veri seam SOMUT sağlayıcı/CI-CD/marka bağlamaz (bileşen adları nötr); sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "manage_only_note", "backend_authz_note", "as_of", "deploy_action", "pct_value",
+    "health_ok", "health_alert", "canary_ok", "canary_alert", "deploy_ok", "deploy_alert", "flags_ok", "flags_alert",
+    "no_releases", "no_flags", "no_events",
+    "releases_caption", "flags_caption", "flags_note", "events_caption",
+    "section.releases", "section.flags", "section.events",
+    "kpi.releases", "kpi.in_production", "kpi.canaries", "kpi.active_flags", "kpi.failing", "kpi.failed_deploys",
+    "actor_role.platform_owner", "actor_role.platform_sre", "actor_role.platform_billing",
+    "release_stage.draft", "release_stage.staging", "release_stage.canary", "release_stage.production", "release_stage.rolled_back",
+    "release_health.healthy", "release_health.degraded", "release_health.failing",
+    "rollout_strategy.disabled", "rollout_strategy.internal", "rollout_strategy.percentage", "rollout_strategy.full",
+    "flag_status.active", "flag_status.inactive", "flag_status.archived",
+    "deployment_type.promote", "deployment_type.rollback", "deployment_type.flag_change", "deployment_type.canary_pause",
+    "deployment_outcome.success", "deployment_outcome.in_progress", "deployment_outcome.failed",
+    "col.version", "col.component", "col.stage", "col.rollout", "col.health", "col.region", "col.created",
+    "col.flag", "col.status", "col.strategy", "col.enabled_tenants", "col.updated",
+    "col.time", "col.event_type", "col.actor", "col.target", "col.outcome", "col.requirement"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "pct_value": ["pct"],
+    "health_alert": ["count"],
+    "canary_alert": ["count"],
+    "deploy_alert": ["count"],
+    "flags_alert": ["count"]
+  }
+}

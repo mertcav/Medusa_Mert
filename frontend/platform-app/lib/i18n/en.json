@@ -646,6 +646,102 @@
         "severity": "Severity",
         "requirement": "Requirement"
       }
+    },
+    "p08": {
+      "title": "Release & Deployment Management",
+      "subtitle": "Platform component versioning, feature flags and gradual rollout (canary/staged rollout) — not tenant business content, only platform release/deployment metadata.",
+      "manage_only_note": "This screen is managed by platform_owner; platform_sre can edit, platform_billing has no access. Only platform-wide release/deployment/feature-flag metadata is shown; tenant business content (call recordings, transcripts, end-customer data) is not displayed.",
+      "backend_authz_note": "Deployment, gradual rollout and rollback actions are visual gates only; final authority and enforcement happen in the backend (release:deploy / release:rollback / featureflag:manage). All deployment/rollback operations are audited (P-07).",
+      "as_of": "As of: {time}",
+      "deploy_action": "Plan Deployment",
+      "pct_value": "{pct}%",
+      "health_ok": "All production and canary releases are healthy — no failing deployment.",
+      "health_alert": "{count} production/canary release(s) are failing — deployment health risk (FR-AGT-006).",
+      "canary_ok": "All canary releases are healthy — gradual rollout can be advanced safely.",
+      "canary_alert": "{count} canary release(s) could not be validated (degraded/failing) — review before advancing the gradual rollout (FR-AGT-005).",
+      "deploy_ok": "No failed deployment events.",
+      "deploy_alert": "{count} deployment event(s) failed — a rollback may be required (FR-AGT-006).",
+      "flags_ok": "All feature flags are consistently configured — no strategy/percentage mismatch.",
+      "flags_alert": "{count} feature flag(s) misconfigured — percentage strategy but rollout percentage at an extreme (0/100).",
+      "no_releases": "No releases",
+      "no_flags": "No feature flags",
+      "no_events": "No deployment events",
+      "releases_caption": "Platform releases: version, component, stage (draft/staging/canary/production), rollout percentage, health, region and creation (FR-AGT-005/006)",
+      "flags_caption": "Feature flags: key, status, rollout strategy, rollout percentage, enabled tenant count and update",
+      "flags_note": "Feature flags control gradual rollout (percentage / internal / full); only the enabled tenant COUNT is shown, not the tenant list/identity (golden rule, BRD §17.7).",
+      "events_caption": "Deployment events: time, type (promote/rollback/flag change/canary pause), actor role, target and outcome",
+      "section": {
+        "releases": "Platform Releases",
+        "flags": "Feature Flags",
+        "events": "Deployment Events"
+      },
+      "kpi": {
+        "releases": "Total releases",
+        "in_production": "In production",
+        "canaries": "Active canaries",
+        "active_flags": "Active feature flags",
+        "failing": "Failing releases",
+        "failed_deploys": "Failed deployments"
+      },
+      "actor_role": {
+        "platform_owner": "Platform owner",
+        "platform_sre": "Platform SRE",
+        "platform_billing": "Platform billing"
+      },
+      "release_stage": {
+        "draft": "Draft",
+        "staging": "Staging",
+        "canary": "Canary",
+        "production": "Production",
+        "rolled_back": "Rolled back"
+      },
+      "release_health": {
+        "healthy": "Healthy",
+        "degraded": "Degraded",
+        "failing": "Failing"
+      },
+      "rollout_strategy": {
+        "disabled": "Disabled",
+        "internal": "Internal",
+        "percentage": "Percentage",
+        "full": "Full"
+      },
+      "flag_status": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "archived": "Archived"
+      },
+      "deployment_type": {
+        "promote": "Promote",
+        "rollback": "Rollback",
+        "flag_change": "Flag change",
+        "canary_pause": "Canary pause"
+      },
+      "deployment_outcome": {
+        "success": "Success",
+        "in_progress": "In progress",
+        "failed": "Failed"
+      },
+      "col": {
+        "version": "Version",
+        "component": "Component",
+        "stage": "Stage",
+        "rollout": "Rollout",
+        "health": "Health",
+        "region": "Region",
+        "created": "Created",
+        "flag": "Flag key",
+        "status": "Status",
+        "strategy": "Strategy",
+        "enabled_tenants": "Enabled tenants",
+        "updated": "Updated",
+        "time": "Time",
+        "event_type": "Event type",
+        "actor": "Actor",
+        "target": "Target",
+        "outcome": "Outcome",
+        "requirement": "Requirement"
+      }
     }
   }
 }

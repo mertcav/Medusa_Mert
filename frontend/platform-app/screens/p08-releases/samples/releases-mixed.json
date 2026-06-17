@@ -1,0 +1,36 @@
+{
+  "$comment": "İllüstratif P-08 snapshot — DEGRADE durum: r-3 production sağlığı failing (FR-AGT-006 dağıtım sağlık riski); r-2 canary degraded (FR-AGT-005 kademeli yayma doğrulanamadı, ilerletme riski); f-3 percentage stratejisi ama rolloutPct=0 (strateji/yüzde tutarsızlığı); e-4 promote dağıtımı failed (rollback gerekebilir). ALTIN KURAL: yalnız platform-geneli sürüm/dağıtım/flag metadatası (iş-içeriği/son-müşteri PII YOK); enabledTenants toplulaştırılmış SAYIDIR. Bileşen adları vendor-nötr (ADR-002).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "releases": [
+    { "id": "r-1", "version": "2.4.0", "component": "voice-runtime", "stage": "production", "rolloutPct": 100, "health": "healthy", "region": "global", "createdAt": "2026-06-10T10:00:00.000Z", "mappedFr": "FR-AGT-005" },
+    { "id": "r-2", "version": "2.5.0-rc1", "component": "orchestrator", "stage": "canary", "rolloutPct": 10, "health": "degraded", "region": "EU", "createdAt": "2026-06-16T14:00:00.000Z", "mappedFr": "FR-AGT-005" },
+    { "id": "r-3", "version": "2.4.1", "component": "policy-engine", "stage": "production", "rolloutPct": 100, "health": "failing", "region": "NA", "createdAt": "2026-06-13T09:00:00.000Z", "mappedFr": "FR-AGT-006" },
+    { "id": "r-4", "version": "2.5.0-rc1", "component": "control-plane", "stage": "staging", "rolloutPct": 0, "health": "healthy", "region": "global", "createdAt": "2026-06-15T09:00:00.000Z", "mappedFr": "FR-AGT-005" },
+    { "id": "r-5", "version": "2.3.8", "component": "media-gateway", "stage": "rolled_back", "rolloutPct": 0, "health": "healthy", "region": "UK", "createdAt": "2026-06-12T11:00:00.000Z", "mappedFr": "FR-AGT-006" },
+    { "id": "r-6", "version": "2.6.0-dev", "component": "voice-runtime", "stage": "draft", "rolloutPct": 0, "health": "healthy", "region": "global", "createdAt": "2026-06-17T08:00:00.000Z", "mappedFr": "FR-AGT-005" }
+  ],
+  "flags": [
+    { "id": "f-1", "key": "barge_in_v2", "status": "active", "strategy": "percentage", "rolloutPct": 25, "enabledTenants": 12, "updatedAt": "2026-06-16T15:00:00.000Z", "mappedFr": "FR-AGT-005" },
+    { "id": "f-2", "key": "semantic_cache", "status": "active", "strategy": "full", "rolloutPct": 100, "enabledTenants": 40, "updatedAt": "2026-06-11T09:00:00.000Z", "mappedFr": "FR-AGT-005" },
+    { "id": "f-3", "key": "new_billing_export", "status": "active", "strategy": "percentage", "rolloutPct": 0, "enabledTenants": 0, "updatedAt": "2026-06-17T07:00:00.000Z", "mappedFr": "FR-AGT-005" },
+    { "id": "f-4", "key": "legacy_flow", "status": "inactive", "strategy": "disabled", "rolloutPct": 0, "enabledTenants": 0, "updatedAt": "2026-06-09T09:00:00.000Z", "mappedFr": "FR-AGT-005" },
+    { "id": "f-5", "key": "region_routing", "status": "active", "strategy": "internal", "rolloutPct": 0, "enabledTenants": 3, "updatedAt": "2026-06-14T12:00:00.000Z", "mappedFr": "FR-AGT-005" }
+  ],
+  "events": [
+    { "id": "e-1", "occurredAt": "2026-06-16T14:05:00.000Z", "type": "promote", "actorRole": "platform_owner", "target": "2.5.0-rc1", "outcome": "success", "mappedFr": "FR-AGT-005" },
+    { "id": "e-2", "occurredAt": "2026-06-12T11:10:00.000Z", "type": "rollback", "actorRole": "platform_owner", "target": "2.3.8", "outcome": "success", "mappedFr": "FR-AGT-006" },
+    { "id": "e-3", "occurredAt": "2026-06-16T15:00:00.000Z", "type": "flag_change", "actorRole": "platform_sre", "target": "barge_in_v2", "outcome": "success", "mappedFr": "FR-AGT-005" },
+    { "id": "e-4", "occurredAt": "2026-06-13T09:05:00.000Z", "type": "promote", "actorRole": "platform_sre", "target": "2.4.1", "outcome": "failed", "mappedFr": "FR-AGT-006" },
+    { "id": "e-5", "occurredAt": "2026-06-17T08:30:00.000Z", "type": "canary_pause", "actorRole": "platform_sre", "target": "2.5.0-rc1", "outcome": "in_progress", "mappedFr": "FR-AGT-005" }
+  ],
+  "$expect": {
+    "count_by_stage": { "draft": 1, "staging": 1, "canary": 1, "production": 2, "rolled_back": 1 },
+    "active_flags": 4,
+    "failing_releases": ["r-3"],
+    "canary_risks": ["r-2"],
+    "failed_deployments": ["e-4"],
+    "rollback_events": ["e-2"],
+    "flag_config_gaps": ["f-3"],
+    "percentage_rollouts": ["f-1", "f-3"]
+  }
+}

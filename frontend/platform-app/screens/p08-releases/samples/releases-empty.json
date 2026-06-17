@@ -1,0 +1,17 @@
+{
+  "$comment": "İllüstratif P-08 snapshot — hiç sürüm/feature flag/dağıtım olayı yok (boş durum). Üç tablo da EmptyState render eder; sağlık/canary/dağıtım/flag boşluğu yok (kayıt yok).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "releases": [],
+  "flags": [],
+  "events": [],
+  "$expect": {
+    "count_by_stage": { "draft": 0, "staging": 0, "canary": 0, "production": 0, "rolled_back": 0 },
+    "active_flags": 0,
+    "failing_releases": [],
+    "canary_risks": [],
+    "failed_deployments": [],
+    "rollback_events": [],
+    "flag_config_gaps": [],
+    "percentage_rollouts": []
+  }
+}

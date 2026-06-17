@@ -646,6 +646,102 @@
         "severity": "Önem",
         "requirement": "Gereksinim"
       }
+    },
+    "p08": {
+      "title": "Sürüm & Dağıtım (Release) Yönetimi",
+      "subtitle": "Platform bileşen versiyonlama, feature flag ve kademeli yayma (canary/staged rollout) — tenant iş içeriği değil, yalnız platform sürüm/dağıtım metadatası.",
+      "manage_only_note": "Bu ekran platform_owner tarafından yönetilir; platform_sre düzenleyebilir, platform_billing erişemez. Yalnız platform-geneli sürüm/dağıtım/feature-flag metadatası gösterilir; tenant iş içeriği (çağrı kaydı, transkript, son-müşteri verisi) görüntülenmez.",
+      "backend_authz_note": "Dağıtım, kademeli yayma ve rollback aksiyonları yalnız görsel kapıdır; nihai yetki ve zorlama backend'de yapılır (release:deploy / release:rollback / featureflag:manage). Tüm dağıtım/rollback işlemleri audit edilir (P-07).",
+      "as_of": "Veri zamanı: {time}",
+      "deploy_action": "Dağıtım Planla",
+      "pct_value": "%{pct}",
+      "health_ok": "Production ve canary sürümlerinin tümü sağlıklı — başarısız (failing) dağıtım yok.",
+      "health_alert": "{count} production/canary sürümü başarısız (failing) durumda — dağıtım sağlık riski (FR-AGT-006).",
+      "canary_ok": "Tüm canary sürümleri sağlıklı — kademeli yayma güvenle ilerletilebilir.",
+      "canary_alert": "{count} canary sürümü doğrulanamadı (degraded/failing) — kademeli yaymayı ilerletmeden önce inceleyin (FR-AGT-005).",
+      "deploy_ok": "Başarısız dağıtım olayı yok.",
+      "deploy_alert": "{count} dağıtım olayı başarısız — rollback gerekebilir (FR-AGT-006).",
+      "flags_ok": "Tüm feature flag'ler tutarlı yapılandırılmış — strateji/yüzde uyumsuzluğu yok.",
+      "flags_alert": "{count} feature flag yanlış yapılandırılmış — yüzde stratejisi ama yayma yüzdesi uçta (0/100).",
+      "no_releases": "Sürüm yok",
+      "no_flags": "Feature flag yok",
+      "no_events": "Dağıtım olayı yok",
+      "releases_caption": "Platform sürümleri: versiyon, bileşen, aşama (draft/staging/canary/production), kademeli yayma yüzdesi, sağlık, bölge ve oluşturma (FR-AGT-005/006)",
+      "flags_caption": "Feature flag'ler: anahtar, durum, yayma stratejisi, kademeli yayma yüzdesi, etkin tenant sayısı ve güncelleme",
+      "flags_note": "Feature flag'ler kademeli yaymayı (yüzde / dahili / tam) kontrol eder; yalnız etkin tenant SAYISI gösterilir, tenant listesi/kimliği değil (altın kural, BRD §17.7).",
+      "events_caption": "Dağıtım olayları: zaman, tip (promote/rollback/flag değişikliği/canary durdurma), aktör rolü, hedef ve sonuç",
+      "section": {
+        "releases": "Platform Sürümleri",
+        "flags": "Feature Flag'ler",
+        "events": "Dağıtım Olayları"
+      },
+      "kpi": {
+        "releases": "Toplam sürüm",
+        "in_production": "Production'da",
+        "canaries": "Aktif canary",
+        "active_flags": "Aktif feature flag",
+        "failing": "Başarısız sürüm",
+        "failed_deploys": "Başarısız dağıtım"
+      },
+      "actor_role": {
+        "platform_owner": "Platform sahibi",
+        "platform_sre": "Platform SRE",
+        "platform_billing": "Platform faturalandırma"
+      },
+      "release_stage": {
+        "draft": "Taslak",
+        "staging": "Staging",
+        "canary": "Canary",
+        "production": "Production",
+        "rolled_back": "Geri alındı"
+      },
+      "release_health": {
+        "healthy": "Sağlıklı",
+        "degraded": "Bozulmuş",
+        "failing": "Başarısız"
+      },
+      "rollout_strategy": {
+        "disabled": "Kapalı",
+        "internal": "Dahili",
+        "percentage": "Yüzde",
+        "full": "Tam"
+      },
+      "flag_status": {
+        "active": "Aktif",
+        "inactive": "Pasif",
+        "archived": "Arşivlendi"
+      },
+      "deployment_type": {
+        "promote": "İlerletme (promote)",
+        "rollback": "Geri alma (rollback)",
+        "flag_change": "Flag değişikliği",
+        "canary_pause": "Canary durdurma"
+      },
+      "deployment_outcome": {
+        "success": "Başarılı",
+        "in_progress": "Sürüyor",
+        "failed": "Başarısız"
+      },
+      "col": {
+        "version": "Versiyon",
+        "component": "Bileşen",
+        "stage": "Aşama",
+        "rollout": "Kademeli yayma",
+        "health": "Sağlık",
+        "region": "Bölge",
+        "created": "Oluşturma",
+        "flag": "Flag anahtarı",
+        "status": "Durum",
+        "strategy": "Strateji",
+        "enabled_tenants": "Etkin tenant",
+        "updated": "Güncelleme",
+        "time": "Zaman",
+        "event_type": "Olay tipi",
+        "actor": "Aktör",
+        "target": "Hedef",
+        "outcome": "Sonuç",
+        "requirement": "Gereksinim"
+      }
     }
   }
 }
