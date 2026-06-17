@@ -1,0 +1,9 @@
+{
+  "$comment": "PASS — locale müzakere önceliği: ?lang=en, çerez tr olsa bile query kazanır.",
+  "scenario_id": "locale-query-precedence",
+  "kind": "locale",
+  "query": "en",
+  "cookie": "tr",
+  "accept_language": "tr-TR,tr;q=0.9",
+  "expect_locale": "en"
+}

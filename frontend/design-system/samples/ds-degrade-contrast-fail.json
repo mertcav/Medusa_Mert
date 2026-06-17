@@ -1,0 +1,9 @@
+{
+  "$comment": "DEGRADE — açık gri (#9AA7B8) beyaz üstüne metin: oran ~2.44 < 4.5 → WCAG AA metin ELER.",
+  "scenario_id": "contrast-fail-light-gray",
+  "kind": "contrast",
+  "fg": "#9AA7B8",
+  "bg": "#FFFFFF",
+  "min": 4.5,
+  "expect_pass": false
+}

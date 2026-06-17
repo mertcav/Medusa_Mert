@@ -1,0 +1,150 @@
+{
+  "$comment": "WBS 13.1.3 — TASARIM SİSTEMİ / KOMPONENT KÜTÜPHANESİ + i18n (TR/EN). 13.1 'Ortak frontend altyapısı' alt-bloğunun ÜÇÜNCÜ modülü; F1-Must. 13.1.1 iki ayrı app + route group İSKELETİNİ, 13.1.2 çalışma-anı middleware KAPISINI kurdu; bu modül her iki app'e ORTAK bir tasarım sistemi (RMC design token + erişilebilir komponent kütüphanesi) + i18n (TR/EN) katmanı SAHİPLENİR. TEK kaynak doğruluk: config/design-tokens.json + i18n/{tr,en}.json; her app bunların BİREBİR kopyasını lib/ui + lib/i18n altında vendor eder, probe canonical-hash ile drift'i FAIL eder (ADR-011 blast-radius: çekirdek runtime cross-app import YOK — A7; tasarım sistemi presentasyonel/güvenlik-dışı, senkron probe ile garanti). ÇEKİRDEK İLKE (A8 / SAD §14.4.1): komponentler PRESENTASYONEL + locale-AGNOSTİK (i18n import etmez; metin prop ile gelir → hardcoded TR/EN cümle yok), iş mantığı/authz YOK; yerelleştirme yalnız çağrı yerinde t() ile. WCAG 2.1 kontrast oranları DETERMİNİSTİK hesaplanır (metin ≥4.5 / UI ≥3.0). Bu modül STATİK (on-disk canonical+vendored invariant) + DAVRANIŞSAL (saf çekirdek negotiateLocale+t + kontrast + parity senaryoları) kapı. KAYNAK DOĞRULUK; çelişkide SAD §14.4.1 / FR-TEN-004 / WCAG 2.1 esastır.",
+  "version": "1.0",
+  "wbs": "13.1.3",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-TEN-004", "FR-TTS-004", "FR-TST-008"],
+    "srs": ["SR-TEN-004"],
+    "rtm": ["TC-TEN-004"],
+    "brd": [
+      "§16 (residency bölgeleri UK/EU/NA/ME — region katalog etiketleri; tenant dil/bölge tercihi)",
+      "§17 (üç katmanlı panel — L0/L1/L2 nav etiketleri P-01..P-09 / T-01..T-09 / A-01..A-17)",
+      "§17.7 (UI yalnız görsel kapı; PII metin/etiket'te yok)"
+    ],
+    "sad": [
+      "§14.4.1 (Frontend — Next.js App Router; her route group kendi layout; UI yalnız görsel kapı)",
+      "§13.3 (correlation/tenant context — komponent değil, çağrı yeri tüketir)"
+    ],
+    "adr": [
+      "ADR-002 (vendor-neutral — i18n SaaS/kütüphane bağlanmaz; Intl stdlib; renk/marka RMC accent1 #1F4E79)",
+      "ADR-011 (İki düzlemli panel dağıtımı — tasarım sistemi her app'te vendored; cross-app runtime import yok, A7)"
+    ],
+    "standards": [
+      "WCAG 2.1 AA (1.4.3 metin kontrast ≥4.5; 1.4.11 UI kontrast ≥3.0; 2.4.7 görünür focus; 1.4.1 renk tek-başına değil; 2.3.3 prefers-reduced-motion)"
+    ],
+    "consumes": [
+      "13.1.1 iki-app + route group iskeleti (frontend/platform-app + frontend/tenant-app; layout'lara bağlanır)",
+      "13.1.2 route-group middleware (locale context çağrı yerinde okunur; bağımsız)",
+      "config/design-tokens.json (frozen — RMC token kümesi + contrast_pairs + locales)",
+      "i18n/{tr,en}.json (frozen canonical katalog — TR varsayılan)"
+    ],
+    "consumed_by": [
+      "13.1.4 PII redaction/maskeleme (komponent + i18n etiketleri üstüne maskeleme; bağımsız)",
+      "13.2.x/13.3.x/13.4.x ekran implementasyonları (PageHeader/Card/Table/StatusPill/Field + t() ile yerelleştirme)",
+      "12.4.4 tenant dil/bölge tercihi (RESİPROKAL — backend tenant tercihi → panel locale; negotiateLocale çerez/tercihten beslenir)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "Tasarım sistemi + i18n, panel frontend'inin ORTAK SUNUM katmanıdır — 13.1.1 (app/route iskeleti) + 13.1.2 (middleware) ÜSTÜNE görsel dil + çok-dillilik ekler. Güvenlik-dışı/presentasyonel: authz YOK (A8). Saf i18n çekirdeği (negotiateLocale/t) deterministik → Python aynası test edilebilir.",
+    "plane": "frontend sunum katmanı (design token + komponent + i18n; runtime authz'dan BAĞIMSIZ)",
+    "owns": "(1) RMC DESIGN TOKEN kümesi (renk/tipografi/ölçü/yarıçap/gölge/z-index/breakpoint; CSS değişkeni var(--rmc-*)) + (2) ERİŞİLEBİLİR komponent kütüphanesi (Button/StatusPill/Card/PageHeader/Alert/Field/Table/Spinner/EmptyState/SkipLink/VisuallyHidden/LangSwitcher — presentasyonel, locale-agnostik, WCAG) + (3) i18n (TR/EN katalog + negotiateLocale + t() interpolasyon + Intl tarih/sayı/para) + (4) html lang/dir + skip-link a11y bağlama + (5) canonical→vendored parity (token+katalog hash) + (6) WCAG kontrast kapısı + (7) sır/PII yok + vendor-neutral",
+    "delegates": "rol→permission + kaynak sahipliği → 12.2.x backend; oturum/tenant scope/realm ayrımı → 13.1.2 middleware; PII maskeleme → 13.1.4; ekran içi içerik/iş mantığı → 13.2/13.3/13.4; client interaktivite (form submit, canlı switch route, çerez-kalıcılaştırma) → 13.2+ client island'lar; gerçek AR katalogu + RTL stilleri → F2+ (mimari rtl_ready bırakıldı)",
+    "deterministic": true,
+    "fail_closed": true,
+    "decision_at": "build/validate-time (canonical+vendored statik) + request-time (negotiateLocale/t saf çekirdek)",
+    "trace": "SAD §14.4.1, FR-TEN-004, WCAG 2.1, ADR-002/ADR-011"
+  },
+
+  "source_of_truth": {
+    "$comment": "TEK kaynak doğruluk dosyaları. Her app bunların BİREBİR kopyasını vendor eder; probe canonical-hash ile eşitliği zorlar. Hiç sır/PII yok.",
+    "tokens": "config/design-tokens.json",
+    "i18n_tr": "i18n/tr.json",
+    "i18n_en": "i18n/en.json"
+  },
+
+  "behavior_contract": {
+    "$comment": "Saf i18n çekirdeği sözleşmesi (lib/i18n/index.ts). Python aynası birebir aynı semantiği uygular.",
+    "negotiate": "negotiateLocale{query?, cookie?, acceptLanguage?} → Locale  (öncelik: query > çerez > Accept-Language > default=tr)",
+    "translate": "t(catalog, 'a.b.c', params?) → string  (dotted path; {placeholder} interpolasyon; eksik anahtar → anahtarın kendisi)",
+    "format": "formatDate/formatNumber/formatCurrency(locale, …) → Intl ile locale-duyarlı (tr-TR / en-GB)",
+    "dir": "dir(locale) → 'ltr'|'rtl'  (TR/EN ltr; harita RTL-hazır)",
+    "supported": ["tr", "en"],
+    "default": "tr"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ tasarım sistemi + i18n kapısı. Hem STATİK (on-disk canonical+vendored invariant) hem DAVRANIŞSAL (saf çekirdek + kontrast + parity). Her kural bir D-invariant'a eşlenir.",
+    "list": [
+      {"id": "files_canonical", "invariant": "D1", "outcome": "PASS|FAIL",
+       "rule": "canonical tokens (frozen, wbs=13.1.3) + i18n/{tr,en}.json + spec mevcut; her app lib/ui/{design-tokens.json,components.tsx,tokens.ts} + lib/i18n/{index.ts,server.ts,tr.json,en.json} + app/globals.css taşır. Eksik → FAIL."},
+      {"id": "token_parity", "invariant": "D2", "outcome": "PASS|FAIL",
+       "rule": "her app lib/ui/design-tokens.json canonical-hash = config/design-tokens.json hash. Drift → FAIL (tek kaynak doğruluk)."},
+      {"id": "i18n_parity", "invariant": "D3", "outcome": "PASS|FAIL",
+       "rule": "her app lib/i18n/{tr,en}.json canonical-hash = i18n/{tr,en}.json hash. Drift → FAIL."},
+      {"id": "keyset_parity", "invariant": "D4", "outcome": "PASS|FAIL",
+       "rule": "TR ve EN katalog BİREBİR aynı string-yaprak anahtar kümesi (eksik/fazla anahtar yok) — canonical + her app. missing_key=0."},
+      {"id": "placeholder_and_empty", "invariant": "D5", "outcome": "PASS|FAIL",
+       "rule": "her ortak anahtar için TR ve EN aynı {placeholder} kümesini taşır + hiçbir değer boş değildir (untranslated). placeholder_mismatch=0, empty_value=0."},
+      {"id": "wcag_contrast", "invariant": "D6", "outcome": "PASS|FAIL",
+       "rule": "contrast_pairs'taki her çift WCAG 2.1 eşiğini karşılar (metin ≥4.5, UI ≥3.0); oran sRGB→lineer→bağıl-parlaklık ile DETERMİNİSTİK hesaplanır. ≥12 çift tanımlı. contrast_fail=0."},
+      {"id": "a11y_base", "invariant": "D7", "outcome": "PASS|FAIL",
+       "rule": "globals.css :focus-visible (2.4.7) + .rmc-visually-hidden + .rmc-skip-link + prefers-reduced-motion (2.3.3); components.tsx SkipLink+VisuallyHidden + status/alert role + aria-label desteği. Eksik → FAIL."},
+      {"id": "locale_agnostic_components", "invariant": "D8", "outcome": "PASS|FAIL",
+       "rule": "komponentler i18n import ETMEZ (locale-agnostik; metin prop ile → hardcoded TR/EN cümle yok); layout'lar t() KULLANIR (i18n dead-code değil, gerçekten bağlı). frontend_hardcoded_string=0."},
+      {"id": "html_lang_dir", "invariant": "D9", "outcome": "PASS|FAIL",
+       "rule": "her app root layout <html lang={locale} dir={dir(locale)}> (sunucu müzakeresi) + globals.css import + SkipLink bağlı. Eksik → FAIL."},
+      {"id": "negotiation_contract", "invariant": "D10", "outcome": "PASS|FAIL",
+       "rule": "lib/i18n/index.ts negotiateLocale + DEFAULT_LOCALE=tr + SUPPORTED [tr,en] + Intl formatDate/Number/Currency + dir(ltr|rtl). Eksik → FAIL."},
+      {"id": "globals_token_consistency", "invariant": "D11", "outcome": "PASS|FAIL",
+       "rule": "globals.css brand primary (#1F4E79) + temel token değişkenleri (--rmc-brand-primary/space-4/radius-md) canonical token ile hizalı. Sapma → FAIL."},
+      {"id": "no_secret_vendor_neutral", "invariant": "D12", "outcome": "PASS|FAIL",
+       "rule": "kaynak/spec/config ham PII/credential DEĞERİ tutmaz; belirli i18n SaaS/kütüphane (i18next/react-intl/next-intl/...) bağlanmaz (Intl stdlib; ADR-002). secret_or_pii=0, vendor_lock=0."}
+    ],
+    "evaluation": "files_then_token_parity_then_i18n_parity_then_keyset_then_placeholder_empty_then_contrast_then_a11y_then_locale_agnostic_then_html_lang_then_negotiation_then_globals_consistency_then_no_secret",
+    "trace": "SAD §14.4.1, FR-TEN-004, WCAG 2.1"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed tasarım sistemi + i18n doğrulama algoritması. Statik: canonical+vendored dosyalar okunabilir + hash eşit + kontrast geçer + a11y temelleri + globals tutarlı. Davranışsal: saf çekirdek (negotiateLocale/t) + kontrast + parity senaryoları doğru. Belirsizlik/eksik → FAIL.",
+    "algorithm": "dosya okunamaz ⇒ FAIL → token/katalog hash drift ⇒ FAIL → TR↔EN key/placeholder/boş ihlali ⇒ FAIL → kontrast çifti eler ⇒ FAIL → a11y temeli eksik ⇒ FAIL → komponent i18n import eder / layout t() kullanmaz ⇒ FAIL → html lang/dir eksik ⇒ FAIL → müzakere sözleşmesi eksik ⇒ FAIL → globals↔token sapma ⇒ FAIL → sır/PII/vendor-lock ⇒ FAIL",
+    "default": "FAIL",
+    "fail_safe_terminal": "PASS yalnız tüm D1–D12 kapıları 0-ihlal geçerse; aksi halde FAIL",
+    "trace": "SR-TEN-004, SAD §14.4.1, WCAG 2.1"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. Eşikler MÜHENDİSLİK varsayılanı; gerçek deploy F1 canlı CI'da (next build + axe/lighthouse a11y + e2e i18n).",
+    "max_token_drift": 0,
+    "max_i18n_drift": 0,
+    "max_missing_key": 0,
+    "max_placeholder_mismatch": 0,
+    "max_empty_value": 0,
+    "max_contrast_fail": 0,
+    "min_contrast_pairs": 12,
+    "max_a11y_missing": 0,
+    "max_frontend_hardcoded_string": 0,
+    "max_secret_or_pii": 0,
+    "max_vendor_lock": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "Panel locale seçimi düşük-kardinalite metrik (0.4.7): frontend_locale_active_total{app,locale} → aktif dil dağılımı (locale ∈ {tr,en} düşük kardinalite). PII metrik/log'ta YOK (BRD §17.7). Tema/renk sabit (token).",
+    "metrics": ["frontend_locale_active_total"],
+    "low_cardinality_labels": ["app", "locale"],
+    "high_cardinality_trace_only": ["tenant_id", "correlation_id"]
+  },
+
+  "invariants": [
+    {"id": "D1", "desc": "Dosya/canonical varlığı: frozen canonical tokens + i18n/{tr,en} + spec; her app vendored kopya + komponent + i18n çekirdeği + globals.css. files_missing=0.", "trace": "SAD §14.4.1"},
+    {"id": "D2", "desc": "Token parity: app lib/ui/design-tokens.json = canonical hash. token_drift=0.", "trace": "ADR-011, ADR-002"},
+    {"id": "D3", "desc": "i18n katalog parity: app lib/i18n/{tr,en}.json = canonical hash. i18n_drift=0.", "trace": "FR-TEN-004"},
+    {"id": "D4", "desc": "Key-set parity: TR↔EN birebir aynı yaprak anahtarlar (canonical+app). missing_key=0.", "trace": "FR-TEN-004"},
+    {"id": "D5", "desc": "Placeholder + boş: TR↔EN aynı {placeholder}; değer boş değil (untranslated). placeholder_mismatch=0, empty_value=0.", "trace": "FR-TEN-004"},
+    {"id": "D6", "desc": "WCAG kontrast: contrast_pairs DETERMİNİSTİK hesapla, metin ≥4.5 / UI ≥3.0; ≥12 çift. contrast_fail=0.", "trace": "WCAG 2.1 1.4.3/1.4.11"},
+    {"id": "D7", "desc": "A11y temelleri: focus-visible (2.4.7) + skip-link + visually-hidden + reduced-motion (2.3.3); status/alert role; aria-label. a11y_missing=0.", "trace": "WCAG 2.1"},
+    {"id": "D8", "desc": "Locale-agnostik komponent: components i18n import etmez (hardcoded TR/EN cümle yok); layout'lar t() kullanır (dead-code değil). frontend_hardcoded_string=0.", "trace": "SAD §14.4.1, FR-TEN-004"},
+    {"id": "D9", "desc": "HTML lang/dir: root layout <html lang/dir> müzakereyle + globals import + SkipLink. html_lang_missing=0.", "trace": "WCAG 3.1.1, SAD §14.4.1"},
+    {"id": "D10", "desc": "Müzakere sözleşmesi: negotiateLocale + DEFAULT=tr + SUPPORTED[tr,en] + Intl format + dir(ltr|rtl). contract_missing=0.", "trace": "FR-TEN-004, FR-TTS-004"},
+    {"id": "D11", "desc": "globals↔token tutarlılık: globals.css brand primary + temel değişkenler canonical ile hizalı. globals_drift=0.", "trace": "ADR-002 (RMC accent1 #1F4E79)"},
+    {"id": "D12", "desc": "Sır/PII yok + vendor-neutral: ham PII/credential DEĞERİ yok; i18n SaaS/kütüphane bağlanmaz (Intl stdlib). secret_or_pii=0, vendor_lock=0.", "trace": "BRD §17.7, ADR-002"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/kaynak HAM içerik, PII (transcript/recording/contact/telefon/kart/OTP/parola/müşteri ADI DEĞERİ) veya credential (token/parola/anahtar DEĞERİ) TUTMAZ — yalnız RENK/ÖLÇÜ/TİPOGRAFİ SABİTLERİ + UI ETİKETLERİ (TR/EN) + ENUM + HASH. Çerez ADI (rmc_lang) sır değildir.",
+    "forbids": ["transcript_value", "recording_audio_value", "contact_pii_value", "customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "api_key_value", "connection_string_value", "session_token_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "$comment": "DEGRADE — EN değer boş (untranslated) → empty_value ihlali.",
+  "scenario_id": "parity-empty",
+  "kind": "parity",
+  "tr": {"status": {"active": "Aktif"}},
+  "en": {"status": {"active": ""}},
+  "expect_ok": false,
+  "expect_violation": "empty_value"
+}

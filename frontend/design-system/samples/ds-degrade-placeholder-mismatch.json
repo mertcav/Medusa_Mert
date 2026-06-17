@@ -1,0 +1,9 @@
+{
+  "$comment": "DEGRADE — TR {name} ama EN {ad} → placeholder_mismatch (interpolasyon kırılır).",
+  "scenario_id": "parity-placeholder",
+  "kind": "parity",
+  "tr": {"common": {"greeting": "Merhaba {name}"}},
+  "en": {"common": {"greeting": "Hello {ad}"}},
+  "expect_ok": false,
+  "expect_violation": "placeholder_mismatch"
+}

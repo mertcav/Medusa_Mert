@@ -1,0 +1,8 @@
+{
+  "$comment": "PASS — küçük TR/EN katalog: aynı anahtar kümesi + aynı placeholder + boş yok.",
+  "scenario_id": "parity-clean",
+  "kind": "parity",
+  "tr": {"common": {"save": "Kaydet", "greeting": "Merhaba {name}"}},
+  "en": {"common": {"save": "Save", "greeting": "Hello {name}"}},
+  "expect_ok": true
+}

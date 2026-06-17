@@ -1,0 +1,9 @@
+{
+  "$comment": "PASS — EN katalog çoklu placeholder (page/total) interpolasyonu.",
+  "scenario_id": "translate-en-page-of",
+  "kind": "translate",
+  "locale": "en",
+  "key": "a11y.page_of",
+  "params": {"page": 3, "total": 8},
+  "expect_text": "Page 3 of 8"
+}

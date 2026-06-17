@@ -1,0 +1,9 @@
+{
+  "$comment": "PASS — query/çerez yok; Accept-Language'ten en seçilir.",
+  "scenario_id": "locale-accept-language",
+  "kind": "locale",
+  "query": null,
+  "cookie": null,
+  "accept_language": "en-GB,en;q=0.9,tr;q=0.5",
+  "expect_locale": "en"
+}

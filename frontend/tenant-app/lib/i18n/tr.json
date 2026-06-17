@@ -1,0 +1,90 @@
+{
+  "$locale": "tr",
+  "$comment": "WBS 13.1.3 — RMC panel i18n TR katalogu (kaynak doğruluk, varsayılan dil). en.json ile BİREBİR aynı anahtar kümesi + aynı {placeholder} kümesi taşır (probe parity kapısı). Boş değer YASAK (untranslated=FAIL). Sır/PII YOK — yalnız UI etiketleri. Her app lib/i18n/tr.json bunun birebir kopyasıdır.",
+  "app": {
+    "title_platform": "RMC Platform Konsolu",
+    "title_tenant": "RMC Tenant Konsolu",
+    "skip_to_content": "İçeriğe geç"
+  },
+  "common": {
+    "loading": "Yükleniyor…",
+    "save": "Kaydet",
+    "cancel": "Vazgeç",
+    "search": "Ara",
+    "retry": "Yeniden dene",
+    "refresh": "Yenile",
+    "empty": "Gösterilecek kayıt yok",
+    "error_generic": "Bir hata oluştu",
+    "yes": "Evet",
+    "no": "Hayır",
+    "none": "Yok",
+    "greeting": "Merhaba, {name}",
+    "result_count": "{count} sonuç"
+  },
+  "a11y": {
+    "main_nav": "Ana navigasyon",
+    "breadcrumb": "Konum izi",
+    "lang_switcher": "Dil seçimi",
+    "loading_region": "İçerik yükleniyor",
+    "required_field": "Zorunlu alan",
+    "external_link": "Yeni sekmede açılır",
+    "page_of": "Sayfa {page} / {total}"
+  },
+  "status": {
+    "active": "Aktif",
+    "paused": "Duraklatıldı",
+    "completed": "Tamamlandı",
+    "failed": "Başarısız",
+    "queued": "Sırada",
+    "draft": "Taslak"
+  },
+  "region": {
+    "uk": "Birleşik Krallık",
+    "eu": "Avrupa Birliği",
+    "na": "Kuzey Amerika",
+    "me": "Orta Doğu"
+  },
+  "nav": {
+    "platform": {
+      "overview": "Genel Bakış",
+      "tenants": "Tenant'lar",
+      "resources": "Kaynaklar / Kota",
+      "providers": "Sağlayıcılar",
+      "billing": "Faturalama",
+      "policy": "Global Politika",
+      "audit": "Denetim (metrik/log)",
+      "releases": "Sürümler",
+      "incidents": "Olaylar"
+    },
+    "tenant_admin": {
+      "dashboard": "Panel",
+      "org": "Organizasyon",
+      "users": "Kullanıcılar / Roller",
+      "numbers": "Numaralar",
+      "integrations": "Entegrasyonlar",
+      "compliance": "Uyumluluk",
+      "billing": "Faturalama",
+      "audit": "Denetim",
+      "quota": "Kota"
+    },
+    "workspace": {
+      "dashboard": "Panel",
+      "live_calls": "Canlı Çağrılar",
+      "agents": "Agent'lar",
+      "builder": "Agent Builder",
+      "flows": "Akışlar",
+      "prompts": "Prompt'lar",
+      "voice": "Ses Profilleri",
+      "kb": "Bilgi Tabanı",
+      "tools": "Araçlar",
+      "campaigns": "Kampanyalar",
+      "recordings": "Kayıtlar",
+      "call": "Çağrı Detayı",
+      "qa": "Kalite (QA)",
+      "analytics": "Analitik",
+      "cost": "Maliyet",
+      "test": "Test",
+      "versions": "Sürümler"
+    }
+  }
+}

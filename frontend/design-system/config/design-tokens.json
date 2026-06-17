@@ -1,0 +1,105 @@
+{
+  "$comment": "WBS 13.1.3 — RMC tasarım sistemi DESIGN TOKENS (kaynak doğruluk, FROZEN). 13.1 'Ortak frontend altyapısı' alt-bloğunun ÜÇÜNCÜ modülü; F1-Must. Markalı .docx hattıyla (docs/make_reference_docx.py — accent1 #1F4E79) HİZALI RMC mavisi birincil renk. Bu dosya TEK kaynak doğruluk; her app (platform-app + tenant-app) bunun BİREBİR kopyasını lib/ui/design-tokens.json olarak vendor eder; probe canonical-hash ile eşitliği zorlar (token drift = FAIL). contrast_pairs WCAG 2.1 1.4.3 (metin ≥4.5) / 1.4.11 (UI ≥3.0) eşikli; probe her çiftin oranını DETERMİNİSTİK hesaplar (sRGB→lineer→bağıl parlaklık). locales TR/EN ship; dir haritası + rtl_ready=true mimari ME (AR) için genişletilebilir bırakır ama bu dilimde yalnız TR/EN. Sır/PII/credential YOK — yalnız renk/ölçü/tipografi sabitleri.",
+  "version": "1.0",
+  "wbs": "13.1.3",
+  "frozen": true,
+  "brand": {
+    "name": "RMC Technology & Consultancy",
+    "accent_ref": "docs/assets/rmc-reference.docx accent1 #1F4E79"
+  },
+  "color": {
+    "brand_primary": "#1F4E79",
+    "brand_primary_hover": "#16385A",
+    "brand_primary_active": "#0F2942",
+    "on_brand": "#FFFFFF",
+    "surface": "#FFFFFF",
+    "surface_alt": "#F5F7FA",
+    "surface_sunken": "#EEF2F7",
+    "border_subtle": "#D5DCE5",
+    "border_strong": "#7C899B",
+    "text_primary": "#1A202C",
+    "text_muted": "#475467",
+    "text_on_accent": "#FFFFFF",
+    "focus_ring": "#1F4E79",
+    "success_fg": "#1B7340",
+    "success_bg": "#E6F4EA",
+    "warning_fg": "#8A5A00",
+    "warning_bg": "#FCF1DC",
+    "danger_fg": "#B42318",
+    "danger_bg": "#FEE4E2",
+    "info_fg": "#1F4E79",
+    "info_bg": "#E7EEF6"
+  },
+  "typography": {
+    "font_family_base": "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    "font_family_mono": "ui-monospace, 'SFMono-Regular', 'Menlo', 'Consolas', monospace",
+    "size_xs": "0.75rem",
+    "size_sm": "0.875rem",
+    "size_md": "1rem",
+    "size_lg": "1.25rem",
+    "size_xl": "1.5rem",
+    "size_2xl": "2rem",
+    "weight_regular": "400",
+    "weight_medium": "500",
+    "weight_semibold": "600",
+    "line_tight": "1.25",
+    "line_normal": "1.5"
+  },
+  "space": {
+    "space_0": "0",
+    "space_1": "0.25rem",
+    "space_2": "0.5rem",
+    "space_3": "0.75rem",
+    "space_4": "1rem",
+    "space_5": "1.5rem",
+    "space_6": "2rem",
+    "space_8": "3rem"
+  },
+  "radius": {
+    "radius_sm": "4px",
+    "radius_md": "8px",
+    "radius_lg": "12px",
+    "radius_pill": "999px"
+  },
+  "shadow": {
+    "shadow_sm": "0 1px 2px rgba(15, 41, 66, 0.08)",
+    "shadow_md": "0 4px 12px rgba(15, 41, 66, 0.12)"
+  },
+  "zindex": {
+    "z_base": "0",
+    "z_nav": "100",
+    "z_overlay": "1000",
+    "z_toast": "1100"
+  },
+  "breakpoint": {
+    "bp_sm": "640px",
+    "bp_md": "768px",
+    "bp_lg": "1024px",
+    "bp_xl": "1280px"
+  },
+  "contrast_pairs": [
+    {"id": "text_primary_on_surface", "fg": "#1A202C", "bg": "#FFFFFF", "min": 4.5, "use": "text"},
+    {"id": "text_muted_on_surface", "fg": "#475467", "bg": "#FFFFFF", "min": 4.5, "use": "text"},
+    {"id": "text_primary_on_surface_alt", "fg": "#1A202C", "bg": "#F5F7FA", "min": 4.5, "use": "text"},
+    {"id": "text_muted_on_surface_alt", "fg": "#475467", "bg": "#F5F7FA", "min": 4.5, "use": "text"},
+    {"id": "on_brand_on_primary", "fg": "#FFFFFF", "bg": "#1F4E79", "min": 4.5, "use": "text"},
+    {"id": "on_brand_on_primary_hover", "fg": "#FFFFFF", "bg": "#16385A", "min": 4.5, "use": "text"},
+    {"id": "success_on_surface", "fg": "#1B7340", "bg": "#FFFFFF", "min": 4.5, "use": "text"},
+    {"id": "success_on_success_bg", "fg": "#1B7340", "bg": "#E6F4EA", "min": 4.5, "use": "text"},
+    {"id": "warning_on_surface", "fg": "#8A5A00", "bg": "#FFFFFF", "min": 4.5, "use": "text"},
+    {"id": "warning_on_warning_bg", "fg": "#8A5A00", "bg": "#FCF1DC", "min": 4.5, "use": "text"},
+    {"id": "danger_on_surface", "fg": "#B42318", "bg": "#FFFFFF", "min": 4.5, "use": "text"},
+    {"id": "danger_on_danger_bg", "fg": "#B42318", "bg": "#FEE4E2", "min": 4.5, "use": "text"},
+    {"id": "info_on_info_bg", "fg": "#1F4E79", "bg": "#E7EEF6", "min": 4.5, "use": "text"},
+    {"id": "focus_ring_on_surface", "fg": "#1F4E79", "bg": "#FFFFFF", "min": 3.0, "use": "ui"},
+    {"id": "border_strong_on_surface", "fg": "#7C899B", "bg": "#FFFFFF", "min": 3.0, "use": "ui"}
+  ],
+  "locales": {
+    "supported": ["tr", "en"],
+    "default": "tr",
+    "fallback": "tr",
+    "dir": {"tr": "ltr", "en": "ltr"},
+    "rtl_ready": true,
+    "$comment_rtl": "TR/EN bu dilimde ship; her ikisi LTR. dir haritası + rtl_ready, ME bölgesi (AR sağdan-sola) için mimari genişletilebilirliği belgeler (BRD §16 residency UK/EU/NA/ME) — gerçek AR katalogu/RTL stilleri F2+ kapsamı."
+  }
+}

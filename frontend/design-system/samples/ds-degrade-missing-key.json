@@ -1,0 +1,9 @@
+{
+  "$comment": "DEGRADE — EN katalogda 'common.cancel' eksik → missing_key ihlali (FR-TEN-004 eksik çeviri).",
+  "scenario_id": "parity-missing-key",
+  "kind": "parity",
+  "tr": {"common": {"save": "Kaydet", "cancel": "Vazgeç"}},
+  "en": {"common": {"save": "Save"}},
+  "expect_ok": false,
+  "expect_violation": "missing_key"
+}

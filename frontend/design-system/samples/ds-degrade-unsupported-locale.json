@@ -1,0 +1,9 @@
+{
+  "$comment": "DEGRADE/fallback — desteklenmeyen ?lang=fr + çerez es + Accept fr-FR → hiçbiri tutmaz → default tr (fail-closed varsayılan).",
+  "scenario_id": "locale-unsupported-fallback",
+  "kind": "locale",
+  "query": "fr",
+  "cookie": "es",
+  "accept_language": "fr-FR,fr;q=0.9",
+  "expect_locale": "tr"
+}

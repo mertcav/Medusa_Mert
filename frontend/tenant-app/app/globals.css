@@ -1,0 +1,131 @@
+/* WBS 13.1.3 — RMC tasarım sistemi global CSS. :root altında design token CSS değişkenleri
+   (lib/ui/design-tokens.json canonical değerleriyle HİZALI; probe globals↔tokens tutarlılığını kontrol eder).
+   Erişilebilirlik temelleri: görünür focus halkası (WCAG 2.4.7), .rmc-visually-hidden, .rmc-skip-link
+   (klavye/ekran-okuyucu). Renk tek-başına anlam taşımaz; kontrast oranları token'da kapılı. RTL-hazır
+   (dir=rtl olduğunda mantıksal akış; TR/EN LTR). */
+
+:root {
+  /* color */
+  --rmc-brand-primary: #1F4E79;
+  --rmc-brand-primary-hover: #16385A;
+  --rmc-brand-primary-active: #0F2942;
+  --rmc-on-brand: #FFFFFF;
+  --rmc-surface: #FFFFFF;
+  --rmc-surface-alt: #F5F7FA;
+  --rmc-surface-sunken: #EEF2F7;
+  --rmc-border-subtle: #D5DCE5;
+  --rmc-border-strong: #7C899B;
+  --rmc-text-primary: #1A202C;
+  --rmc-text-muted: #475467;
+  --rmc-text-on-accent: #FFFFFF;
+  --rmc-focus-ring: #1F4E79;
+  --rmc-success-fg: #1B7340;
+  --rmc-success-bg: #E6F4EA;
+  --rmc-warning-fg: #8A5A00;
+  --rmc-warning-bg: #FCF1DC;
+  --rmc-danger-fg: #B42318;
+  --rmc-danger-bg: #FEE4E2;
+  --rmc-info-fg: #1F4E79;
+  --rmc-info-bg: #E7EEF6;
+
+  /* typography */
+  --rmc-font-family-base: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --rmc-font-family-mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+  --rmc-size-xs: 0.75rem;
+  --rmc-size-sm: 0.875rem;
+  --rmc-size-md: 1rem;
+  --rmc-size-lg: 1.25rem;
+  --rmc-size-xl: 1.5rem;
+  --rmc-size-2xl: 2rem;
+
+  /* space */
+  --rmc-space-0: 0;
+  --rmc-space-1: 0.25rem;
+  --rmc-space-2: 0.5rem;
+  --rmc-space-3: 0.75rem;
+  --rmc-space-4: 1rem;
+  --rmc-space-5: 1.5rem;
+  --rmc-space-6: 2rem;
+  --rmc-space-8: 3rem;
+
+  /* radius */
+  --rmc-radius-sm: 4px;
+  --rmc-radius-md: 8px;
+  --rmc-radius-lg: 12px;
+  --rmc-radius-pill: 999px;
+
+  /* shadow */
+  --rmc-shadow-sm: 0 1px 2px rgba(15, 41, 66, 0.08);
+  --rmc-shadow-md: 0 4px 12px rgba(15, 41, 66, 0.12);
+
+  /* z-index */
+  --rmc-z-base: 0;
+  --rmc-z-nav: 100;
+  --rmc-z-overlay: 1000;
+  --rmc-z-toast: 1100;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--rmc-font-family-base);
+  color: var(--rmc-text-primary);
+  background: var(--rmc-surface-alt);
+}
+
+body {
+  margin: 0;
+  line-height: 1.5;
+}
+
+main {
+  padding: var(--rmc-space-5);
+}
+
+a {
+  color: var(--rmc-brand-primary);
+}
+
+/* WCAG 2.4.7 — her zaman görünür focus halkası */
+:focus-visible {
+  outline: 2px solid var(--rmc-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ekran-okuyucu için görsel olarak gizli ama erişilebilir metin */
+.rmc-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* klavye kullanıcısı için içeriğe atlama bağlantısı — odaklanınca görünür */
+.rmc-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: var(--rmc-z-toast);
+  padding: var(--rmc-space-2) var(--rmc-space-4);
+  background: var(--rmc-brand-primary);
+  color: var(--rmc-on-brand);
+  border-radius: 0 0 var(--rmc-radius-md) 0;
+}
+.rmc-skip-link:focus {
+  left: 0;
+}
+
+/* hareket duyarlılığı (WCAG 2.3.3 / prefers-reduced-motion) */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

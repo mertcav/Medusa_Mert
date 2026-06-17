@@ -1,0 +1,90 @@
+{
+  "$locale": "en",
+  "$comment": "WBS 13.1.3 — RMC panel i18n EN catalog (source of truth). Carries the EXACT same key set + same {placeholder} set as tr.json (probe parity gate). Empty values FORBIDDEN (untranslated=FAIL). No secrets/PII — UI labels only. Each app lib/i18n/en.json is a byte-identical copy of this file.",
+  "app": {
+    "title_platform": "RMC Platform Console",
+    "title_tenant": "RMC Tenant Console",
+    "skip_to_content": "Skip to content"
+  },
+  "common": {
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "search": "Search",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "empty": "No records to display",
+    "error_generic": "Something went wrong",
+    "yes": "Yes",
+    "no": "No",
+    "none": "None",
+    "greeting": "Hello, {name}",
+    "result_count": "{count} results"
+  },
+  "a11y": {
+    "main_nav": "Main navigation",
+    "breadcrumb": "Breadcrumb",
+    "lang_switcher": "Language selection",
+    "loading_region": "Content loading",
+    "required_field": "Required field",
+    "external_link": "Opens in a new tab",
+    "page_of": "Page {page} of {total}"
+  },
+  "status": {
+    "active": "Active",
+    "paused": "Paused",
+    "completed": "Completed",
+    "failed": "Failed",
+    "queued": "Queued",
+    "draft": "Draft"
+  },
+  "region": {
+    "uk": "United Kingdom",
+    "eu": "European Union",
+    "na": "North America",
+    "me": "Middle East"
+  },
+  "nav": {
+    "platform": {
+      "overview": "Overview",
+      "tenants": "Tenants",
+      "resources": "Resources / Quota",
+      "providers": "Providers",
+      "billing": "Billing",
+      "policy": "Global Policy",
+      "audit": "Audit (metrics/logs)",
+      "releases": "Releases",
+      "incidents": "Incidents"
+    },
+    "tenant_admin": {
+      "dashboard": "Dashboard",
+      "org": "Organization",
+      "users": "Users / Roles",
+      "numbers": "Numbers",
+      "integrations": "Integrations",
+      "compliance": "Compliance",
+      "billing": "Billing",
+      "audit": "Audit",
+      "quota": "Quota"
+    },
+    "workspace": {
+      "dashboard": "Dashboard",
+      "live_calls": "Live Calls",
+      "agents": "Agents",
+      "builder": "Agent Builder",
+      "flows": "Flows",
+      "prompts": "Prompts",
+      "voice": "Voice Profiles",
+      "kb": "Knowledge Base",
+      "tools": "Tools",
+      "campaigns": "Campaigns",
+      "recordings": "Recordings",
+      "call": "Call Detail",
+      "qa": "Quality (QA)",
+      "analytics": "Analytics",
+      "cost": "Cost",
+      "test": "Test",
+      "versions": "Versions"
+    }
+  }
+}

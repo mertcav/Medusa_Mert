@@ -1,0 +1,9 @@
+{
+  "$comment": "PASS — TR katalog dotted path + {name} interpolasyonu.",
+  "scenario_id": "translate-tr-greeting",
+  "kind": "translate",
+  "locale": "tr",
+  "key": "common.greeting",
+  "params": {"name": "Ada"},
+  "expect_text": "Merhaba, Ada"
+}

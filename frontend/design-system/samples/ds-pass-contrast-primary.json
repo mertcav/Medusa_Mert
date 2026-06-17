@@ -1,0 +1,9 @@
+{
+  "$comment": "PASS — RMC mavi (#1F4E79) üstüne beyaz metin WCAG AA metin (≥4.5) geçer (primary button).",
+  "scenario_id": "contrast-on-brand",
+  "kind": "contrast",
+  "fg": "#FFFFFF",
+  "bg": "#1F4E79",
+  "min": 4.5,
+  "expect_pass": true
+}
