@@ -1,0 +1,34 @@
+{
+  "$comment": "İllüstratif P-05 snapshot — karışık plan/rate-card + tenant kullanım durumları (yer tutucu seam ile aynı). ALTIN KURAL: yalnız faturalandırma/plan/rate-card + TOPLULAŞTIRILMIŞ kullanım metadatası (iş-içeriği/son-müşteri PII YOK). tenant org adı = tenant kimliği (izinli). VENDOR-NÖTR kategori/plan adları. t-003 budgetUsedPct 104 → bütçe aşıldı (FR-BIL-006); starter-legacy deprecated → aktif plan sayımı dışında.",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "currency": "USD",
+  "rateCard": [
+    { "category": "telephony", "unit": "minute", "unitRate": 0.025, "unitCost": 0.011 },
+    { "category": "stt", "unit": "minute", "unitRate": 0.018, "unitCost": 0.0072 },
+    { "category": "tts", "unit": "kchars", "unitRate": 0.04, "unitCost": 0.015 },
+    { "category": "llm", "unit": "ktokens", "unitRate": 0.008, "unitCost": 0.0026 },
+    { "category": "platform", "unit": "minute", "unitRate": 0.02, "unitCost": 0.005 }
+  ],
+  "plans": [
+    { "id": "starter", "tier": "starter", "name": "Başlangıç", "monthlyBase": 99.0, "includedMinutes": 1000, "overageRatePerMinute": 0.12, "budgetAlertThresholdPct": 80, "activeTenants": 8, "status": "active" },
+    { "id": "growth", "tier": "growth", "name": "Büyüme", "monthlyBase": 499.0, "includedMinutes": 7500, "overageRatePerMinute": 0.1, "budgetAlertThresholdPct": 85, "activeTenants": 5, "status": "active" },
+    { "id": "scale", "tier": "scale", "name": "Ölçek", "monthlyBase": 1999.0, "includedMinutes": 40000, "overageRatePerMinute": 0.08, "budgetAlertThresholdPct": 90, "activeTenants": 3, "status": "active" },
+    { "id": "enterprise", "tier": "enterprise", "name": "Kurumsal", "monthlyBase": 7500.0, "includedMinutes": 150000, "overageRatePerMinute": 0.06, "budgetAlertThresholdPct": 90, "activeTenants": 2, "status": "active" },
+    { "id": "starter-legacy", "tier": "starter", "name": "Başlangıç (eski)", "monthlyBase": 79.0, "includedMinutes": 800, "overageRatePerMinute": 0.14, "budgetAlertThresholdPct": 80, "activeTenants": 1, "status": "deprecated" }
+  ],
+  "usage": { "billedMinutes": 176640, "revenue": 24850.0, "providerCost": 9320.0 },
+  "tenants": [
+    { "tenantId": "t-001", "tenantName": "Kuzey Bank A.Ş.", "planId": "growth", "region": "eu", "billedMinutes": 8200, "includedMinutes": 7500, "budgetUsedPct": 76, "status": "current" },
+    { "tenantId": "t-002", "tenantName": "Meridyen Sigorta", "planId": "scale", "region": "uk", "billedMinutes": 38000, "includedMinutes": 40000, "budgetUsedPct": 64, "status": "current" },
+    { "tenantId": "t-003", "tenantName": "Atlas Perakende", "planId": "starter", "region": "eu", "billedMinutes": 1340, "includedMinutes": 1000, "budgetUsedPct": 104, "status": "over_budget" },
+    { "tenantId": "t-004", "tenantName": "Doğu Lojistik", "planId": "enterprise", "region": "me", "billedMinutes": 120000, "includedMinutes": 150000, "budgetUsedPct": 58, "status": "current" },
+    { "tenantId": "t-005", "tenantName": "Vega Telekom", "planId": "growth", "region": "na", "billedMinutes": 9100, "includedMinutes": 7500, "budgetUsedPct": 92, "status": "current" }
+  ],
+  "$expect": {
+    "aggregate_usage": { "billedMinutes": 176640, "overageMinutes": 2640 },
+    "over_budget_tenants": ["t-003"],
+    "count_by_billing_status": { "current": 4, "over_budget": 1, "suspended": 0 },
+    "active_plans": 4,
+    "margin_pct": 62.5
+  }
+}

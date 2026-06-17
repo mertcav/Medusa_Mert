@@ -1,0 +1,16 @@
+{
+  "$comment": "İllüstratif P-05 snapshot — hiç plan/rate-card/tenant tanımlı değil (boş durum). Plan ve tenant tabloları EmptyState render eder; bütçe aşan tenant yok, marj 0, toplulaştırma 0.",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "currency": "USD",
+  "rateCard": [],
+  "plans": [],
+  "usage": { "billedMinutes": 0, "revenue": 0, "providerCost": 0 },
+  "tenants": [],
+  "$expect": {
+    "aggregate_usage": { "billedMinutes": 0, "overageMinutes": 0 },
+    "over_budget_tenants": [],
+    "count_by_billing_status": { "current": 0, "over_budget": 0, "suspended": 0 },
+    "active_plans": 0,
+    "margin_pct": 0.0
+  }
+}

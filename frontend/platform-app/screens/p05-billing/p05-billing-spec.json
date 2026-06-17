@@ -1,0 +1,63 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.2.5",
+  "screen": "P-05",
+  "title": "Platform Faturalandırma & Rate-Card",
+  "plane": "platform_control_plane",
+  "tier": "L0",
+  "source": ["BRD §17.3", "BRD §17.6 (RBAC)", "BRD §17.7 (altın kural)", "BRD §9.17 (FR-BIL-*)", "FR-IAM-008", "FR-BIL-001", "FR-BIL-002", "FR-BIL-003", "FR-BIL-004", "FR-BIL-006", "FR-BIL-007", "SAD §8.1 (meter())", "SAD §15.2 (Cost-Resource Meter)", "SAD §14.4.1", "ADR-002"],
+  "rbac": {
+    "platform_owner": "view",
+    "platform_sre": "none",
+    "platform_billing": "manage",
+    "permission_keys": ["billing:read", "billing:rate_card:manage", "billing:plan:manage", "billing:export"],
+    "note": "BRD §17.6: P-05 platform_billing=Yönet + platform_owner=Görüntüle + platform_sre=erişim yok. UI yalnız görsel kapı; nihai yetki + rate-card/plan/export zorlaması backend'de (12.2.x). Rol→permission kararı bu katmanda YOK (A8)."
+  },
+  "content_brd_17_3": [
+    "plan tanımları",
+    "fiyatlandırma (rate-card)",
+    "kullanım toplulaştırma"
+  ],
+  "fr_coverage": {
+    "FR-BIL-001": "dakika ölçümü → usage.billedMinutes + tenant.billedMinutes + kpi.billed_minutes",
+    "FR-BIL-002": "telekom/STT/TTS/LLM/platform ayrı maliyet → rateCard kategorileri + usage.providerCost",
+    "FR-BIL-003": "tenant fiyat planı → plans[] tanımı + tenant.planId",
+    "FR-BIL-004": "minimum/kota/overage → plan.monthlyBase + plan.includedMinutes + plan.overageRatePerMinute + overageMinutes()",
+    "FR-BIL-006": "bütçe alarmı → plan.budgetAlertThresholdPct + tenant.budgetUsedPct + budgetTone() + overBudgetTenants()",
+    "FR-BIL-007": "finans dışa aktarım → export_action (görsel kapı; backend billing:export)"
+  },
+  "invariants": {
+    "S1": "P-05 ekran sayfası mevcut + data-screen=\"P-05\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/platform/billing) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.p05.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK iş-içeriği/son-müşteri PII taşımaz (FORBIDDEN_PII_KEYS) + assertNoPii çağrılır (ALTIN KURAL, BRD §17.7). Tenant org adı izinli (tenant kimliği).",
+    "S5": "BRD §17.3 içerik öğeleri (plan tanımları + rate-card fiyatlandırma + kullanım toplulaştırma) i18n anahtarlarıyla karşılanır; FR-BIL-001/002/003/004/006/007 izlenir.",
+    "S6": "screen.p05.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (marginPct/marginTone/budgetTone/billingStatusTone/planStatusTone/overageMinutes/rateMarginPct/aggregateUsage/overBudgetTenants/planTenantCount/countByBillingStatus/activePlanCount/planName) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002): veri seam SOMUT sağlayıcı/ticari marka bağlamaz (kategori/plan adları nötr); sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "manage_only_note", "backend_authz_note", "as_of", "export_action",
+    "pct_value", "per_unit_value", "per_min_value",
+    "no_over_budget", "over_budget_alert", "no_plans", "no_tenants",
+    "rate_card_caption", "plans_caption", "usage_caption", "usage_total",
+    "section.summary", "section.rate_card", "section.plans", "section.usage",
+    "kpi.billed_minutes", "kpi.revenue", "kpi.provider_cost", "kpi.margin", "kpi.active_plans", "kpi.over_budget",
+    "category.telephony", "category.stt", "category.tts", "category.llm", "category.platform",
+    "unit.minute", "unit.kchars", "unit.ktokens", "unit.session",
+    "tier.starter", "tier.growth", "tier.scale", "tier.enterprise",
+    "plan_status.active", "plan_status.deprecated",
+    "billing_status.current", "billing_status.over_budget", "billing_status.suspended",
+    "col.category", "col.unit", "col.unit_rate", "col.unit_cost", "col.margin",
+    "col.plan", "col.tier", "col.monthly_base", "col.included_minutes", "col.overage_rate", "col.budget_alert", "col.active_tenants", "col.status",
+    "col.tenant", "col.region", "col.billed_minutes", "col.overage_minutes", "col.budget_used"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "pct_value": ["pct"],
+    "per_unit_value": ["amount", "unit"],
+    "per_min_value": ["amount"],
+    "over_budget_alert": ["count"],
+    "usage_total": ["minutes", "overage"]
+  }
+}

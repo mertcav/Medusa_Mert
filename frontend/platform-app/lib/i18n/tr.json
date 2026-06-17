@@ -1,360 +1,441 @@
 {
- "$locale": "tr",
- "$comment": "WBS 13.1.3 — RMC panel i18n TR katalogu (kaynak doğruluk, varsayılan dil). en.json ile BİREBİR aynı anahtar kümesi + aynı {placeholder} kümesi taşır (probe parity kapısı). Boş değer YASAK (untranslated=FAIL). Sır/PII YOK — yalnız UI etiketleri. Her app lib/i18n/tr.json bunun birebir kopyasıdır.",
- "app": {
-  "title_platform": "RMC Platform Konsolu",
-  "title_tenant": "RMC Tenant Konsolu",
-  "skip_to_content": "İçeriğe geç"
- },
- "common": {
-  "loading": "Yükleniyor…",
-  "save": "Kaydet",
-  "cancel": "Vazgeç",
-  "search": "Ara",
-  "retry": "Yeniden dene",
-  "refresh": "Yenile",
-  "empty": "Gösterilecek kayıt yok",
-  "error_generic": "Bir hata oluştu",
-  "yes": "Evet",
-  "no": "Hayır",
-  "none": "Yok",
-  "greeting": "Merhaba, {name}",
-  "result_count": "{count} sonuç"
- },
- "a11y": {
-  "main_nav": "Ana navigasyon",
-  "breadcrumb": "Konum izi",
-  "lang_switcher": "Dil seçimi",
-  "loading_region": "İçerik yükleniyor",
-  "required_field": "Zorunlu alan",
-  "external_link": "Yeni sekmede açılır",
-  "page_of": "Sayfa {page} / {total}"
- },
- "status": {
-  "active": "Aktif",
-  "paused": "Duraklatıldı",
-  "completed": "Tamamlandı",
-  "failed": "Başarısız",
-  "queued": "Sırada",
-  "draft": "Taslak"
- },
- "region": {
-  "uk": "Birleşik Krallık",
-  "eu": "Avrupa Birliği",
-  "na": "Kuzey Amerika",
-  "me": "Orta Doğu"
- },
- "nav": {
-  "platform": {
-   "overview": "Genel Bakış",
-   "tenants": "Tenant'lar",
-   "resources": "Kaynaklar / Kota",
-   "providers": "Sağlayıcılar",
-   "billing": "Faturalama",
-   "policy": "Global Politika",
-   "audit": "Denetim (metrik/log)",
-   "releases": "Sürümler",
-   "incidents": "Olaylar"
+  "$locale": "tr",
+  "$comment": "WBS 13.1.3 — RMC panel i18n TR katalogu (kaynak doğruluk, varsayılan dil). en.json ile BİREBİR aynı anahtar kümesi + aynı {placeholder} kümesi taşır (probe parity kapısı). Boş değer YASAK (untranslated=FAIL). Sır/PII YOK — yalnız UI etiketleri. Her app lib/i18n/tr.json bunun birebir kopyasıdır.",
+  "app": {
+    "title_platform": "RMC Platform Konsolu",
+    "title_tenant": "RMC Tenant Konsolu",
+    "skip_to_content": "İçeriğe geç"
   },
-  "tenant_admin": {
-   "dashboard": "Panel",
-   "org": "Organizasyon",
-   "users": "Kullanıcılar / Roller",
-   "numbers": "Numaralar",
-   "integrations": "Entegrasyonlar",
-   "compliance": "Uyumluluk",
-   "billing": "Faturalama",
-   "audit": "Denetim",
-   "quota": "Kota"
+  "common": {
+    "loading": "Yükleniyor…",
+    "save": "Kaydet",
+    "cancel": "Vazgeç",
+    "search": "Ara",
+    "retry": "Yeniden dene",
+    "refresh": "Yenile",
+    "empty": "Gösterilecek kayıt yok",
+    "error_generic": "Bir hata oluştu",
+    "yes": "Evet",
+    "no": "Hayır",
+    "none": "Yok",
+    "greeting": "Merhaba, {name}",
+    "result_count": "{count} sonuç"
   },
-  "workspace": {
-   "dashboard": "Panel",
-   "live_calls": "Canlı Çağrılar",
-   "agents": "Agent'lar",
-   "builder": "Agent Builder",
-   "flows": "Akışlar",
-   "prompts": "Prompt'lar",
-   "voice": "Ses Profilleri",
-   "kb": "Bilgi Tabanı",
-   "tools": "Araçlar",
-   "campaigns": "Kampanyalar",
-   "recordings": "Kayıtlar",
-   "call": "Çağrı Detayı",
-   "qa": "Kalite (QA)",
-   "analytics": "Analitik",
-   "cost": "Maliyet",
-   "test": "Test",
-   "versions": "Sürümler"
+  "a11y": {
+    "main_nav": "Ana navigasyon",
+    "breadcrumb": "Konum izi",
+    "lang_switcher": "Dil seçimi",
+    "loading_region": "İçerik yükleniyor",
+    "required_field": "Zorunlu alan",
+    "external_link": "Yeni sekmede açılır",
+    "page_of": "Sayfa {page} / {total}"
+  },
+  "status": {
+    "active": "Aktif",
+    "paused": "Duraklatıldı",
+    "completed": "Tamamlandı",
+    "failed": "Başarısız",
+    "queued": "Sırada",
+    "draft": "Taslak"
+  },
+  "region": {
+    "uk": "Birleşik Krallık",
+    "eu": "Avrupa Birliği",
+    "na": "Kuzey Amerika",
+    "me": "Orta Doğu"
+  },
+  "nav": {
+    "platform": {
+      "overview": "Genel Bakış",
+      "tenants": "Tenant'lar",
+      "resources": "Kaynaklar / Kota",
+      "providers": "Sağlayıcılar",
+      "billing": "Faturalama",
+      "policy": "Global Politika",
+      "audit": "Denetim (metrik/log)",
+      "releases": "Sürümler",
+      "incidents": "Olaylar"
+    },
+    "tenant_admin": {
+      "dashboard": "Panel",
+      "org": "Organizasyon",
+      "users": "Kullanıcılar / Roller",
+      "numbers": "Numaralar",
+      "integrations": "Entegrasyonlar",
+      "compliance": "Uyumluluk",
+      "billing": "Faturalama",
+      "audit": "Denetim",
+      "quota": "Kota"
+    },
+    "workspace": {
+      "dashboard": "Panel",
+      "live_calls": "Canlı Çağrılar",
+      "agents": "Agent'lar",
+      "builder": "Agent Builder",
+      "flows": "Akışlar",
+      "prompts": "Prompt'lar",
+      "voice": "Ses Profilleri",
+      "kb": "Bilgi Tabanı",
+      "tools": "Araçlar",
+      "campaigns": "Kampanyalar",
+      "recordings": "Kayıtlar",
+      "call": "Çağrı Detayı",
+      "qa": "Kalite (QA)",
+      "analytics": "Analitik",
+      "cost": "Maliyet",
+      "test": "Test",
+      "versions": "Sürümler"
+    }
+  },
+  "screen": {
+    "p01": {
+      "title": "Platform Genel Bakış",
+      "subtitle": "Cross-tenant platform sağlığı, kapasite, kaynak kullanımı ve maliyet — yalnız toplulaştırılmış metrik.",
+      "view_only_note": "Bu konsol yalnız platform metrik/kaynak verisini gösterir; tenant iş içeriği (çağrı kaydı, transkript, müşteri verisi) görüntülenmez.",
+      "as_of": "Veri zamanı: {time}",
+      "no_alerts": "Aktif platform alarmı yok",
+      "regions_caption": "Bölge bazında cross-tenant sağlık ve eşzamanlılık",
+      "alerts_caption": "Aktif platform alarmları (yalnız metrik)",
+      "section": {
+        "capacity": "Eşzamanlılık & Kapasite",
+        "resources": "Kaynak Kullanımı",
+        "cost": "Platform Maliyeti",
+        "regions": "Bölge Sağlığı",
+        "alerts": "Aktif Platform Alarmları"
+      },
+      "health": {
+        "overall": "Genel Platform Sağlığı",
+        "healthy": "Sağlıklı",
+        "degraded": "Bozulmuş",
+        "down": "Kesinti"
+      },
+      "kpi": {
+        "concurrent_calls": "Toplam Eşzamanlı Çağrı",
+        "cps": "Saniyedeki Çağrı (CPS)",
+        "capacity": "Eşzamanlılık Kapasitesi",
+        "headroom": "Boş Kapasite",
+        "cpu": "CPU Kullanımı",
+        "memory": "Bellek Kullanımı",
+        "density": "Worker Yoğunluğu",
+        "density_hint": "oturum/worker (hedef ≥250)",
+        "mem_per_session": "Oturum Başına Bellek",
+        "mem_per_session_hint": "medya hariç (hedef ≤15 MB)",
+        "cost_today": "Bugünkü Maliyet",
+        "cost_mtd": "Ay Başından Bu Yana",
+        "cost_per_minute": "Dakika Başına Maliyet",
+        "active_tenants": "Aktif Tenant"
+      },
+      "col": {
+        "region": "Bölge",
+        "health": "Sağlık",
+        "concurrent": "Eşzamanlı Çağrı",
+        "utilization": "Kullanım",
+        "alert": "Alarm",
+        "severity": "Önem",
+        "since": "Süre"
+      },
+      "severity": {
+        "critical": "Kritik",
+        "warning": "Uyarı",
+        "info": "Bilgi"
+      },
+      "alert": {
+        "since_minutes": "{minutes} dk önce"
+      },
+      "alert_catalog": {
+        "provider_error": "Sağlayıcı hata oranı eşik üstünde",
+        "region_capacity": "Bölge kapasitesi yüksek kullanımda"
+      }
+    },
+    "p02": {
+      "title": "Tenant Yönetimi & Provisioning",
+      "subtitle": "Tenant oluşturma/askıya alma/silme, plan atama ve yaşam döngüsü durumu — yalnız tenant kayıt/kaynak metadatası.",
+      "manage_only_note": "Bu ekran yalnız platform_owner tarafından yönetilir (platform_sre/platform_billing erişimi yok). Yalnız tenant kayıt/kaynak metadatası gösterilir; tenant iş içeriği (çağrı kaydı, transkript, müşteri verisi) görüntülenmez.",
+      "backend_authz_note": "Provisioning aksiyonları yalnız görsel kapıdır; oluşturma, askıya alma, silme ve plan atama nihai yetki ve durum geçişi backend'de zorlanır.",
+      "as_of": "Veri zamanı: {time}",
+      "create_action": "Yeni Tenant Oluştur",
+      "no_tenants": "Kayıtlı tenant yok",
+      "no_provisioning": "Süreçte tenant yok",
+      "no_actions": "—",
+      "directory_caption": "Tenant dizini — plan, bölge, durum ve atanan kaynak (kullanıcı sayısı)",
+      "provisioning_caption": "Provisioning/deprovisioning sürecindeki tenant'lar ve adım ilerlemesi",
+      "progress_step": "{step}/{total} adım",
+      "section": {
+        "summary": "Özet",
+        "provisioning": "Süreçteki Provisioning",
+        "directory": "Tenant Dizini"
+      },
+      "kpi": {
+        "total": "Toplam Tenant",
+        "active": "Aktif",
+        "suspended": "Askıya Alınmış",
+        "provisioning": "Provisioning'de"
+      },
+      "status": {
+        "active": "Aktif",
+        "suspended": "Askıya Alınmış",
+        "provisioning": "Provisioning",
+        "deprovisioning": "Sonlandırılıyor",
+        "deleted": "Silindi"
+      },
+      "plan": {
+        "starter": "Başlangıç",
+        "growth": "Büyüme",
+        "enterprise": "Kurumsal",
+        "dedicated": "Ayrılmış"
+      },
+      "action": {
+        "create": "Oluştur",
+        "suspend": "Askıya Al",
+        "resume": "Devam Ettir",
+        "assign_plan": "Plan Ata",
+        "delete": "Sil"
+      },
+      "col": {
+        "tenant": "Tenant",
+        "plan": "Plan",
+        "region": "Bölge",
+        "status": "Durum",
+        "created": "Oluşturma",
+        "users": "Kullanıcı",
+        "actions": "Aksiyonlar",
+        "progress": "İlerleme"
+      }
+    },
+    "p03": {
+      "title": "Kaynak & Kapasite Yönetimi",
+      "subtitle": "vCPU/bellek/eşzamanlılık/CPS kotaları, otomatik ölçekleme politikası, scale-to-zero ve noisy-neighbor koruması — yalnız kaynak/kapasite metadatası.",
+      "manage_only_note": "Bu ekran platform_owner ve platform_sre tarafından yönetilir (platform_billing erişimi yok). Yalnız kaynak/kapasite metadatası gösterilir; tenant iş içeriği (çağrı kaydı, transkript, müşteri verisi) görüntülenmez.",
+      "backend_authz_note": "Kota ve politika değişiklikleri yalnız görsel kapıdır; nihai yetki ve zorlama backend'de Resource Manager Quota Service'te yapılır.",
+      "as_of": "Veri zamanı: {time}",
+      "edit_policy_action": "Autoscale Politikasını Düzenle",
+      "no_tenants": "Kota tanımlı tenant yok",
+      "used_of_limit": "{used} / {limit}",
+      "compute_value": "{vcpu} vCPU · {mem} GB",
+      "seconds_value": "{seconds} sn",
+      "burst_value": "{x}×",
+      "noisy_neighbor_alert": "{count} tenant paylaşımlı izolasyonda yüksek kullanımda — noisy-neighbor riski izleniyor.",
+      "no_noisy_neighbor": "Paylaşımlı izolasyonda yüksek-kullanım riski taşıyan tenant yok.",
+      "section": {
+        "capacity": "Platform Kapasite Özeti",
+        "autoscale": "Otomatik Ölçekleme & Scale-to-zero",
+        "regions": "Bölge Kapasitesi",
+        "quotas": "Tenant Kaynak Kotaları"
+      },
+      "kpi": {
+        "concurrency": "Eş Zamanlı (kullanım / kota)",
+        "cps": "CPS (kullanım / kota)",
+        "vcpu": "vCPU (kullanım / kota)",
+        "memory": "Bellek GB (kullanım / kota)"
+      },
+      "autoscale": {
+        "caption": "Global otomatik ölçekleme ve scale-to-zero politikası",
+        "min_workers": "Minimum worker",
+        "max_workers": "Maksimum worker",
+        "target_util": "Hedef kullanım",
+        "warm_pool": "Warm pool",
+        "scale_to_zero_idle": "Scale-to-zero boşta süresi",
+        "burst": "Ani trafik çarpanı"
+      },
+      "isolation": {
+        "reserved": "Rezerve",
+        "shared": "Paylaşımlı"
+      },
+      "s2z": {
+        "active": "Aktif",
+        "idle": "Boşta",
+        "scaled_to_zero": "Sıfıra İndirildi"
+      },
+      "plan": {
+        "starter": "Başlangıç",
+        "growth": "Büyüme",
+        "enterprise": "Kurumsal",
+        "dedicated": "Ayrılmış"
+      },
+      "action": {
+        "edit_quota": "Kotayı Düzenle"
+      },
+      "regions_caption": "Bölge başına eş zamanlı/CPS kapasitesi ve worker kullanımı",
+      "quotas_caption": "Tenant başına kaynak kotaları, izolasyon ve scale-to-zero durumu",
+      "col": {
+        "region": "Bölge",
+        "capacity": "Eş Zamanlı Kapasite",
+        "cps_capacity": "CPS Kapasite",
+        "workers": "Worker (aktif/max)",
+        "utilization": "Kullanım",
+        "tenant": "Tenant",
+        "plan": "Plan",
+        "concurrency": "Eş Zamanlı",
+        "cps": "CPS",
+        "compute": "Hesaplama",
+        "reserved": "Rezerve",
+        "isolation": "İzolasyon",
+        "scale_to_zero": "Scale-to-zero",
+        "actions": "Aksiyonlar"
+      }
+    },
+    "p04": {
+      "title": "Sağlayıcı & Entegrasyon Sağlığı",
+      "subtitle": "STT/TTS/LLM/telekom adapter sağlık durumu, fallback/yönlendirme varsayılanları ve sağlayıcı maliyeti — yalnız sağlayıcı/adapter metadatası.",
+      "manage_only_note": "Bu ekran platform_owner ve platform_sre tarafından yönetilir; platform_billing yalnız görüntüler. Yalnız sağlayıcı/adapter sağlık ve yönlendirme metadatası gösterilir; tenant iş içeriği (çağrı kaydı, transkript, müşteri verisi) görüntülenmez.",
+      "backend_authz_note": "Yönlendirme ve fallback varsayılanı değişiklikleri yalnız görsel kapıdır; nihai yetki ve zorlama backend'de adapter SPI üzerinden yapılır (provider:routing:manage).",
+      "as_of": "Veri zamanı: {time}",
+      "edit_routing_action": "Yönlendirme Varsayılanını Düzenle",
+      "no_adapters": "Tanımlı adapter yok",
+      "error_rate_value": "%{pct}",
+      "latency_value": "{ms} ms",
+      "unit_cost_value": "{cost} / {unit}",
+      "redundancy_alert": "{count} kategori ≥2 çalışır sağlayıcı kuralını karşılamıyor — fallback dayanıklılığı riskte (BRD §19).",
+      "no_redundancy_risk": "Tüm kategoriler ≥2 çalışır sağlayıcı ile dayanıklı (BRD §19).",
+      "fallback_active_badge": "Fallback aktif",
+      "fallback_standby_badge": "Birincil aktif",
+      "deterministic_yes": "Var",
+      "deterministic_no": "Yok",
+      "section": {
+        "summary": "Genel Sağlık Özeti",
+        "routing": "Fallback & Yönlendirme Varsayılanları",
+        "adapters": "Adapter Durumu",
+        "cost": "Sağlayıcı Maliyeti"
+      },
+      "kpi": {
+        "healthy": "Sağlıklı adapter",
+        "degraded": "Kısmi (degraded) adapter",
+        "down": "Hizmet dışı adapter",
+        "open_circuits": "Açık circuit",
+        "active_fallbacks": "Aktif fallback (kategori)",
+        "cost_today": "Bugünkü maliyet",
+        "cost_mtd": "Ay-başından bugüne maliyet"
+      },
+      "category": {
+        "stt": "STT (konuşma→metin)",
+        "tts": "TTS (metin→konuşma)",
+        "llm": "LLM (dil modeli)",
+        "telephony": "Telekom"
+      },
+      "health": {
+        "healthy": "Sağlıklı",
+        "degraded": "Kısmi",
+        "down": "Hizmet dışı"
+      },
+      "circuit": {
+        "closed": "Kapalı (normal)",
+        "half_open": "Yarı-açık (deneme)",
+        "open": "Açık (kesik)"
+      },
+      "role": {
+        "primary": "Birincil",
+        "secondary": "İkincil / fallback"
+      },
+      "unit": {
+        "minute": "dakika",
+        "kchars": "1k karakter",
+        "ktokens": "1k token"
+      },
+      "action": {
+        "edit_routing": "Yönlendirmeyi Düzenle"
+      },
+      "routing_caption": "Kategori başına birincil sağlayıcı, fallback sırası ve deterministic flow yedeği",
+      "adapters_caption": "Adapter başına kategori, rol, sağlık, circuit breaker, hata oranı ve p95 gecikme",
+      "cost_caption": "Kategori başına sağlayıcı maliyeti (bugün / ay-başından bugüne) ve birim maliyet",
+      "col": {
+        "category": "Kategori",
+        "health": "Sağlık",
+        "primary": "Birincil",
+        "fallback_chain": "Fallback sırası",
+        "deterministic": "Deterministic flow",
+        "redundancy": "Dayanıklılık",
+        "adapter": "Adapter",
+        "role": "Rol",
+        "circuit": "Circuit",
+        "error_rate": "Hata oranı",
+        "latency": "p95 gecikme",
+        "region": "Bölge",
+        "cost_today": "Bugün",
+        "cost_mtd": "Ay-başından bugüne",
+        "unit_cost": "Birim maliyet",
+        "actions": "Aksiyonlar"
+      }
+    },
+    "p05": {
+      "title": "Platform Faturalandırma & Rate-Card",
+      "subtitle": "Plan tanımları, fiyatlandırma (rate-card) ve cross-tenant kullanım toplulaştırma — yalnız faturalandırma ve toplulaştırılmış kullanım metadatası.",
+      "manage_only_note": "Bu ekran platform_billing tarafından yönetilir; platform_owner yalnız görüntüler, platform_sre erişemez. Yalnız faturalandırma/plan/rate-card ve toplulaştırılmış kullanım gösterilir; tenant iş içeriği (çağrı kaydı, transkript, son-müşteri verisi) görüntülenmez.",
+      "backend_authz_note": "Rate-card/plan düzenleme ve finans sistemine dışa aktarım yalnız görsel kapıdır; nihai yetki ve zorlama backend'de yapılır (billing:rate_card:manage / billing:plan:manage / billing:export).",
+      "as_of": "Veri zamanı: {time}",
+      "export_action": "Finans Sistemine Aktar",
+      "pct_value": "%{pct}",
+      "per_unit_value": "{amount} / {unit}",
+      "per_min_value": "{amount} / dk",
+      "no_over_budget": "Bütçe limitini aşan tenant yok (FR-BIL-006).",
+      "over_budget_alert": "{count} tenant bütçe limitini aştı — bütçe alarmı tetiklendi (FR-BIL-006).",
+      "no_plans": "Tanımlı plan yok",
+      "no_tenants": "Faturalandırılan tenant yok",
+      "rate_card_caption": "Kategori başına satış birim ücreti, altta yatan sağlayıcı maliyeti ve marj (FR-BIL-002)",
+      "plans_caption": "Plan başına taban ücret, dahil dakika kotası, kota aşımı ücreti, bütçe alarmı eşiği ve atanmış tenant sayısı",
+      "usage_caption": "Tenant başına faturalanan dakika, kota aşımı, bütçe kullanımı ve faturalandırma durumu (toplulaştırılmış)",
+      "usage_total": "Toplam faturalanan dakika: {minutes} · toplam kota aşımı: {overage} dk",
+      "section": {
+        "summary": "Kullanım & Gelir Özeti",
+        "rate_card": "Rate-Card (Birim Fiyatlandırma)",
+        "plans": "Plan Tanımları",
+        "usage": "Tenant Kullanım Toplulaştırma"
+      },
+      "kpi": {
+        "billed_minutes": "Faturalanan dakika (MTD)",
+        "revenue": "Brüt gelir (MTD)",
+        "provider_cost": "Sağlayıcı maliyeti (MTD)",
+        "margin": "Brüt marj",
+        "active_plans": "Aktif plan",
+        "over_budget": "Bütçe aşan tenant"
+      },
+      "category": {
+        "telephony": "Telekom",
+        "stt": "STT (konuşma→metin)",
+        "tts": "TTS (metin→konuşma)",
+        "llm": "LLM (dil modeli)",
+        "platform": "Platform"
+      },
+      "unit": {
+        "minute": "dakika",
+        "kchars": "1k karakter",
+        "ktokens": "1k token",
+        "session": "oturum"
+      },
+      "tier": {
+        "starter": "Başlangıç",
+        "growth": "Büyüme",
+        "scale": "Ölçek",
+        "enterprise": "Kurumsal"
+      },
+      "plan_status": {
+        "active": "Aktif",
+        "deprecated": "Kullanımdan kaldırıldı"
+      },
+      "billing_status": {
+        "current": "Güncel",
+        "over_budget": "Bütçe aşıldı",
+        "suspended": "Askıda"
+      },
+      "col": {
+        "category": "Kategori",
+        "unit": "Birim",
+        "unit_rate": "Satış ücreti",
+        "unit_cost": "Maliyet",
+        "margin": "Marj",
+        "plan": "Plan",
+        "tier": "Tier",
+        "monthly_base": "Aylık taban",
+        "included_minutes": "Dahil dakika",
+        "overage_rate": "Aşım ücreti",
+        "budget_alert": "Bütçe alarmı",
+        "active_tenants": "Tenant sayısı",
+        "status": "Durum",
+        "tenant": "Tenant",
+        "region": "Bölge",
+        "billed_minutes": "Faturalanan dk",
+        "overage_minutes": "Aşım dk",
+        "budget_used": "Bütçe kullanımı"
+      }
+    }
   }
- },
- "screen": {
-  "p01": {
-   "title": "Platform Genel Bakış",
-   "subtitle": "Cross-tenant platform sağlığı, kapasite, kaynak kullanımı ve maliyet — yalnız toplulaştırılmış metrik.",
-   "view_only_note": "Bu konsol yalnız platform metrik/kaynak verisini gösterir; tenant iş içeriği (çağrı kaydı, transkript, müşteri verisi) görüntülenmez.",
-   "as_of": "Veri zamanı: {time}",
-   "no_alerts": "Aktif platform alarmı yok",
-   "regions_caption": "Bölge bazında cross-tenant sağlık ve eşzamanlılık",
-   "alerts_caption": "Aktif platform alarmları (yalnız metrik)",
-   "section": {
-    "capacity": "Eşzamanlılık & Kapasite",
-    "resources": "Kaynak Kullanımı",
-    "cost": "Platform Maliyeti",
-    "regions": "Bölge Sağlığı",
-    "alerts": "Aktif Platform Alarmları"
-   },
-   "health": {
-    "overall": "Genel Platform Sağlığı",
-    "healthy": "Sağlıklı",
-    "degraded": "Bozulmuş",
-    "down": "Kesinti"
-   },
-   "kpi": {
-    "concurrent_calls": "Toplam Eşzamanlı Çağrı",
-    "cps": "Saniyedeki Çağrı (CPS)",
-    "capacity": "Eşzamanlılık Kapasitesi",
-    "headroom": "Boş Kapasite",
-    "cpu": "CPU Kullanımı",
-    "memory": "Bellek Kullanımı",
-    "density": "Worker Yoğunluğu",
-    "density_hint": "oturum/worker (hedef ≥250)",
-    "mem_per_session": "Oturum Başına Bellek",
-    "mem_per_session_hint": "medya hariç (hedef ≤15 MB)",
-    "cost_today": "Bugünkü Maliyet",
-    "cost_mtd": "Ay Başından Bu Yana",
-    "cost_per_minute": "Dakika Başına Maliyet",
-    "active_tenants": "Aktif Tenant"
-   },
-   "col": {
-    "region": "Bölge",
-    "health": "Sağlık",
-    "concurrent": "Eşzamanlı Çağrı",
-    "utilization": "Kullanım",
-    "alert": "Alarm",
-    "severity": "Önem",
-    "since": "Süre"
-   },
-   "severity": {
-    "critical": "Kritik",
-    "warning": "Uyarı",
-    "info": "Bilgi"
-   },
-   "alert": {
-    "since_minutes": "{minutes} dk önce"
-   },
-   "alert_catalog": {
-    "provider_error": "Sağlayıcı hata oranı eşik üstünde",
-    "region_capacity": "Bölge kapasitesi yüksek kullanımda"
-   }
-  },
-  "p02": {
-   "title": "Tenant Yönetimi & Provisioning",
-   "subtitle": "Tenant oluşturma/askıya alma/silme, plan atama ve yaşam döngüsü durumu — yalnız tenant kayıt/kaynak metadatası.",
-   "manage_only_note": "Bu ekran yalnız platform_owner tarafından yönetilir (platform_sre/platform_billing erişimi yok). Yalnız tenant kayıt/kaynak metadatası gösterilir; tenant iş içeriği (çağrı kaydı, transkript, müşteri verisi) görüntülenmez.",
-   "backend_authz_note": "Provisioning aksiyonları yalnız görsel kapıdır; oluşturma, askıya alma, silme ve plan atama nihai yetki ve durum geçişi backend'de zorlanır.",
-   "as_of": "Veri zamanı: {time}",
-   "create_action": "Yeni Tenant Oluştur",
-   "no_tenants": "Kayıtlı tenant yok",
-   "no_provisioning": "Süreçte tenant yok",
-   "no_actions": "—",
-   "directory_caption": "Tenant dizini — plan, bölge, durum ve atanan kaynak (kullanıcı sayısı)",
-   "provisioning_caption": "Provisioning/deprovisioning sürecindeki tenant'lar ve adım ilerlemesi",
-   "progress_step": "{step}/{total} adım",
-   "section": {
-    "summary": "Özet",
-    "provisioning": "Süreçteki Provisioning",
-    "directory": "Tenant Dizini"
-   },
-   "kpi": {
-    "total": "Toplam Tenant",
-    "active": "Aktif",
-    "suspended": "Askıya Alınmış",
-    "provisioning": "Provisioning'de"
-   },
-   "status": {
-    "active": "Aktif",
-    "suspended": "Askıya Alınmış",
-    "provisioning": "Provisioning",
-    "deprovisioning": "Sonlandırılıyor",
-    "deleted": "Silindi"
-   },
-   "plan": {
-    "starter": "Başlangıç",
-    "growth": "Büyüme",
-    "enterprise": "Kurumsal",
-    "dedicated": "Ayrılmış"
-   },
-   "action": {
-    "create": "Oluştur",
-    "suspend": "Askıya Al",
-    "resume": "Devam Ettir",
-    "assign_plan": "Plan Ata",
-    "delete": "Sil"
-   },
-   "col": {
-    "tenant": "Tenant",
-    "plan": "Plan",
-    "region": "Bölge",
-    "status": "Durum",
-    "created": "Oluşturma",
-    "users": "Kullanıcı",
-    "actions": "Aksiyonlar",
-    "progress": "İlerleme"
-   }
-  },
-  "p03": {
-   "title": "Kaynak & Kapasite Yönetimi",
-   "subtitle": "vCPU/bellek/eşzamanlılık/CPS kotaları, otomatik ölçekleme politikası, scale-to-zero ve noisy-neighbor koruması — yalnız kaynak/kapasite metadatası.",
-   "manage_only_note": "Bu ekran platform_owner ve platform_sre tarafından yönetilir (platform_billing erişimi yok). Yalnız kaynak/kapasite metadatası gösterilir; tenant iş içeriği (çağrı kaydı, transkript, müşteri verisi) görüntülenmez.",
-   "backend_authz_note": "Kota ve politika değişiklikleri yalnız görsel kapıdır; nihai yetki ve zorlama backend'de Resource Manager Quota Service'te yapılır.",
-   "as_of": "Veri zamanı: {time}",
-   "edit_policy_action": "Autoscale Politikasını Düzenle",
-   "no_tenants": "Kota tanımlı tenant yok",
-   "used_of_limit": "{used} / {limit}",
-   "compute_value": "{vcpu} vCPU · {mem} GB",
-   "seconds_value": "{seconds} sn",
-   "burst_value": "{x}×",
-   "noisy_neighbor_alert": "{count} tenant paylaşımlı izolasyonda yüksek kullanımda — noisy-neighbor riski izleniyor.",
-   "no_noisy_neighbor": "Paylaşımlı izolasyonda yüksek-kullanım riski taşıyan tenant yok.",
-   "section": {
-    "capacity": "Platform Kapasite Özeti",
-    "autoscale": "Otomatik Ölçekleme & Scale-to-zero",
-    "regions": "Bölge Kapasitesi",
-    "quotas": "Tenant Kaynak Kotaları"
-   },
-   "kpi": {
-    "concurrency": "Eş Zamanlı (kullanım / kota)",
-    "cps": "CPS (kullanım / kota)",
-    "vcpu": "vCPU (kullanım / kota)",
-    "memory": "Bellek GB (kullanım / kota)"
-   },
-   "autoscale": {
-    "caption": "Global otomatik ölçekleme ve scale-to-zero politikası",
-    "min_workers": "Minimum worker",
-    "max_workers": "Maksimum worker",
-    "target_util": "Hedef kullanım",
-    "warm_pool": "Warm pool",
-    "scale_to_zero_idle": "Scale-to-zero boşta süresi",
-    "burst": "Ani trafik çarpanı"
-   },
-   "isolation": {
-    "reserved": "Rezerve",
-    "shared": "Paylaşımlı"
-   },
-   "s2z": {
-    "active": "Aktif",
-    "idle": "Boşta",
-    "scaled_to_zero": "Sıfıra İndirildi"
-   },
-   "plan": {
-    "starter": "Başlangıç",
-    "growth": "Büyüme",
-    "enterprise": "Kurumsal",
-    "dedicated": "Ayrılmış"
-   },
-   "action": {
-    "edit_quota": "Kotayı Düzenle"
-   },
-   "regions_caption": "Bölge başına eş zamanlı/CPS kapasitesi ve worker kullanımı",
-   "quotas_caption": "Tenant başına kaynak kotaları, izolasyon ve scale-to-zero durumu",
-   "col": {
-    "region": "Bölge",
-    "capacity": "Eş Zamanlı Kapasite",
-    "cps_capacity": "CPS Kapasite",
-    "workers": "Worker (aktif/max)",
-    "utilization": "Kullanım",
-    "tenant": "Tenant",
-    "plan": "Plan",
-    "concurrency": "Eş Zamanlı",
-    "cps": "CPS",
-    "compute": "Hesaplama",
-    "reserved": "Rezerve",
-    "isolation": "İzolasyon",
-    "scale_to_zero": "Scale-to-zero",
-    "actions": "Aksiyonlar"
-   }
-  },
-  "p04": {
-   "title": "Sağlayıcı & Entegrasyon Sağlığı",
-   "subtitle": "STT/TTS/LLM/telekom adapter sağlık durumu, fallback/yönlendirme varsayılanları ve sağlayıcı maliyeti — yalnız sağlayıcı/adapter metadatası.",
-   "manage_only_note": "Bu ekran platform_owner ve platform_sre tarafından yönetilir; platform_billing yalnız görüntüler. Yalnız sağlayıcı/adapter sağlık ve yönlendirme metadatası gösterilir; tenant iş içeriği (çağrı kaydı, transkript, müşteri verisi) görüntülenmez.",
-   "backend_authz_note": "Yönlendirme ve fallback varsayılanı değişiklikleri yalnız görsel kapıdır; nihai yetki ve zorlama backend'de adapter SPI üzerinden yapılır (provider:routing:manage).",
-   "as_of": "Veri zamanı: {time}",
-   "edit_routing_action": "Yönlendirme Varsayılanını Düzenle",
-   "no_adapters": "Tanımlı adapter yok",
-   "error_rate_value": "%{pct}",
-   "latency_value": "{ms} ms",
-   "unit_cost_value": "{cost} / {unit}",
-   "redundancy_alert": "{count} kategori ≥2 çalışır sağlayıcı kuralını karşılamıyor — fallback dayanıklılığı riskte (BRD §19).",
-   "no_redundancy_risk": "Tüm kategoriler ≥2 çalışır sağlayıcı ile dayanıklı (BRD §19).",
-   "fallback_active_badge": "Fallback aktif",
-   "fallback_standby_badge": "Birincil aktif",
-   "deterministic_yes": "Var",
-   "deterministic_no": "Yok",
-   "section": {
-    "summary": "Genel Sağlık Özeti",
-    "routing": "Fallback & Yönlendirme Varsayılanları",
-    "adapters": "Adapter Durumu",
-    "cost": "Sağlayıcı Maliyeti"
-   },
-   "kpi": {
-    "healthy": "Sağlıklı adapter",
-    "degraded": "Kısmi (degraded) adapter",
-    "down": "Hizmet dışı adapter",
-    "open_circuits": "Açık circuit",
-    "active_fallbacks": "Aktif fallback (kategori)",
-    "cost_today": "Bugünkü maliyet",
-    "cost_mtd": "Ay-başından bugüne maliyet"
-   },
-   "category": {
-    "stt": "STT (konuşma→metin)",
-    "tts": "TTS (metin→konuşma)",
-    "llm": "LLM (dil modeli)",
-    "telephony": "Telekom"
-   },
-   "health": {
-    "healthy": "Sağlıklı",
-    "degraded": "Kısmi",
-    "down": "Hizmet dışı"
-   },
-   "circuit": {
-    "closed": "Kapalı (normal)",
-    "half_open": "Yarı-açık (deneme)",
-    "open": "Açık (kesik)"
-   },
-   "role": {
-    "primary": "Birincil",
-    "secondary": "İkincil / fallback"
-   },
-   "unit": {
-    "minute": "dakika",
-    "kchars": "1k karakter",
-    "ktokens": "1k token"
-   },
-   "action": {
-    "edit_routing": "Yönlendirmeyi Düzenle"
-   },
-   "routing_caption": "Kategori başına birincil sağlayıcı, fallback sırası ve deterministic flow yedeği",
-   "adapters_caption": "Adapter başına kategori, rol, sağlık, circuit breaker, hata oranı ve p95 gecikme",
-   "cost_caption": "Kategori başına sağlayıcı maliyeti (bugün / ay-başından bugüne) ve birim maliyet",
-   "col": {
-    "category": "Kategori",
-    "health": "Sağlık",
-    "primary": "Birincil",
-    "fallback_chain": "Fallback sırası",
-    "deterministic": "Deterministic flow",
-    "redundancy": "Dayanıklılık",
-    "adapter": "Adapter",
-    "role": "Rol",
-    "circuit": "Circuit",
-    "error_rate": "Hata oranı",
-    "latency": "p95 gecikme",
-    "region": "Bölge",
-    "cost_today": "Bugün",
-    "cost_mtd": "Ay-başından bugüne",
-    "unit_cost": "Birim maliyet",
-    "actions": "Aksiyonlar"
-   }
-  }
- }
 }

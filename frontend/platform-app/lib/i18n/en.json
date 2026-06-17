@@ -1,360 +1,441 @@
 {
- "$locale": "en",
- "$comment": "WBS 13.1.3 — RMC panel i18n EN catalog (source of truth). Carries the EXACT same key set + same {placeholder} set as tr.json (probe parity gate). Empty values FORBIDDEN (untranslated=FAIL). No secrets/PII — UI labels only. Each app lib/i18n/en.json is a byte-identical copy of this file.",
- "app": {
-  "title_platform": "RMC Platform Console",
-  "title_tenant": "RMC Tenant Console",
-  "skip_to_content": "Skip to content"
- },
- "common": {
-  "loading": "Loading…",
-  "save": "Save",
-  "cancel": "Cancel",
-  "search": "Search",
-  "retry": "Retry",
-  "refresh": "Refresh",
-  "empty": "No records to display",
-  "error_generic": "Something went wrong",
-  "yes": "Yes",
-  "no": "No",
-  "none": "None",
-  "greeting": "Hello, {name}",
-  "result_count": "{count} results"
- },
- "a11y": {
-  "main_nav": "Main navigation",
-  "breadcrumb": "Breadcrumb",
-  "lang_switcher": "Language selection",
-  "loading_region": "Content loading",
-  "required_field": "Required field",
-  "external_link": "Opens in a new tab",
-  "page_of": "Page {page} of {total}"
- },
- "status": {
-  "active": "Active",
-  "paused": "Paused",
-  "completed": "Completed",
-  "failed": "Failed",
-  "queued": "Queued",
-  "draft": "Draft"
- },
- "region": {
-  "uk": "United Kingdom",
-  "eu": "European Union",
-  "na": "North America",
-  "me": "Middle East"
- },
- "nav": {
-  "platform": {
-   "overview": "Overview",
-   "tenants": "Tenants",
-   "resources": "Resources / Quota",
-   "providers": "Providers",
-   "billing": "Billing",
-   "policy": "Global Policy",
-   "audit": "Audit (metrics/logs)",
-   "releases": "Releases",
-   "incidents": "Incidents"
+  "$locale": "en",
+  "$comment": "WBS 13.1.3 — RMC panel i18n EN catalog (source of truth). Carries the EXACT same key set + same {placeholder} set as tr.json (probe parity gate). Empty values FORBIDDEN (untranslated=FAIL). No secrets/PII — UI labels only. Each app lib/i18n/en.json is a byte-identical copy of this file.",
+  "app": {
+    "title_platform": "RMC Platform Console",
+    "title_tenant": "RMC Tenant Console",
+    "skip_to_content": "Skip to content"
   },
-  "tenant_admin": {
-   "dashboard": "Dashboard",
-   "org": "Organization",
-   "users": "Users / Roles",
-   "numbers": "Numbers",
-   "integrations": "Integrations",
-   "compliance": "Compliance",
-   "billing": "Billing",
-   "audit": "Audit",
-   "quota": "Quota"
+  "common": {
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "search": "Search",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "empty": "No records to display",
+    "error_generic": "Something went wrong",
+    "yes": "Yes",
+    "no": "No",
+    "none": "None",
+    "greeting": "Hello, {name}",
+    "result_count": "{count} results"
   },
-  "workspace": {
-   "dashboard": "Dashboard",
-   "live_calls": "Live Calls",
-   "agents": "Agents",
-   "builder": "Agent Builder",
-   "flows": "Flows",
-   "prompts": "Prompts",
-   "voice": "Voice Profiles",
-   "kb": "Knowledge Base",
-   "tools": "Tools",
-   "campaigns": "Campaigns",
-   "recordings": "Recordings",
-   "call": "Call Detail",
-   "qa": "Quality (QA)",
-   "analytics": "Analytics",
-   "cost": "Cost",
-   "test": "Test",
-   "versions": "Versions"
+  "a11y": {
+    "main_nav": "Main navigation",
+    "breadcrumb": "Breadcrumb",
+    "lang_switcher": "Language selection",
+    "loading_region": "Content loading",
+    "required_field": "Required field",
+    "external_link": "Opens in a new tab",
+    "page_of": "Page {page} of {total}"
+  },
+  "status": {
+    "active": "Active",
+    "paused": "Paused",
+    "completed": "Completed",
+    "failed": "Failed",
+    "queued": "Queued",
+    "draft": "Draft"
+  },
+  "region": {
+    "uk": "United Kingdom",
+    "eu": "European Union",
+    "na": "North America",
+    "me": "Middle East"
+  },
+  "nav": {
+    "platform": {
+      "overview": "Overview",
+      "tenants": "Tenants",
+      "resources": "Resources / Quota",
+      "providers": "Providers",
+      "billing": "Billing",
+      "policy": "Global Policy",
+      "audit": "Audit (metrics/logs)",
+      "releases": "Releases",
+      "incidents": "Incidents"
+    },
+    "tenant_admin": {
+      "dashboard": "Dashboard",
+      "org": "Organization",
+      "users": "Users / Roles",
+      "numbers": "Numbers",
+      "integrations": "Integrations",
+      "compliance": "Compliance",
+      "billing": "Billing",
+      "audit": "Audit",
+      "quota": "Quota"
+    },
+    "workspace": {
+      "dashboard": "Dashboard",
+      "live_calls": "Live Calls",
+      "agents": "Agents",
+      "builder": "Agent Builder",
+      "flows": "Flows",
+      "prompts": "Prompts",
+      "voice": "Voice Profiles",
+      "kb": "Knowledge Base",
+      "tools": "Tools",
+      "campaigns": "Campaigns",
+      "recordings": "Recordings",
+      "call": "Call Detail",
+      "qa": "Quality (QA)",
+      "analytics": "Analytics",
+      "cost": "Cost",
+      "test": "Test",
+      "versions": "Versions"
+    }
+  },
+  "screen": {
+    "p01": {
+      "title": "Platform Overview",
+      "subtitle": "Cross-tenant platform health, capacity, resource usage and cost — aggregated metrics only.",
+      "view_only_note": "This console shows only platform metric/resource data; tenant business content (call recordings, transcripts, customer data) is not displayed.",
+      "as_of": "As of: {time}",
+      "no_alerts": "No active platform alerts",
+      "regions_caption": "Cross-tenant health and concurrency by region",
+      "alerts_caption": "Active platform alerts (metrics only)",
+      "section": {
+        "capacity": "Concurrency & Capacity",
+        "resources": "Resource Usage",
+        "cost": "Platform Cost",
+        "regions": "Region Health",
+        "alerts": "Active Platform Alerts"
+      },
+      "health": {
+        "overall": "Overall Platform Health",
+        "healthy": "Healthy",
+        "degraded": "Degraded",
+        "down": "Down"
+      },
+      "kpi": {
+        "concurrent_calls": "Total Concurrent Calls",
+        "cps": "Calls Per Second (CPS)",
+        "capacity": "Concurrency Capacity",
+        "headroom": "Free Capacity",
+        "cpu": "CPU Usage",
+        "memory": "Memory Usage",
+        "density": "Worker Density",
+        "density_hint": "sessions/worker (target ≥250)",
+        "mem_per_session": "Memory Per Session",
+        "mem_per_session_hint": "excluding media (target ≤15 MB)",
+        "cost_today": "Cost Today",
+        "cost_mtd": "Month To Date",
+        "cost_per_minute": "Cost Per Minute",
+        "active_tenants": "Active Tenants"
+      },
+      "col": {
+        "region": "Region",
+        "health": "Health",
+        "concurrent": "Concurrent Calls",
+        "utilization": "Utilization",
+        "alert": "Alert",
+        "severity": "Severity",
+        "since": "Duration"
+      },
+      "severity": {
+        "critical": "Critical",
+        "warning": "Warning",
+        "info": "Info"
+      },
+      "alert": {
+        "since_minutes": "{minutes} min ago"
+      },
+      "alert_catalog": {
+        "provider_error": "Provider error rate above threshold",
+        "region_capacity": "Region capacity under high utilization"
+      }
+    },
+    "p02": {
+      "title": "Tenant Management & Provisioning",
+      "subtitle": "Tenant create/suspend/delete, plan assignment and lifecycle status — tenant registry/resource metadata only.",
+      "manage_only_note": "This screen is managed only by platform_owner (platform_sre/platform_billing have no access). Only tenant registry/resource metadata is shown; tenant business content (call recordings, transcripts, customer data) is not displayed.",
+      "backend_authz_note": "Provisioning actions are a visual gate only; create, suspend, delete and plan assignment have final authorization and state transition enforced in the backend.",
+      "as_of": "As of: {time}",
+      "create_action": "Create New Tenant",
+      "no_tenants": "No registered tenants",
+      "no_provisioning": "No tenants in progress",
+      "no_actions": "—",
+      "directory_caption": "Tenant directory — plan, region, status and assigned resource (user count)",
+      "provisioning_caption": "Tenants in provisioning/deprovisioning and step progress",
+      "progress_step": "{step}/{total} steps",
+      "section": {
+        "summary": "Summary",
+        "provisioning": "In-Progress Provisioning",
+        "directory": "Tenant Directory"
+      },
+      "kpi": {
+        "total": "Total Tenants",
+        "active": "Active",
+        "suspended": "Suspended",
+        "provisioning": "Provisioning"
+      },
+      "status": {
+        "active": "Active",
+        "suspended": "Suspended",
+        "provisioning": "Provisioning",
+        "deprovisioning": "Deprovisioning",
+        "deleted": "Deleted"
+      },
+      "plan": {
+        "starter": "Starter",
+        "growth": "Growth",
+        "enterprise": "Enterprise",
+        "dedicated": "Dedicated"
+      },
+      "action": {
+        "create": "Create",
+        "suspend": "Suspend",
+        "resume": "Resume",
+        "assign_plan": "Assign Plan",
+        "delete": "Delete"
+      },
+      "col": {
+        "tenant": "Tenant",
+        "plan": "Plan",
+        "region": "Region",
+        "status": "Status",
+        "created": "Created",
+        "users": "Users",
+        "actions": "Actions",
+        "progress": "Progress"
+      }
+    },
+    "p03": {
+      "title": "Resource & Capacity Management",
+      "subtitle": "vCPU/memory/concurrency/CPS quotas, autoscale policy, scale-to-zero and noisy-neighbor protection — resource/capacity metadata only.",
+      "manage_only_note": "This screen is managed by platform_owner and platform_sre (platform_billing has no access). Only resource/capacity metadata is shown; tenant business content (call recordings, transcripts, customer data) is not displayed.",
+      "backend_authz_note": "Quota and policy changes are a visual gate only; final authorization and enforcement happen in the backend Resource Manager Quota Service.",
+      "as_of": "As of: {time}",
+      "edit_policy_action": "Edit Autoscale Policy",
+      "no_tenants": "No tenants with defined quotas",
+      "used_of_limit": "{used} / {limit}",
+      "compute_value": "{vcpu} vCPU · {mem} GB",
+      "seconds_value": "{seconds} s",
+      "burst_value": "{x}×",
+      "noisy_neighbor_alert": "{count} tenant(s) at high usage on shared isolation — noisy-neighbor risk monitored.",
+      "no_noisy_neighbor": "No tenants at high-usage risk on shared isolation.",
+      "section": {
+        "capacity": "Platform Capacity Summary",
+        "autoscale": "Autoscaling & Scale-to-zero",
+        "regions": "Region Capacity",
+        "quotas": "Tenant Resource Quotas"
+      },
+      "kpi": {
+        "concurrency": "Concurrency (used / quota)",
+        "cps": "CPS (used / quota)",
+        "vcpu": "vCPU (used / quota)",
+        "memory": "Memory GB (used / quota)"
+      },
+      "autoscale": {
+        "caption": "Global autoscaling and scale-to-zero policy",
+        "min_workers": "Minimum workers",
+        "max_workers": "Maximum workers",
+        "target_util": "Target utilization",
+        "warm_pool": "Warm pool",
+        "scale_to_zero_idle": "Scale-to-zero idle window",
+        "burst": "Burst multiplier"
+      },
+      "isolation": {
+        "reserved": "Reserved",
+        "shared": "Shared"
+      },
+      "s2z": {
+        "active": "Active",
+        "idle": "Idle",
+        "scaled_to_zero": "Scaled to Zero"
+      },
+      "plan": {
+        "starter": "Starter",
+        "growth": "Growth",
+        "enterprise": "Enterprise",
+        "dedicated": "Dedicated"
+      },
+      "action": {
+        "edit_quota": "Edit Quota"
+      },
+      "regions_caption": "Concurrency/CPS capacity and worker utilization per region",
+      "quotas_caption": "Per-tenant resource quotas, isolation and scale-to-zero state",
+      "col": {
+        "region": "Region",
+        "capacity": "Concurrency Capacity",
+        "cps_capacity": "CPS Capacity",
+        "workers": "Workers (active/max)",
+        "utilization": "Utilization",
+        "tenant": "Tenant",
+        "plan": "Plan",
+        "concurrency": "Concurrency",
+        "cps": "CPS",
+        "compute": "Compute",
+        "reserved": "Reserved",
+        "isolation": "Isolation",
+        "scale_to_zero": "Scale-to-zero",
+        "actions": "Actions"
+      }
+    },
+    "p04": {
+      "title": "Provider & Integration Health",
+      "subtitle": "STT/TTS/LLM/telephony adapter health, fallback/routing defaults and provider cost — provider/adapter metadata only.",
+      "manage_only_note": "This screen is managed by platform_owner and platform_sre; platform_billing has view-only access. Only provider/adapter health and routing metadata is shown; tenant business content (call recordings, transcripts, customer data) is not displayed.",
+      "backend_authz_note": "Routing and fallback default changes are a visual gate only; final authorization and enforcement happen in the backend via the adapter SPI (provider:routing:manage).",
+      "as_of": "As of: {time}",
+      "edit_routing_action": "Edit Routing Default",
+      "no_adapters": "No adapters defined",
+      "error_rate_value": "{pct}%",
+      "latency_value": "{ms} ms",
+      "unit_cost_value": "{cost} / {unit}",
+      "redundancy_alert": "{count} categor(y/ies) do not meet the ≥2 operational provider rule — fallback resilience at risk (BRD §19).",
+      "no_redundancy_risk": "All categories are resilient with ≥2 operational providers (BRD §19).",
+      "fallback_active_badge": "Fallback active",
+      "fallback_standby_badge": "Primary active",
+      "deterministic_yes": "Yes",
+      "deterministic_no": "No",
+      "section": {
+        "summary": "Overall Health Summary",
+        "routing": "Fallback & Routing Defaults",
+        "adapters": "Adapter Status",
+        "cost": "Provider Cost"
+      },
+      "kpi": {
+        "healthy": "Healthy adapters",
+        "degraded": "Degraded adapters",
+        "down": "Down adapters",
+        "open_circuits": "Open circuits",
+        "active_fallbacks": "Active fallbacks (categories)",
+        "cost_today": "Cost today",
+        "cost_mtd": "Month-to-date cost"
+      },
+      "category": {
+        "stt": "STT (speech→text)",
+        "tts": "TTS (text→speech)",
+        "llm": "LLM (language model)",
+        "telephony": "Telephony"
+      },
+      "health": {
+        "healthy": "Healthy",
+        "degraded": "Degraded",
+        "down": "Down"
+      },
+      "circuit": {
+        "closed": "Closed (normal)",
+        "half_open": "Half-open (probing)",
+        "open": "Open (tripped)"
+      },
+      "role": {
+        "primary": "Primary",
+        "secondary": "Secondary / fallback"
+      },
+      "unit": {
+        "minute": "minute",
+        "kchars": "1k chars",
+        "ktokens": "1k tokens"
+      },
+      "action": {
+        "edit_routing": "Edit Routing"
+      },
+      "routing_caption": "Per-category primary provider, fallback order and deterministic flow backup",
+      "adapters_caption": "Per-adapter category, role, health, circuit breaker, error rate and p95 latency",
+      "cost_caption": "Per-category provider cost (today / month-to-date) and unit cost",
+      "col": {
+        "category": "Category",
+        "health": "Health",
+        "primary": "Primary",
+        "fallback_chain": "Fallback order",
+        "deterministic": "Deterministic flow",
+        "redundancy": "Resilience",
+        "adapter": "Adapter",
+        "role": "Role",
+        "circuit": "Circuit",
+        "error_rate": "Error rate",
+        "latency": "p95 latency",
+        "region": "Region",
+        "cost_today": "Today",
+        "cost_mtd": "Month-to-date",
+        "unit_cost": "Unit cost",
+        "actions": "Actions"
+      }
+    },
+    "p05": {
+      "title": "Platform Billing & Rate-Card",
+      "subtitle": "Plan definitions, pricing (rate-card) and cross-tenant usage aggregation — billing and aggregated usage metadata only.",
+      "manage_only_note": "This screen is managed by platform_billing; platform_owner has view-only access and platform_sre has no access. Only billing/plan/rate-card and aggregated usage are shown; tenant business content (call recordings, transcripts, end-customer data) is not displayed.",
+      "backend_authz_note": "Rate-card/plan editing and finance system export are a visual gate only; final authorization and enforcement happen in the backend (billing:rate_card:manage / billing:plan:manage / billing:export).",
+      "as_of": "As of: {time}",
+      "export_action": "Export to Finance System",
+      "pct_value": "{pct}%",
+      "per_unit_value": "{amount} / {unit}",
+      "per_min_value": "{amount} / min",
+      "no_over_budget": "No tenants over budget (FR-BIL-006).",
+      "over_budget_alert": "{count} tenant(s) over budget — budget alarm triggered (FR-BIL-006).",
+      "no_plans": "No plans defined",
+      "no_tenants": "No billed tenants",
+      "rate_card_caption": "Per-category sell unit rate, underlying provider cost and margin (FR-BIL-002)",
+      "plans_caption": "Per-plan base charge, included minute quota, overage rate, budget alert threshold and assigned tenant count",
+      "usage_caption": "Per-tenant billed minutes, overage, budget usage and billing status (aggregated)",
+      "usage_total": "Total billed minutes: {minutes} · total overage: {overage} min",
+      "section": {
+        "summary": "Usage & Revenue Summary",
+        "rate_card": "Rate-Card (Unit Pricing)",
+        "plans": "Plan Definitions",
+        "usage": "Tenant Usage Aggregation"
+      },
+      "kpi": {
+        "billed_minutes": "Billed minutes (MTD)",
+        "revenue": "Gross revenue (MTD)",
+        "provider_cost": "Provider cost (MTD)",
+        "margin": "Gross margin",
+        "active_plans": "Active plans",
+        "over_budget": "Over-budget tenants"
+      },
+      "category": {
+        "telephony": "Telephony",
+        "stt": "STT (speech→text)",
+        "tts": "TTS (text→speech)",
+        "llm": "LLM (language model)",
+        "platform": "Platform"
+      },
+      "unit": {
+        "minute": "minute",
+        "kchars": "1k chars",
+        "ktokens": "1k tokens",
+        "session": "session"
+      },
+      "tier": {
+        "starter": "Starter",
+        "growth": "Growth",
+        "scale": "Scale",
+        "enterprise": "Enterprise"
+      },
+      "plan_status": {
+        "active": "Active",
+        "deprecated": "Deprecated"
+      },
+      "billing_status": {
+        "current": "Current",
+        "over_budget": "Over budget",
+        "suspended": "Suspended"
+      },
+      "col": {
+        "category": "Category",
+        "unit": "Unit",
+        "unit_rate": "Sell rate",
+        "unit_cost": "Cost",
+        "margin": "Margin",
+        "plan": "Plan",
+        "tier": "Tier",
+        "monthly_base": "Monthly base",
+        "included_minutes": "Included minutes",
+        "overage_rate": "Overage rate",
+        "budget_alert": "Budget alert",
+        "active_tenants": "Tenant count",
+        "status": "Status",
+        "tenant": "Tenant",
+        "region": "Region",
+        "billed_minutes": "Billed min",
+        "overage_minutes": "Overage min",
+        "budget_used": "Budget used"
+      }
+    }
   }
- },
- "screen": {
-  "p01": {
-   "title": "Platform Overview",
-   "subtitle": "Cross-tenant platform health, capacity, resource usage and cost — aggregated metrics only.",
-   "view_only_note": "This console shows only platform metric/resource data; tenant business content (call recordings, transcripts, customer data) is not displayed.",
-   "as_of": "As of: {time}",
-   "no_alerts": "No active platform alerts",
-   "regions_caption": "Cross-tenant health and concurrency by region",
-   "alerts_caption": "Active platform alerts (metrics only)",
-   "section": {
-    "capacity": "Concurrency & Capacity",
-    "resources": "Resource Usage",
-    "cost": "Platform Cost",
-    "regions": "Region Health",
-    "alerts": "Active Platform Alerts"
-   },
-   "health": {
-    "overall": "Overall Platform Health",
-    "healthy": "Healthy",
-    "degraded": "Degraded",
-    "down": "Down"
-   },
-   "kpi": {
-    "concurrent_calls": "Total Concurrent Calls",
-    "cps": "Calls Per Second (CPS)",
-    "capacity": "Concurrency Capacity",
-    "headroom": "Free Capacity",
-    "cpu": "CPU Usage",
-    "memory": "Memory Usage",
-    "density": "Worker Density",
-    "density_hint": "sessions/worker (target ≥250)",
-    "mem_per_session": "Memory Per Session",
-    "mem_per_session_hint": "excluding media (target ≤15 MB)",
-    "cost_today": "Cost Today",
-    "cost_mtd": "Month To Date",
-    "cost_per_minute": "Cost Per Minute",
-    "active_tenants": "Active Tenants"
-   },
-   "col": {
-    "region": "Region",
-    "health": "Health",
-    "concurrent": "Concurrent Calls",
-    "utilization": "Utilization",
-    "alert": "Alert",
-    "severity": "Severity",
-    "since": "Duration"
-   },
-   "severity": {
-    "critical": "Critical",
-    "warning": "Warning",
-    "info": "Info"
-   },
-   "alert": {
-    "since_minutes": "{minutes} min ago"
-   },
-   "alert_catalog": {
-    "provider_error": "Provider error rate above threshold",
-    "region_capacity": "Region capacity under high utilization"
-   }
-  },
-  "p02": {
-   "title": "Tenant Management & Provisioning",
-   "subtitle": "Tenant create/suspend/delete, plan assignment and lifecycle status — tenant registry/resource metadata only.",
-   "manage_only_note": "This screen is managed only by platform_owner (platform_sre/platform_billing have no access). Only tenant registry/resource metadata is shown; tenant business content (call recordings, transcripts, customer data) is not displayed.",
-   "backend_authz_note": "Provisioning actions are a visual gate only; create, suspend, delete and plan assignment have final authorization and state transition enforced in the backend.",
-   "as_of": "As of: {time}",
-   "create_action": "Create New Tenant",
-   "no_tenants": "No registered tenants",
-   "no_provisioning": "No tenants in progress",
-   "no_actions": "—",
-   "directory_caption": "Tenant directory — plan, region, status and assigned resource (user count)",
-   "provisioning_caption": "Tenants in provisioning/deprovisioning and step progress",
-   "progress_step": "{step}/{total} steps",
-   "section": {
-    "summary": "Summary",
-    "provisioning": "In-Progress Provisioning",
-    "directory": "Tenant Directory"
-   },
-   "kpi": {
-    "total": "Total Tenants",
-    "active": "Active",
-    "suspended": "Suspended",
-    "provisioning": "Provisioning"
-   },
-   "status": {
-    "active": "Active",
-    "suspended": "Suspended",
-    "provisioning": "Provisioning",
-    "deprovisioning": "Deprovisioning",
-    "deleted": "Deleted"
-   },
-   "plan": {
-    "starter": "Starter",
-    "growth": "Growth",
-    "enterprise": "Enterprise",
-    "dedicated": "Dedicated"
-   },
-   "action": {
-    "create": "Create",
-    "suspend": "Suspend",
-    "resume": "Resume",
-    "assign_plan": "Assign Plan",
-    "delete": "Delete"
-   },
-   "col": {
-    "tenant": "Tenant",
-    "plan": "Plan",
-    "region": "Region",
-    "status": "Status",
-    "created": "Created",
-    "users": "Users",
-    "actions": "Actions",
-    "progress": "Progress"
-   }
-  },
-  "p03": {
-   "title": "Resource & Capacity Management",
-   "subtitle": "vCPU/memory/concurrency/CPS quotas, autoscale policy, scale-to-zero and noisy-neighbor protection — resource/capacity metadata only.",
-   "manage_only_note": "This screen is managed by platform_owner and platform_sre (platform_billing has no access). Only resource/capacity metadata is shown; tenant business content (call recordings, transcripts, customer data) is not displayed.",
-   "backend_authz_note": "Quota and policy changes are a visual gate only; final authorization and enforcement happen in the backend Resource Manager Quota Service.",
-   "as_of": "As of: {time}",
-   "edit_policy_action": "Edit Autoscale Policy",
-   "no_tenants": "No tenants with defined quotas",
-   "used_of_limit": "{used} / {limit}",
-   "compute_value": "{vcpu} vCPU · {mem} GB",
-   "seconds_value": "{seconds} s",
-   "burst_value": "{x}×",
-   "noisy_neighbor_alert": "{count} tenant(s) at high usage on shared isolation — noisy-neighbor risk monitored.",
-   "no_noisy_neighbor": "No tenants at high-usage risk on shared isolation.",
-   "section": {
-    "capacity": "Platform Capacity Summary",
-    "autoscale": "Autoscaling & Scale-to-zero",
-    "regions": "Region Capacity",
-    "quotas": "Tenant Resource Quotas"
-   },
-   "kpi": {
-    "concurrency": "Concurrency (used / quota)",
-    "cps": "CPS (used / quota)",
-    "vcpu": "vCPU (used / quota)",
-    "memory": "Memory GB (used / quota)"
-   },
-   "autoscale": {
-    "caption": "Global autoscaling and scale-to-zero policy",
-    "min_workers": "Minimum workers",
-    "max_workers": "Maximum workers",
-    "target_util": "Target utilization",
-    "warm_pool": "Warm pool",
-    "scale_to_zero_idle": "Scale-to-zero idle window",
-    "burst": "Burst multiplier"
-   },
-   "isolation": {
-    "reserved": "Reserved",
-    "shared": "Shared"
-   },
-   "s2z": {
-    "active": "Active",
-    "idle": "Idle",
-    "scaled_to_zero": "Scaled to Zero"
-   },
-   "plan": {
-    "starter": "Starter",
-    "growth": "Growth",
-    "enterprise": "Enterprise",
-    "dedicated": "Dedicated"
-   },
-   "action": {
-    "edit_quota": "Edit Quota"
-   },
-   "regions_caption": "Concurrency/CPS capacity and worker utilization per region",
-   "quotas_caption": "Per-tenant resource quotas, isolation and scale-to-zero state",
-   "col": {
-    "region": "Region",
-    "capacity": "Concurrency Capacity",
-    "cps_capacity": "CPS Capacity",
-    "workers": "Workers (active/max)",
-    "utilization": "Utilization",
-    "tenant": "Tenant",
-    "plan": "Plan",
-    "concurrency": "Concurrency",
-    "cps": "CPS",
-    "compute": "Compute",
-    "reserved": "Reserved",
-    "isolation": "Isolation",
-    "scale_to_zero": "Scale-to-zero",
-    "actions": "Actions"
-   }
-  },
-  "p04": {
-   "title": "Provider & Integration Health",
-   "subtitle": "STT/TTS/LLM/telephony adapter health, fallback/routing defaults and provider cost — provider/adapter metadata only.",
-   "manage_only_note": "This screen is managed by platform_owner and platform_sre; platform_billing has view-only access. Only provider/adapter health and routing metadata is shown; tenant business content (call recordings, transcripts, customer data) is not displayed.",
-   "backend_authz_note": "Routing and fallback default changes are a visual gate only; final authorization and enforcement happen in the backend via the adapter SPI (provider:routing:manage).",
-   "as_of": "As of: {time}",
-   "edit_routing_action": "Edit Routing Default",
-   "no_adapters": "No adapters defined",
-   "error_rate_value": "{pct}%",
-   "latency_value": "{ms} ms",
-   "unit_cost_value": "{cost} / {unit}",
-   "redundancy_alert": "{count} categor(y/ies) do not meet the ≥2 operational provider rule — fallback resilience at risk (BRD §19).",
-   "no_redundancy_risk": "All categories are resilient with ≥2 operational providers (BRD §19).",
-   "fallback_active_badge": "Fallback active",
-   "fallback_standby_badge": "Primary active",
-   "deterministic_yes": "Yes",
-   "deterministic_no": "No",
-   "section": {
-    "summary": "Overall Health Summary",
-    "routing": "Fallback & Routing Defaults",
-    "adapters": "Adapter Status",
-    "cost": "Provider Cost"
-   },
-   "kpi": {
-    "healthy": "Healthy adapters",
-    "degraded": "Degraded adapters",
-    "down": "Down adapters",
-    "open_circuits": "Open circuits",
-    "active_fallbacks": "Active fallbacks (categories)",
-    "cost_today": "Cost today",
-    "cost_mtd": "Month-to-date cost"
-   },
-   "category": {
-    "stt": "STT (speech→text)",
-    "tts": "TTS (text→speech)",
-    "llm": "LLM (language model)",
-    "telephony": "Telephony"
-   },
-   "health": {
-    "healthy": "Healthy",
-    "degraded": "Degraded",
-    "down": "Down"
-   },
-   "circuit": {
-    "closed": "Closed (normal)",
-    "half_open": "Half-open (probing)",
-    "open": "Open (tripped)"
-   },
-   "role": {
-    "primary": "Primary",
-    "secondary": "Secondary / fallback"
-   },
-   "unit": {
-    "minute": "minute",
-    "kchars": "1k chars",
-    "ktokens": "1k tokens"
-   },
-   "action": {
-    "edit_routing": "Edit Routing"
-   },
-   "routing_caption": "Per-category primary provider, fallback order and deterministic flow backup",
-   "adapters_caption": "Per-adapter category, role, health, circuit breaker, error rate and p95 latency",
-   "cost_caption": "Per-category provider cost (today / month-to-date) and unit cost",
-   "col": {
-    "category": "Category",
-    "health": "Health",
-    "primary": "Primary",
-    "fallback_chain": "Fallback order",
-    "deterministic": "Deterministic flow",
-    "redundancy": "Resilience",
-    "adapter": "Adapter",
-    "role": "Role",
-    "circuit": "Circuit",
-    "error_rate": "Error rate",
-    "latency": "p95 latency",
-    "region": "Region",
-    "cost_today": "Today",
-    "cost_mtd": "Month-to-date",
-    "unit_cost": "Unit cost",
-    "actions": "Actions"
-   }
-  }
- }
 }
