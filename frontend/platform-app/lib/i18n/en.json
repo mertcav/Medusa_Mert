@@ -273,6 +273,88 @@
     "scale_to_zero": "Scale-to-zero",
     "actions": "Actions"
    }
+  },
+  "p04": {
+   "title": "Provider & Integration Health",
+   "subtitle": "STT/TTS/LLM/telephony adapter health, fallback/routing defaults and provider cost — provider/adapter metadata only.",
+   "manage_only_note": "This screen is managed by platform_owner and platform_sre; platform_billing has view-only access. Only provider/adapter health and routing metadata is shown; tenant business content (call recordings, transcripts, customer data) is not displayed.",
+   "backend_authz_note": "Routing and fallback default changes are a visual gate only; final authorization and enforcement happen in the backend via the adapter SPI (provider:routing:manage).",
+   "as_of": "As of: {time}",
+   "edit_routing_action": "Edit Routing Default",
+   "no_adapters": "No adapters defined",
+   "error_rate_value": "{pct}%",
+   "latency_value": "{ms} ms",
+   "unit_cost_value": "{cost} / {unit}",
+   "redundancy_alert": "{count} categor(y/ies) do not meet the ≥2 operational provider rule — fallback resilience at risk (BRD §19).",
+   "no_redundancy_risk": "All categories are resilient with ≥2 operational providers (BRD §19).",
+   "fallback_active_badge": "Fallback active",
+   "fallback_standby_badge": "Primary active",
+   "deterministic_yes": "Yes",
+   "deterministic_no": "No",
+   "section": {
+    "summary": "Overall Health Summary",
+    "routing": "Fallback & Routing Defaults",
+    "adapters": "Adapter Status",
+    "cost": "Provider Cost"
+   },
+   "kpi": {
+    "healthy": "Healthy adapters",
+    "degraded": "Degraded adapters",
+    "down": "Down adapters",
+    "open_circuits": "Open circuits",
+    "active_fallbacks": "Active fallbacks (categories)",
+    "cost_today": "Cost today",
+    "cost_mtd": "Month-to-date cost"
+   },
+   "category": {
+    "stt": "STT (speech→text)",
+    "tts": "TTS (text→speech)",
+    "llm": "LLM (language model)",
+    "telephony": "Telephony"
+   },
+   "health": {
+    "healthy": "Healthy",
+    "degraded": "Degraded",
+    "down": "Down"
+   },
+   "circuit": {
+    "closed": "Closed (normal)",
+    "half_open": "Half-open (probing)",
+    "open": "Open (tripped)"
+   },
+   "role": {
+    "primary": "Primary",
+    "secondary": "Secondary / fallback"
+   },
+   "unit": {
+    "minute": "minute",
+    "kchars": "1k chars",
+    "ktokens": "1k tokens"
+   },
+   "action": {
+    "edit_routing": "Edit Routing"
+   },
+   "routing_caption": "Per-category primary provider, fallback order and deterministic flow backup",
+   "adapters_caption": "Per-adapter category, role, health, circuit breaker, error rate and p95 latency",
+   "cost_caption": "Per-category provider cost (today / month-to-date) and unit cost",
+   "col": {
+    "category": "Category",
+    "health": "Health",
+    "primary": "Primary",
+    "fallback_chain": "Fallback order",
+    "deterministic": "Deterministic flow",
+    "redundancy": "Resilience",
+    "adapter": "Adapter",
+    "role": "Role",
+    "circuit": "Circuit",
+    "error_rate": "Error rate",
+    "latency": "p95 latency",
+    "region": "Region",
+    "cost_today": "Today",
+    "cost_mtd": "Month-to-date",
+    "unit_cost": "Unit cost",
+    "actions": "Actions"
+   }
   }
  }
 }

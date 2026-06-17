@@ -1,0 +1,13 @@
+{
+  "$comment": "İllüstratif P-04 snapshot — hiç adapter/kategori tanımlı değil (boş durum). Adapter tablosu EmptyState render eder; circuit/fallback/dayanıklılık riski yok, maliyet 0.",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "categories": [],
+  "adapters": [],
+  "$expect": {
+    "count_by_health": { "healthy": 0, "degraded": 0, "down": 0 },
+    "open_circuits": 0,
+    "active_fallbacks": 0,
+    "redundancy_risks": [],
+    "cost": { "today": 0, "mtd": 0 }
+  }
+}

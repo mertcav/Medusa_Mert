@@ -1,0 +1,56 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.2.4",
+  "screen": "P-04",
+  "title": "Sağlayıcı & Entegrasyon Sağlığı",
+  "plane": "platform_control_plane",
+  "tier": "L0",
+  "source": ["BRD §17.3", "BRD §17.6 (RBAC)", "BRD §17.7 (altın kural)", "BRD §19 (≥2 sağlayıcı + fallback)", "SAD §8.1 (Adapter SPI health/meter)", "SAD §8.2 (circuit breaker)", "SAD §8.3 (fallback/routing)", "SAD §14.4.1", "SAD §17 (provider error/latency/cost)", "FR-IAM-008", "FR-STT-008", "FR-TTS-008/009", "FR-LLM-010", "ADR-002"],
+  "rbac": {
+    "platform_owner": "manage",
+    "platform_sre": "manage",
+    "platform_billing": "view",
+    "permission_keys": ["provider:health:read", "provider:routing:manage"],
+    "note": "BRD §17.6: P-04 platform_owner=Yönet + platform_sre=Yönet + platform_billing=Görüntüle. UI yalnız görsel kapı; nihai yetki + yönlendirme/fallback zorlaması backend adapter SPI'da (12.2.x). Rol→permission kararı bu katmanda YOK (A8)."
+  },
+  "content_brd_17_3": [
+    "STT/TTS/LLM/telekom adapter durumu",
+    "fallback/routing varsayılanları",
+    "sağlayıcı maliyeti"
+  ],
+  "invariants": {
+    "S1": "P-04 ekran sayfası mevcut + data-screen=\"P-04\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/platform/providers) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.p04.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK iş-içeriği/son-müşteri PII taşımaz (FORBIDDEN_PII_KEYS) + assertNoPii çağrılır (ALTIN KURAL, BRD §17.7).",
+    "S5": "BRD §17.3 içerik öğeleri (STT/TTS/LLM/telekom adapter durumu + fallback/routing varsayılanı + sağlayıcı maliyeti) i18n anahtarlarıyla karşılanır.",
+    "S6": "screen.p04.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (healthTone/circuitTone/errorRateTone/rollupHealth/categoryHealth/redundancyOk/redundancyRisks/isFallbackActive/activeFallbackCount/openCircuitCount/countByHealth/aggregateCost) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002): veri seam SOMUT sağlayıcı markası bağlamaz (adapter adları nötr); sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "manage_only_note", "backend_authz_note", "as_of",
+    "edit_routing_action", "no_adapters", "error_rate_value", "latency_value", "unit_cost_value",
+    "redundancy_alert", "no_redundancy_risk", "fallback_active_badge", "fallback_standby_badge",
+    "deterministic_yes", "deterministic_no",
+    "section.summary", "section.routing", "section.adapters", "section.cost",
+    "kpi.healthy", "kpi.degraded", "kpi.down", "kpi.open_circuits", "kpi.active_fallbacks", "kpi.cost_today", "kpi.cost_mtd",
+    "category.stt", "category.tts", "category.llm", "category.telephony",
+    "health.healthy", "health.degraded", "health.down",
+    "circuit.closed", "circuit.half_open", "circuit.open",
+    "role.primary", "role.secondary",
+    "unit.minute", "unit.kchars", "unit.ktokens",
+    "action.edit_routing",
+    "routing_caption", "adapters_caption", "cost_caption",
+    "col.category", "col.health", "col.primary", "col.fallback_chain", "col.deterministic", "col.redundancy",
+    "col.adapter", "col.role", "col.circuit", "col.error_rate", "col.latency", "col.region",
+    "col.cost_today", "col.cost_mtd", "col.unit_cost", "col.actions"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "error_rate_value": ["pct"],
+    "latency_value": ["ms"],
+    "unit_cost_value": ["cost", "unit"],
+    "redundancy_alert": ["count"]
+  }
+}

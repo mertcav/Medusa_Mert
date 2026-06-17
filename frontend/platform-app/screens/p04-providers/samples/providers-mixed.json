@@ -1,0 +1,28 @@
+{
+  "$comment": "İllüstratif P-04 snapshot — karışık adapter sağlık/circuit/fallback durumları (yer tutucu seam ile aynı). ALTIN KURAL: yalnız sağlayıcı/adapter sağlık+yönlendirme+maliyet metadatası (iş-içeriği/son-müşteri PII YOK). VENDOR-NÖTR adlar. llm-a down+open → llm fallback aktif; tts-a degraded+half_open (down değil) → fallback beklemede; her kategori ≥2 çalışır sağlayıcı → dayanıklılık riski yok (BRD §19).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "categories": [
+    { "category": "telephony", "primaryId": "telephony-a", "fallbackOrder": ["telephony-b"], "deterministicFallback": false, "cost": { "today": 412.5, "mtd": 8920.0, "unit": "minute", "unitCost": 0.011 } },
+    { "category": "stt", "primaryId": "stt-a", "fallbackOrder": ["stt-b"], "deterministicFallback": false, "cost": { "today": 286.2, "mtd": 6140.0, "unit": "minute", "unitCost": 0.0072 } },
+    { "category": "tts", "primaryId": "tts-a", "fallbackOrder": ["tts-b"], "deterministicFallback": false, "cost": { "today": 318.9, "mtd": 6730.0, "unit": "kchars", "unitCost": 0.015 } },
+    { "category": "llm", "primaryId": "llm-a", "fallbackOrder": ["llm-b", "llm-small"], "deterministicFallback": true, "cost": { "today": 524.1, "mtd": 11240.0, "unit": "ktokens", "unitCost": 0.0026 } }
+  ],
+  "adapters": [
+    { "id": "telephony-a", "category": "telephony", "role": "primary", "name": "Telekom Sağlayıcı A", "region": "eu", "health": "healthy", "circuit": "closed", "errorRatePct": 0.2, "p95LatencyMs": 48 },
+    { "id": "telephony-b", "category": "telephony", "role": "secondary", "name": "Telekom Sağlayıcı B", "region": "eu", "health": "healthy", "circuit": "closed", "errorRatePct": 0.4, "p95LatencyMs": 61 },
+    { "id": "stt-a", "category": "stt", "role": "primary", "name": "STT Sağlayıcı A", "region": "eu", "health": "healthy", "circuit": "closed", "errorRatePct": 0.6, "p95LatencyMs": 180 },
+    { "id": "stt-b", "category": "stt", "role": "secondary", "name": "STT Sağlayıcı B", "region": "uk", "health": "healthy", "circuit": "closed", "errorRatePct": 0.9, "p95LatencyMs": 210 },
+    { "id": "tts-a", "category": "tts", "role": "primary", "name": "TTS Sağlayıcı A", "region": "eu", "health": "degraded", "circuit": "half_open", "errorRatePct": 2.4, "p95LatencyMs": 240 },
+    { "id": "tts-b", "category": "tts", "role": "secondary", "name": "TTS Sağlayıcı B", "region": "eu", "health": "healthy", "circuit": "closed", "errorRatePct": 0.5, "p95LatencyMs": 190 },
+    { "id": "llm-a", "category": "llm", "role": "primary", "name": "LLM Sağlayıcı A (büyük)", "region": "eu", "health": "down", "circuit": "open", "errorRatePct": 14.8, "p95LatencyMs": 980 },
+    { "id": "llm-b", "category": "llm", "role": "secondary", "name": "LLM Sağlayıcı B (büyük)", "region": "eu", "health": "healthy", "circuit": "closed", "errorRatePct": 0.7, "p95LatencyMs": 360 },
+    { "id": "llm-small", "category": "llm", "role": "secondary", "name": "LLM Sağlayıcı C (küçük/hızlı)", "region": "eu", "health": "healthy", "circuit": "closed", "errorRatePct": 0.3, "p95LatencyMs": 150 }
+  ],
+  "$expect": {
+    "count_by_health": { "healthy": 7, "degraded": 1, "down": 1 },
+    "open_circuits": 1,
+    "active_fallbacks": 1,
+    "redundancy_risks": [],
+    "cost": { "today": 1541.7, "mtd": 33030.0 }
+  }
+}

@@ -273,6 +273,88 @@
     "scale_to_zero": "Scale-to-zero",
     "actions": "Aksiyonlar"
    }
+  },
+  "p04": {
+   "title": "Sağlayıcı & Entegrasyon Sağlığı",
+   "subtitle": "STT/TTS/LLM/telekom adapter sağlık durumu, fallback/yönlendirme varsayılanları ve sağlayıcı maliyeti — yalnız sağlayıcı/adapter metadatası.",
+   "manage_only_note": "Bu ekran platform_owner ve platform_sre tarafından yönetilir; platform_billing yalnız görüntüler. Yalnız sağlayıcı/adapter sağlık ve yönlendirme metadatası gösterilir; tenant iş içeriği (çağrı kaydı, transkript, müşteri verisi) görüntülenmez.",
+   "backend_authz_note": "Yönlendirme ve fallback varsayılanı değişiklikleri yalnız görsel kapıdır; nihai yetki ve zorlama backend'de adapter SPI üzerinden yapılır (provider:routing:manage).",
+   "as_of": "Veri zamanı: {time}",
+   "edit_routing_action": "Yönlendirme Varsayılanını Düzenle",
+   "no_adapters": "Tanımlı adapter yok",
+   "error_rate_value": "%{pct}",
+   "latency_value": "{ms} ms",
+   "unit_cost_value": "{cost} / {unit}",
+   "redundancy_alert": "{count} kategori ≥2 çalışır sağlayıcı kuralını karşılamıyor — fallback dayanıklılığı riskte (BRD §19).",
+   "no_redundancy_risk": "Tüm kategoriler ≥2 çalışır sağlayıcı ile dayanıklı (BRD §19).",
+   "fallback_active_badge": "Fallback aktif",
+   "fallback_standby_badge": "Birincil aktif",
+   "deterministic_yes": "Var",
+   "deterministic_no": "Yok",
+   "section": {
+    "summary": "Genel Sağlık Özeti",
+    "routing": "Fallback & Yönlendirme Varsayılanları",
+    "adapters": "Adapter Durumu",
+    "cost": "Sağlayıcı Maliyeti"
+   },
+   "kpi": {
+    "healthy": "Sağlıklı adapter",
+    "degraded": "Kısmi (degraded) adapter",
+    "down": "Hizmet dışı adapter",
+    "open_circuits": "Açık circuit",
+    "active_fallbacks": "Aktif fallback (kategori)",
+    "cost_today": "Bugünkü maliyet",
+    "cost_mtd": "Ay-başından bugüne maliyet"
+   },
+   "category": {
+    "stt": "STT (konuşma→metin)",
+    "tts": "TTS (metin→konuşma)",
+    "llm": "LLM (dil modeli)",
+    "telephony": "Telekom"
+   },
+   "health": {
+    "healthy": "Sağlıklı",
+    "degraded": "Kısmi",
+    "down": "Hizmet dışı"
+   },
+   "circuit": {
+    "closed": "Kapalı (normal)",
+    "half_open": "Yarı-açık (deneme)",
+    "open": "Açık (kesik)"
+   },
+   "role": {
+    "primary": "Birincil",
+    "secondary": "İkincil / fallback"
+   },
+   "unit": {
+    "minute": "dakika",
+    "kchars": "1k karakter",
+    "ktokens": "1k token"
+   },
+   "action": {
+    "edit_routing": "Yönlendirmeyi Düzenle"
+   },
+   "routing_caption": "Kategori başına birincil sağlayıcı, fallback sırası ve deterministic flow yedeği",
+   "adapters_caption": "Adapter başına kategori, rol, sağlık, circuit breaker, hata oranı ve p95 gecikme",
+   "cost_caption": "Kategori başına sağlayıcı maliyeti (bugün / ay-başından bugüne) ve birim maliyet",
+   "col": {
+    "category": "Kategori",
+    "health": "Sağlık",
+    "primary": "Birincil",
+    "fallback_chain": "Fallback sırası",
+    "deterministic": "Deterministic flow",
+    "redundancy": "Dayanıklılık",
+    "adapter": "Adapter",
+    "role": "Rol",
+    "circuit": "Circuit",
+    "error_rate": "Hata oranı",
+    "latency": "p95 gecikme",
+    "region": "Bölge",
+    "cost_today": "Bugün",
+    "cost_mtd": "Ay-başından bugüne",
+    "unit_cost": "Birim maliyet",
+    "actions": "Aksiyonlar"
+   }
   }
  }
 }
