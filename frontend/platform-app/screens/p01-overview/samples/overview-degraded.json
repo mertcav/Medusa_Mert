@@ -1,0 +1,26 @@
+{
+  "$comment": "İllüstratif P-01 snapshot — bir bölge degraded + aktif alarmlar. Genel sağlık worst-of=degraded. ALTIN KURAL: yalnız metrik.",
+  "generatedAt": "2026-06-17T14:30:00.000Z",
+  "kpis": {
+    "concurrentCalls": 8200,
+    "callsPerSecond": 96,
+    "capacityConcurrent": 10000,
+    "cpuUtilizationPct": 81.0,
+    "memoryUtilizationPct": 76.0,
+    "workerDensity": 305,
+    "memPerSessionMb": 14.1,
+    "activeTenants": 39
+  },
+  "regions": [
+    { "region": "eu", "health": "healthy", "concurrentCalls": 3600, "utilizationPct": 74.0 },
+    { "region": "uk", "health": "healthy", "concurrentCalls": 2100, "utilizationPct": 70.0 },
+    { "region": "na", "health": "degraded", "concurrentCalls": 1900, "utilizationPct": 88.0 },
+    { "region": "me", "health": "healthy", "concurrentCalls": 600, "utilizationPct": 52.0 }
+  ],
+  "cost": { "currency": "USD", "platformCostToday": 6100.0, "platformCostMtd": 88200.0, "costPerMinute": 0.041 },
+  "alerts": [
+    { "id": "AL-2001", "key": "screen.p01.alert_catalog.region_capacity", "severity": "warning", "sinceMinutes": 12 },
+    { "id": "AL-2002", "key": "screen.p01.alert_catalog.provider_error", "severity": "critical", "sinceMinutes": 4 }
+  ],
+  "$expect": { "overall": "degraded", "headroom": 1800 }
+}

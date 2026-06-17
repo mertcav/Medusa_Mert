@@ -1,0 +1,148 @@
+{
+  "$comment": "WBS 13.1.4 — PII REDACTION/MASKELEME (PANEL GÖRÜNTÜLEMEDE). 13.1 'Ortak frontend altyapısı' alt-bloğunun DÖRDÜNCÜ modülü; F1-Must. 13.1.1 iki ayrı app + route group İSKELETİNİ, 13.1.2 çalışma-anı middleware KAPISINI, 13.1.3 tasarım sistemi + i18n katmanını kurdu; bu modül her iki app'e ORTAK bir SUNUM-KATMANI (view-time) PII maskeleme çekirdeği SAHİPLENİR. BRD §17.7: 'PII redaction ve kart/OTP gizleme kuralları (FR-REC-004/005) panel görüntülemelerinde de uygulanır.' DEFENSE-IN-DEPTH: birincil redaction backend Analytics Plane'de async yapılır (SAD §19.2); panel veriyi GÖRÜNTÜLERKEN ikinci kez maskeler — yetkisiz/varsayılan görünümde ham PII ekrana ASLA düşmez. PROHIBITED sınıf (kart PAN/CVV/OTP/parola — FR-REC-005) panelde tam değer ASLA gösterir; reveal flag'inden BAĞIMSIZ (reveal-immune); kart için PCI ödünü yalnız son 4 hane. RESTRICTED sınıf (e-posta/telefon/IBAN/ulusal kimlik — FR-REC-004) varsayılan maskeli; yalnız ARKA UÇ yetkilendirdiğinde (canReveal=true) + kullanıcı açıkça reveal=true istediğinde ham. TEK kaynak doğruluk: config/pii-policy.json; her app lib/pii/policy.json olarak BİREBİR vendor eder, probe canonical-hash ile drift'i FAIL eder (ADR-011 blast-radius: cross-app runtime import YOK — A7; maskeleme presentasyonel/saf, senkron probe ile garanti). ÇEKİRDEK İLKE (A8 / SAD §14.4.1): maskeleme SAF/DETERMİNİSTİK; iş mantığı/authz KARARI YOK — frontend permission'a KARAR VERMEZ, canReveal yalnız backend flag'i honor edilir (rol→permission 12.2.x + reveal audit FR-REC-009 backend). Bu modül STATİK (on-disk canonical+vendored invariant) + DAVRANIŞSAL (saf çekirdek maskField+scanAndMask + leak/idempotent/reveal-gating senaryoları) kapı. KAYNAK DOĞRULUK; çelişkide BRD §17.7 / FR-REC-004/005 / SAD §14.4.1 esastır.",
+  "version": "1.0",
+  "wbs": "13.1.4",
+  "phase": "F1",
+  "priority": "Must",
+  "trace": {
+    "fr": ["FR-REC-004", "FR-REC-005", "FR-REC-009", "FR-IAM-008", "FR-TST-008"],
+    "srs": ["SR-REC-004", "SR-REC-005", "SR-REC-009"],
+    "rtm": ["TC-REC-004", "TC-REC-005", "TC-REC-009"],
+    "brd": [
+      "§17.7 (Erişim/İzolasyon/Görünürlük — 'PII redaction ve kart/OTP gizleme kuralları (FR-REC-004/005) panel görüntülemelerinde de uygulanır')",
+      "§9.14 (Kayıt/Transkript — FR-REC-004 PII redaction, FR-REC-005 kart/parola/OTP çıkarılır)",
+      "§17 (üç katmanlı panel L0/L1/L2 — L0 iş içeriğini/PII'yi varsayılan görmez, FR-IAM-008)"
+    ],
+    "sad": [
+      "§14.4.1 (Frontend — Next.js App Router; UI yalnız görsel kapı; authz YOK)",
+      "§19.2 (Veri Koruma & PII — birincil redaction pipeline Analytics Plane async; bu modül view-time defense-in-depth)",
+      "§14.4 (üç katmanlı break-glass — Tier B reveal backend-yetkili + maker-checker + audit; canReveal flag kaynağı)"
+    ],
+    "adr": [
+      "ADR-002 (vendor-neutral — maskeleme/PII SaaS bağlanmaz; saf string)",
+      "ADR-011 (İki düzlemli panel dağıtımı — maskeleme her app'te vendored; cross-app runtime import yok, A7)"
+    ],
+    "consumes": [
+      "13.1.1 iki-app + route group iskeleti (frontend/platform-app + frontend/tenant-app; lib/pii her app'te)",
+      "13.1.3 tasarım sistemi + i18n (.rmc-visually-hidden a11y sınıfı + redaksiyon etiketi t() çağrı yerinde)",
+      "config/pii-policy.json (frozen — kategori/sınıf/strateji/scan deseni)"
+    ],
+    "consumed_by": [
+      "13.2.x/13.3.x/13.4.x ekran implementasyonları (transkript/çağrı/müşteri görünümlerinde <Masked>/<MaskedTranscript>)",
+      "12.3.x break-glass (RESİPROKAL — Tier B reveal token → canReveal=true; frontend honor eder, KARAR backend)",
+      "A-02 Canlı Çağrılar / A-09 Çağrı Kaydı / transkript ekranları (view-time maskeleme tüketicisi)"
+    ]
+  },
+
+  "placement": {
+    "$comment": "PII maskeleme, panel frontend'inin SUNUM-KATMANI defense-in-depth filtresidir — birincil backend redaction'ı (SAD §19.2) REPLACE ETMEZ, ona EK katman. Güvenlik-yardımcı/presentasyonel: authz KARARI YOK (A8); canReveal yalnız backend flag'i. Saf maskeleme çekirdeği (maskField/scanAndMask) deterministik → Python aynası test edilebilir.",
+    "plane": "frontend sunum katmanı (view-time PII maskeleme; runtime authz KARARINDAN bağımsız — flag tüketir)",
+    "owns": "(1) PII KATEGORİ + SINIF modeli (prohibited: kart/CVV/OTP/parola — reveal-immune, FR-REC-005; restricted: e-posta/telefon/IBAN/ulusal kimlik — reveal-gated, FR-REC-004) + (2) ALAN maskeleme stratejileri (keep_last son-N / redact_full / mask_email — leak-free) + (3) SERBEST-METİN (transkript) tarama (scan_order desenli, idempotent) + (4) presentasyonel komponentler (<Masked>/<MaskedTranscript> — locale-agnostik, a11y) + (5) canonical→vendored parity (policy hash) + (6) sır/PII yok + vendor-neutral",
+    "delegates": "birincil redaction (kaynak veriden kart/OTP çıkarma) → backend Analytics Plane (SAD §19.2); rol→permission + reveal yetkisi (canReveal kaynağı) + reveal audit → 12.2.x/12.3.x backend (FR-REC-009); ekran içi yerleşim/içerik → 13.2/13.3/13.4; client interaktivite (reveal butonu→break-glass çağrısı) → 13.2+ client island; gerçek PII NER/ML redaction → backend pipeline (bu katman desen-tabanlı view-time)",
+    "deterministic": true,
+    "fail_closed": true,
+    "default": "MASK (belirsiz/bilinmeyen kategori → maskele)",
+    "decision_at": "build/validate-time (canonical+vendored statik) + render-time (maskField/scanAndMask saf çekirdek)",
+    "trace": "BRD §17.7, FR-REC-004/005, SAD §14.4.1/§19.2, ADR-002/ADR-011"
+  },
+
+  "source_of_truth": {
+    "$comment": "TEK kaynak doğruluk dosyası. Her app BİREBİR kopyasını vendor eder; probe canonical-hash ile eşitliği zorlar. Hiç sır/ham-PII DEĞERİ yok (yalnız kategori/strateji/regex sabitleri).",
+    "policy": "config/pii-policy.json"
+  },
+
+  "behavior_contract": {
+    "$comment": "Saf maskeleme çekirdeği sözleşmesi (lib/pii/mask.ts). Python aynası (pii_masking_probe.py) birebir aynı semantiği uygular.",
+    "maskField": "maskField(category, raw, {reveal?, canReveal?}) → string  (prohibited → daima maskeli/reveal-immune; restricted → (reveal ∧ canReveal) ham, aksi maskeli)",
+    "scanAndMask": "scanAndMask(text, {reveal?, canReveal?}) → string  (serbest-metin/transkript; scan_order desenli; idempotent)",
+    "strategies": {
+      "keep_last": "son N alfasayısal korunur, gövde maskeli; değer<N → tümü maskeli (leak-safe) (kart son-4 / telefon son-2 / IBAN+kimlik son-4)",
+      "redact_full": "tüm değer redaksiyon token'ı (••••) — hiç hane kalmaz (CVV/OTP/parola)",
+      "mask_email": "yerel kısım ilk harf + '•••' + @alan (alan korunur)"
+    },
+    "classes": {"prohibited": "reveal-immune (FR-REC-005)", "restricted": "reveal-gated (FR-REC-004)"},
+    "authz": "frontend KARAR VERMEZ; canReveal yalnız backend flag'i (A8); reveal erişimi backend audit'lenir (FR-REC-009)"
+  },
+
+  "rules": {
+    "$comment": "ÇEKİRDEK — TAM + DOĞRULANMIŞ PII maskeleme kapısı. Hem STATİK (on-disk canonical+vendored invariant) hem DAVRANIŞSAL (saf çekirdek + leak + idempotent + reveal-gating). Her kural bir P-invariant'a eşlenir.",
+    "list": [
+      {"id": "files_canonical", "invariant": "P1", "outcome": "PASS|FAIL",
+       "rule": "canonical policy (frozen, wbs=13.1.4) + spec mevcut; her app lib/pii/{policy.json, mask.ts, components.tsx} taşır. Eksik → FAIL."},
+      {"id": "policy_parity", "invariant": "P2", "outcome": "PASS|FAIL",
+       "rule": "her app lib/pii/policy.json canonical-hash = config/pii-policy.json hash. Drift → FAIL (tek kaynak doğruluk)."},
+      {"id": "prohibited_class", "invariant": "P3", "outcome": "PASS|FAIL",
+       "rule": "kart/CVV/OTP/parola tanımlı + class=prohibited (FR-REC-005); kart keep_last(4) [PCI son-4], CVV/OTP/parola redact_full [hiç hane]."},
+      {"id": "restricted_class", "invariant": "P4", "outcome": "PASS|FAIL",
+       "rule": "e-posta/telefon/IBAN/ulusal kimlik tanımlı + class=restricted (FR-REC-004)."},
+      {"id": "mask_leakfree", "invariant": "P5", "outcome": "PASS|FAIL",
+       "rule": "her kategori için varsayılan maskeli çıktı '•' içerir + ham≠maskeli; kart PAN gövdesi (son-4 hariç) çıktıda YOK; CVV tamamen redakte. leak=0."},
+      {"id": "prohibited_reveal_immune", "invariant": "P6", "outcome": "PASS|FAIL",
+       "rule": "prohibited kategoriler reveal+canReveal=true OLSA BİLE maskeli (FR-REC-005). reveal_leak=0."},
+      {"id": "restricted_reveal_gated", "invariant": "P7", "outcome": "PASS|FAIL",
+       "rule": "restricted varsayılan + tek-flag maskeli; yalnız (reveal ∧ canReveal) ham (backend-yetkili). gate_violation=0."},
+      {"id": "freetext_scan", "invariant": "P8", "outcome": "PASS|FAIL",
+       "rule": "scanAndMask sentetik transkriptte tüm desenleri (kart/OTP/IBAN/kimlik/e-posta/telefon) maskeler; ham PII sızmaz. scan_leak=0."},
+      {"id": "idempotent", "invariant": "P9", "outcome": "PASS|FAIL",
+       "rule": "mask(mask(x))=mask(x); scan(scan(t))=scan(t). non_idempotent=0."},
+      {"id": "presentational_no_authz", "invariant": "P10", "outcome": "PASS|FAIL",
+       "rule": "mask.ts i18n import ETMEZ (locale-agnostik) + maskField/scanAndMask ihraç eder + canReveal flag honor (KARAR VERMEZ); authz-karar token'ı (hasPermission/checkRole/...) YOK. authz_decision=0."},
+      {"id": "a11y", "invariant": "P11", "outcome": "PASS|FAIL",
+       "rule": "components.tsx mask çekirdeğini kullanır + aria-label (redaksiyon ipucu) + ekran-okuyucu ipucu (.rmc-visually-hidden/VisuallyHidden). a11y_missing=0."},
+      {"id": "no_secret_vendor_neutral", "invariant": "P12", "outcome": "PASS|FAIL",
+       "rule": "app kaynak + canonical ham PII/credential DEĞERİ tutmaz; maskeleme SaaS/kütüphane bağlanmaz (saf string; ADR-002). secret_or_pii=0, vendor_lock=0."}
+    ],
+    "evaluation": "files_then_policy_parity_then_prohibited_class_then_restricted_class_then_leakfree_then_reveal_immune_then_reveal_gated_then_scan_then_idempotent_then_no_authz_then_a11y_then_no_secret",
+    "trace": "BRD §17.7, FR-REC-004/005, SAD §14.4.1"
+  },
+
+  "decision": {
+    "$comment": "Fail-closed maskeleme doğrulama algoritması. Statik: canonical+vendored okunabilir + hash eşit + sınıf modeli doğru. Davranışsal: maskField/scanAndMask leak-free + prohibited reveal-immune + restricted reveal-gated + idempotent + a11y. Belirsizlik/eksik → FAIL; bilinmeyen kategori → MASK (fail-closed).",
+    "algorithm": "dosya okunamaz ⇒ FAIL → policy hash drift ⇒ FAIL → prohibited/restricted sınıf eksik ⇒ FAIL → maskeli çıktı ham sızdırır ⇒ FAIL → prohibited reveal ile sızdırır ⇒ FAIL → restricted tek-flag ile sızdırır ⇒ FAIL → tarama ham bırakır ⇒ FAIL → idempotent değil ⇒ FAIL → mask.ts authz karar verir/i18n import eder ⇒ FAIL → a11y eksik ⇒ FAIL → sır/PII/vendor-lock ⇒ FAIL",
+    "default": "MASK / FAIL",
+    "fail_safe_terminal": "PASS yalnız tüm P1–P12 kapıları 0-ihlal geçerse; aksi halde FAIL",
+    "trace": "SR-REC-004/005, BRD §17.7, SAD §14.4.1"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (probe → çıkış kodu). Tümü 0-ihlal eşikli. Eşikler MÜHENDİSLİK varsayılanı; gerçek deploy F1 canlı CI'da (next build + tsc + e2e maskeleme görünüm testi + birincil backend redaction pipeline entegrasyonu).",
+    "max_policy_drift": 0,
+    "max_mask_leak": 0,
+    "max_reveal_leak": 0,
+    "max_gate_violation": 0,
+    "max_scan_leak": 0,
+    "max_non_idempotent": 0,
+    "max_authz_decision": 0,
+    "max_a11y_missing": 0,
+    "max_secret_or_pii": 0,
+    "max_vendor_lock": 0,
+    "require_terminal": true
+  },
+
+  "observability": {
+    "$comment": "Maskeleme olayları düşük-kardinalite metrik (0.4.7): frontend_pii_masked_total{app,category,class} → maskelenen alan sayısı; frontend_pii_revealed_total{app,category} → backend-yetkili reveal sayısı (audit ile çapraz). HAM PII metrik/log/label'da ASLA (BRD §17.7 / FR-REC-004). category/class düşük kardinalite enum.",
+    "metrics": ["frontend_pii_masked_total", "frontend_pii_revealed_total"],
+    "low_cardinality_labels": ["app", "category", "class"],
+    "forbidden_in_telemetry": ["raw_pii_value", "transcript_text", "card_pan", "otp_code", "tenant_pii"]
+  },
+
+  "invariants": [
+    {"id": "P1", "desc": "Dosya/canonical varlığı: frozen canonical policy (wbs=13.1.4) + spec; her app vendored policy.json + mask.ts + components.tsx. files_missing=0.", "trace": "SAD §14.4.1"},
+    {"id": "P2", "desc": "Politika parity: app lib/pii/policy.json = canonical hash. policy_drift=0.", "trace": "ADR-011, ADR-002"},
+    {"id": "P3", "desc": "Prohibited sınıf: kart/CVV/OTP/parola class=prohibited; kart keep_last(4), diğerleri redact_full. (FR-REC-005)", "trace": "FR-REC-005"},
+    {"id": "P4", "desc": "Restricted sınıf: e-posta/telefon/IBAN/ulusal kimlik class=restricted. (FR-REC-004)", "trace": "FR-REC-004"},
+    {"id": "P5", "desc": "Maskeleme leak-free: varsayılan çıktı maskeli + ham≠maskeli; kart gövdesi (son-4 hariç) yok; CVV tam redakte. mask_leak=0.", "trace": "FR-REC-004/005"},
+    {"id": "P6", "desc": "Prohibited reveal-immune: reveal+canReveal yok sayılır, daima maskeli. reveal_leak=0.", "trace": "FR-REC-005"},
+    {"id": "P7", "desc": "Restricted reveal-gated: yalnız (reveal ∧ canReveal) ham; varsayılan/tek-flag maskeli. gate_violation=0.", "trace": "FR-REC-004, SAD §14.4 (Tier B backend-yetkili reveal)"},
+    {"id": "P8", "desc": "Serbest-metin tarama: scanAndMask transkriptte tüm desenleri maskeler; ham PII sızmaz. scan_leak=0.", "trace": "FR-REC-004 (transkript)"},
+    {"id": "P9", "desc": "Idempotent: mask∘mask=mask; scan∘scan=scan. non_idempotent=0.", "trace": "SAD §14.4.1 (deterministik)"},
+    {"id": "P10", "desc": "Presentasyonel/authz-yok: mask.ts i18n import etmez + maskField/scanAndMask ihraç + canReveal honor (KARAR VERMEZ); authz-karar token'ı yok. authz_decision=0.", "trace": "SAD §14.4.1 (A8), FR-IAM-008"},
+    {"id": "P11", "desc": "A11y: components mask çekirdeğini kullanır + aria-label + ekran-okuyucu ipucu (.rmc-visually-hidden). a11y_missing=0.", "trace": "WCAG 2.1"},
+    {"id": "P12", "desc": "Sır/PII yok + vendor-neutral: app kaynak + canonical ham PII/credential DEĞERİ yok; maskeleme SaaS bağlanmaz (saf string). secret_or_pii=0, vendor_lock=0.", "trace": "BRD §17.7, ADR-002"}
+  ],
+
+  "no_secrets": {
+    "$comment": "Bu spec/config/kaynak HAM içerik, PII (transcript/recording/contact/telefon/kart/OTP/parola/IBAN/kimlik/müşteri ADI DEĞERİ) veya credential (token/parola/anahtar DEĞERİ) TUTMAZ — yalnız KATEGORİ ADI + STRATEJİ + REGEX DESENİ + ENUM + HASH. Probe/samples test vektörleri SENTETİK (ör. 4111 standart TEST kart no — gerçek PAN değil).",
+    "forbids": ["transcript_value", "recording_audio_value", "contact_pii_value", "customer_phone_value", "card_pan_value", "cvv_value", "otp_code_value", "password_value", "iban_value", "national_id_value", "api_key_value", "session_token_value", "raw_value", "pii_value", "credential", "secret"]
+  }
+}

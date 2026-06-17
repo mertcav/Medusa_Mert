@@ -1,0 +1,47 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.2.1",
+  "screen": "P-01",
+  "title": "Platform Genel Bakış",
+  "plane": "platform_control_plane",
+  "tier": "L0",
+  "source": ["BRD §17.3", "BRD §17.2 (RBAC)", "BRD §17.7 (altın kural)", "SAD §14.4.1", "FR-IAM-008"],
+  "rbac": {
+    "platform_owner": "manage",
+    "platform_sre": "view",
+    "platform_billing": "view",
+    "note": "UI yalnız görsel kapı; nihai yetki backend'de (12.2.x). Rol→permission kararı bu katmanda YOK (A8)."
+  },
+  "content_brd_17_3": [
+    "cross-tenant sağlık",
+    "toplam eşzamanlı çağrı",
+    "kaynak kullanımı (CPU/bellek/density)",
+    "platform maliyeti"
+  ],
+  "invariants": {
+    "S1": "P-01 ekran sayfası mevcut + data-screen=\"P-01\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/platform/overview) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.p01.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK PII/iş-içeriği taşımaz (FORBIDDEN_PII_KEYS) + assertNoPii çağrılır (ALTIN KURAL, BRD §17.7).",
+    "S5": "BRD §17.3 dört içerik öğesi (sağlık/eşzamanlılık/kaynak/maliyet) i18n bölüm anahtarlarıyla karşılanır.",
+    "S6": "screen.p01.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (rollupHealth/utilizationPct/headroom/healthTone/severityTone) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002): veri seam belirli SaaS/sağlayıcı bağlamaz; sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "view_only_note", "as_of", "no_alerts", "regions_caption", "alerts_caption",
+    "section.capacity", "section.resources", "section.cost", "section.regions", "section.alerts",
+    "health.overall", "health.healthy", "health.degraded", "health.down",
+    "kpi.concurrent_calls", "kpi.cps", "kpi.capacity", "kpi.headroom", "kpi.cpu", "kpi.memory",
+    "kpi.density", "kpi.density_hint", "kpi.mem_per_session", "kpi.mem_per_session_hint",
+    "kpi.cost_today", "kpi.cost_mtd", "kpi.cost_per_minute", "kpi.active_tenants",
+    "col.region", "col.health", "col.concurrent", "col.utilization", "col.alert", "col.severity", "col.since",
+    "severity.critical", "severity.warning", "severity.info",
+    "alert.since_minutes",
+    "alert_catalog.provider_error", "alert_catalog.region_capacity"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "alert.since_minutes": ["minutes"]
+  }
+}

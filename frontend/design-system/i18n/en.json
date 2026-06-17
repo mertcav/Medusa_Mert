@@ -86,5 +86,66 @@
       "test": "Test",
       "versions": "Versions"
     }
+  },
+  "screen": {
+    "p01": {
+      "title": "Platform Overview",
+      "subtitle": "Cross-tenant platform health, capacity, resource usage and cost — aggregated metrics only.",
+      "view_only_note": "This console shows only platform metric/resource data; tenant business content (call recordings, transcripts, customer data) is not displayed.",
+      "as_of": "As of: {time}",
+      "no_alerts": "No active platform alerts",
+      "regions_caption": "Cross-tenant health and concurrency by region",
+      "alerts_caption": "Active platform alerts (metrics only)",
+      "section": {
+        "capacity": "Concurrency & Capacity",
+        "resources": "Resource Usage",
+        "cost": "Platform Cost",
+        "regions": "Region Health",
+        "alerts": "Active Platform Alerts"
+      },
+      "health": {
+        "overall": "Overall Platform Health",
+        "healthy": "Healthy",
+        "degraded": "Degraded",
+        "down": "Down"
+      },
+      "kpi": {
+        "concurrent_calls": "Total Concurrent Calls",
+        "cps": "Calls Per Second (CPS)",
+        "capacity": "Concurrency Capacity",
+        "headroom": "Free Capacity",
+        "cpu": "CPU Usage",
+        "memory": "Memory Usage",
+        "density": "Worker Density",
+        "density_hint": "sessions/worker (target ≥250)",
+        "mem_per_session": "Memory Per Session",
+        "mem_per_session_hint": "excluding media (target ≤15 MB)",
+        "cost_today": "Cost Today",
+        "cost_mtd": "Month To Date",
+        "cost_per_minute": "Cost Per Minute",
+        "active_tenants": "Active Tenants"
+      },
+      "col": {
+        "region": "Region",
+        "health": "Health",
+        "concurrent": "Concurrent Calls",
+        "utilization": "Utilization",
+        "alert": "Alert",
+        "severity": "Severity",
+        "since": "Duration"
+      },
+      "severity": {
+        "critical": "Critical",
+        "warning": "Warning",
+        "info": "Info"
+      },
+      "alert": {
+        "since_minutes": "{minutes} min ago"
+      },
+      "alert_catalog": {
+        "provider_error": "Provider error rate above threshold",
+        "region_capacity": "Region capacity under high utilization"
+      }
+    }
   }
 }

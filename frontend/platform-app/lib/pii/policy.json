@@ -1,0 +1,88 @@
+{
+  "$comment": "WBS 13.1.4 — PANEL GÖRÜNTÜLEMEDE PII REDACTION/MASKELEME kanonik politikası (TEK kaynak doğruluk). 13.1 'Ortak frontend altyapısı' alt-bloğunun DÖRDÜNCÜ modülü; F1-Must. BRD §17.7: 'PII redaction ve kart/OTP gizleme kuralları (FR-REC-004/005) panel görüntülemelerinde de uygulanır.' Bu politika SUNUM-KATMANI (view-time) defense-in-depth maskelemesidir: birincil redaction backend Analytics Plane'de async yapılır (SAD §19.2); panel veriyi GÖRÜNTÜLERKEN ikinci kez maskeler — yetkisiz/varsayılan görünümde ham PII ekrana ASLA düşmez. Her app (platform-app + tenant-app) bu dosyanın BİREBİR kopyasını lib/pii/policy.json altında vendor eder; probe canonical-hash ile drift'i FAIL eder (ADR-011 blast-radius: çekirdek runtime cross-app import YOK — A7; maskeleme presentasyonel/saf, senkron probe ile garanti). ÇEKİRDEK İLKE (A8 / SAD §14.4.1): maskeleme SAF/DETERMİNİSTİK; iş mantığı/authz KARARI YOK — 'reveal' yalnız ARKA UÇ yetkilendirdiğinde (canReveal=backend) honor edilir, frontend permission'a KARAR VERMEZ. PROHIBITED sınıf (kart/CVV/OTP/parola — FR-REC-005) reveal flag'inden BAĞIMSIZ daima maskelenir (panelde tam değer ASLA). Vendor-neutral (ADR-002): maskeleme kütüphanesi bağlanmaz; saf string. Bu dosya HAM PII/credential DEĞERİ TUTMAZ — yalnız KATEGORİ/STRATEJİ/REGEX SABİTLERİ. KAYNAK DOĞRULUK; çelişkide BRD §17.7 / FR-REC-004/005 / SAD §14.4.1 esastır.",
+  "version": "1.0",
+  "wbs": "13.1.4",
+  "frozen": true,
+  "default_action": "mask",
+  "mask_char": "•",
+  "redact_token": "••••",
+  "$classes": {
+    "prohibited": "FR-REC-005 — kart PAN / CVV / OTP / parola: panelde TAM değer ASLA görünmez; reveal flag'i YOK SAYILIR (reveal-immune). Kart için PCI ödünü: yalnız son 4 hane (PAN'ın geri kalanı maskeli).",
+    "restricted": "FR-REC-004 — e-posta / telefon / IBAN / ulusal kimlik: VARSAYILAN maskeli; yalnız ARKA UÇ yetkilendirdiğinde (canReveal=true) + kullanıcı açıkça reveal=true istediğinde ham gösterilir; erişim audit'lenir (FR-REC-009 — backend)."
+  },
+  "categories": [
+    {
+      "id": "card_pan",
+      "class": "prohibited",
+      "strategy": "keep_last",
+      "keep": 4,
+      "label_key": "pii.card",
+      "scan": {"regex": "(?<!\\d)(?:\\d[ -]?){13,19}(?!\\d)", "target": "match"},
+      "note": "FR-REC-005 / PCI DSS — yalnız son 4 hane; PAN gövdesi maskeli. Tam PAN panelde ASLA."
+    },
+    {
+      "id": "cvv",
+      "class": "prohibited",
+      "strategy": "redact_full",
+      "keep": 0,
+      "label_key": "pii.cvv",
+      "note": "FR-REC-005 — kart doğrulama kodu tamamen gizlenir (hiç hane kalmaz)."
+    },
+    {
+      "id": "otp",
+      "class": "prohibited",
+      "strategy": "redact_full",
+      "keep": 0,
+      "label_key": "pii.otp",
+      "scan": {"regex": "(?:otp|kod|code|şifre|sifre|parola|password|pin)\\D{0,8}(\\d{4,8})", "flags": "i", "target": "group1"},
+      "note": "FR-REC-005 — tek-kullanımlık kod; bağlam anahtar-kelimesi sonrası 4-8 hane tamamen gizlenir."
+    },
+    {
+      "id": "password",
+      "class": "prohibited",
+      "strategy": "redact_full",
+      "keep": 0,
+      "label_key": "pii.password",
+      "note": "FR-REC-005 — parola tamamen gizlenir."
+    },
+    {
+      "id": "email",
+      "class": "restricted",
+      "strategy": "mask_email",
+      "keep": 1,
+      "label_key": "pii.email",
+      "scan": {"regex": "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "target": "match"},
+      "note": "FR-REC-004 — yerel kısım ilk harf hariç maskeli; alan adı korunur."
+    },
+    {
+      "id": "iban",
+      "class": "restricted",
+      "strategy": "keep_last",
+      "keep": 4,
+      "label_key": "pii.iban",
+      "scan": {"regex": "[A-Z]{2}\\d{2}[A-Z0-9]{10,30}", "target": "match"},
+      "note": "FR-REC-004 — yalnız son 4 alfasayısal korunur."
+    },
+    {
+      "id": "national_id",
+      "class": "restricted",
+      "strategy": "keep_last",
+      "keep": 4,
+      "label_key": "pii.national_id",
+      "scan": {"regex": "(?<!\\d)[1-9]\\d{10}(?!\\d)", "target": "match"},
+      "note": "FR-REC-004 — ör. TR TC Kimlik No (11 hane); yalnız son 4 hane korunur."
+    },
+    {
+      "id": "phone",
+      "class": "restricted",
+      "strategy": "keep_last",
+      "keep": 2,
+      "label_key": "pii.phone",
+      "scan": {"regex": "\\+?\\d[\\d ()-]{7,}\\d", "target": "match"},
+      "note": "FR-REC-004 — yalnız son 2 hane korunur (geri arama eşleştirme ipucu); gövde maskeli."
+    }
+  ],
+  "scan_order": ["card_pan", "otp", "iban", "national_id", "email", "phone"],
+  "$scan_order_note": "Serbest metin (transkript) taramasında kategori sırası ÖNEMLİDİR: daha-özgül/uzun desenler (kart 13-19 hane) önce; maskelenen haneler '•' olduğundan sonraki desenler yeniden eşleşmez (idempotent). prohibited (kart/OTP) önce taranır.",
+  "trace": "BRD §17.7, FR-REC-004, FR-REC-005, SAD §14.4.1, SAD §19.2"
+}

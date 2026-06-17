@@ -86,5 +86,66 @@
       "test": "Test",
       "versions": "Sürümler"
     }
+  },
+  "screen": {
+    "p01": {
+      "title": "Platform Genel Bakış",
+      "subtitle": "Cross-tenant platform sağlığı, kapasite, kaynak kullanımı ve maliyet — yalnız toplulaştırılmış metrik.",
+      "view_only_note": "Bu konsol yalnız platform metrik/kaynak verisini gösterir; tenant iş içeriği (çağrı kaydı, transkript, müşteri verisi) görüntülenmez.",
+      "as_of": "Veri zamanı: {time}",
+      "no_alerts": "Aktif platform alarmı yok",
+      "regions_caption": "Bölge bazında cross-tenant sağlık ve eşzamanlılık",
+      "alerts_caption": "Aktif platform alarmları (yalnız metrik)",
+      "section": {
+        "capacity": "Eşzamanlılık & Kapasite",
+        "resources": "Kaynak Kullanımı",
+        "cost": "Platform Maliyeti",
+        "regions": "Bölge Sağlığı",
+        "alerts": "Aktif Platform Alarmları"
+      },
+      "health": {
+        "overall": "Genel Platform Sağlığı",
+        "healthy": "Sağlıklı",
+        "degraded": "Bozulmuş",
+        "down": "Kesinti"
+      },
+      "kpi": {
+        "concurrent_calls": "Toplam Eşzamanlı Çağrı",
+        "cps": "Saniyedeki Çağrı (CPS)",
+        "capacity": "Eşzamanlılık Kapasitesi",
+        "headroom": "Boş Kapasite",
+        "cpu": "CPU Kullanımı",
+        "memory": "Bellek Kullanımı",
+        "density": "Worker Yoğunluğu",
+        "density_hint": "oturum/worker (hedef ≥250)",
+        "mem_per_session": "Oturum Başına Bellek",
+        "mem_per_session_hint": "medya hariç (hedef ≤15 MB)",
+        "cost_today": "Bugünkü Maliyet",
+        "cost_mtd": "Ay Başından Bu Yana",
+        "cost_per_minute": "Dakika Başına Maliyet",
+        "active_tenants": "Aktif Tenant"
+      },
+      "col": {
+        "region": "Bölge",
+        "health": "Sağlık",
+        "concurrent": "Eşzamanlı Çağrı",
+        "utilization": "Kullanım",
+        "alert": "Alarm",
+        "severity": "Önem",
+        "since": "Süre"
+      },
+      "severity": {
+        "critical": "Kritik",
+        "warning": "Uyarı",
+        "info": "Bilgi"
+      },
+      "alert": {
+        "since_minutes": "{minutes} dk önce"
+      },
+      "alert_catalog": {
+        "provider_error": "Sağlayıcı hata oranı eşik üstünde",
+        "region_capacity": "Bölge kapasitesi yüksek kullanımda"
+      }
+    }
   }
 }

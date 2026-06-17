@@ -1,0 +1,23 @@
+{
+  "$comment": "İllüstratif P-01 snapshot — tüm bölgeler sağlıklı, alarm yok. ALTIN KURAL: yalnız toplulaştırılmış metrik (PII/iş-içeriği YOK).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "kpis": {
+    "concurrentCalls": 4100,
+    "callsPerSecond": 52,
+    "capacityConcurrent": 10000,
+    "cpuUtilizationPct": 48.0,
+    "memoryUtilizationPct": 44.0,
+    "workerDensity": 510,
+    "memPerSessionMb": 11.2,
+    "activeTenants": 31
+  },
+  "regions": [
+    { "region": "eu", "health": "healthy", "concurrentCalls": 2100, "utilizationPct": 43.0 },
+    { "region": "uk", "health": "healthy", "concurrentCalls": 1300, "utilizationPct": 41.0 },
+    { "region": "na", "health": "healthy", "concurrentCalls": 500, "utilizationPct": 22.0 },
+    { "region": "me", "health": "healthy", "concurrentCalls": 200, "utilizationPct": 18.0 }
+  ],
+  "cost": { "currency": "USD", "platformCostToday": 3200.0, "platformCostMtd": 50100.0, "costPerMinute": 0.034 },
+  "alerts": [],
+  "$expect": { "overall": "healthy", "headroom": 5900 }
+}
