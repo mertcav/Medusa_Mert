@@ -1,0 +1,16 @@
+{
+  "$comment": "İllüstratif P-02 snapshot — karışık yaşam döngüsü durumları. ALTIN KURAL: yalnız tenant kayıt/kaynak metadatası (iş-içeriği/son-müşteri PII YOK).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "tenants": [
+    { "id": "tn_a", "name": "Acme Finans A.Ş.", "plan": "enterprise", "status": "active", "region": "eu", "createdAt": "2025-11-02T10:00:00.000Z", "activeUsers": 184 },
+    { "id": "tn_b", "name": "Globex Telekom", "plan": "dedicated", "status": "active", "region": "uk", "createdAt": "2025-09-14T08:30:00.000Z", "activeUsers": 412 },
+    { "id": "tn_c", "name": "Initech Sigorta", "plan": "growth", "status": "suspended", "region": "eu", "createdAt": "2026-01-21T13:15:00.000Z", "activeUsers": 47 },
+    { "id": "tn_d", "name": "Umbrella Sağlık", "plan": "enterprise", "status": "provisioning", "region": "na", "createdAt": "2026-06-16T16:45:00.000Z", "activeUsers": 0, "provisioningStep": 3, "provisioningTotalSteps": 6 },
+    { "id": "tn_e", "name": "Soylent Lojistik", "plan": "growth", "status": "deprovisioning", "region": "eu", "createdAt": "2024-12-03T09:00:00.000Z", "activeUsers": 12, "provisioningStep": 2, "provisioningTotalSteps": 4 },
+    { "id": "tn_f", "name": "Pied Piper", "plan": "starter", "status": "deleted", "region": "na", "createdAt": "2024-05-10T11:20:00.000Z", "activeUsers": 0 }
+  ],
+  "$expect": {
+    "total": 6,
+    "counts": { "provisioning": 1, "active": 2, "suspended": 1, "deprovisioning": 1, "deleted": 1 }
+  }
+}

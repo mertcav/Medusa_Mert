@@ -1,0 +1,9 @@
+{
+  "$comment": "İllüstratif P-02 snapshot — hiç tenant yok (boş durum). EmptyState render edilir.",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "tenants": [],
+  "$expect": {
+    "total": 0,
+    "counts": { "provisioning": 0, "active": 0, "suspended": 0, "deprovisioning": 0, "deleted": 0 }
+  }
+}

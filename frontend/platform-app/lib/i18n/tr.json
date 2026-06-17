@@ -146,6 +146,61 @@
         "provider_error": "Sağlayıcı hata oranı eşik üstünde",
         "region_capacity": "Bölge kapasitesi yüksek kullanımda"
       }
+    },
+    "p02": {
+      "title": "Tenant Yönetimi & Provisioning",
+      "subtitle": "Tenant oluşturma/askıya alma/silme, plan atama ve yaşam döngüsü durumu — yalnız tenant kayıt/kaynak metadatası.",
+      "manage_only_note": "Bu ekran yalnız platform_owner tarafından yönetilir (platform_sre/platform_billing erişimi yok). Yalnız tenant kayıt/kaynak metadatası gösterilir; tenant iş içeriği (çağrı kaydı, transkript, müşteri verisi) görüntülenmez.",
+      "backend_authz_note": "Provisioning aksiyonları yalnız görsel kapıdır; oluşturma, askıya alma, silme ve plan atama nihai yetki ve durum geçişi backend'de zorlanır.",
+      "as_of": "Veri zamanı: {time}",
+      "create_action": "Yeni Tenant Oluştur",
+      "no_tenants": "Kayıtlı tenant yok",
+      "no_provisioning": "Süreçte tenant yok",
+      "no_actions": "—",
+      "directory_caption": "Tenant dizini — plan, bölge, durum ve atanan kaynak (kullanıcı sayısı)",
+      "provisioning_caption": "Provisioning/deprovisioning sürecindeki tenant'lar ve adım ilerlemesi",
+      "progress_step": "{step}/{total} adım",
+      "section": {
+        "summary": "Özet",
+        "provisioning": "Süreçteki Provisioning",
+        "directory": "Tenant Dizini"
+      },
+      "kpi": {
+        "total": "Toplam Tenant",
+        "active": "Aktif",
+        "suspended": "Askıya Alınmış",
+        "provisioning": "Provisioning'de"
+      },
+      "status": {
+        "active": "Aktif",
+        "suspended": "Askıya Alınmış",
+        "provisioning": "Provisioning",
+        "deprovisioning": "Sonlandırılıyor",
+        "deleted": "Silindi"
+      },
+      "plan": {
+        "starter": "Başlangıç",
+        "growth": "Büyüme",
+        "enterprise": "Kurumsal",
+        "dedicated": "Ayrılmış"
+      },
+      "action": {
+        "create": "Oluştur",
+        "suspend": "Askıya Al",
+        "resume": "Devam Ettir",
+        "assign_plan": "Plan Ata",
+        "delete": "Sil"
+      },
+      "col": {
+        "tenant": "Tenant",
+        "plan": "Plan",
+        "region": "Bölge",
+        "status": "Durum",
+        "created": "Oluşturma",
+        "users": "Kullanıcı",
+        "actions": "Aksiyonlar",
+        "progress": "İlerleme"
+      }
     }
   }
 }

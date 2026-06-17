@@ -146,6 +146,61 @@
         "provider_error": "Provider error rate above threshold",
         "region_capacity": "Region capacity under high utilization"
       }
+    },
+    "p02": {
+      "title": "Tenant Management & Provisioning",
+      "subtitle": "Tenant create/suspend/delete, plan assignment and lifecycle status — tenant registry/resource metadata only.",
+      "manage_only_note": "This screen is managed only by platform_owner (platform_sre/platform_billing have no access). Only tenant registry/resource metadata is shown; tenant business content (call recordings, transcripts, customer data) is not displayed.",
+      "backend_authz_note": "Provisioning actions are a visual gate only; create, suspend, delete and plan assignment have final authorization and state transition enforced in the backend.",
+      "as_of": "As of: {time}",
+      "create_action": "Create New Tenant",
+      "no_tenants": "No registered tenants",
+      "no_provisioning": "No tenants in progress",
+      "no_actions": "—",
+      "directory_caption": "Tenant directory — plan, region, status and assigned resource (user count)",
+      "provisioning_caption": "Tenants in provisioning/deprovisioning and step progress",
+      "progress_step": "{step}/{total} steps",
+      "section": {
+        "summary": "Summary",
+        "provisioning": "In-Progress Provisioning",
+        "directory": "Tenant Directory"
+      },
+      "kpi": {
+        "total": "Total Tenants",
+        "active": "Active",
+        "suspended": "Suspended",
+        "provisioning": "Provisioning"
+      },
+      "status": {
+        "active": "Active",
+        "suspended": "Suspended",
+        "provisioning": "Provisioning",
+        "deprovisioning": "Deprovisioning",
+        "deleted": "Deleted"
+      },
+      "plan": {
+        "starter": "Starter",
+        "growth": "Growth",
+        "enterprise": "Enterprise",
+        "dedicated": "Dedicated"
+      },
+      "action": {
+        "create": "Create",
+        "suspend": "Suspend",
+        "resume": "Resume",
+        "assign_plan": "Assign Plan",
+        "delete": "Delete"
+      },
+      "col": {
+        "tenant": "Tenant",
+        "plan": "Plan",
+        "region": "Region",
+        "status": "Status",
+        "created": "Created",
+        "users": "Users",
+        "actions": "Actions",
+        "progress": "Progress"
+      }
     }
   }
 }
