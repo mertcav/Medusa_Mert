@@ -1,0 +1,52 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.3.1",
+  "screen": "T-01",
+  "title": "Tenant Dashboard",
+  "plane": "tenant_application_plane",
+  "tier": "L1",
+  "source": ["BRD §17.4", "BRD §17.6 (RBAC)", "BRD §17.7 (dashboard hijyeni)", "FR-TEN-002 (tenant scope)", "SAD §14.4.1"],
+  "rbac": {
+    "tenant_owner": "manage",
+    "tenant_admin": "view",
+    "security_compliance_officer": "view",
+    "billing_viewer": "view",
+    "api_developer": "none",
+    "note": "UI yalnız görsel kapı; nihai yetki backend'de (12.2.x) + RLS. Rol→permission kararı bu katmanda YOK (A8)."
+  },
+  "content_brd_17_4": [
+    "tenant KPI'ları",
+    "kullanım",
+    "maliyet",
+    "atanan kaynak kotası tüketimi"
+  ],
+  "invariants": {
+    "S1": "T-01 ekran sayfası mevcut + data-screen=\"T-01\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/tenant/dashboard) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.t01.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK PII/iş-içeriği taşımaz (FORBIDDEN_PII_KEYS) + assertNoPii çağrılır (DASHBOARD HİJYENİ, BRD §17.7).",
+    "S5": "BRD §17.4 dört içerik öğesi (KPI/kullanım/maliyet/kota) i18n bölüm anahtarlarıyla karşılanır.",
+    "S6": "screen.t01.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (utilizationPct/headroom/budgetUsagePct/aggregateUsage/healthTone/utilTone/budgetTone/worstQuotaTone) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002): veri seam belirli SaaS/sağlayıcı bağlamaz; sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "scope_note", "as_of", "tenant", "plan_label", "region",
+    "no_quota", "usage_caption", "quota_caption", "budget_alert",
+    "section.kpis", "section.usage", "section.cost", "section.quota",
+    "health.overall", "health.healthy", "health.degraded", "health.down",
+    "plan.starter", "plan.scale", "plan.enterprise",
+    "kpi.calls_today", "kpi.calls_mtd_hint", "kpi.containment", "kpi.containment_hint",
+    "kpi.aht", "kpi.aht_hint", "kpi.csat", "kpi.csat_hint", "kpi.success_rate", "kpi.active_agents",
+    "kpi.cost_today", "kpi.cost_mtd", "kpi.cost_per_minute", "kpi.budget",
+    "usage.total_calls", "usage.total_minutes", "usage.minutes_hint",
+    "col.channel", "col.calls", "col.minutes", "col.resource", "col.used", "col.limit", "col.headroom", "col.utilization",
+    "channel.inbound", "channel.outbound",
+    "resource.concurrent_calls", "resource.cps", "resource.compute_vcpu", "resource.compute_memory_gb"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "kpi.calls_mtd_hint": ["count"],
+    "budget_alert": ["pct"]
+  }
+}

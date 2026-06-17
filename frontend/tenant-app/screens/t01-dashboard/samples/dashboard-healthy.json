@@ -1,0 +1,37 @@
+{
+  "$comment": "İllüstratif T-01 snapshot — tenant sağlıklı, bütçe içinde, kota rahat. DASHBOARD HİJYENİ: yalnız toplulaştırılmış metrik (PII/iş-içeriği YOK).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "tenantRef": "TEN-1001",
+  "tenantName": "Acme Lojistik A.Ş.",
+  "plan": "scale",
+  "region": "eu",
+  "health": "healthy",
+  "kpis": {
+    "callsToday": 1700,
+    "callsMtd": 34200,
+    "containmentPct": 74.0,
+    "avgHandleSeconds": 176,
+    "csat": 4.4,
+    "successRatePct": 89.5,
+    "activeAgents": 10
+  },
+  "usage": [
+    { "channel": "inbound", "calls": 1300, "minutes": 4000 },
+    { "channel": "outbound", "calls": 400, "minutes": 1100 }
+  ],
+  "cost": {
+    "currency": "EUR",
+    "costToday": 280.0,
+    "costMtd": 4500.0,
+    "costPerMinute": 0.028,
+    "budgetMtd": 9000.0,
+    "spentMtd": 4500.0
+  },
+  "quota": [
+    { "resource": "concurrent_calls", "used": 150, "limit": 300, "unit": "" },
+    { "resource": "cps", "used": 12, "limit": 25, "unit": "" },
+    { "resource": "compute_vcpu", "used": 30, "limit": 64, "unit": "vCPU" },
+    { "resource": "compute_memory_gb", "used": 80, "limit": 128, "unit": "GB" }
+  ],
+  "$expect": { "total_calls": 1700, "total_minutes": 5100, "budget_pct": 50.0, "budget_tone": "success", "worst_quota_tone": "success" }
+}

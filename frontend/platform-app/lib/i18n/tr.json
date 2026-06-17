@@ -842,6 +842,77 @@
         "target": "Hedef",
         "requirement": "Gereksinim"
       }
+    },
+    "t01": {
+      "title": "Tenant Paneli",
+      "subtitle": "Tenant KPI'ları, kullanım, maliyet ve atanan kaynak kotası tüketimi — yalnız kendi tenant'ınızın toplulaştırılmış verisi.",
+      "scope_note": "Bu panel yalnız kendi tenant'ınızın toplulaştırılmış metrik/kullanım/maliyet/kota verisini gösterir; ham çağrı kaydı/transkript/müşteri verisi panele gömülmez (yetkiyle operasyon ekranlarında görülür).",
+      "as_of": "Veri zamanı: {time}",
+      "tenant": "Tenant",
+      "region": "Bölge",
+      "no_quota": "Atanmış kota yok",
+      "usage_caption": "Kanal bazında çağrı ve dakika kullanımı",
+      "quota_caption": "L0 tarafından atanan kaynak kotası ve tüketim",
+      "budget_alert": "Aylık bütçe aşıldı (%{pct} kullanım) — faturalandırma ekranını gözden geçirin.",
+      "section": {
+        "kpis": "Tenant KPI'ları",
+        "usage": "Kullanım",
+        "cost": "Maliyet & Bütçe",
+        "quota": "Atanan Kaynak Kotası Tüketimi"
+      },
+      "health": {
+        "overall": "Genel Tenant Sağlığı",
+        "healthy": "Sağlıklı",
+        "degraded": "Bozulmuş",
+        "down": "Kesinti"
+      },
+      "kpi": {
+        "calls_today": "Bugünkü Çağrı",
+        "calls_mtd_hint": "ay başından bu yana {count}",
+        "containment": "Containment Oranı",
+        "containment_hint": "insan aktarımı olmadan tamamlanan",
+        "aht": "Ort. Görüşme Süresi",
+        "aht_hint": "dakika:saniye",
+        "csat": "CSAT",
+        "csat_hint": "5 üzerinden",
+        "success_rate": "Başarı Oranı",
+        "active_agents": "Aktif Agent",
+        "cost_today": "Bugünkü Maliyet",
+        "cost_mtd": "Ay Başından Bu Yana",
+        "cost_per_minute": "Dakika Başına Maliyet",
+        "budget": "Aylık Bütçe"
+      },
+      "usage": {
+        "total_calls": "Toplam Çağrı",
+        "total_minutes": "Toplam Dakika",
+        "minutes_hint": "ay başından bu yana"
+      },
+      "col": {
+        "channel": "Kanal",
+        "calls": "Çağrı",
+        "minutes": "Dakika",
+        "resource": "Kaynak",
+        "used": "Kullanılan",
+        "limit": "Limit",
+        "headroom": "Boş",
+        "utilization": "Kullanım"
+      },
+      "channel": {
+        "inbound": "Gelen",
+        "outbound": "Giden"
+      },
+      "resource": {
+        "concurrent_calls": "Eşzamanlı Çağrı",
+        "cps": "Saniyedeki Çağrı (CPS)",
+        "compute_vcpu": "Hesaplama (vCPU)",
+        "compute_memory_gb": "Bellek"
+      },
+      "plan_label": "Plan",
+      "plan": {
+        "starter": "Başlangıç",
+        "scale": "Ölçek",
+        "enterprise": "Kurumsal"
+      }
     }
   }
 }

@@ -842,6 +842,77 @@
         "target": "Target",
         "requirement": "Requirement"
       }
+    },
+    "t01": {
+      "title": "Tenant Dashboard",
+      "subtitle": "Tenant KPIs, usage, cost and assigned resource quota consumption — your own tenant's aggregated data only.",
+      "scope_note": "This dashboard shows only your own tenant's aggregated metric/usage/cost/quota data; raw call recordings/transcripts/customer data are not embedded (viewable with authorization in operations screens).",
+      "as_of": "As of: {time}",
+      "tenant": "Tenant",
+      "plan_label": "Plan",
+      "region": "Region",
+      "no_quota": "No quota assigned",
+      "usage_caption": "Call and minute usage by channel",
+      "quota_caption": "Resource quota assigned by L0 and consumption",
+      "budget_alert": "Monthly budget exceeded ({pct} used) — review the billing screen.",
+      "section": {
+        "kpis": "Tenant KPIs",
+        "usage": "Usage",
+        "cost": "Cost & Budget",
+        "quota": "Assigned Resource Quota Consumption"
+      },
+      "health": {
+        "overall": "Overall Tenant Health",
+        "healthy": "Healthy",
+        "degraded": "Degraded",
+        "down": "Down"
+      },
+      "plan": {
+        "starter": "Starter",
+        "scale": "Scale",
+        "enterprise": "Enterprise"
+      },
+      "kpi": {
+        "calls_today": "Calls Today",
+        "calls_mtd_hint": "{count} month to date",
+        "containment": "Containment Rate",
+        "containment_hint": "completed without human handoff",
+        "aht": "Avg. Handle Time",
+        "aht_hint": "minutes:seconds",
+        "csat": "CSAT",
+        "csat_hint": "out of 5",
+        "success_rate": "Success Rate",
+        "active_agents": "Active Agents",
+        "cost_today": "Cost Today",
+        "cost_mtd": "Month To Date",
+        "cost_per_minute": "Cost Per Minute",
+        "budget": "Monthly Budget"
+      },
+      "usage": {
+        "total_calls": "Total Calls",
+        "total_minutes": "Total Minutes",
+        "minutes_hint": "month to date"
+      },
+      "col": {
+        "channel": "Channel",
+        "calls": "Calls",
+        "minutes": "Minutes",
+        "resource": "Resource",
+        "used": "Used",
+        "limit": "Limit",
+        "headroom": "Free",
+        "utilization": "Utilization"
+      },
+      "channel": {
+        "inbound": "Inbound",
+        "outbound": "Outbound"
+      },
+      "resource": {
+        "concurrent_calls": "Concurrent Calls",
+        "cps": "Calls Per Second (CPS)",
+        "compute_vcpu": "Compute (vCPU)",
+        "compute_memory_gb": "Memory"
+      }
     }
   }
 }

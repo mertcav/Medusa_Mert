@@ -1,0 +1,37 @@
+{
+  "$comment": "İllüstratif T-01 snapshot — tenant bozulmuş, bütçe aşımı, kota kritik. DASHBOARD HİJYENİ: yalnız toplulaştırılmış metrik (PII/iş-içeriği YOK).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "tenantRef": "TEN-2002",
+  "tenantName": "Beta Telekom Ltd.",
+  "plan": "enterprise",
+  "region": "uk",
+  "health": "degraded",
+  "kpis": {
+    "callsToday": 2600,
+    "callsMtd": 51800,
+    "containmentPct": 61.2,
+    "avgHandleSeconds": 232,
+    "csat": 3.6,
+    "successRatePct": 79.4,
+    "activeAgents": 18
+  },
+  "usage": [
+    { "channel": "inbound", "calls": 2000, "minutes": 6000 },
+    { "channel": "outbound", "calls": 600, "minutes": 1800 }
+  ],
+  "cost": {
+    "currency": "GBP",
+    "costToday": 590.0,
+    "costMtd": 9450.0,
+    "costPerMinute": 0.041,
+    "budgetMtd": 9000.0,
+    "spentMtd": 9450.0
+  },
+  "quota": [
+    { "resource": "concurrent_calls", "used": 285, "limit": 300, "unit": "" },
+    { "resource": "cps", "used": 20, "limit": 25, "unit": "" },
+    { "resource": "compute_vcpu", "used": 58, "limit": 64, "unit": "vCPU" },
+    { "resource": "compute_memory_gb", "used": 118, "limit": 128, "unit": "GB" }
+  ],
+  "$expect": { "total_calls": 2600, "total_minutes": 7800, "budget_pct": 105.0, "budget_tone": "danger", "worst_quota_tone": "danger" }
+}
