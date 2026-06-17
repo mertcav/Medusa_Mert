@@ -1,0 +1,34 @@
+{
+  "$comment": "İllüstratif P-06 snapshot — DEGRADE durum: g-output (zorunlu output guard) kapalı → politika boşluğu (FR-LLM-009); llm-large-b restricted + no-train KAPALI → FR-LLM-012 ihlali. ALTIN KURAL: yalnız platform-geneli politika/guardrail/model-allowlist + varsayılan compliance-profile metadatası (iş-içeriği/son-müşteri PII YOK). Model id'leri VENDOR-NÖTR. profile.appliedTenants = toplulaştırılmış SAYIM (kimlik değil).",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "guardrails": [
+    { "id": "g-input", "category": "input_guard", "enforcement": "block", "status": "enabled", "mandatory": true, "mappedFr": "FR-LLM-007" },
+    { "id": "g-output", "category": "output_guard", "enforcement": "block", "status": "disabled", "mandatory": true, "mappedFr": "FR-LLM-009" },
+    { "id": "g-sysprompt", "category": "system_prompt_lock", "enforcement": "block", "status": "enabled", "mandatory": true, "mappedFr": "FR-LLM-006" },
+    { "id": "g-pii", "category": "pii_redaction", "enforcement": "redact", "status": "enabled", "mandatory": true, "mappedFr": "FR-REC-004" },
+    { "id": "g-halluc", "category": "anti_hallucination", "enforcement": "flag", "status": "enabled", "mandatory": false, "mappedFr": "FR-KB-007" }
+  ],
+  "models": [
+    { "id": "llm-large-a", "category": "llm", "tier": "large", "status": "allowed", "noTrainDefault": true, "versionPinned": true, "regions": ["uk", "eu", "na", "me"] },
+    { "id": "llm-small-a", "category": "llm", "tier": "small", "status": "allowed", "noTrainDefault": true, "versionPinned": true, "regions": ["uk", "eu", "na", "me"] },
+    { "id": "llm-large-b", "category": "llm", "tier": "large", "status": "restricted", "noTrainDefault": false, "versionPinned": false, "regions": ["eu", "me"] },
+    { "id": "stt-a", "category": "stt", "tier": "na", "status": "allowed", "noTrainDefault": true, "versionPinned": true, "regions": ["uk", "eu", "na", "me"] },
+    { "id": "tts-a", "category": "tts", "tier": "na", "status": "allowed", "noTrainDefault": true, "versionPinned": true, "regions": ["uk", "eu", "na", "me"] },
+    { "id": "llm-legacy-x", "category": "llm", "tier": "large", "status": "blocked", "noTrainDefault": false, "versionPinned": false, "regions": [] }
+  ],
+  "complianceProfiles": [
+    { "id": "profile-tr", "country": "tr", "sector": "finance", "status": "active", "residency": "tr", "retentionDays": 3650, "requireTenantApproval": true, "overrideOnlyStricter": true, "appliedTenants": 6 },
+    { "id": "profile-uk", "country": "uk", "sector": "general", "status": "active", "residency": "uk", "retentionDays": 2555, "requireTenantApproval": false, "overrideOnlyStricter": true, "appliedTenants": 4 },
+    { "id": "profile-eu", "country": "eu", "sector": "health", "status": "active", "residency": "eu", "retentionDays": 3650, "requireTenantApproval": true, "overrideOnlyStricter": true, "appliedTenants": 3 },
+    { "id": "profile-me", "country": "me", "sector": "general", "status": "draft", "residency": "me", "retentionDays": 1825, "requireTenantApproval": false, "overrideOnlyStricter": true, "appliedTenants": 0 }
+  ],
+  "$expect": {
+    "policy_gaps": ["g-output"],
+    "no_train_violations": ["llm-large-b"],
+    "enabled_guardrails": 4,
+    "count_by_model_status": { "allowed": 4, "restricted": 1, "blocked": 1 },
+    "allowed_models": 4,
+    "active_profiles": 3,
+    "covered_tenants": 13
+  }
+}

@@ -436,6 +436,112 @@
         "overage_minutes": "Overage min",
         "budget_used": "Budget used"
       }
+    },
+    "p06": {
+      "title": "Global Policy & Guardrails",
+      "subtitle": "Platform-wide security policies (Policy Engine guardrails), model allowlist and default compliance profiles — platform defaults inherited by all tenants.",
+      "manage_only_note": "This screen is managed by platform_owner; platform_sre has view-only access and platform_billing has no access. Only platform-wide policy/guardrail/model-allowlist and default compliance-profile metadata are shown; tenant business content (call recordings, transcripts, end-customer data) is not displayed.",
+      "backend_authz_note": "Guardrail, model allowlist and compliance profile editing is a visual gate only; final authorization and enforcement happen in the backend (policy:guardrail:manage / policy:model_allowlist:manage / policy:compliance_profile:manage). Policy enforcement happens at runtime in the Policy Engine.",
+      "as_of": "As of: {time}",
+      "manage_action": "Edit Policy",
+      "days_value": "{days} days",
+      "no_policy_gap": "All mandatory guardrails are enabled — no policy gap (FR-LLM-006/007/009, FR-REC-004).",
+      "policy_gap_alert": "{count} mandatory guardrail(s) disabled — security policy gap (FR-LLM-007/009).",
+      "no_train_ok": "All active models keep tenant data out of training (FR-LLM-012).",
+      "no_train_alert": "{count} active model(s) have no-train default off — tenant data may be used for training (FR-LLM-012).",
+      "no_guardrails": "No guardrails defined",
+      "no_models": "No models in allowlist",
+      "no_profiles": "No compliance profiles defined",
+      "guardrails_caption": "Policy Engine guardrails: category, enforcement action, status, mandatoriness and traceability (SAD §6.2/§9.3)",
+      "models_caption": "Model allowlist: category, tier, permission status, no-train default, version pinning and regional availability (FR-LLM-001/002/011/012)",
+      "profiles_caption": "Default compliance profiles: country, sector, data residency, retention, tenant approval and override policy (BRD §14.4)",
+      "profiles_total": "Active profiles cover {profiles} tenants (aggregated).",
+      "section": {
+        "security": "Global Security Policies (Guardrails)",
+        "models": "Model Allowlist",
+        "compliance": "Default Compliance Profiles"
+      },
+      "kpi": {
+        "active_guardrails": "Active guardrails",
+        "allowed_models": "Allowed models",
+        "active_profiles": "Active compliance profiles",
+        "covered_tenants": "Covered tenants",
+        "no_train_violations": "No-train violations",
+        "policy_gaps": "Policy gaps"
+      },
+      "guardrail_category": {
+        "input_guard": "Input guard (prompt-injection/jailbreak)",
+        "output_guard": "Output guard (policy engine)",
+        "system_prompt_lock": "System prompt lock",
+        "pii_redaction": "PII redaction",
+        "anti_hallucination": "Anti-hallucination"
+      },
+      "enforcement": {
+        "block": "Block",
+        "redact": "Redact",
+        "flag": "Flag",
+        "off": "Off"
+      },
+      "guardrail_status": {
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "model_category": {
+        "stt": "STT (speech→text)",
+        "tts": "TTS (text→speech)",
+        "llm": "LLM (language model)"
+      },
+      "model_tier": {
+        "small": "Small/fast",
+        "large": "Large",
+        "na": "—"
+      },
+      "model_status": {
+        "allowed": "Allowed",
+        "restricted": "Restricted",
+        "blocked": "Blocked"
+      },
+      "profile_status": {
+        "active": "Active",
+        "draft": "Draft"
+      },
+      "sector": {
+        "general": "General",
+        "finance": "Finance",
+        "health": "Health",
+        "public": "Public"
+      },
+      "country": {
+        "tr": "Türkiye",
+        "uk": "United Kingdom",
+        "eu": "European Union",
+        "me": "Middle East"
+      },
+      "bool": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "col": {
+        "policy": "Policy",
+        "enforcement": "Enforcement",
+        "status": "Status",
+        "mandatory": "Mandatory",
+        "requirement": "Requirement",
+        "model": "Model",
+        "category": "Category",
+        "tier": "Tier",
+        "no_train": "No-train",
+        "version_pinned": "Version pinned",
+        "regions": "Regions",
+        "profile": "Profile",
+        "country": "Country",
+        "sector": "Sector",
+        "residency": "Data residency",
+        "retention": "Retention",
+        "tenant_approval": "Tenant approval",
+        "override": "Stricter-only",
+        "tenants": "Tenant count"
+      }
     }
   }
 }

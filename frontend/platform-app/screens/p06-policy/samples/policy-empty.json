@@ -1,0 +1,16 @@
+{
+  "$comment": "İllüstratif P-06 snapshot — hiç guardrail/model/compliance-profili tanımlı değil (boş durum). Üç tablo da EmptyState render eder; politika boşluğu/no-train ihlali yok (tanım yok), kapsanan tenant 0.",
+  "generatedAt": "2026-06-17T09:00:00.000Z",
+  "guardrails": [],
+  "models": [],
+  "complianceProfiles": [],
+  "$expect": {
+    "policy_gaps": [],
+    "no_train_violations": [],
+    "enabled_guardrails": 0,
+    "count_by_model_status": { "allowed": 0, "restricted": 0, "blocked": 0 },
+    "allowed_models": 0,
+    "active_profiles": 0,
+    "covered_tenants": 0
+  }
+}

@@ -436,6 +436,112 @@
         "overage_minutes": "Aşım dk",
         "budget_used": "Bütçe kullanımı"
       }
+    },
+    "p06": {
+      "title": "Global Politika & Guardrails",
+      "subtitle": "Platform-geneli güvenlik politikaları (Policy Engine guardrail'leri), model allowlist ve varsayılan compliance profilleri — tüm tenant'lara miras kalan platform varsayılanları.",
+      "manage_only_note": "Bu ekran platform_owner tarafından yönetilir; platform_sre yalnız görüntüler, platform_billing erişemez. Yalnız platform-geneli politika/guardrail/model-allowlist ve varsayılan compliance-profile metadatası gösterilir; tenant iş içeriği (çağrı kaydı, transkript, son-müşteri verisi) görüntülenmez.",
+      "backend_authz_note": "Guardrail, model allowlist ve compliance profile düzenleme yalnız görsel kapıdır; nihai yetki ve zorlama backend'de yapılır (policy:guardrail:manage / policy:model_allowlist:manage / policy:compliance_profile:manage). Politika zorlaması çalışma-anında Policy Engine'de gerçekleşir.",
+      "as_of": "Veri zamanı: {time}",
+      "manage_action": "Politikayı Düzenle",
+      "days_value": "{days} gün",
+      "no_policy_gap": "Tüm zorunlu guardrail'ler etkin — politika boşluğu yok (FR-LLM-006/007/009, FR-REC-004).",
+      "policy_gap_alert": "{count} zorunlu guardrail kapalı — güvenlik politikası boşluğu (FR-LLM-007/009).",
+      "no_train_ok": "Tüm aktif modellerde tenant verisi eğitime kapalı (FR-LLM-012).",
+      "no_train_alert": "{count} aktif modelde no-train varsayılanı kapalı — tenant verisi eğitime açık olabilir (FR-LLM-012).",
+      "no_guardrails": "Tanımlı guardrail yok",
+      "no_models": "Allowlist'te model yok",
+      "no_profiles": "Tanımlı compliance profili yok",
+      "guardrails_caption": "Policy Engine guardrail'leri: kategori, zorlama eylemi, durum, zorunluluk ve izlenebilirlik (SAD §6.2/§9.3)",
+      "models_caption": "Model allowlist: kategori, tier, izin durumu, no-train varsayılanı, versiyon sabitleme ve bölgesel uygunluk (FR-LLM-001/002/011/012)",
+      "profiles_caption": "Varsayılan compliance profilleri: ülke, sektör, veri yerleşimi, saklama, tenant onayı ve override politikası (BRD §14.4)",
+      "profiles_total": "Aktif profiller {profiles} tenant'ı kapsar (toplulaştırılmış).",
+      "section": {
+        "security": "Global Güvenlik Politikaları (Guardrails)",
+        "models": "Model Allowlist",
+        "compliance": "Varsayılan Compliance Profilleri"
+      },
+      "kpi": {
+        "active_guardrails": "Etkin guardrail",
+        "allowed_models": "İzinli model",
+        "active_profiles": "Aktif compliance profili",
+        "covered_tenants": "Kapsanan tenant",
+        "no_train_violations": "No-train ihlali",
+        "policy_gaps": "Politika boşluğu"
+      },
+      "guardrail_category": {
+        "input_guard": "Girdi koruması (prompt-injection/jailbreak)",
+        "output_guard": "Çıktı denetimi (politika motoru)",
+        "system_prompt_lock": "System prompt kilidi",
+        "pii_redaction": "PII redaction",
+        "anti_hallucination": "Anti-hallucination"
+      },
+      "enforcement": {
+        "block": "Engelle",
+        "redact": "Maskele",
+        "flag": "İşaretle",
+        "off": "Kapalı"
+      },
+      "guardrail_status": {
+        "enabled": "Etkin",
+        "disabled": "Kapalı"
+      },
+      "model_category": {
+        "stt": "STT (konuşma→metin)",
+        "tts": "TTS (metin→konuşma)",
+        "llm": "LLM (dil modeli)"
+      },
+      "model_tier": {
+        "small": "Küçük/hızlı",
+        "large": "Büyük",
+        "na": "—"
+      },
+      "model_status": {
+        "allowed": "İzinli",
+        "restricted": "Kısıtlı",
+        "blocked": "Yasak"
+      },
+      "profile_status": {
+        "active": "Aktif",
+        "draft": "Taslak"
+      },
+      "sector": {
+        "general": "Genel",
+        "finance": "Finans",
+        "health": "Sağlık",
+        "public": "Kamu"
+      },
+      "country": {
+        "tr": "Türkiye",
+        "uk": "Birleşik Krallık",
+        "eu": "Avrupa Birliği",
+        "me": "Orta Doğu"
+      },
+      "bool": {
+        "yes": "Evet",
+        "no": "Hayır"
+      },
+      "col": {
+        "policy": "Politika",
+        "enforcement": "Zorlama",
+        "status": "Durum",
+        "mandatory": "Zorunlu",
+        "requirement": "Gereksinim",
+        "model": "Model",
+        "category": "Kategori",
+        "tier": "Tier",
+        "no_train": "No-train",
+        "version_pinned": "Versiyon sabit",
+        "regions": "Bölgeler",
+        "profile": "Profil",
+        "country": "Ülke",
+        "sector": "Sektör",
+        "residency": "Veri yerleşimi",
+        "retention": "Saklama",
+        "tenant_approval": "Tenant onayı",
+        "override": "Yalnız sıkılaştırma",
+        "tenants": "Tenant sayısı"
+      }
     }
   }
 }

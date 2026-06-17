@@ -1,0 +1,72 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.2.6",
+  "screen": "P-06",
+  "title": "Global Politika & Guardrails",
+  "plane": "platform_control_plane",
+  "tier": "L0",
+  "source": ["BRD §17.3", "BRD §17.6 (RBAC)", "BRD §17.7 (altın kural)", "BRD §14.4 (compliance profile)", "FR-IAM-008", "FR-IAM-010", "FR-LLM-001", "FR-LLM-002", "FR-LLM-006", "FR-LLM-007", "FR-LLM-009", "FR-LLM-011", "FR-LLM-012", "FR-REC-004", "FR-KB-007", "SAD §6.2 (Policy Engine input/output guard)", "SAD §9.3", "SAD §14.4.1", "DPIA cp.* (most-restrictive-wins)", "ADR-002"],
+  "rbac": {
+    "platform_owner": "manage",
+    "platform_sre": "view",
+    "platform_billing": "none",
+    "permission_keys": ["policy:read", "policy:guardrail:manage", "policy:model_allowlist:manage", "policy:compliance_profile:manage"],
+    "note": "BRD §17.6: P-06 platform_owner=Yönet + platform_sre=Görüntüle + platform_billing=erişim yok. UI yalnız görsel kapı; nihai yetki + politika zorlaması backend Policy Engine'de (12.2.x). Rol→permission kararı bu katmanda YOK (A8)."
+  },
+  "content_brd_17_3": [
+    "global güvenlik politikaları",
+    "model allowlist",
+    "varsayılan compliance profilleri"
+  ],
+  "fr_coverage": {
+    "FR-LLM-006": "system prompt kilidi → guardrail.system_prompt_lock",
+    "FR-LLM-007": "prompt-injection/jailbreak → guardrail.input_guard",
+    "FR-LLM-009": "model cevabı politika motoru → guardrail.output_guard",
+    "FR-LLM-001/002": "birden fazla model + tenant/use-case seçimi → model allowlist (models[])",
+    "FR-LLM-011": "model versiyon kaydı → model.versionPinned",
+    "FR-LLM-012": "tenant verisi eğitime varsayılan kapalı → model.noTrainDefault + noTrainViolations()",
+    "FR-REC-004": "PII redaction → guardrail.pii_redaction",
+    "FR-KB-007": "anti-hallucination → guardrail.anti_hallucination",
+    "FR-IAM-010": "regüle tenant onayı → profile.requireTenantApproval",
+    "BRD §14.4 / DPIA cp.*": "varsayılan compliance profilleri + most-restrictive-wins → profile.overrideOnlyStricter"
+  },
+  "invariants": {
+    "S1": "P-06 ekran sayfası mevcut + data-screen=\"P-06\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/platform/policy) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.p06.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK iş-içeriği/son-müşteri PII taşımaz (FORBIDDEN_PII_KEYS) + assertNoPii çağrılır (ALTIN KURAL, BRD §17.7). Profilin uygulandığı tenant SAYISI izinli (toplulaştırılmış).",
+    "S5": "BRD §17.3 içerik öğeleri (global güvenlik politikaları + model allowlist + varsayılan compliance profilleri) i18n anahtarlarıyla karşılanır; FR-LLM-006/007/009/011/012 + FR-REC-004 + FR-KB-007 + FR-IAM-010 izlenir.",
+    "S6": "screen.p06.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (enforcementTone/guardrailTone/modelStatusTone/profileStatusTone/countEnabledGuardrails/mandatoryGuardrailCount/policyGaps/noTrainViolations/countByModelStatus/allowedModelCount/activeProfileCount/coveredTenants) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002): veri seam SOMUT sağlayıcı/model markası bağlamaz (model id'leri/etiketler nötr); sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "manage_only_note", "backend_authz_note", "as_of", "manage_action",
+    "days_value",
+    "no_policy_gap", "policy_gap_alert", "no_train_ok", "no_train_alert",
+    "no_guardrails", "no_models", "no_profiles",
+    "guardrails_caption", "models_caption", "profiles_caption", "profiles_total",
+    "section.security", "section.models", "section.compliance",
+    "kpi.active_guardrails", "kpi.allowed_models", "kpi.active_profiles", "kpi.covered_tenants", "kpi.no_train_violations", "kpi.policy_gaps",
+    "guardrail_category.input_guard", "guardrail_category.output_guard", "guardrail_category.system_prompt_lock", "guardrail_category.pii_redaction", "guardrail_category.anti_hallucination",
+    "enforcement.block", "enforcement.redact", "enforcement.flag", "enforcement.off",
+    "guardrail_status.enabled", "guardrail_status.disabled",
+    "model_category.stt", "model_category.tts", "model_category.llm",
+    "model_tier.small", "model_tier.large", "model_tier.na",
+    "model_status.allowed", "model_status.restricted", "model_status.blocked",
+    "profile_status.active", "profile_status.draft",
+    "sector.general", "sector.finance", "sector.health", "sector.public",
+    "country.tr", "country.uk", "country.eu", "country.me",
+    "bool.yes", "bool.no",
+    "col.policy", "col.enforcement", "col.status", "col.mandatory", "col.requirement",
+    "col.model", "col.category", "col.tier", "col.no_train", "col.version_pinned", "col.regions",
+    "col.profile", "col.country", "col.sector", "col.residency", "col.retention", "col.tenant_approval", "col.override", "col.tenants"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "days_value": ["days"],
+    "policy_gap_alert": ["count"],
+    "no_train_alert": ["count"],
+    "profiles_total": ["profiles"]
+  }
+}
