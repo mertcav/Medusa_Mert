@@ -1,0 +1,39 @@
+{
+  "$comment": "A-02 SAĞLIKLI canlı çağrı snapshot'ı (WBS 13.4.2): taze veri, düşük kapasite, anomali yok. assertNoPii temiz (maskelenmiş taraf, nötr agent adı).",
+  "$expect": {
+    "active_count": 3,
+    "flagged_count": 0,
+    "handoff_pending": 0,
+    "latency_breaches": 0,
+    "negative_count": 0,
+    "concurrency_util": 24,
+    "stale": false,
+    "open_attention": 0
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1001",
+  "tenantName": "Acme Telekom",
+  "dataAgeSeconds": 10,
+  "refreshIntervalSec": 15,
+  "capacity": { "concurrentLimit": 250, "concurrentActive": 60 },
+  "calls": [
+    {
+      "id": "LC-1", "callRef": "CALL-1", "direction": "inbound", "state": "in_progress", "turnState": "speak",
+      "agentRef": "AGT-1", "agentName": "Karşılama", "assignedAgentRef": null, "maskedParty": "+90 5•• ••• ••01",
+      "startedAt": "2026-06-18T08:58:00.000Z", "durationSec": 120, "liveLatencyMs": 700,
+      "sttMs": 160, "llmMs": 360, "ttsMs": 180, "sentiment": "neutral", "flagged": false, "flagReason": null, "handoffRequested": false
+    },
+    {
+      "id": "LC-2", "callRef": "CALL-2", "direction": "outbound", "state": "in_progress", "turnState": "think",
+      "agentRef": "AGT-2", "agentName": "Tahsilat", "assignedAgentRef": null, "maskedParty": "+90 5•• ••• ••02",
+      "startedAt": "2026-06-18T08:57:00.000Z", "durationSec": 90, "liveLatencyMs": 540,
+      "sttMs": 140, "llmMs": 260, "ttsMs": 140, "sentiment": "positive", "flagged": false, "flagReason": null, "handoffRequested": false
+    },
+    {
+      "id": "LC-3", "callRef": "CALL-3", "direction": "inbound", "state": "wrapup", "turnState": "listen",
+      "agentRef": "AGT-1", "agentName": "Karşılama", "assignedAgentRef": null, "maskedParty": "+90 5•• ••• ••03",
+      "startedAt": "2026-06-18T08:55:00.000Z", "durationSec": 300, "liveLatencyMs": 880,
+      "sttMs": 200, "llmMs": 480, "ttsMs": 200, "sentiment": "neutral", "flagged": false, "flagReason": null, "handoffRequested": false
+    }
+  ]
+}

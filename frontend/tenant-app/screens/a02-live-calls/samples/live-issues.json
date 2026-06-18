@@ -1,0 +1,45 @@
+{
+  "$comment": "A-02 SORUNLU canlı çağrı snapshot'ı (WBS 13.4.2): BAYAT veri (gerçek zamanlılık kaybı), kapasite ≥%90, kritik flag + aktarım talebi + gecikme ihlalleri. assertNoPii yine temiz (META + maskeli taraf).",
+  "$expect": {
+    "active_count": 4,
+    "flagged_count": 1,
+    "handoff_pending": 1,
+    "latency_breaches": 2,
+    "negative_count": 2,
+    "concurrency_util": 95,
+    "stale": true,
+    "open_attention": 6
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Sigorta",
+  "dataAgeSeconds": 95,
+  "refreshIntervalSec": 30,
+  "capacity": { "concurrentLimit": 100, "concurrentActive": 95 },
+  "calls": [
+    {
+      "id": "LC-1", "callRef": "CALL-1", "direction": "inbound", "state": "in_progress", "turnState": "think",
+      "agentRef": "AGT-1", "agentName": "Hasar", "assignedAgentRef": null, "maskedParty": "+90 5•• ••• ••11",
+      "startedAt": "2026-06-18T08:50:00.000Z", "durationSec": 600, "liveLatencyMs": 1500,
+      "sttMs": 220, "llmMs": 1010, "ttsMs": 270, "sentiment": "negative", "flagged": true, "flagReason": "low_confidence", "handoffRequested": false
+    },
+    {
+      "id": "LC-2", "callRef": "CALL-2", "direction": "inbound", "state": "transferring", "turnState": "listen",
+      "agentRef": "AGT-1", "agentName": "Hasar", "assignedAgentRef": "OP-9", "maskedParty": "+90 5•• ••• ••12",
+      "startedAt": "2026-06-18T08:52:00.000Z", "durationSec": 480, "liveLatencyMs": 600,
+      "sttMs": 150, "llmMs": 300, "ttsMs": 150, "sentiment": "neutral", "flagged": false, "flagReason": null, "handoffRequested": true
+    },
+    {
+      "id": "LC-3", "callRef": "CALL-3", "direction": "outbound", "state": "in_progress", "turnState": "speak",
+      "agentRef": "AGT-2", "agentName": "Anket", "assignedAgentRef": null, "maskedParty": "+90 5•• ••• ••13",
+      "startedAt": "2026-06-18T08:53:00.000Z", "durationSec": 420, "liveLatencyMs": 1300,
+      "sttMs": 200, "llmMs": 840, "ttsMs": 260, "sentiment": "negative", "flagged": false, "flagReason": null, "handoffRequested": false
+    },
+    {
+      "id": "LC-4", "callRef": "CALL-4", "direction": "inbound", "state": "on_hold", "turnState": "capture",
+      "agentRef": "AGT-1", "agentName": "Hasar", "assignedAgentRef": null, "maskedParty": "+90 5•• ••• ••14",
+      "startedAt": "2026-06-18T08:59:00.000Z", "durationSec": 60, "liveLatencyMs": 500,
+      "sttMs": 130, "llmMs": 240, "ttsMs": 130, "sentiment": "positive", "flagged": false, "flagReason": null, "handoffRequested": false
+    }
+  ]
+}

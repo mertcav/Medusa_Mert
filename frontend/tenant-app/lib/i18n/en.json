@@ -1657,6 +1657,103 @@
         "failure": "Failure",
         "denied": "Denied"
       }
+    },
+    "a02": {
+      "title": "Live Calls",
+      "subtitle": "Real-time operations view of active calls",
+      "scope_note": "Only this tenant's own active calls are shown; data is real-time (≤60 s). Live listen and transcript are available in the call detail (A-12); final authorization is enforced in the backend.",
+      "as_of": "Data as of: {time}",
+      "data_age": "Data age: {n} s",
+      "refresh": "Refresh interval: {n} s",
+      "tenant": "Tenant",
+      "dash": "—",
+      "no_calls": "No active calls right now.",
+      "no_attention": "No calls need attention.",
+      "latency_breakdown": "STT {stt} · LLM {llm} · TTS {tts} ms",
+      "unit": {
+        "sec": "{n}s",
+        "ms": "{n} ms"
+      },
+      "alert": {
+        "stale": "Data exceeded the {n} s freshness budget — the real-time view may be out of date.",
+        "latency": "{count} call(s) exceed the live response latency target.",
+        "flagged": "{count} call(s) flagged as critical.",
+        "handoff": "{count} call(s) awaiting human handoff.",
+        "capacity": "Concurrency utilization {pct}% — approaching the capacity limit."
+      },
+      "section": {
+        "summary": "Summary",
+        "states": "State Distribution",
+        "attention": "Calls Needing Attention",
+        "active": "Active Calls"
+      },
+      "kpi": {
+        "active": "Active Calls",
+        "active_hint": "fleet total · shown: {shown}",
+        "concurrency": "Concurrency",
+        "concurrency_hint": "limit: {limit}",
+        "inbound": "Inbound",
+        "inbound_hint": "outbound: {out}",
+        "flagged": "Critical Flags",
+        "flagged_hint": "auto-flagged calls",
+        "handoff": "Awaiting Handoff",
+        "handoff_hint": "human handoff requests",
+        "latency": "Latency Breaches",
+        "latency_hint": "live response > {budget} ms",
+        "freshness": "Freshness",
+        "fresh_ok": "Current",
+        "fresh_stale": "Stale",
+        "freshness_hint": "data age ≤ 60 s (real-time)",
+        "attention": "Open Attention",
+        "attention_hint": "total anomaly signals"
+      },
+      "col": {
+        "started": "Started / Duration",
+        "party": "Party",
+        "direction": "Direction",
+        "agent": "Agent",
+        "state": "State / Turn",
+        "latency": "Live Latency",
+        "sentiment": "Sentiment",
+        "flags": "Flags",
+        "count": "Count"
+      },
+      "states_caption": "Distribution of active calls by lifecycle state",
+      "states_hint": "State: call lifecycle; Turn: current conversation turn phase (listen/capture/think/speak).",
+      "attention_caption": "Calls with a critical flag, handoff request, or latency breach",
+      "attention_hint": "Critical conversations are auto-flagged; the latency target for end-to-end response is 1200 ms.",
+      "active_caption": "All of the tenant's currently active calls",
+      "active_hint": "Party information is masked; raw transcript/recording is not embedded in this view (call detail A-12).",
+      "action": {
+        "refresh": "Refresh"
+      },
+      "state": {
+        "ringing": "Ringing",
+        "in_progress": "In progress",
+        "on_hold": "On hold",
+        "transferring": "Transferring",
+        "wrapup": "Wrapping up"
+      },
+      "turn": {
+        "listen": "Listen",
+        "capture": "Capture",
+        "think": "Think",
+        "speak": "Speak"
+      },
+      "direction": {
+        "inbound": "Inbound",
+        "outbound": "Outbound"
+      },
+      "sentiment": {
+        "positive": "Positive",
+        "neutral": "Neutral",
+        "negative": "Negative"
+      },
+      "flag": {
+        "flagged": "Critical",
+        "handoff": "Handoff",
+        "latency": "Latency"
+      }
     }
   }
 }

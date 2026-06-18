@@ -1657,6 +1657,103 @@
         "failure": "Başarısız",
         "denied": "Reddedildi"
       }
+    },
+    "a02": {
+      "title": "Canlı Çağrılar",
+      "subtitle": "Aktif çağrıların gerçek zamanlı operasyon görünümü",
+      "scope_note": "Yalnız bu tenant'ın kendi aktif çağrıları gösterilir; veriler gerçek zamanlıdır (≤60 sn). Canlı dinleme ve transkript çağrı detayında (A-12) görüntülenir; nihai yetki backend'de zorlanır.",
+      "as_of": "Veri zamanı: {time}",
+      "data_age": "Veri yaşı: {n} sn",
+      "refresh": "Yenileme aralığı: {n} sn",
+      "tenant": "Tenant",
+      "dash": "—",
+      "no_calls": "Şu anda aktif çağrı yok.",
+      "no_attention": "Dikkat gerektiren çağrı yok.",
+      "latency_breakdown": "STT {stt} · LLM {llm} · TTS {tts} ms",
+      "unit": {
+        "sec": "{n} sn",
+        "ms": "{n} ms"
+      },
+      "alert": {
+        "stale": "Veri {n} sn tazelik bütçesini aştı — gerçek zamanlı görünüm güncel olmayabilir.",
+        "latency": "{count} çağrı canlı yanıt gecikmesi hedefini aşıyor.",
+        "flagged": "{count} çağrı kritik olarak işaretlendi.",
+        "handoff": "{count} çağrı insan temsilciye aktarım bekliyor.",
+        "capacity": "Eşzamanlılık kullanımı %{pct} — kapasite sınırına yaklaşıldı."
+      },
+      "section": {
+        "summary": "Özet",
+        "states": "Durum Dağılımı",
+        "attention": "Dikkat Gerektiren Çağrılar",
+        "active": "Aktif Çağrılar"
+      },
+      "kpi": {
+        "active": "Aktif Çağrı",
+        "active_hint": "fleet toplamı · görünen: {shown}",
+        "concurrency": "Eşzamanlılık",
+        "concurrency_hint": "limit: {limit}",
+        "inbound": "Gelen (inbound)",
+        "inbound_hint": "giden (outbound): {out}",
+        "flagged": "Kritik İşaret",
+        "flagged_hint": "otomatik işaretlenen çağrı",
+        "handoff": "Aktarım Bekleyen",
+        "handoff_hint": "insan temsilciye aktarım talebi",
+        "latency": "Gecikme İhlali",
+        "latency_hint": "canlı yanıt > {budget} ms",
+        "freshness": "Tazelik",
+        "fresh_ok": "Güncel",
+        "fresh_stale": "Bayat",
+        "freshness_hint": "veri yaşı ≤ 60 sn (gerçek zamanlı)",
+        "attention": "Açık Dikkat",
+        "attention_hint": "toplam anomali sinyali"
+      },
+      "col": {
+        "started": "Başlangıç / Süre",
+        "party": "Taraf",
+        "direction": "Yön",
+        "agent": "Agent",
+        "state": "Durum / Tur",
+        "latency": "Canlı Gecikme",
+        "sentiment": "Duygu",
+        "flags": "İşaretler",
+        "count": "Adet"
+      },
+      "states_caption": "Aktif çağrıların yaşam döngüsü durumuna göre dağılımı",
+      "states_hint": "Durum: çağrı yaşam döngüsü; Tur: anlık konuşma turu fazı (dinle/yakala/düşün/konuş).",
+      "attention_caption": "Kritik işaret, aktarım talebi veya gecikme ihlali olan çağrılar",
+      "attention_hint": "Kritik konuşmalar otomatik işaretlenir; gecikme hedefi uçtan-uca yanıt için 1200 ms'dir.",
+      "active_caption": "Tenant'ın o anda aktif tüm çağrıları",
+      "active_hint": "Taraf bilgisi maskelenmiştir; ham transkript/ses kaydı bu görünüme gömülmez (çağrı detayı A-12).",
+      "action": {
+        "refresh": "Yenile"
+      },
+      "state": {
+        "ringing": "Çalıyor",
+        "in_progress": "Devam ediyor",
+        "on_hold": "Beklemede",
+        "transferring": "Aktarılıyor",
+        "wrapup": "Tamamlanıyor"
+      },
+      "turn": {
+        "listen": "Dinle",
+        "capture": "Yakala",
+        "think": "Düşün",
+        "speak": "Konuş"
+      },
+      "direction": {
+        "inbound": "Gelen",
+        "outbound": "Giden"
+      },
+      "sentiment": {
+        "positive": "Olumlu",
+        "neutral": "Nötr",
+        "negative": "Olumsuz"
+      },
+      "flag": {
+        "flagged": "Kritik",
+        "handoff": "Aktarım",
+        "latency": "Gecikme"
+      }
     }
   }
 }

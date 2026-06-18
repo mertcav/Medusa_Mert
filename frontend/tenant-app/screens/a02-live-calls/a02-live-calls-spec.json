@@ -1,0 +1,175 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.4.2",
+  "screen": "A-02",
+  "title": "Canlı Çağrılar (Live Calls)",
+  "plane": "tenant_application_plane",
+  "tier": "L2",
+  "source": [
+    "BRD §17.5 (A-02 Aktif çağrı izleme)",
+    "BRD §17.6 (RBAC)",
+    "BRD §17.7 (hijyen + PII redaction)",
+    "FR-ANA-012 (gerçek zamanlı operasyon ekranı)",
+    "SR-ANA-012 / SR-PERF-007 (≤60 sn metrik gecikmesi)",
+    "FR-ANA-008 (kritik konuşma otomatik işaretleme)",
+    "FR-ANA-006 (STT/LLM/TTS gecikme kırılımı)",
+    "NFR 10.1 (uçtan-uca yanıt P95 ≤1200ms)",
+    "SAD §6.1 (turn state machine LISTEN/CAPTURE/THINK/SPEAK)",
+    "FR-TEN-002 (tenant scope)",
+    "SAD §14.4.1",
+    "ADR-002 (vendor-neutral)",
+    "NFR 10.6 (sır/credential)"
+  ],
+  "rbac": {
+    "operations_manager": "manage",
+    "conversation_designer": "none",
+    "qa_analyst": "view",
+    "human_agent": "view_own",
+    "note": "UI yalnız görsel kapı; nihai yetki backend'de (12.2.x) + RLS. human_agent yalnız KENDİ atanmış çağrılarını görür (callsAssignedTo; backend zorlar). İzleme/canlı dinleme/aktarma aksiyonları görsel kapıdır (A8). Permission-key: calls:monitor + calls:read (SAD §7/§17.2)."
+  },
+  "content_brd_17_5": [
+    "aktif çağrı listesi",
+    "çağrı durumu + tur durumu",
+    "canlı gecikme (e2e + STT/LLM/TTS)",
+    "kritik işaret + aktarım talebi",
+    "gerçek zamanlılık (veri tazeliği)"
+  ],
+  "budgets": {
+    "freshness_sec": 60,
+    "live_latency_ms": 1200
+  },
+  "invariants": {
+    "S1": "A-02 ekran sayfası mevcut + data-screen=\"A-02\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/tenant/live-calls) kullanır + sunucu-tarafı locale.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.a02.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK son-müşteri ham iş-içeriği/PII (ham numara/transkript/kayıt/CDR) taşımaz (FORBIDDEN_PII_KEYS) + sır/credential taşımaz (FORBIDDEN_SECRET_KEYS) + assertNoPii çağrılır (HİJYEN BRD §17.7 + GÜVENLİK NFR 10.6). Taraf yalnız MASKELENMİŞ etiketle (maskedParty); çağrı yalnız REFERANS edilir.",
+    "S5": "BRD §17.5 içerik öğeleri (aktif çağrı + durum/tur + canlı gecikme + kritik işaret/aktarım) + FR-ANA-012/SR-ANA-012 (gerçek zamanlılık ≤60 sn) + FR-ANA-008 (kritik flag) + FR-ANA-006 (STT/LLM/TTS) + SAD §6.1 (turn state) i18n bölüm + alt-anahtarlarıyla karşılanır.",
+    "S6": "screen.a02.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (countByState/countByDirection/countByTurnState/flaggedCalls/handoffPending/latencyBreaches/negativeSentimentCalls/callsAssignedTo/concurrencyUtilPct/staleSnapshot/attentionCalls/openAttentionCount/tone'lar) deterministik; Date.now/rastgelelik yok. FRESHNESS_BUDGET_SEC=60 + LIVE_LATENCY_BUDGET_MS=1200 sabitleri tanımlı.",
+    "S8": "Vendor-neutral (ADR-002): veri seam belirli telefoni/APM sağlayıcısını bağlamaz; sır/credential yok."
+  },
+  "referenced_keys": [
+    "title",
+    "subtitle",
+    "scope_note",
+    "as_of",
+    "data_age",
+    "refresh",
+    "tenant",
+    "dash",
+    "no_calls",
+    "no_attention",
+    "latency_breakdown",
+    "unit.sec",
+    "unit.ms",
+    "alert.stale",
+    "alert.latency",
+    "alert.flagged",
+    "alert.handoff",
+    "alert.capacity",
+    "section.summary",
+    "section.states",
+    "section.attention",
+    "section.active",
+    "kpi.active",
+    "kpi.active_hint",
+    "kpi.concurrency",
+    "kpi.concurrency_hint",
+    "kpi.inbound",
+    "kpi.inbound_hint",
+    "kpi.flagged",
+    "kpi.flagged_hint",
+    "kpi.handoff",
+    "kpi.handoff_hint",
+    "kpi.latency",
+    "kpi.latency_hint",
+    "kpi.freshness",
+    "kpi.fresh_ok",
+    "kpi.fresh_stale",
+    "kpi.freshness_hint",
+    "kpi.attention",
+    "kpi.attention_hint",
+    "col.started",
+    "col.party",
+    "col.direction",
+    "col.agent",
+    "col.state",
+    "col.latency",
+    "col.sentiment",
+    "col.flags",
+    "col.count",
+    "states_caption",
+    "states_hint",
+    "attention_caption",
+    "attention_hint",
+    "active_caption",
+    "active_hint",
+    "action.refresh",
+    "state.ringing",
+    "state.in_progress",
+    "state.on_hold",
+    "state.transferring",
+    "state.wrapup",
+    "turn.listen",
+    "turn.capture",
+    "turn.think",
+    "turn.speak",
+    "direction.inbound",
+    "direction.outbound",
+    "sentiment.positive",
+    "sentiment.neutral",
+    "sentiment.negative",
+    "flag.flagged",
+    "flag.handoff",
+    "flag.latency"
+  ],
+  "placeholders": {
+    "as_of": [
+      "time"
+    ],
+    "data_age": [
+      "n"
+    ],
+    "refresh": [
+      "n"
+    ],
+    "latency_breakdown": [
+      "llm",
+      "stt",
+      "tts"
+    ],
+    "unit.sec": [
+      "n"
+    ],
+    "unit.ms": [
+      "n"
+    ],
+    "alert.stale": [
+      "n"
+    ],
+    "alert.latency": [
+      "count"
+    ],
+    "alert.flagged": [
+      "count"
+    ],
+    "alert.handoff": [
+      "count"
+    ],
+    "alert.capacity": [
+      "pct"
+    ],
+    "kpi.active_hint": [
+      "shown"
+    ],
+    "kpi.concurrency_hint": [
+      "limit"
+    ],
+    "kpi.inbound_hint": [
+      "out"
+    ],
+    "kpi.latency_hint": [
+      "budget"
+    ]
+  }
+}
