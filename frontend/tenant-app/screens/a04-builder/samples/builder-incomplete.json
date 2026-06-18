@@ -1,0 +1,44 @@
+{
+  "$comment": "A-04 EKSİK taslak (WBS 13.4.4): konuşma modeli seçilmemiş (null) + zorunlu adımlar eksik (conversation_model/voice_model/policies) → readyForTest=false. basics tamam olduğu için readyForDraft=true. blockers + nextStep eksik zorunlu adımları işaret eder. assertNoPii yine temiz (yalnız konfigürasyon META).",
+  "$expect": {
+    "completion": 17,
+    "completed_steps": 1,
+    "incomplete_required": 3,
+    "ready_draft": true,
+    "ready_test": false,
+    "ready_publish": false,
+    "blockers": ["conversation_model", "voice_model", "policies"],
+    "next_step": "conversation_model",
+    "templates": 2
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1003",
+  "tenantName": "Gama Telekom",
+  "draft": {
+    "draftRef": "DRAFT-9",
+    "name": "Fatura Bilgilendirme",
+    "purpose": "Inbound fatura sorgulama",
+    "personality": null,
+    "languages": ["tr"],
+    "businessRulesCount": 1,
+    "conversationModel": null,
+    "startMode": "blank",
+    "templateRef": null,
+    "baseAgentRef": null,
+    "isVariant": false,
+    "lifecycle": "draft",
+    "testStatus": "not_run",
+    "steps": [
+      { "id": "basics", "required": true, "fieldsTotal": 3, "fieldsComplete": 3 },
+      { "id": "conversation_model", "required": true, "fieldsTotal": 1, "fieldsComplete": 0 },
+      { "id": "knowledge", "required": false, "fieldsTotal": 2, "fieldsComplete": 1 },
+      { "id": "tools", "required": false, "fieldsTotal": 1, "fieldsComplete": 0 },
+      { "id": "voice_model", "required": true, "fieldsTotal": 2, "fieldsComplete": 1 },
+      { "id": "policies", "required": true, "fieldsTotal": 2, "fieldsComplete": 0 }
+    ]
+  },
+  "templates": [
+    { "templateRef": "TPL-TEL-01", "name": "Telekom — Fatura", "purpose": "Inbound fatura sorgulama", "mode": "node_flow", "languages": ["tr"] },
+    { "templateRef": "TPL-TEL-05", "name": "Telekom — Paket Yükseltme", "purpose": "Outbound paket teklifi", "mode": "single_prompt", "languages": ["tr"] }
+  ]
+}

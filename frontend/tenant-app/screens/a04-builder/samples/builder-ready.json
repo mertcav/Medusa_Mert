@@ -1,0 +1,45 @@
+{
+  "$comment": "A-04 YAYINA HAZIR taslak (WBS 13.4.4): tüm zorunlu adımlar tamam (basics/conversation_model/voice_model/policies), konuşma modeli seçili (node_flow), otomatik testler geçti → readyForPublish=true. Yalnızca opsiyonel adımlar (knowledge/tools) eksik; bunlar bloklamaz. assertNoPii temiz (yalnız konfigürasyon META).",
+  "$expect": {
+    "completion": 67,
+    "completed_steps": 4,
+    "incomplete_required": 0,
+    "ready_draft": true,
+    "ready_test": true,
+    "ready_publish": true,
+    "blockers": [],
+    "next_step": "knowledge",
+    "templates": 3
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Finans",
+  "draft": {
+    "draftRef": "DRAFT-7",
+    "name": "Kart İşlemleri Asistanı",
+    "purpose": "Inbound kart işlemleri bilgilendirme",
+    "personality": "professional_warm",
+    "languages": ["tr", "en"],
+    "businessRulesCount": 8,
+    "conversationModel": "node_flow",
+    "startMode": "template",
+    "templateRef": "TPL-FIN-02",
+    "baseAgentRef": null,
+    "isVariant": false,
+    "lifecycle": "draft",
+    "testStatus": "passed",
+    "steps": [
+      { "id": "basics", "required": true, "fieldsTotal": 5, "fieldsComplete": 5 },
+      { "id": "conversation_model", "required": true, "fieldsTotal": 1, "fieldsComplete": 1 },
+      { "id": "knowledge", "required": false, "fieldsTotal": 3, "fieldsComplete": 2 },
+      { "id": "tools", "required": false, "fieldsTotal": 2, "fieldsComplete": 0 },
+      { "id": "voice_model", "required": true, "fieldsTotal": 3, "fieldsComplete": 3 },
+      { "id": "policies", "required": true, "fieldsTotal": 4, "fieldsComplete": 4 }
+    ]
+  },
+  "templates": [
+    { "templateRef": "TPL-FIN-02", "name": "Finans — Kart İşlemleri", "purpose": "Inbound kart işlemleri", "mode": "node_flow", "languages": ["tr", "en"] },
+    { "templateRef": "TPL-COL-02", "name": "Tahsilat — Ödeme Hatırlatma", "purpose": "Outbound ödeme hatırlatma", "mode": "single_prompt", "languages": ["tr"] },
+    { "templateRef": "TPL-APP-04", "name": "Randevu — Oluşturma", "purpose": "Inbound randevu", "mode": "single_prompt", "languages": ["tr"] }
+  ]
+}

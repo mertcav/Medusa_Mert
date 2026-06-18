@@ -1849,6 +1849,137 @@
       "action": {
         "new": "New agent"
       }
+    },
+    "a04": {
+      "title": "Agent Builder",
+      "subtitle": "Create an agent without writing code",
+      "scope_note": "Use this guided builder to create an agent without writing code (scoped to your tenant only). Save/submit-to-test/publish authority is enforced in the backend; this screen is a configuration view. Prompt body/flow/tool design is a deep action (A-05/A-06/A-09).",
+      "as_of": "As of: {time}",
+      "tenant": "Tenant",
+      "draft_label": "Draft",
+      "dash": "—",
+      "percent": "{n}%",
+      "alert": {
+        "no_model": "No conversation model selected yet (single prompt / flow); required to submit for testing (FR-AGT-003).",
+        "blockers": "{count} required step(s) not complete; finish them before submitting for testing (FR-AGT-010).",
+        "test_failed": "Automated test gate failed; fix before publishing (FR-AGT-010).",
+        "ready_publish": "Draft is ready to publish: all required steps complete and automated tests passed (FR-AGT-010)."
+      },
+      "section": {
+        "start": "Starting Point",
+        "summary": "Draft Summary",
+        "steps": "Configuration Steps",
+        "readiness": "Readiness & Publish",
+        "templates": "Template Library"
+      },
+      "start": {
+        "mode_label": "Starting point",
+        "blank": "From blank",
+        "template": "From template",
+        "clone": "Clone of existing agent",
+        "from": "Template: {name}",
+        "variant_note": "Base agent: {name} (segment variant — FR-AGT-008)",
+        "hint": "Start without code: a blank draft, a ready template, or a variant of an existing agent (FR-AGT-001)."
+      },
+      "kpi": {
+        "completion": "Completion",
+        "completion_hint": "Percentage of completed steps",
+        "steps": "Steps",
+        "steps_hint": "Completed / total steps",
+        "required": "Required Missing",
+        "required_hint": "Incomplete required step count",
+        "fields": "Fields",
+        "fields_hint": "Completed / total configuration fields",
+        "model": "Conversation Model",
+        "model_hint": "Single prompt / flow (FR-AGT-003)",
+        "languages": "Languages",
+        "languages_hint": "Draft languages (FR-AGT-002)",
+        "rules": "Business Rules",
+        "rules_hint": "Number of defined business rules (FR-AGT-002)",
+        "test": "Test Gate",
+        "test_hint": "Automated test result (FR-AGT-010)"
+      },
+      "step": {
+        "basics": "Basics",
+        "conversation_model": "Conversation Model",
+        "knowledge": "Knowledge Base",
+        "tools": "Tool / API",
+        "voice_model": "Voice & Model",
+        "policies": "Security Policies"
+      },
+      "step_desc": {
+        "basics": "Name, purpose, personality, language and business rules (FR-AGT-002)",
+        "conversation_model": "Choose single-prompt or node/flow model (FR-AGT-003)",
+        "knowledge": "Link a knowledge source — optional (A-08)",
+        "tools": "Bind defined tools — optional (A-09)",
+        "voice_model": "Voice, model and STT profile (A-07)",
+        "policies": "Global and tenant security policies (FR-AGT-009)"
+      },
+      "status": {
+        "complete": "Complete",
+        "in_progress": "In progress",
+        "incomplete": "Not started"
+      },
+      "model": {
+        "single_prompt": "Single prompt",
+        "node_flow": "Flow (node)",
+        "none": "Not selected"
+      },
+      "test": {
+        "passed": "Passed",
+        "failed": "Failed",
+        "not_run": "Not run"
+      },
+      "required": {
+        "yes": "Required",
+        "no": "Optional"
+      },
+      "fields_count": "{done} / {total} fields",
+      "flag": {
+        "blocking": "Blocking"
+      },
+      "next_step": "Suggested next step: {step}",
+      "all_steps_done": "All steps complete.",
+      "readiness": {
+        "draft": "Save as draft",
+        "draft_hint": "Basics complete (FR-AGT-005)",
+        "test": "Submit for testing",
+        "test_hint": "All required steps complete + conversation model selected (FR-AGT-010)",
+        "publish": "Publish",
+        "publish_hint": "Ready for test + automated tests passed (FR-AGT-010 / FR-AGT-006)"
+      },
+      "ready": {
+        "yes": "Ready",
+        "no": "Not ready"
+      },
+      "blockers_label": "Blocking steps",
+      "no_blockers": "No steps blocking test submission.",
+      "readiness_hint": "Save/submit-to-test/publish are visual gates; final authority + action are in the backend (RBAC + RLS). Rollback lives in A-17 Version History (FR-AGT-006).",
+      "col": {
+        "step": "Step",
+        "required": "Requirement",
+        "status": "Status",
+        "fields": "Fields",
+        "flag": "Flag",
+        "gate": "Gate",
+        "ready": "Readiness",
+        "template": "Template",
+        "purpose": "Purpose",
+        "mode": "Mode",
+        "languages": "Languages",
+        "action": "Action"
+      },
+      "steps_caption": "Configuration steps of the draft and their completion status",
+      "readiness_caption": "Save/test/publish readiness gates of the draft",
+      "templates_caption": "No-code starting templates",
+      "no_templates": "No starting templates yet.",
+      "templates_hint": "Templates provide a no-code quick start (FR-AGT-001); selecting a template creates a new draft (visual gate; final action in the backend).",
+      "action": {
+        "new_blank": "Create blank draft",
+        "from_template": "Start with this template",
+        "submit_test": "Submit for testing",
+        "publish": "Publish"
+      }
     }
   }
 }

@@ -1849,6 +1849,137 @@
       "action": {
         "new": "Yeni agent"
       }
+    },
+    "a04": {
+      "title": "Agent Builder",
+      "subtitle": "Kod yazmadan agent oluşturma",
+      "scope_note": "Bu rehberli builder ile kod yazmadan agent oluşturabilirsiniz (yalnız tenant'ınız kapsamında). Kaydet/test'e gönder/yayınla nihai yetkisi backend'de uygulanır; bu ekran yapılandırma görünümüdür. Prompt gövdesi/akış/tool tasarımı derin aksiyondur (A-05/A-06/A-09).",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "draft_label": "Taslak",
+      "dash": "—",
+      "percent": "%{n}",
+      "alert": {
+        "no_model": "Konuşma modeli henüz seçilmedi (tek prompt / akış); test'e gönderim için zorunlu (FR-AGT-003).",
+        "blockers": "{count} zorunlu adım tamamlanmadı; test'e gönderim öncesi tamamlayın (FR-AGT-010).",
+        "test_failed": "Otomatik test kapısı başarısız; yayın öncesi düzeltin (FR-AGT-010).",
+        "ready_publish": "Taslak yayına hazır: tüm zorunlu adımlar tamam ve otomatik testler geçti (FR-AGT-010)."
+      },
+      "section": {
+        "start": "Başlangıç Noktası",
+        "summary": "Taslak Özeti",
+        "steps": "Yapılandırma Adımları",
+        "readiness": "Hazırlık ve Yayın",
+        "templates": "Şablon Kütüphanesi"
+      },
+      "start": {
+        "mode_label": "Başlangıç noktası",
+        "blank": "Boştan",
+        "template": "Şablondan",
+        "clone": "Mevcut agent'tan klon",
+        "from": "Şablon: {name}",
+        "variant_note": "Temel agent: {name} (segment varyantı — FR-AGT-008)",
+        "hint": "Kod yazmadan başlayın: boş bir taslak, hazır bir şablon ya da mevcut bir agent'ın varyantı (FR-AGT-001)."
+      },
+      "kpi": {
+        "completion": "Tamamlanma",
+        "completion_hint": "Tamamlanan adım yüzdesi",
+        "steps": "Adımlar",
+        "steps_hint": "Tamamlanan / toplam adım",
+        "required": "Eksik Zorunlu",
+        "required_hint": "Tamamlanmamış zorunlu adım sayısı",
+        "fields": "Alanlar",
+        "fields_hint": "Tamamlanan / toplam yapılandırma alanı",
+        "model": "Konuşma Modeli",
+        "model_hint": "Tek prompt / akış (FR-AGT-003)",
+        "languages": "Diller",
+        "languages_hint": "Taslağın dilleri (FR-AGT-002)",
+        "rules": "İş Kuralı",
+        "rules_hint": "Tanımlı iş kuralı sayısı (FR-AGT-002)",
+        "test": "Test Kapısı",
+        "test_hint": "Otomatik test sonucu (FR-AGT-010)"
+      },
+      "step": {
+        "basics": "Temel Bilgiler",
+        "conversation_model": "Konuşma Modeli",
+        "knowledge": "Bilgi Tabanı",
+        "tools": "Tool / API",
+        "voice_model": "Ses ve Model",
+        "policies": "Güvenlik Politikaları"
+      },
+      "step_desc": {
+        "basics": "İsim, amaç, kişilik, dil ve iş kuralları (FR-AGT-002)",
+        "conversation_model": "Tek prompt veya node/flow modeli seçimi (FR-AGT-003)",
+        "knowledge": "Bilgi kaynağı bağlama — opsiyonel (A-08)",
+        "tools": "Tanımlı tool'ları bağlama — opsiyonel (A-09)",
+        "voice_model": "Ses, model ve STT profili (A-07)",
+        "policies": "Global ve tenant güvenlik politikaları (FR-AGT-009)"
+      },
+      "status": {
+        "complete": "Tamamlandı",
+        "in_progress": "Devam ediyor",
+        "incomplete": "Başlanmadı"
+      },
+      "model": {
+        "single_prompt": "Tek prompt",
+        "node_flow": "Akış (node)",
+        "none": "Seçilmedi"
+      },
+      "test": {
+        "passed": "Geçti",
+        "failed": "Başarısız",
+        "not_run": "Çalışmadı"
+      },
+      "required": {
+        "yes": "Zorunlu",
+        "no": "Opsiyonel"
+      },
+      "fields_count": "{done} / {total} alan",
+      "flag": {
+        "blocking": "Bloklayan"
+      },
+      "next_step": "Önerilen sonraki adım: {step}",
+      "all_steps_done": "Tüm adımlar tamamlandı.",
+      "readiness": {
+        "draft": "Taslak olarak kaydet",
+        "draft_hint": "Temel bilgiler tamam (FR-AGT-005)",
+        "test": "Test'e gönder",
+        "test_hint": "Tüm zorunlu adımlar tamam + konuşma modeli seçili (FR-AGT-010)",
+        "publish": "Yayınla",
+        "publish_hint": "Test'e hazır + otomatik testler geçti (FR-AGT-010 / FR-AGT-006)"
+      },
+      "ready": {
+        "yes": "Hazır",
+        "no": "Hazır değil"
+      },
+      "blockers_label": "Bloklayan adımlar",
+      "no_blockers": "Test'e gönderimi bloklayan adım yok.",
+      "readiness_hint": "Kaydet/test'e gönder/yayınla görsel kapıdır; nihai yetki + işlem backend'de (RBAC + RLS). Rollback A-17 Sürüm Geçmişi'nde (FR-AGT-006).",
+      "col": {
+        "step": "Adım",
+        "required": "Zorunluluk",
+        "status": "Durum",
+        "fields": "Alanlar",
+        "flag": "İşaret",
+        "gate": "Kapı",
+        "ready": "Hazırlık",
+        "template": "Şablon",
+        "purpose": "Amaç",
+        "mode": "Mod",
+        "languages": "Diller",
+        "action": "İşlem"
+      },
+      "steps_caption": "Taslağın yapılandırma adımları ve tamamlanma durumu",
+      "readiness_caption": "Taslağın kaydet/test/yayın hazırlık kapıları",
+      "templates_caption": "No-code başlangıç şablonları",
+      "no_templates": "Henüz başlangıç şablonu yok.",
+      "templates_hint": "Şablonlar kod yazmadan hızlı başlangıç sağlar (FR-AGT-001); şablon seçimi yeni bir taslak oluşturur (görsel kapı; nihai işlem backend'de).",
+      "action": {
+        "new_blank": "Boş taslak oluştur",
+        "from_template": "Bu şablonla başla",
+        "submit_test": "Test'e gönder",
+        "publish": "Yayınla"
+      }
     }
   }
 }
