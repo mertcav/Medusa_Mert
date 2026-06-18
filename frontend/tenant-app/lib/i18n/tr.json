@@ -2329,6 +2329,112 @@
         "connect": "Kaynak bağla",
         "reindex": "Yeniden indeksle"
       }
+    },
+    "a09": {
+      "title": "Tool/API Bağlama",
+      "subtitle": "Tanımlı tool'ları agent'a bağlama (kullanım)",
+      "scope_note": "Bu ekranda tenant'ınızda tanımlı tool'ların agent'lara bağlanmasını (kullanımını) görüntülersiniz (yalnız tenant'ınız kapsamında). Tool'lar T-05'te tanımlanır; bu ekran bağ sağlığını gösterir. Yalnız tool/bağ meta verisi gösterilir; tool endpoint URL'i, JSON schema gövdesi, istek/yanıt payload'ı ve credential panelde yer almaz. Bağla/çöz/yetki ver nihai yetkisi backend'de uygulanır; bu ekran yapılandırma görünümüdür.",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "tools_label": "Tool",
+      "ratio": "{a}/{b}",
+      "percent": "%{n}",
+      "read_write": "{read} okuma · {write} yazma",
+      "none": "—",
+      "yes": "Evet",
+      "no": "Hayır",
+      "orphan": "Tanımsız tool",
+      "escalated": "Yetki yükseltme",
+      "blocked": "Engellendi",
+      "alert": {
+        "orphan_binding": "Bütünlük ihlali: {count} bağ katalogda olmayan bir tool'a işaret ediyor; tanım eksik veya silinmiş (FR-TOOL-004).",
+        "unapproved_endpoint": "{count} aktif bağ onaylanmamış endpoint'li tool kullanıyor; erişim engellenmelidir (FR-TOOL-012).",
+        "escalated_grant": "{count} bağ okuma-seviyesi tool'a yazma yetkisi veriyor; yetki yükseltme engellenmelidir (FR-TOOL-005).",
+        "unvalidated_schema": "{count} aktif bağ JSON schema ile doğrulanmamış tool kullanıyor; input/output doğrulanmalı (FR-TOOL-002).",
+        "unconfirmed_sensitive": "{count} hassas işlem tool'u müşteri teyidi gerektirmiyor; para/sözleşme/kişisel veri değişikliği için teyit + ek doğrulama zorunludur (FR-TOOL-006/007).",
+        "sensitive_write": "{count} aktif yazma bağı hassas işlem tool'una; bu çağrılar ek doğrulama gerektirir (FR-TOOL-007)."
+      },
+      "section": {
+        "summary": "Bağlama Özeti",
+        "bindings": "Agent Başına Bağlar",
+        "catalog": "Tool Kataloğu",
+        "protocols": "Protokol Dağılımı",
+        "health": "Güvenlik & Uyum Sağlığı"
+      },
+      "kpi": {
+        "tools": "Tool",
+        "tools_hint": "{read} okuma · {write} yazma seviyesi (FR-TOOL-005)",
+        "agents": "Agent",
+        "agents_hint": "Tool bağı olan agent sayısı",
+        "bindings": "Aktif Bağ",
+        "bindings_hint": "{disabled} devre dışı bağ",
+        "write_grants": "Yazma Yetkisi",
+        "write_grants_hint": "Yazma grant'lı bağ (FR-TOOL-004/005)",
+        "confirmation": "Teyit Gerektiren",
+        "confirmation_hint": "Müşteri teyidi gerektiren tool (FR-TOOL-006)",
+        "sensitive": "Hassas İşlem",
+        "sensitive_hint": "Para/sözleşme/PII değişikliği tool'u (FR-TOOL-007)",
+        "async": "Asenkron",
+        "async_hint": "Uzun süren işlem (asenkron workflow — FR-TOOL-011)",
+        "attention": "Açık Dikkat",
+        "attention_hint": "Onaysız endpoint + doğrulanmamış schema + yetki yükseltme + tanımsız tool + teyitsiz hassas"
+      },
+      "protocol": {
+        "rest": "REST",
+        "soap": "SOAP",
+        "graphql": "GraphQL",
+        "webhook": "Webhook"
+      },
+      "access": {
+        "read": "Okuma",
+        "write": "Yazma"
+      },
+      "status": {
+        "active": "Aktif",
+        "disabled": "Devre dışı"
+      },
+      "col": {
+        "agent": "Agent",
+        "tool": "Tool",
+        "protocol": "Protokol",
+        "grant": "Yetki",
+        "confirmation": "Teyit",
+        "status": "Durum",
+        "access": "Erişim",
+        "schema": "Schema",
+        "endpoint": "Endpoint",
+        "sensitive": "Hassas",
+        "async": "Async",
+        "bindings": "Bağ",
+        "count": "Adet",
+        "share": "Pay",
+        "control": "Kontrol",
+        "purpose": "Açıklama",
+        "value": "Değer"
+      },
+      "bindings_caption": "Agent başına bağlı tool'lar ve yetkileri",
+      "bindings_hint": "Her bağ bir agent'a tek tool'u belirli bir yetkiyle (okuma/yazma) bağlar (FR-TOOL-004). Yazma yetkisi yalnız yazma-seviyesi tool'a verilebilir (FR-TOOL-005); onaylanmamış endpoint'li tool engellenir (FR-TOOL-012). Bağlama/çözme nihai yetki + işlem backend'de uygulanır (A8).",
+      "catalog_caption": "Tenant tool kataloğu ve güvenlik bayrakları",
+      "catalog_hint": "Tool kataloğu T-05'te (L1) tanımlanır; bu ekran yalnız bağlama (kullanım) içindir. Yalnız tool meta verisi gösterilir (protokol · erişim seviyesi · schema/endpoint/teyit/hassas/async bayrakları + bağ sayısı). Endpoint URL'i, JSON schema gövdesi ve çağrı payload'ı panele konmaz.",
+      "protocols_caption": "Protokol türüne göre tool dağılımı",
+      "health_caption": "Güvenlik ve uyum kontrollerinin durumu",
+      "health_hint": "Bu özet tool kataloğunun güvenlik duruşunu gösterir: JSON schema doğrulama (FR-TOOL-002), endpoint allowlist (FR-TOOL-012), okuma/yazma ayrımı (FR-TOOL-005) ve hassas işlem teyit kapısı (FR-TOOL-006/007). Çalışma-anı zorlama (timeout/retry/circuit breaker/idempotency) orchestrator + Integration Gateway'dedir (WBS 7.x).",
+      "no_bindings": "Bu tenant için tanımlı tool bağı yok; bir agent'a tool bağlayın.",
+      "no_tools": "Bu tenant için tanımlı tool yok; tool'lar T-05'te tanımlanır.",
+      "health": {
+        "schema": "JSON Schema Doğrulama",
+        "schema_desc": "Input/output JSON schema ile doğrulanan tool oranı (FR-TOOL-002)",
+        "endpoint": "Endpoint Allowlist",
+        "endpoint_desc": "Onaylı endpoint'e sahip tool oranı (FR-TOOL-012)",
+        "access_split": "Okuma/Yazma Ayrımı",
+        "access_split_desc": "Erişim seviyesine göre tool dağılımı (FR-TOOL-005)",
+        "confirmation": "Hassas İşlem Teyidi",
+        "confirmation_desc": "Müşteri teyidi olan hassas tool oranı (FR-TOOL-006/007)"
+      },
+      "action": {
+        "bind": "Tool bağla",
+        "manage": "Kataloğu yönet"
+      }
     }
   }
 }

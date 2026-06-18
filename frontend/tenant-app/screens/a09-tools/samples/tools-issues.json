@@ -1,0 +1,42 @@
+{
+  "$comment": "A-09 SORUNLU tool/bağ envanteri (WBS 13.4.9): TOOL-32 hassas ama teyitsiz (FR-TOOL-006/007 açığı) + schema doğrulanmamış (FR-TOOL-002); TOOL-33 endpoint onaysız (FR-TOOL-012); TOOL-34 read-seviyesi. AGT-401: BND-31 doğrulanmamış-schema bağı + BND-32 onaysız-endpoint bağı + BND-33 yetki-yükseltme (read tool'a write — FR-TOOL-005). AGT-402: BND-34 orphan (katalogda olmayan TOOL-77). → write_grants=3 + escalated=1 + orphans=1 + unapproved=1 + unvalidated=1 + unconfirmed_sensitive=1 + attention=5. assertNoPii temiz (yalnız META; endpoint URL/schema gövdesi/payload yok).",
+  "$expect": {
+    "tools": 4,
+    "agents": 2,
+    "bindings": 4,
+    "write_grants": 3,
+    "escalated": 1,
+    "orphans": 1,
+    "unapproved": 1,
+    "unvalidated": 1,
+    "unconfirmed_sensitive": 1,
+    "attention": 5
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1003",
+  "tenantName": "Gama Lojistik",
+  "tools": [
+    { "toolRef": "TOOL-31", "name": "Müşteri Sorgu", "protocol": "rest", "accessLevel": "read", "schemaValidated": true, "endpointApproved": true, "requiresConfirmation": false, "sensitiveAction": false, "async": false },
+    { "toolRef": "TOOL-32", "name": "Ödeme Al", "protocol": "rest", "accessLevel": "write", "schemaValidated": false, "endpointApproved": true, "requiresConfirmation": false, "sensitiveAction": true, "async": false },
+    { "toolRef": "TOOL-33", "name": "Dış Webhook", "protocol": "webhook", "accessLevel": "write", "schemaValidated": true, "endpointApproved": false, "requiresConfirmation": true, "sensitiveAction": false, "async": true },
+    { "toolRef": "TOOL-34", "name": "Rapor GraphQL", "protocol": "graphql", "accessLevel": "read", "schemaValidated": true, "endpointApproved": true, "requiresConfirmation": false, "sensitiveAction": false, "async": false }
+  ],
+  "agents": [
+    {
+      "agentRef": "AGT-401",
+      "agentName": "Tahsilat Botu",
+      "bindings": [
+        { "bindRef": "BND-31", "toolRef": "TOOL-32", "grant": "write", "status": "active" },
+        { "bindRef": "BND-32", "toolRef": "TOOL-33", "grant": "write", "status": "active" },
+        { "bindRef": "BND-33", "toolRef": "TOOL-34", "grant": "write", "status": "active" }
+      ]
+    },
+    {
+      "agentRef": "AGT-402",
+      "agentName": "Genel Bot",
+      "bindings": [
+        { "bindRef": "BND-34", "toolRef": "TOOL-77", "grant": "read", "status": "active" }
+      ]
+    }
+  ]
+}

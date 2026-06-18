@@ -1,0 +1,81 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.4.9",
+  "screen": "A-09",
+  "title": "Tool/API Bağlama",
+  "plane": "tenant_application_plane",
+  "tier": "L2",
+  "source": [
+    "BRD §17.5 (A-09 Tool/API Bağlama — tanımlı tool'ları agent'a bağlama (kullanım))",
+    "BRD §17.6 (RBAC — operations_manager=Düzenle · conversation_designer=Düzenle)",
+    "BRD §17.7 (hijyen + PII redaction)",
+    "FR-TOOL-001 (REST/SOAP/GraphQL/webhook entegrasyonları)",
+    "FR-TOOL-002 (tool input/output JSON schema ile doğrulanır)",
+    "FR-TOOL-004 (tool yetkileri agent bazında sınırlandırılır)",
+    "FR-TOOL-005 (okuma/yazma ayrı güvenlik seviyeleri)",
+    "FR-TOOL-006 (kritik işlem öncesi müşteri teyidi)",
+    "FR-TOOL-007 (para/sözleşme/kişisel veri değişikliği → ek doğrulama)",
+    "FR-TOOL-011 (uzun süren işlem → asenkron workflow)",
+    "FR-TOOL-012 (onaylanmamış endpoint'lere erişim engellenir)",
+    "API §7 (Tools — POST /agents/{id}/tools:bind; tool:bind permission)",
+    "FR-TEN-002 (tenant scope)",
+    "SAD §14.4.1 (A8 — UI görsel kapı; nihai yetki backend)",
+    "ADR-002 (vendor-neutral)",
+    "NFR 10.6 (sır/credential)"
+  ],
+  "rbac": {
+    "operations_manager": "edit",
+    "conversation_designer": "edit",
+    "qa_analyst": "none",
+    "human_agent": "none",
+    "note": "BRD §17.6 A-09 satırı: operations_manager=Düzenle · conversation_designer=Düzenle (her ikisi de birincil); qa_analyst/human_agent erişimsiz. tenant_owner kural 17.7 ile Yönet. UI yalnız görsel kapı; nihai yetki backend'de + RLS. Bağla/çöz/grant ver derin aksiyondur (A8); tool çağırma/Integration Gateway API dilimi (WBS 7.x). Permission-key: tool:bind (API §7) + agent:read (SAD §7/§17.2)."
+  },
+  "content_brd_17_5": [
+    "bağlama özeti (tool / agent / aktif bağ / yazma yetkisi / teyit / hassas / async + açık dikkat)",
+    "agent başına bağlar (agent / tool / protokol / grant [okuma|yazma] / teyit / durum)",
+    "tool kataloğu (tool / protokol / erişim / schema doğrulama / endpoint allowlist / teyit / hassas / async / bağ sayısı)",
+    "protokol dağılımı (REST / SOAP / GraphQL / webhook)",
+    "güvenlik & uyum sağlığı (schema doğrulama / endpoint allowlist / okuma-yazma ayrımı / hassas teyit)"
+  ],
+  "protocols": ["rest", "soap", "graphql", "webhook"],
+  "access_levels": ["read", "write"],
+  "binding_statuses": ["active", "disabled"],
+  "invariants": {
+    "S1": "A-09 ekran sayfası mevcut + data-screen=\"A-09\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/tenant/tools) kullanır + sunucu-tarafı locale.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.a09.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK son-müşteri ham iş-içeriği/PII (ham numara/transkript/kayıt/CDR/müşteri) taşımaz (FORBIDDEN_PII_KEYS) + sır/credential/ENDPOINT URL/JSON SCHEMA GÖVDESİ/PAYLOAD (apiKey/token/secret/endpoint/url/payload/schemaBody/...) taşımaz (FORBIDDEN_SECRET_KEYS) + assertNoPii çağrılır (HİJYEN BRD §17.7 + GÜVENLİK NFR 10.6). Yalnız TOOL/BAĞ META (protokol/erişim seviyesi/schema-endpoint-teyit-hassas-async BAYRAKLARI/grant/durum + tool/agent adı).",
+    "S5": "BRD §17.5 içerik öğeleri (bağlama özeti + agent başına bağlar + tool kataloğu + protokol dağılımı + güvenlik sağlığı) + FR-TOOL-001 (protokoller) + FR-TOOL-002 (schema doğrulama) + FR-TOOL-004 (agent bazında grant) + FR-TOOL-005 (okuma/yazma ayrımı + escalatedBindings) + FR-TOOL-006/007 (teyit + hassas) + FR-TOOL-011 (async) + FR-TOOL-012 (endpoint allowlist + unapprovedBindings) i18n bölüm + alt-anahtarlarıyla karşılanır.",
+    "S6": "screen.a09.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (sortedTools/sortedAgents/allBindings/countByProtocol/countByAccessLevel/readTools/writeTools/unvalidatedTools/unapprovedTools/confirmationTools/sensitiveTools/asyncTools/unconfirmedSensitiveTools/bindingCountForTool/activeBindings/disabledBindings/writeGrantBindings/escalatedBindings/orphanBindings/unapprovedBindings/unvalidatedBindings/sensitiveWriteBindings/openAttentionCount/tone'lar) deterministik; Date.now/rastgelelik yok. PROTOCOL_ORDER + ACCESS_ORDER sabitleri tanımlı.",
+    "S8": "Vendor-neutral (ADR-002): veri seam belirli CRM/ERP/SaaS markası/Integration Gateway sağlayıcısını bağlamaz; sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "scope_note", "as_of", "tenant", "tools_label", "ratio", "percent", "read_write", "none", "yes", "no", "orphan", "escalated", "blocked",
+    "alert.orphan_binding", "alert.unapproved_endpoint", "alert.escalated_grant", "alert.unvalidated_schema", "alert.unconfirmed_sensitive", "alert.sensitive_write",
+    "section.summary", "section.bindings", "section.catalog", "section.protocols", "section.health",
+    "kpi.tools", "kpi.tools_hint", "kpi.agents", "kpi.agents_hint", "kpi.bindings", "kpi.bindings_hint", "kpi.write_grants", "kpi.write_grants_hint", "kpi.confirmation", "kpi.confirmation_hint", "kpi.sensitive", "kpi.sensitive_hint", "kpi.async", "kpi.async_hint", "kpi.attention", "kpi.attention_hint",
+    "protocol.rest", "protocol.soap", "protocol.graphql", "protocol.webhook",
+    "access.read", "access.write",
+    "status.active", "status.disabled",
+    "col.agent", "col.tool", "col.protocol", "col.grant", "col.confirmation", "col.status", "col.access", "col.schema", "col.endpoint", "col.sensitive", "col.async", "col.bindings", "col.count", "col.share", "col.control", "col.purpose", "col.value",
+    "bindings_caption", "bindings_hint", "catalog_caption", "catalog_hint", "protocols_caption", "health_caption", "health_hint",
+    "no_bindings", "no_tools",
+    "health.schema", "health.schema_desc", "health.endpoint", "health.endpoint_desc", "health.access_split", "health.access_split_desc", "health.confirmation", "health.confirmation_desc",
+    "action.bind", "action.manage"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "ratio": ["a", "b"],
+    "percent": ["n"],
+    "read_write": ["read", "write"],
+    "alert.orphan_binding": ["count"],
+    "alert.unapproved_endpoint": ["count"],
+    "alert.escalated_grant": ["count"],
+    "alert.unvalidated_schema": ["count"],
+    "alert.unconfirmed_sensitive": ["count"],
+    "alert.sensitive_write": ["count"],
+    "kpi.tools_hint": ["read", "write"],
+    "kpi.bindings_hint": ["disabled"]
+  }
+}

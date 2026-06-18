@@ -2329,6 +2329,112 @@
         "connect": "Connect source",
         "reindex": "Reindex"
       }
+    },
+    "a09": {
+      "title": "Tool/API Binding",
+      "subtitle": "Bind defined tools to agents (usage)",
+      "scope_note": "On this screen you view how your tenant's defined tools are bound to agents (usage) — scoped to your tenant only. Tools are defined in T-05; this screen shows binding health. Only tool/binding metadata is shown; tool endpoint URLs, JSON schema bodies, request/response payloads and credentials never appear in the panel. Final authority for bind/unbind/grant is enforced in the backend; this screen is a configuration view.",
+      "as_of": "View time: {time}",
+      "tenant": "Tenant",
+      "tools_label": "Tools",
+      "ratio": "{a}/{b}",
+      "percent": "{n}%",
+      "read_write": "{read} read · {write} write",
+      "none": "—",
+      "yes": "Yes",
+      "no": "No",
+      "orphan": "Undefined tool",
+      "escalated": "Privilege escalation",
+      "blocked": "Blocked",
+      "alert": {
+        "orphan_binding": "Integrity violation: {count} binding(s) reference a tool not in the catalogue; the definition is missing or deleted (FR-TOOL-004).",
+        "unapproved_endpoint": "{count} active binding(s) use a tool with an unapproved endpoint; access must be blocked (FR-TOOL-012).",
+        "escalated_grant": "{count} binding(s) grant write access on a read-level tool; privilege escalation must be blocked (FR-TOOL-005).",
+        "unvalidated_schema": "{count} active binding(s) use a tool without JSON schema validation; input/output must be validated (FR-TOOL-002).",
+        "unconfirmed_sensitive": "{count} sensitive-action tool(s) do not require customer confirmation; money/contract/personal-data changes require confirmation plus extra verification (FR-TOOL-006/007).",
+        "sensitive_write": "{count} active write binding(s) target a sensitive-action tool; these calls require extra verification (FR-TOOL-007)."
+      },
+      "section": {
+        "summary": "Binding Summary",
+        "bindings": "Bindings per Agent",
+        "catalog": "Tool Catalogue",
+        "protocols": "Protocol Distribution",
+        "health": "Security & Compliance Health"
+      },
+      "kpi": {
+        "tools": "Tools",
+        "tools_hint": "{read} read · {write} write level (FR-TOOL-005)",
+        "agents": "Agents",
+        "agents_hint": "Number of agents with tool bindings",
+        "bindings": "Active Bindings",
+        "bindings_hint": "{disabled} disabled binding(s)",
+        "write_grants": "Write Grants",
+        "write_grants_hint": "Bindings with write grant (FR-TOOL-004/005)",
+        "confirmation": "Confirmation Required",
+        "confirmation_hint": "Tools requiring customer confirmation (FR-TOOL-006)",
+        "sensitive": "Sensitive Action",
+        "sensitive_hint": "Money/contract/PII change tools (FR-TOOL-007)",
+        "async": "Asynchronous",
+        "async_hint": "Long-running operation (async workflow — FR-TOOL-011)",
+        "attention": "Open Attention",
+        "attention_hint": "Unapproved endpoint + unvalidated schema + privilege escalation + undefined tool + unconfirmed sensitive"
+      },
+      "protocol": {
+        "rest": "REST",
+        "soap": "SOAP",
+        "graphql": "GraphQL",
+        "webhook": "Webhook"
+      },
+      "access": {
+        "read": "Read",
+        "write": "Write"
+      },
+      "status": {
+        "active": "Active",
+        "disabled": "Disabled"
+      },
+      "col": {
+        "agent": "Agent",
+        "tool": "Tool",
+        "protocol": "Protocol",
+        "grant": "Grant",
+        "confirmation": "Confirm",
+        "status": "Status",
+        "access": "Access",
+        "schema": "Schema",
+        "endpoint": "Endpoint",
+        "sensitive": "Sensitive",
+        "async": "Async",
+        "bindings": "Bindings",
+        "count": "Count",
+        "share": "Share",
+        "control": "Control",
+        "purpose": "Purpose",
+        "value": "Value"
+      },
+      "bindings_caption": "Tools bound per agent and their grants",
+      "bindings_hint": "Each binding attaches a single tool to an agent with a specific grant (read/write) (FR-TOOL-004). Write grant may only be given on a write-level tool (FR-TOOL-005); a tool with an unapproved endpoint is blocked (FR-TOOL-012). Final authority for binding/unbinding plus execution is enforced in the backend (A8).",
+      "catalog_caption": "Tenant tool catalogue and security flags",
+      "catalog_hint": "The tool catalogue is defined in T-05 (L1); this screen is for binding (usage) only. Only tool metadata is shown (protocol · access level · schema/endpoint/confirmation/sensitive/async flags + binding count). Endpoint URLs, JSON schema bodies and call payloads are not placed in the panel.",
+      "protocols_caption": "Tool distribution by protocol type",
+      "health_caption": "Status of security and compliance controls",
+      "health_hint": "This summary shows the tool catalogue's security posture: JSON schema validation (FR-TOOL-002), endpoint allowlist (FR-TOOL-012), read/write separation (FR-TOOL-005) and the sensitive-action confirmation gate (FR-TOOL-006/007). Runtime enforcement (timeout/retry/circuit breaker/idempotency) lives in the orchestrator + Integration Gateway (WBS 7.x).",
+      "no_bindings": "No tool bindings defined for this tenant; bind a tool to an agent.",
+      "no_tools": "No tools defined for this tenant; tools are defined in T-05.",
+      "health": {
+        "schema": "JSON Schema Validation",
+        "schema_desc": "Share of tools validated by input/output JSON schema (FR-TOOL-002)",
+        "endpoint": "Endpoint Allowlist",
+        "endpoint_desc": "Share of tools with an approved endpoint (FR-TOOL-012)",
+        "access_split": "Read/Write Split",
+        "access_split_desc": "Tool distribution by access level (FR-TOOL-005)",
+        "confirmation": "Sensitive Confirmation",
+        "confirmation_desc": "Share of sensitive tools with customer confirmation (FR-TOOL-006/007)"
+      },
+      "action": {
+        "bind": "Bind tool",
+        "manage": "Manage catalogue"
+      }
     }
   }
 }

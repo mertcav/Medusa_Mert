@@ -1,0 +1,40 @@
+{
+  "$comment": "A-09 SAĞLIKLI tool/bağ envanteri (WBS 13.4.9): 3 tool, hepsi JSON schema doğrulanmış (FR-TOOL-002) + endpoint allowlist onaylı (FR-TOOL-012); hassas tool müşteri teyidi gerektiriyor (FR-TOOL-006/007). 2 agent, 3 aktif bağ; her yazma grant'ı yazma-seviyesi tool'a (escalation yok — FR-TOOL-005); orphan yok → write_grants=2 + escalated=0 + orphans=0 + unapproved=0 + unvalidated=0 + unconfirmed_sensitive=0 + attention=0. assertNoPii temiz (yalnız TOOL/BAĞ META: protokol/erişim/schema-endpoint-teyit-hassas-async bayrakları/grant/durum).",
+  "$expect": {
+    "tools": 3,
+    "agents": 2,
+    "bindings": 3,
+    "write_grants": 2,
+    "escalated": 0,
+    "orphans": 0,
+    "unapproved": 0,
+    "unvalidated": 0,
+    "unconfirmed_sensitive": 0,
+    "attention": 0
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Finans",
+  "tools": [
+    { "toolRef": "TOOL-21", "name": "Sipariş Sorgu", "protocol": "rest", "accessLevel": "read", "schemaValidated": true, "endpointApproved": true, "requiresConfirmation": false, "sensitiveAction": false, "async": false },
+    { "toolRef": "TOOL-22", "name": "Fatura Oluştur", "protocol": "soap", "accessLevel": "write", "schemaValidated": true, "endpointApproved": true, "requiresConfirmation": true, "sensitiveAction": true, "async": false },
+    { "toolRef": "TOOL-23", "name": "Durum Webhook", "protocol": "webhook", "accessLevel": "write", "schemaValidated": true, "endpointApproved": true, "requiresConfirmation": true, "sensitiveAction": false, "async": true }
+  ],
+  "agents": [
+    {
+      "agentRef": "AGT-301",
+      "agentName": "Satış Botu",
+      "bindings": [
+        { "bindRef": "BND-21", "toolRef": "TOOL-21", "grant": "read", "status": "active" },
+        { "bindRef": "BND-22", "toolRef": "TOOL-22", "grant": "write", "status": "active" }
+      ]
+    },
+    {
+      "agentRef": "AGT-302",
+      "agentName": "Bildirim Botu",
+      "bindings": [
+        { "bindRef": "BND-23", "toolRef": "TOOL-23", "grant": "write", "status": "active" }
+      ]
+    }
+  ]
+}
