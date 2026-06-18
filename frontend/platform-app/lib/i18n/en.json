@@ -1980,6 +1980,144 @@
         "submit_test": "Submit for testing",
         "publish": "Publish"
       }
+    },
+    "a05": {
+      "title": "Conversation Flow Editor",
+      "subtitle": "Node/flow based process design",
+      "scope_note": "Use this editor to design and validate your agent's node/flow conversation flow (scoped to your tenant only). Edit/validate/publish authority is enforced in the backend; this screen is a configuration view. Prompt body/tool credentials are deep actions (A-06/A-09).",
+      "as_of": "View time: {time}",
+      "tenant": "Tenant",
+      "agent_label": "Agent",
+      "flow_label": "Flow",
+      "percent": "{n}%",
+      "alert": {
+        "single_prompt": "This agent is in single-prompt mode; there is no node/flow graph. Switch the conversation model to node/flow to edit a flow (FR-AGT-003).",
+        "invalid": "Flow is invalid: {count} structural issue(s) (single entry / dangling edge / unreachable / dead-end). Fix before test and publish (FR-AGT-010).",
+        "missing_config": "{count} node(s) are not fully configured; complete before testing (FR-AGT-010).",
+        "no_handoff": "The flow has no human handoff node; a handoff path is recommended by design.",
+        "ready_publish": "Flow is ready to publish: structurally valid, all nodes configured, and a human handoff path exists (FR-AGT-010)."
+      },
+      "section": {
+        "summary": "Flow Summary",
+        "validation": "Validation and Health",
+        "node_types": "Node Type Distribution",
+        "nodes": "Nodes",
+        "transitions": "Transitions"
+      },
+      "kpi": {
+        "nodes": "Nodes",
+        "nodes_hint": "Total nodes in the flow",
+        "edges": "Edges",
+        "edges_hint": "Total transitions (edges) in the flow",
+        "mode": "Conversation Model",
+        "mode_hint": "Single prompt / node-flow (FR-AGT-003)",
+        "version": "Version",
+        "version_hint": "Flow version number (DB §5.2)",
+        "unreachable": "Unreachable",
+        "unreachable_hint": "Nodes not reachable from entry",
+        "dangling": "Dangling Edges",
+        "dangling_hint": "Edges with missing source/target",
+        "dead_end": "Dead Ends",
+        "dead_end_hint": "Non-terminal nodes with no outgoing edge",
+        "validity": "Validity",
+        "validity_hint": "Flow validation status"
+      },
+      "mode": {
+        "single_prompt": "Single prompt",
+        "node_flow": "Flow (node)"
+      },
+      "validity": {
+        "valid": "Valid",
+        "warnings": "Has warnings",
+        "invalid": "Invalid"
+      },
+      "node": {
+        "start": "Start",
+        "message": "Message",
+        "collect": "Collect input",
+        "decision": "Decision",
+        "tool": "Tool / API",
+        "handoff": "Human Handoff",
+        "end": "End"
+      },
+      "node_desc": {
+        "start": "Entry node of the flow (start)",
+        "message": "Agent speaks (prompt reference — body in A-06)",
+        "collect": "Collects input from the user",
+        "decision": "Branches based on a condition",
+        "tool": "Tool/API call (reference — credentials in A-09)",
+        "handoff": "Transfers to a human agent (by design)",
+        "end": "Ends the conversation"
+      },
+      "binding": {
+        "prompt": "Prompt: {ref}",
+        "tool": "Tool: {ref}",
+        "none": "—"
+      },
+      "config": {
+        "complete": "Complete",
+        "incomplete": "Incomplete"
+      },
+      "flag": {
+        "unreachable": "Unreachable",
+        "dead_end": "Dead end",
+        "dangling": "Dangling",
+        "ok": "—"
+      },
+      "condition": {
+        "none": "Unconditional"
+      },
+      "edge": {
+        "valid": "Valid"
+      },
+      "gate": {
+        "single_entry": "Single entry node",
+        "single_entry_hint": "The flow must have exactly one start node",
+        "no_dangling": "No dangling edges",
+        "no_dangling_hint": "Every edge must have an existing source and target",
+        "no_unreachable": "No unreachable nodes",
+        "no_unreachable_hint": "All nodes must be reachable from entry",
+        "no_dead_end": "No dead-end nodes",
+        "no_dead_end_hint": "Non-terminal nodes must have an outgoing edge",
+        "config_complete": "Configuration complete",
+        "config_complete_hint": "All nodes must be fully configured",
+        "has_handoff": "Has human handoff",
+        "has_handoff_hint": "At least one handoff path is recommended by design"
+      },
+      "ready": {
+        "yes": "Pass",
+        "no": "Missing"
+      },
+      "col": {
+        "gate": "Gate",
+        "ready": "Status",
+        "type": "Type",
+        "purpose": "Description",
+        "count": "Count",
+        "share": "Share",
+        "node": "Node",
+        "binding": "Binding",
+        "outgoing": "Outgoing",
+        "config": "Configuration",
+        "flag": "Flag",
+        "from": "Source",
+        "to": "Target",
+        "condition": "Condition",
+        "valid": "Validity"
+      },
+      "validation_caption": "Flow validation gates and health status",
+      "node_types_caption": "Node type distribution",
+      "nodes_caption": "Flow nodes and their status",
+      "transitions_caption": "Flow transitions (edges)",
+      "validation_hint": "Validate/publish is a visual gate only; final authority plus flow validation and publish are enforced in the backend (A8).",
+      "editor_hint": "Editing nodes/edges, prompt body, and tool credentials are deep actions (A-06 Prompt / A-09 Tool); this screen is a configuration view.",
+      "no_nodes": "No nodes to display in this flow.",
+      "no_edges": "No transitions defined in this flow.",
+      "action": {
+        "open_editor": "Open editor",
+        "run_test": "Run test",
+        "publish": "Publish"
+      }
     }
   }
 }

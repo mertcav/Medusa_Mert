@@ -1,0 +1,45 @@
+{
+  "$comment": "A-05 YAYINA HAZIR akış (WBS 13.4.5): node_flow modu, tek giriş düğümü (S1), asılı geçiş yok, tüm düğümler girişten erişilebilir, çıkmaz yok (terminal S6 handoff / S7 end), tüm düğüm yapılandırması tam, insan aktarımı (S6) var → structurallyValid=true + readyForTest=true + readyForPublish=true + validity=valid. assertNoPii temiz (yalnız konfigürasyon META: etiket/tür/REFERANS/koşul).",
+  "$expect": {
+    "nodes": 7,
+    "edges": 7,
+    "single_entry": true,
+    "dangling": 0,
+    "unreachable": 0,
+    "dead_end": 0,
+    "missing_config": 0,
+    "has_handoff": true,
+    "structurally_valid": true,
+    "ready_test": true,
+    "ready_publish": true,
+    "validity": "valid"
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Finans",
+  "agentRef": "AGT-204",
+  "agentName": "Seviye 1 Destek Asistanı",
+  "flow": {
+    "flowRef": "FLOW-7",
+    "mode": "node_flow",
+    "versionNo": 3,
+    "nodes": [
+      { "id": "S1", "type": "start", "label": "Başlangıç", "promptRef": null, "toolRef": null, "configComplete": true },
+      { "id": "S2", "type": "message", "label": "Karşılama ve yapay zekâ bildirimi", "promptRef": "PROMPT-10", "toolRef": null, "configComplete": true },
+      { "id": "S3", "type": "collect", "label": "Sorun kategorisini al", "promptRef": "PROMPT-11", "toolRef": null, "configComplete": true },
+      { "id": "S4", "type": "decision", "label": "Çözüm bulundu mu?", "promptRef": null, "toolRef": null, "configComplete": true },
+      { "id": "S5", "type": "tool", "label": "Bilgi tabanı sorgula", "promptRef": null, "toolRef": "TOOL-KB", "configComplete": true },
+      { "id": "S6", "type": "handoff", "label": "Uzman temsilciye aktar", "promptRef": null, "toolRef": null, "configComplete": true },
+      { "id": "S7", "type": "end", "label": "Görüşme sonu", "promptRef": null, "toolRef": null, "configComplete": true }
+    ],
+    "edges": [
+      { "from": "S1", "to": "S2", "condition": null },
+      { "from": "S2", "to": "S3", "condition": null },
+      { "from": "S3", "to": "S4", "condition": null },
+      { "from": "S4", "to": "S5", "condition": "self_service" },
+      { "from": "S4", "to": "S6", "condition": "eskalasyon" },
+      { "from": "S5", "to": "S7", "condition": null },
+      { "from": "S6", "to": "S7", "condition": null }
+    ]
+  }
+}

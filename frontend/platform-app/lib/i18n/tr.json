@@ -1980,6 +1980,144 @@
         "submit_test": "Test'e gönder",
         "publish": "Yayınla"
       }
+    },
+    "a05": {
+      "title": "Conversation Flow Editor",
+      "subtitle": "Node/flow tabanlı süreç tasarımı",
+      "scope_note": "Bu editör ile agent'ınızın node/flow tabanlı konuşma akışını tasarlar ve doğrularsınız (yalnız tenant'ınız kapsamında). Düzenle/doğrula/yayınla nihai yetkisi backend'de uygulanır; bu ekran yapılandırma görünümüdür. Prompt gövdesi/tool kimlik bilgisi derin aksiyondur (A-06/A-09).",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "agent_label": "Agent",
+      "flow_label": "Akış",
+      "percent": "%{n}",
+      "alert": {
+        "single_prompt": "Bu agent tek-prompt modundadır; node/flow grafiği yoktur. Akış düzenlemek için konuşma modelini node/flow'a alın (FR-AGT-003).",
+        "invalid": "Akış geçersiz: {count} yapısal sorun var (tek giriş / asılı geçiş / erişilemez / çıkmaz). Test ve yayın öncesi düzeltin (FR-AGT-010).",
+        "missing_config": "{count} düğümün yapılandırması eksik; test öncesi tamamlayın (FR-AGT-010).",
+        "no_handoff": "Akışta insan aktarımı (handoff) düğümü yok; tasarım gereği bir aktarım yolu önerilir.",
+        "ready_publish": "Akış yayına hazır: yapısal olarak geçerli, tüm düğümler yapılandırıldı ve insan aktarımı yolu var (FR-AGT-010)."
+      },
+      "section": {
+        "summary": "Akış Özeti",
+        "validation": "Doğrulama ve Sağlık",
+        "node_types": "Düğüm Türü Dağılımı",
+        "nodes": "Düğümler",
+        "transitions": "Geçişler"
+      },
+      "kpi": {
+        "nodes": "Düğüm",
+        "nodes_hint": "Akıştaki toplam düğüm",
+        "edges": "Geçiş",
+        "edges_hint": "Akıştaki toplam geçiş (edge)",
+        "mode": "Konuşma Modeli",
+        "mode_hint": "Tek prompt / node-flow (FR-AGT-003)",
+        "version": "Sürüm",
+        "version_hint": "Akış sürüm numarası (DB §5.2)",
+        "unreachable": "Erişilemez",
+        "unreachable_hint": "Girişten ulaşılamayan düğüm",
+        "dangling": "Asılı Geçiş",
+        "dangling_hint": "Kaynak/hedefi eksik geçiş",
+        "dead_end": "Çıkmaz",
+        "dead_end_hint": "Giden geçişi olmayan terminal-olmayan düğüm",
+        "validity": "Geçerlilik",
+        "validity_hint": "Akış doğrulama durumu"
+      },
+      "mode": {
+        "single_prompt": "Tek prompt",
+        "node_flow": "Akış (node)"
+      },
+      "validity": {
+        "valid": "Geçerli",
+        "warnings": "Uyarı var",
+        "invalid": "Geçersiz"
+      },
+      "node": {
+        "start": "Başlangıç",
+        "message": "Mesaj",
+        "collect": "Girdi topla",
+        "decision": "Karar",
+        "tool": "Tool / API",
+        "handoff": "İnsan Aktarımı",
+        "end": "Bitiş"
+      },
+      "node_desc": {
+        "start": "Akışın giriş düğümü (başlangıç)",
+        "message": "Agent konuşur (prompt referansı — gövde A-06)",
+        "collect": "Kullanıcıdan girdi toplar",
+        "decision": "Koşula göre dallanır",
+        "tool": "Tool/API çağrısı (referans — kimlik bilgisi A-09)",
+        "handoff": "İnsan temsilciye aktarır (tasarım gereği)",
+        "end": "Görüşmeyi sonlandırır"
+      },
+      "binding": {
+        "prompt": "Prompt: {ref}",
+        "tool": "Tool: {ref}",
+        "none": "—"
+      },
+      "config": {
+        "complete": "Tam",
+        "incomplete": "Eksik"
+      },
+      "flag": {
+        "unreachable": "Erişilemez",
+        "dead_end": "Çıkmaz",
+        "dangling": "Asılı",
+        "ok": "—"
+      },
+      "condition": {
+        "none": "Koşulsuz"
+      },
+      "edge": {
+        "valid": "Geçerli"
+      },
+      "gate": {
+        "single_entry": "Tek giriş düğümü",
+        "single_entry_hint": "Akışta tam olarak bir başlangıç düğümü olmalı",
+        "no_dangling": "Asılı geçiş yok",
+        "no_dangling_hint": "Her geçişin kaynağı ve hedefi mevcut olmalı",
+        "no_unreachable": "Erişilemez düğüm yok",
+        "no_unreachable_hint": "Tüm düğümler girişten ulaşılabilir olmalı",
+        "no_dead_end": "Çıkmaz düğüm yok",
+        "no_dead_end_hint": "Terminal olmayan düğümün bir giden geçişi olmalı",
+        "config_complete": "Yapılandırma tam",
+        "config_complete_hint": "Tüm düğümlerin yapılandırması tamamlanmalı",
+        "has_handoff": "İnsan aktarımı var",
+        "has_handoff_hint": "Tasarım gereği en az bir aktarım yolu önerilir"
+      },
+      "ready": {
+        "yes": "Geçti",
+        "no": "Eksik"
+      },
+      "col": {
+        "gate": "Kapı",
+        "ready": "Durum",
+        "type": "Tür",
+        "purpose": "Açıklama",
+        "count": "Adet",
+        "share": "Pay",
+        "node": "Düğüm",
+        "binding": "Bağlama",
+        "outgoing": "Giden",
+        "config": "Yapılandırma",
+        "flag": "İşaret",
+        "from": "Kaynak",
+        "to": "Hedef",
+        "condition": "Koşul",
+        "valid": "Geçerlilik"
+      },
+      "validation_caption": "Akış doğrulama kapıları ve sağlık durumu",
+      "node_types_caption": "Düğüm türü dağılımı",
+      "nodes_caption": "Akış düğümleri ve durumları",
+      "transitions_caption": "Akış geçişleri (edge'ler)",
+      "validation_hint": "Doğrula/yayınla yalnız görsel kapıdır; nihai yetki + akış doğrulama ve yayın backend'de uygulanır (A8).",
+      "editor_hint": "Düğüm/geçiş düzenleme, prompt gövdesi ve tool kimlik bilgisi derin aksiyondur (A-06 Prompt / A-09 Tool); bu ekran yapılandırma görünümüdür.",
+      "no_nodes": "Bu akışta gösterilecek düğüm yok.",
+      "no_edges": "Bu akışta tanımlı geçiş yok.",
+      "action": {
+        "open_editor": "Editörü aç",
+        "run_test": "Testi çalıştır",
+        "publish": "Yayınla"
+      }
     }
   }
 }

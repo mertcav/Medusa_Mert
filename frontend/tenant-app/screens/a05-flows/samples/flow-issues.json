@@ -1,0 +1,44 @@
+{
+  "$comment": "A-05 SORUNLU akış (WBS 13.4.5): node_flow modu. Tek giriş (M1) var ama: M4→M9 ASILI geçiş (M9 yok); M6 ERİŞİLEMEZ (girişten ulaşılamaz); M5 ve M6 ÇIKMAZ (giden geçerli geçişi olmayan, terminal-olmayan mesaj düğümleri); M3 yapılandırması EKSİK; insan aktarımı (handoff) düğümü YOK → structurallyValid=false + readyForTest=false + readyForPublish=false + validity=invalid. assertNoPii yine temiz (yalnız konfigürasyon META).",
+  "$expect": {
+    "nodes": 7,
+    "edges": 6,
+    "single_entry": true,
+    "dangling": 1,
+    "unreachable": 1,
+    "dead_end": 2,
+    "missing_config": 1,
+    "has_handoff": false,
+    "structurally_valid": false,
+    "ready_test": false,
+    "ready_publish": false,
+    "validity": "invalid"
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1003",
+  "tenantName": "Gama Telekom",
+  "agentRef": "AGT-309",
+  "agentName": "Fatura Bilgilendirme",
+  "flow": {
+    "flowRef": "FLOW-9",
+    "mode": "node_flow",
+    "versionNo": 1,
+    "nodes": [
+      { "id": "M1", "type": "start", "label": "Başlangıç", "promptRef": null, "toolRef": null, "configComplete": true },
+      { "id": "M2", "type": "message", "label": "Karşılama", "promptRef": "PROMPT-01", "toolRef": null, "configComplete": true },
+      { "id": "M3", "type": "collect", "label": "Talep al", "promptRef": null, "toolRef": null, "configComplete": false },
+      { "id": "M4", "type": "decision", "label": "Yönlendirme", "promptRef": null, "toolRef": null, "configComplete": true },
+      { "id": "M5", "type": "message", "label": "Bilgi ver", "promptRef": "PROMPT-05", "toolRef": null, "configComplete": true },
+      { "id": "M6", "type": "message", "label": "Yetim düğüm", "promptRef": "PROMPT-06", "toolRef": null, "configComplete": true },
+      { "id": "M7", "type": "end", "label": "Görüşme sonu", "promptRef": null, "toolRef": null, "configComplete": true }
+    ],
+    "edges": [
+      { "from": "M1", "to": "M2", "condition": null },
+      { "from": "M2", "to": "M3", "condition": null },
+      { "from": "M3", "to": "M4", "condition": null },
+      { "from": "M4", "to": "M5", "condition": "bilgi" },
+      { "from": "M4", "to": "M7", "condition": "kapat" },
+      { "from": "M4", "to": "M9", "condition": "hata" }
+    ]
+  }
+}
