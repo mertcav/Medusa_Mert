@@ -1,0 +1,55 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.3.8",
+  "screen": "T-08",
+  "title": "Audit Log (tenant)",
+  "plane": "tenant_application_plane",
+  "tier": "L1",
+  "source": ["BRD §17.3", "BRD §17.6 (RBAC)", "BRD §17.7 (hijyen + PII redaction)", "FR-IAM-006 (değiştirilemez/WORM audit log)", "FR-REC-009 (kayıt/transkript erişim audit)", "FR-IAM-009 (break-glass erişimi)", "FR-TEN-002 (tenant scope)", "ADR-016 (hash zinciri + dış mühürleme tamper-evidence)", "DB §6.5 (WORM zorlama)", "SAD §14.4.1", "NFR 10.6 (sır/credential)"],
+  "rbac": {
+    "tenant_owner": "manage",
+    "tenant_admin": "view",
+    "security_compliance_officer": "manage",
+    "billing_viewer": "none",
+    "api_developer": "none",
+    "note": "UI yalnız görsel kapı; nihai yetki backend'de (12.2.x) + RLS. Audit kayıtları DEĞİŞTİRİLEMEZ/WORM (FR-IAM-006); panelde yazma/silme YOK (A8). 'Yönet' = dışa aktarma + bütünlük doğrulama + gelişmiş filtre/inceleme. security_compliance_officer T-08'de Yönet (BRD §17.6 — compliance/audit sorumluluğu)."
+  },
+  "content_brd_17_3": [
+    "kullanıcı/sistem değişiklik kaydı",
+    "erişim kaydı",
+    "break-glass",
+    "bütünlük"
+  ],
+  "invariants": {
+    "S1": "T-08 ekran sayfası mevcut + data-screen=\"T-08\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/tenant/audit) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.t08.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK son-müşteri ham iş-içeriği/PII/çağrı-bazlı CDR taşımaz (FORBIDDEN_PII_KEYS) + sır/credential taşımaz (FORBIDDEN_SECRET_KEYS) + assertNoPii çağrılır (HİJYEN BRD §17.7 + GÜVENLİK NFR 10.6). Audit yalnız META veridir; kaynak yalnız REFERANS edilir.",
+    "S5": "BRD §17.3 içerik öğeleri (değişiklik/erişim kaydı + break-glass + bütünlük) + FR-IAM-006 (WORM/değiştirilemez) + FR-REC-009 (veri erişim audit) + FR-IAM-009 (break-glass) + ADR-016 (hash zinciri/dış mühürleme) i18n bölüm + alt-anahtarlarıyla karşılanır.",
+    "S6": "screen.t08.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (chainBreaks/chainIntact/breakGlassEntries/dataAccessEntries/platformEntries/platformWithoutBreakGlass/failedEntries/deniedEntries/categoryCounts/outcomeCounts/wormDisabled/externalSealDisabled/retentionUnset/applyFilter/openWarningCount/tone'lar) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002): veri seam belirli audit/SIEM sağlayıcısını bağlamaz; sır/credential yok; bütünlük hash'leri yalnız HEX önekidir."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "scope_note", "as_of", "tenant", "window",
+    "yes", "no", "dash", "days", "retention_unset_label", "chain_intact", "chain_broken", "platform_no_bg_label", "breakglass_tag", "no_breakglass", "no_entries",
+    "chain_broken_alert", "platform_no_bg_alert", "worm_off_alert", "denied_alert", "retention_unset_alert", "seal_off_alert",
+    "section.summary", "section.integrity", "section.categories", "section.breakglass", "section.entries",
+    "kpi.total", "kpi.total_hint", "kpi.integrity", "kpi.integrity_ok", "kpi.integrity_broken", "kpi.integrity_hint", "kpi.breakglass", "kpi.breakglass_hint", "kpi.data_access", "kpi.data_access_hint", "kpi.failed", "kpi.failed_hint", "kpi.warnings", "kpi.warnings_hint",
+    "field.chain", "field.worm", "field.external_seal", "field.last_sealed", "field.retention",
+    "col.time", "col.actor", "col.action", "col.resource", "col.category", "col.outcome", "col.integrity", "col.count", "col.grant",
+    "action.export",
+    "integrity_caption", "integrity_hint", "categories_caption", "breakglass_caption", "breakglass_hint", "entries_caption", "entries_hint",
+    "category.iam", "category.config", "category.data_access", "category.compliance", "category.security", "category.break_glass", "category.billing",
+    "realm.tenant", "realm.platform", "realm.system",
+    "outcome.success", "outcome.failure", "outcome.denied"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "days": ["n"],
+    "chain_broken_alert": ["count"],
+    "platform_no_bg_alert": ["count"],
+    "denied_alert": ["count"],
+    "kpi.total_hint": ["shown"]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "$comment": "İllüstratif T-08 snapshot — degrade durumu: reddedilen (yetkisiz) işlem var; platform (L0) erişimi break-glass işareti OLMADAN kaydedilmiş (FR-IAM-009 ihlali); hash zincirinde kopukluk (AE-3.prevHash önceki rowHash ile eşleşmiyor — olası kurcalama ADR-016); WORM + dış mühürleme kapalı; saklama tanımsız. Probe bunların hepsini eler. HİJYEN: yine yalnız META — ham içerik/PII/sır YOK.",
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Sigorta A.Ş.",
+  "windowLabel": "2026-06-18",
+  "totalCount": 14,
+  "entries": [
+    { "id": "AE-1", "occurredAt": "2026-06-18T06:00:00.000Z", "actorRealm": "tenant", "actorRef": "qa@beta.example", "action": "role:assign", "resourceType": "user", "resourceRef": "USR-9", "category": "iam", "outcome": "denied", "breakGlass": false, "breakGlassId": null, "prevHash": "00000000", "rowHash": "a1b2c3d4" },
+    { "id": "AE-2", "occurredAt": "2026-06-18T07:00:00.000Z", "actorRealm": "platform", "actorRef": "rmc-ops@platform", "action": "transcript:read", "resourceType": "recording", "resourceRef": "REC-77", "category": "data_access", "outcome": "success", "breakGlass": false, "breakGlassId": null, "prevHash": "a1b2c3d4", "rowHash": "b2c3d4e5" },
+    { "id": "AE-3", "occurredAt": "2026-06-18T08:00:00.000Z", "actorRealm": "tenant", "actorRef": "admin@beta.example", "action": "config:update", "resourceType": "agent", "resourceRef": "AGT-1", "category": "config", "outcome": "success", "breakGlass": false, "breakGlassId": null, "prevHash": "ffffffff", "rowHash": "c3d4e5f6" }
+  ],
+  "retention": { "retentionDays": 0, "wormEnabled": false, "externalSeal": false, "lastSealedAt": "—" },
+  "$expect": { "chain_breaks": ["AE-3"], "platform_no_bg": ["AE-2"], "breakglass_count": 0, "data_access_count": 1, "denied_count": 1, "worm_disabled": true, "open_warnings": 6 }
+}

@@ -1562,6 +1562,101 @@
         "failed": "Başarısız",
         "not_configured": "Yapılandırılmamış"
       }
+    },
+    "t08": {
+      "title": "Audit Log",
+      "subtitle": "Tenant'ınızın kullanıcı ve sistem değişiklik/erişim kayıtları — değiştirilemez (WORM) audit log, bütünlük zinciri ve break-glass erişimleri.",
+      "scope_note": "Bu ekran yalnız kendi tenant'ınızın audit kayıtlarını gösterir. Kayıtlar yalnız META veridir (aktör, eylem, kaynak referansı, zaman, bütünlük hash'i); ham çağrı kaydı/transkript, müşteri PII ve kart/sır audit görünümüne gömülmez. Platform (L0) yalnız break-glass erişimi olarak görünür (FR-IAM-009).",
+      "as_of": "Veri zamanı: {time}",
+      "tenant": "Tenant",
+      "window": "Pencere",
+      "yes": "Evet",
+      "no": "Hayır",
+      "dash": "—",
+      "days": "{n} gün",
+      "retention_unset_label": "Tanımsız",
+      "chain_intact": "Sağlam",
+      "chain_broken": "Kopuk",
+      "platform_no_bg_label": "Break-glass'sız platform erişimi",
+      "breakglass_tag": "Break-glass",
+      "no_breakglass": "Bu pencerede break-glass erişimi yok.",
+      "no_entries": "Bu pencerede audit kaydı yok.",
+      "chain_broken_alert": "Bütünlük uyarısı: hash zincirinde {count} kopukluk tespit edildi (olası kurcalama — ADR-016).",
+      "platform_no_bg_alert": "Güvenlik uyarısı: {count} platform (L0) erişimi break-glass işareti olmadan kaydedilmiş (FR-IAM-009 ihlali).",
+      "worm_off_alert": "Bütünlük uyarısı: append-only/WORM zorlaması kapalı — audit kayıtları değiştirilemez olmalı (FR-IAM-006).",
+      "denied_alert": "{count} reddedilen (yetkisiz) işlem kaydı var; güvenlik incelemesi önerilir.",
+      "retention_unset_alert": "Audit saklama süresi tanımlı değil; compliance profili gözden geçirilmeli.",
+      "seal_off_alert": "Periyodik dış mühürleme kapalı; tamper-evidence zayıflar (ADR-016 önerisi).",
+      "section": {
+        "summary": "Özet",
+        "integrity": "Bütünlük & Saklama",
+        "categories": "Kategori Dağılımı",
+        "breakglass": "Break-glass Erişimleri",
+        "entries": "Audit Kayıtları"
+      },
+      "kpi": {
+        "total": "Toplam Kayıt",
+        "total_hint": "Pencerede {shown} kayıt gösteriliyor",
+        "integrity": "Zincir Bütünlüğü",
+        "integrity_ok": "Sağlam",
+        "integrity_broken": "Kopuk",
+        "integrity_hint": "Hash zinciri bağlantısı (ADR-016)",
+        "breakglass": "Break-glass",
+        "breakglass_hint": "Platform (L0) erişimleri (FR-IAM-009)",
+        "data_access": "Veri Erişimi",
+        "data_access_hint": "Kayıt/transkript/PII erişimi (FR-REC-009)",
+        "failed": "Başarısız/Reddedilen",
+        "failed_hint": "Başarısız + reddedilen işlemler",
+        "warnings": "Açık Uyarı",
+        "warnings_hint": "Bütünlük + güvenlik + saklama uyarıları"
+      },
+      "field": {
+        "chain": "Hash zinciri bütünlüğü",
+        "worm": "WORM (append-only)",
+        "external_seal": "Dış mühürleme",
+        "last_sealed": "Son mühürleme",
+        "retention": "Saklama süresi"
+      },
+      "col": {
+        "time": "Zaman",
+        "actor": "Aktör",
+        "action": "Eylem",
+        "resource": "Kaynak",
+        "category": "Kategori",
+        "outcome": "Sonuç",
+        "integrity": "Bütünlük",
+        "count": "Adet",
+        "grant": "Break-glass izni"
+      },
+      "action": {
+        "export": "Dışa aktar"
+      },
+      "integrity_caption": "Audit bütünlük ve saklama durumu",
+      "integrity_hint": "Kayıtlar WORM (append-only) tutulur ve hash zinciriyle bağlanır; periyodik dış mühürleme tamper-evidence sağlar (FR-IAM-006, ADR-016). Bütünlük hash'leri yalnız HEX önekidir — sır değildir.",
+      "categories_caption": "Kategoriye göre kayıt dağılımı",
+      "breakglass_caption": "Break-glass erişim kayıtları",
+      "breakglass_hint": "Break-glass, platformun (L0) tenant iş içeriğine açık gerekçeli, süreli ve audit'li erişimidir (FR-IAM-009). Her erişim `security_compliance_officer` ve `tenant_owner`'a bildirilir.",
+      "entries_caption": "Audit kayıt tablosu",
+      "entries_hint": "Kayıtlar değiştirilemez (WORM); panelde yazma/silme yoktur (FR-IAM-006). Dışa aktarma + gelişmiş filtre backend'de zorlanır (12.2.x). Kaynak yalnız referans edilir; ham içerik gösterilmez (BRD §17.7).",
+      "category": {
+        "iam": "Kimlik & Erişim",
+        "config": "Yapılandırma",
+        "data_access": "Veri Erişimi",
+        "compliance": "Uyumluluk",
+        "security": "Güvenlik",
+        "break_glass": "Break-glass",
+        "billing": "Faturalandırma"
+      },
+      "realm": {
+        "tenant": "Tenant",
+        "platform": "Platform",
+        "system": "Sistem"
+      },
+      "outcome": {
+        "success": "Başarılı",
+        "failure": "Başarısız",
+        "denied": "Reddedildi"
+      }
     }
   }
 }

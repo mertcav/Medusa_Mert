@@ -1562,6 +1562,101 @@
         "failed": "Failed",
         "not_configured": "Not configured"
       }
+    },
+    "t08": {
+      "title": "Audit Log",
+      "subtitle": "Your tenant's user and system change/access records — immutable (WORM) audit log, integrity chain and break-glass access.",
+      "scope_note": "This screen shows only your own tenant's audit records. Records are metadata only (actor, action, resource reference, time, integrity hash); raw call recordings/transcripts, customer PII and card/secret data are not embedded in the audit view. Platform (L0) appears only as break-glass access (FR-IAM-009).",
+      "as_of": "As of: {time}",
+      "tenant": "Tenant",
+      "window": "Window",
+      "yes": "Yes",
+      "no": "No",
+      "dash": "—",
+      "days": "{n} days",
+      "retention_unset_label": "Undefined",
+      "chain_intact": "Intact",
+      "chain_broken": "Broken",
+      "platform_no_bg_label": "Platform access without break-glass",
+      "breakglass_tag": "Break-glass",
+      "no_breakglass": "No break-glass access in this window.",
+      "no_entries": "No audit records in this window.",
+      "chain_broken_alert": "Integrity warning: {count} break(s) detected in the hash chain (possible tampering — ADR-016).",
+      "platform_no_bg_alert": "Security warning: {count} platform (L0) access(es) recorded without a break-glass marker (FR-IAM-009 violation).",
+      "worm_off_alert": "Integrity warning: append-only/WORM enforcement is off — audit records must be immutable (FR-IAM-006).",
+      "denied_alert": "{count} denied (unauthorized) action record(s) present; security review recommended.",
+      "retention_unset_alert": "Audit retention period is not defined; review the compliance profile.",
+      "seal_off_alert": "Periodic external sealing is off; tamper-evidence is weakened (ADR-016 recommendation).",
+      "section": {
+        "summary": "Summary",
+        "integrity": "Integrity & Retention",
+        "categories": "Category Breakdown",
+        "breakglass": "Break-glass Access",
+        "entries": "Audit Records"
+      },
+      "kpi": {
+        "total": "Total Records",
+        "total_hint": "Showing {shown} records in the window",
+        "integrity": "Chain Integrity",
+        "integrity_ok": "Intact",
+        "integrity_broken": "Broken",
+        "integrity_hint": "Hash chain linkage (ADR-016)",
+        "breakglass": "Break-glass",
+        "breakglass_hint": "Platform (L0) access (FR-IAM-009)",
+        "data_access": "Data Access",
+        "data_access_hint": "Recording/transcript/PII access (FR-REC-009)",
+        "failed": "Failed/Denied",
+        "failed_hint": "Failed + denied actions",
+        "warnings": "Open Warnings",
+        "warnings_hint": "Integrity + security + retention warnings"
+      },
+      "field": {
+        "chain": "Hash chain integrity",
+        "worm": "WORM (append-only)",
+        "external_seal": "External sealing",
+        "last_sealed": "Last sealed",
+        "retention": "Retention period"
+      },
+      "col": {
+        "time": "Time",
+        "actor": "Actor",
+        "action": "Action",
+        "resource": "Resource",
+        "category": "Category",
+        "outcome": "Outcome",
+        "integrity": "Integrity",
+        "count": "Count",
+        "grant": "Break-glass grant"
+      },
+      "action": {
+        "export": "Export"
+      },
+      "integrity_caption": "Audit integrity and retention status",
+      "integrity_hint": "Records are kept WORM (append-only) and linked by a hash chain; periodic external sealing provides tamper-evidence (FR-IAM-006, ADR-016). Integrity hashes are a HEX prefix only — not a secret.",
+      "categories_caption": "Record distribution by category",
+      "breakglass_caption": "Break-glass access records",
+      "breakglass_hint": "Break-glass is the platform's (L0) explicit, time-boxed and audited access to tenant business content (FR-IAM-009). Every access is notified to the `security_compliance_officer` and `tenant_owner`.",
+      "entries_caption": "Audit record table",
+      "entries_hint": "Records are immutable (WORM); there is no write/delete in the panel (FR-IAM-006). Export + advanced filtering are enforced in the backend (12.2.x). Resources are referenced only; raw content is not shown (BRD §17.7).",
+      "category": {
+        "iam": "Identity & Access",
+        "config": "Configuration",
+        "data_access": "Data Access",
+        "compliance": "Compliance",
+        "security": "Security",
+        "break_glass": "Break-glass",
+        "billing": "Billing"
+      },
+      "realm": {
+        "tenant": "Tenant",
+        "platform": "Platform",
+        "system": "System"
+      },
+      "outcome": {
+        "success": "Success",
+        "failure": "Failure",
+        "denied": "Denied"
+      }
     }
   }
 }
