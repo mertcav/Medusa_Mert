@@ -1,0 +1,71 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.3.6",
+  "screen": "T-06",
+  "title": "Compliance & Retention",
+  "plane": "tenant_application_plane",
+  "tier": "L1",
+  "source": ["BRD §17.4", "BRD §17.6 (RBAC)", "BRD §17.7 (hijyen)", "FR-REC-001 (kayıt politikası tenant/ülke/use-case)", "FR-REC-002 (kayıt kapatma)", "FR-REC-003 (tek/çift kanal)", "FR-REC-004 (PII redaction)", "FR-REC-005 (kart/parola/OTP)", "FR-REC-006 (otomatik saklama)", "FR-REC-007 (legal hold)", "FR-REC-010 (geri döndürülemez silme)", "FR-OUT-003 (consent+suppression)", "FR-OUT-004 (arama saatleri)", "FR-OUT-006 (DNC anında)", "DPIA cp.* (compliance profile)", "DPIA §3 (DPIA-T onboarding gate)", "DPIA §6/§7 (ülke profili + sektörel overlay + most-restrictive-wins)", "DPIA §8 (override yalnız-sıkılaştırır)", "BRD §14.1 (DSR + ihlal bildirimi)", "BRD §14.2 (AI/kayıt bildirimi)", "FR-TEN-002 (tenant scope)", "SAD §14.4.1", "SAD §19 (uyumluluk mimarisi)", "NFR 10.6 (sır)", "NFR 10.7 (residency)"],
+  "rbac": {
+    "tenant_owner": "manage",
+    "tenant_admin": "view",
+    "security_compliance_officer": "manage",
+    "billing_viewer": "none",
+    "api_developer": "none",
+    "note": "UI yalnız görsel kapı; nihai yetki backend'de (12.2.x) + RLS. Profil değiştirme/override onaylama kararı bu katmanda YOK (A8). most-restrictive-wins çözümleme + override yalnız-sıkılaştırır kuralı backend'de zorlanır; panel yalnız çözümlenmiş profili gösterir + gevşeten override'ı AUDIT olarak işaretler. security_compliance_officer T-06'da Yönet (BRD §17.6)."
+  },
+  "content_brd_17_4": [
+    "Consent",
+    "kayıt politikası",
+    "veri yerleşimi",
+    "saklama süresi",
+    "compliance profile",
+    "İYS/DNC"
+  ],
+  "invariants": {
+    "S1": "T-06 ekran sayfası mevcut + data-screen=\"T-06\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/tenant/compliance) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.t06.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK son-müşteri PII/iş-içeriği taşımaz (FORBIDDEN_PII_KEYS) + sır/credential taşımaz (FORBIDDEN_SECRET_KEYS) + assertNoPii çağrılır (HİJYEN BRD §17.7 + GÜVENLİK NFR 10.6).",
+    "S5": "BRD §17.4 altı içerik öğesi (consent / kayıt politikası / veri yerleşimi / saklama / compliance profile / İYS-DNC) i18n bölüm + alt-anahtarlarıyla karşılanır; FR-REC + FR-OUT + cp.* + DPIA durumu + override gösterilir.",
+    "S6": "screen.t06.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (disclosureGaps/recordingGaps/residencyGaps/outboundGaps/loosenOverrides/invalidRetention/dpiaPending/openWarningCount/tone'lar) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002) + counsel-tabi: veri seam belirli ülke/sektör hukuki yorumu bağlamaz; sır/credential yok; değerler mühendislik varsayılanı."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "scope_note", "as_of", "tenant", "counsel_note",
+    "loosen_alert", "disclosure_alert", "residency_alert", "retention_alert", "recording_alert", "outbound_alert", "dpia_alert",
+    "yes", "no", "none", "not_required", "configured", "missing", "undefined_label", "days", "hours", "legal_hold_active",
+    "section.summary", "section.profile", "section.recording", "section.transparency", "section.residency", "section.retention", "section.outbound", "section.dsr", "section.overrides",
+    "kpi.profile", "kpi.profile_hint", "kpi.recording", "kpi.recording_hint", "kpi.residency", "kpi.residency_hint", "kpi.dpia", "kpi.dpia_hint", "kpi.warnings", "kpi.warnings_hint",
+    "action.edit_profile",
+    "profile_caption", "recording_caption", "transparency_caption", "residency_caption", "retention_caption", "outbound_caption", "dsr_caption", "overrides_caption",
+    "profile_hint", "recording_hint", "transparency_hint", "residency_hint", "retention_hint", "outbound_hint", "dsr_hint", "overrides_hint",
+    "field.country_profile", "field.regime", "field.sector_overlays", "field.lawful_basis", "field.dpa_required", "field.channel_mode", "field.rec_consent", "field.pii_redaction", "field.card_otp", "field.ai_disclosure", "field.recording_notice", "field.no_impersonation", "field.home_region", "field.in_region", "field.provider_pinning", "field.cross_border", "field.legal_hold", "field.consent_model", "field.consent_registry", "field.dnc_lists", "field.calling_hours", "field.cli_required", "field.b2b_exemption", "field.access_sla", "field.erasure_sla", "field.rectification", "field.portability", "field.breach_authority", "field.breach_deadline", "field.ds_notice",
+    "col.data_class", "col.retention", "col.parameter", "col.baseline", "col.value", "col.direction",
+    "data_class.recording", "data_class.transcript", "data_class.audit",
+    "no_overrides", "badge.violation", "badge.worm",
+    "channel.off", "channel.single", "channel.dual",
+    "rec_consent.notice", "rec_consent.explicit_optin", "rec_consent.all_party",
+    "consent.opt_in", "consent.soft_opt_in", "consent.opt_out",
+    "cross_border.scc", "cross_border.adequacy", "cross_border.explicit_consent", "cross_border.none",
+    "dpia_status.not_required", "dpia_status.required", "dpia_status.in_progress", "dpia_status.completed",
+    "direction.tighten", "direction.equal", "direction.loosen",
+    "region.UK", "region.EU", "region.NA", "region.ME",
+    "ds_notice.high_risk", "ds_notice.always"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "loosen_alert": ["count"],
+    "disclosure_alert": ["count"],
+    "residency_alert": ["count"],
+    "retention_alert": ["count"],
+    "recording_alert": ["count"],
+    "outbound_alert": ["count"],
+    "dpia_alert": ["status"],
+    "kpi.profile_hint": ["regime"],
+    "days": ["n"],
+    "hours": ["n"],
+    "legal_hold_active": ["n"]
+  }
+}

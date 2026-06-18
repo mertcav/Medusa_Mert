@@ -1276,6 +1276,165 @@
         "insecure": "Not HTTPS",
         "delivery_failed": "Delivery failed"
       }
+    },
+    "t06": {
+      "title": "Compliance & Retention",
+      "subtitle": "Consent, recording policy, data residency, retention, compliance profile and DNC registries — your own tenant's compliance configuration only.",
+      "scope_note": "This screen shows and manages only your own tenant's compliance and retention POLICY; raw call recordings/transcripts, individual consent/DNC records, customer PII and secrets (KMS keys, provider credentials) are not embedded here. Individual data and secrets live in L2/data-plane.",
+      "as_of": "As of: {time}",
+      "tenant": "Tenant",
+      "counsel_note": "These values are engineering defaults; they must be validated by the tenant's legal counsel before production (DPIA §12). Resolution is most-restrictive-wins; tenant overrides may only tighten (audited).",
+      "loosen_alert": "{count} tenant override loosen the profile — this violates most-restrictive-wins, is written to audit and rejected by the backend.",
+      "disclosure_alert": "{count} required disclosure(s) (AI/recording) not configured — complete the opening script (BRD §14.2).",
+      "residency_alert": "{count} data residency gap(s) — review region pinning/transfer mechanism (NFR 10.7).",
+      "retention_alert": "{count} retention period(s) invalid (≤0 days) — fix the retention configuration.",
+      "recording_alert": "{count} recording protection(s) missing — add PII redaction/card-OTP masking (FR-REC-004/005).",
+      "outbound_alert": "{count} outbound compliance gap(s) — define the consent registry/DNC source (FR-OUT-003/006).",
+      "dpia_alert": "DPIA status: {status} — high-risk processing cannot start before the onboarding gate is complete (DPIA §3).",
+      "yes": "Yes",
+      "no": "No",
+      "none": "None",
+      "not_required": "Not required",
+      "configured": "Configured",
+      "missing": "Missing",
+      "undefined_label": "Undefined",
+      "days": "{n} days",
+      "hours": "{n} hours",
+      "legal_hold_active": "Supported · {n} active",
+      "section": {
+        "summary": "Summary",
+        "profile": "Compliance Profile",
+        "recording": "Recording Policy",
+        "transparency": "Transparency & Disclosure",
+        "residency": "Data Residency",
+        "retention": "Retention",
+        "outbound": "Outbound / DNC",
+        "dsr": "Data Subject Rights & Breach Notification",
+        "overrides": "Tenant Overrides"
+      },
+      "kpi": {
+        "profile": "Profile",
+        "profile_hint": "Regime: {regime}",
+        "recording": "Recording Retention",
+        "recording_hint": "Voice recording retention period",
+        "residency": "Data Region",
+        "residency_hint": "Home region (NFR 10.7)",
+        "dpia": "DPIA",
+        "dpia_hint": "Onboarding gate",
+        "warnings": "Open Warnings",
+        "warnings_hint": "Compliance gaps to resolve"
+      },
+      "action": {
+        "edit_profile": "Edit Profile"
+      },
+      "profile_caption": "Resolved compliance profile: country profile, legal regime, sector overlays and lawful basis",
+      "recording_caption": "Recording policy: channel mode, consent model, PII redaction and card/OTP masking",
+      "transparency_caption": "Transparency and disclosure: AI disclosure, recording notice and no-impersonation",
+      "residency_caption": "Data residency: home region, in-region storage, provider region pinning and cross-border mechanism",
+      "retention_caption": "Retention periods (days): recording, transcript, audit and legal hold",
+      "outbound_caption": "Outbound compliance: consent model, consent registry, DNC sources, calling hours and Caller ID",
+      "dsr_caption": "Data subject rights (access/erasure/rectification/portability) and breach notification",
+      "overrides_caption": "Tenant overrides: parameter, profile baseline, override value and direction (tighten/loosen)",
+      "profile_hint": "Profile resolution is most-restrictive-wins (DPIA §6/§7); the country profile and sector overlay are combined. Values are subject to counsel validation.",
+      "recording_hint": "Recording policy is set per tenant/country/use-case (FR-REC-001) and can be fully disabled (FR-REC-002). PII redaction (FR-REC-004) and card/password/OTP removal (FR-REC-005) are applied before durable storage.",
+      "transparency_hint": "Per-call AI disclosure and recording notice may be required by profile (BRD §14.2); no-impersonation is always enforced (Policy Engine).",
+      "residency_hint": "Recordings/transcripts/prompts/KB/audit/backup are kept in the home region; provider region pinning is enforced via adapter region selection (NFR 10.7). Cross-border transfer requires an SCC/adequacy/explicit-consent mechanism (DPIA §D3).",
+      "retention_hint": "Retention is applied automatically (FR-REC-006); data is irreversibly deleted at the end of the period (FR-REC-010). Legal hold (FR-REC-007) overrides deletion while active. The audit log is WORM and cannot be shorter than the legal minimum.",
+      "outbound_hint": "Consent and suppression checks run before outbound (FR-OUT-003); 'do not call again' requests apply immediately (FR-OUT-006). In Turkey the İYS consent registry + ETK apply; permitted calling hours are enforced per country (FR-OUT-004). Individual consent/DNC records are not stored here; only source names are shown.",
+      "dsr_hint": "Data subject access and erasure requests are handled within SLA; erasure is bound to the retention/deletion engine (FR-REC-010). Breaches are reported to the authority within the deadline; data subjects are notified for high-risk cases.",
+      "overrides_hint": "Tenants may only TIGHTEN the profile (most-restrictive-wins; CLAUDE.md / DPIA §8); a loosening override is an audit violation and is rejected by the backend. This screen is a visual gate only; final authorization is in the backend (12.2.x) + RLS.",
+      "field": {
+        "country_profile": "Country Profile",
+        "regime": "Legal Regime",
+        "sector_overlays": "Sector Overlay",
+        "lawful_basis": "Lawful Basis (suggested)",
+        "dpa_required": "DPA Required",
+        "channel_mode": "Channel Mode",
+        "rec_consent": "Recording Consent Model",
+        "pii_redaction": "PII Redaction",
+        "card_otp": "Card/OTP Masking",
+        "ai_disclosure": "AI Disclosure",
+        "recording_notice": "Recording Notice",
+        "no_impersonation": "No Impersonation",
+        "home_region": "Home Region",
+        "in_region": "In-region Storage",
+        "provider_pinning": "Provider Region Pinning",
+        "cross_border": "Cross-border Mechanism",
+        "legal_hold": "Legal Hold",
+        "consent_model": "Consent Model",
+        "consent_registry": "Consent Registry",
+        "dnc_lists": "DNC Sources",
+        "calling_hours": "Calling Hours (local)",
+        "cli_required": "Caller ID Required",
+        "b2b_exemption": "B2B Exemption",
+        "access_sla": "Access Request SLA",
+        "erasure_sla": "Erasure Request SLA",
+        "rectification": "Rectification",
+        "portability": "Portability (export)",
+        "breach_authority": "Supervisory Authority",
+        "breach_deadline": "Authority Notice Deadline",
+        "ds_notice": "Data Subject Notice"
+      },
+      "col": {
+        "data_class": "Data Class",
+        "retention": "Retention",
+        "parameter": "Parameter",
+        "baseline": "Profile Baseline",
+        "value": "Override Value",
+        "direction": "Direction"
+      },
+      "data_class": {
+        "recording": "Voice Recording",
+        "transcript": "Transcript",
+        "audit": "Audit Log"
+      },
+      "no_overrides": "No tenant overrides (profile baseline applies)",
+      "badge": {
+        "violation": "VIOLATION",
+        "worm": "WORM"
+      },
+      "channel": {
+        "off": "Off",
+        "single": "Single Channel",
+        "dual": "Dual Channel"
+      },
+      "rec_consent": {
+        "notice": "Notice",
+        "explicit_optin": "Explicit opt-in",
+        "all_party": "All-party consent"
+      },
+      "consent": {
+        "opt_in": "Opt-in",
+        "soft_opt_in": "Soft opt-in",
+        "opt_out": "Opt-out"
+      },
+      "cross_border": {
+        "scc": "SCC",
+        "adequacy": "Adequacy",
+        "explicit_consent": "Explicit consent",
+        "none": "None"
+      },
+      "dpia_status": {
+        "not_required": "Not required",
+        "required": "Required",
+        "in_progress": "In progress",
+        "completed": "Completed"
+      },
+      "direction": {
+        "tighten": "Tighten",
+        "equal": "Equal",
+        "loosen": "Loosen"
+      },
+      "region": {
+        "UK": "United Kingdom (UK)",
+        "EU": "European Union (EU)",
+        "NA": "North America (NA)",
+        "ME": "Middle East (ME)"
+      },
+      "ds_notice": {
+        "high_risk": "High risk only",
+        "always": "Always"
+      }
     }
   }
 }

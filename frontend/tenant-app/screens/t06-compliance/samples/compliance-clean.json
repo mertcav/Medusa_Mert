@@ -1,0 +1,19 @@
+{
+  "$comment": "İllüstratif T-06 snapshot — sağlıklı durum: kayıt PII redaction + kart/OTP maskeleme açık, bildirimler yapılandırılmış, residency in-region + provider pinning + SCC, saklama pozitif, outbound opt-in + İYS + DNC tanımlı, DPIA tamamlanmış, override'lar yalnız sıkılaştırıyor. HİJYEN: yalnız tenant'ın KENDİ politika konfigürasyonu (son-müşteri PII / sır YOK).",
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1001",
+  "tenantName": "Acme Lojistik A.Ş.",
+  "profile": { "countryProfile": "PROFILE-TR", "regime": "KVKK", "sectorOverlays": [], "lawfulBasisDefault": "explicit_consent", "dpaRequired": true },
+  "recordingPolicy": { "channelMode": "dual", "recordingConsentModel": "notice", "piiRedaction": true, "cardOtpMasking": true },
+  "transparency": { "aiDisclosureRequired": true, "aiDisclosureConfigured": true, "recordingNoticeRequired": true, "recordingNoticeConfigured": true, "noDeceptiveImpersonation": true },
+  "residency": { "homeRegion": "EU", "inRegionStorageRequired": true, "providerRegionPinning": true, "crossBorderMechanism": "scc" },
+  "retention": { "recordingDays": 180, "transcriptDays": 365, "auditDays": 730, "legalHoldSupported": true, "legalHoldActive": 1 },
+  "outbound": { "consentModel": "opt_in", "consentRegistry": "IYS", "dncLists": ["IYS_ret"], "callingHoursLocal": "09:00–20:00", "cliPresentationRequired": true, "b2bExemption": false },
+  "dsr": { "accessSlaDays": 30, "erasureSlaDays": 30, "rectificationSupported": true, "portabilitySupported": true },
+  "breach": { "authority": "KVKK", "authorityDeadlineHours": 72, "dataSubjectNotice": "high_risk" },
+  "dpia": { "status": "completed", "triggers": ["DPIA-T-04", "DPIA-T-05"] },
+  "overrides": [
+    { "id": "OV-1", "key": "cp.retention.recording_days", "baseline": "365", "value": "180", "direction": "tighten" }
+  ],
+  "$expect": { "disclosure_gaps": [], "recording_gaps": [], "residency_gaps": [], "outbound_gaps": [], "loosen": [], "invalid_retention": [], "dpia_pending": false, "open_warnings": 0 }
+}

@@ -1276,6 +1276,165 @@
         "insecure": "HTTPS değil",
         "delivery_failed": "Teslimat başarısız"
       }
+    },
+    "t06": {
+      "title": "Compliance & Retention",
+      "subtitle": "Consent, kayıt politikası, veri yerleşimi, saklama süresi, compliance profile ve İYS/DNC — yalnız kendi tenant'ınızın uyumluluk konfigürasyonu.",
+      "scope_note": "Bu ekran yalnız kendi tenant'ınızın uyumluluk ve saklama POLİTİKASINI gösterir ve yönetir; ham çağrı kaydı/transkript, bireysel rıza/DNC kaydı, müşteri PII ve sırlar (KMS anahtarı, sağlayıcı credential) buraya gömülmez. Bireysel veri ve sırlar L2/data-plane'de tutulur.",
+      "as_of": "Veri zamanı: {time}",
+      "tenant": "Tenant",
+      "counsel_note": "Bu değerler mühendislik varsayılanıdır; üretim öncesi tenant'ın hukuk danışmanı (counsel) tarafından doğrulanmalıdır (DPIA §12). Çözümleme most-restrictive-wins'tir; tenant override yalnızca sıkılaştırabilir (audit'li).",
+      "loosen_alert": "{count} tenant override profili gevşetiyor — most-restrictive-wins kuralını ihlal eder, audit'e yazılır ve backend'de reddedilir.",
+      "disclosure_alert": "{count} zorunlu bildirim (AI/kayıt) yapılandırılmamış — açılış metnini tamamlayın (BRD §14.2).",
+      "residency_alert": "{count} veri yerleşimi (residency) boşluğu — bölge sabitleme/transfer mekanizmasını gözden geçirin (NFR 10.7).",
+      "retention_alert": "{count} saklama süresi geçersiz (≤0 gün) — saklama konfigürasyonunu düzeltin.",
+      "recording_alert": "{count} kayıt koruması eksik — PII redaction/kart-OTP maskeleme ekleyin (FR-REC-004/005).",
+      "outbound_alert": "{count} outbound uygunluk boşluğu — izin kaydı/DNC kaynağını tanımlayın (FR-OUT-003/006).",
+      "dpia_alert": "DPIA durumu: {status} — devreye alma kapısı tamamlanmadan yüksek-riskli işleme başlatılamaz (DPIA §3).",
+      "yes": "Evet",
+      "no": "Hayır",
+      "none": "Yok",
+      "not_required": "Gerekli değil",
+      "configured": "Yapılandırıldı",
+      "missing": "Eksik",
+      "undefined_label": "Tanımsız",
+      "days": "{n} gün",
+      "hours": "{n} saat",
+      "legal_hold_active": "Destekleniyor · {n} aktif",
+      "section": {
+        "summary": "Özet",
+        "profile": "Compliance Profile",
+        "recording": "Kayıt Politikası",
+        "transparency": "Şeffaflık & Bildirim",
+        "residency": "Veri Yerleşimi",
+        "retention": "Saklama",
+        "outbound": "Outbound / İYS / DNC",
+        "dsr": "Veri Sahibi Hakları & İhlal Bildirimi",
+        "overrides": "Tenant Override'ları"
+      },
+      "kpi": {
+        "profile": "Profil",
+        "profile_hint": "Rejim: {regime}",
+        "recording": "Kayıt Saklama",
+        "recording_hint": "Ses kaydı saklama süresi",
+        "residency": "Veri Bölgesi",
+        "residency_hint": "Home-region (NFR 10.7)",
+        "dpia": "DPIA",
+        "dpia_hint": "Devreye alma kapısı",
+        "warnings": "Açık Uyarı",
+        "warnings_hint": "Çözülmesi gereken uyumluluk boşluğu"
+      },
+      "action": {
+        "edit_profile": "Profili Düzenle"
+      },
+      "profile_caption": "Çözümlenmiş compliance profili: ülke profili, hukuki rejim, sektörel overlay'ler ve hukuki dayanak",
+      "recording_caption": "Kayıt politikası: kanal modu, rıza modeli, PII redaction ve kart/OTP maskeleme",
+      "transparency_caption": "Şeffaflık ve bildirim: AI bildirimi, kayıt bildirimi ve insan taklidi yasağı",
+      "residency_caption": "Veri yerleşimi: home-region, bölge-içi depolama, sağlayıcı bölge sabitleme ve sınır-ötesi mekanizma",
+      "retention_caption": "Saklama süreleri (gün): kayıt, transkript, audit ve legal hold",
+      "outbound_caption": "Outbound uygunluğu: rıza modeli, izin kaydı (İYS), DNC kaynakları, arama saatleri ve Caller ID",
+      "dsr_caption": "Veri sahibi hakları (erişim/silme/düzeltme/taşınabilirlik) ve ihlal bildirimi",
+      "overrides_caption": "Tenant override'ları: parametre, profil tabanı, override değeri ve yön (sıkılaştır/gevşet)",
+      "profile_hint": "Profil çözümlemesi most-restrictive-wins ile yapılır (DPIA §6/§7); ülke profili + sektörel overlay birleştirilir. Değerler counsel doğrulamasına tabidir.",
+      "recording_hint": "Kayıt politikası tenant/ülke/use-case bazında belirlenir (FR-REC-001) ve tamamen kapatılabilir (FR-REC-002). Transkriptte PII redaction (FR-REC-004) ve kart/parola/OTP çıkarma (FR-REC-005) kalıcı saklama öncesi uygulanır.",
+      "transparency_hint": "Çağrı başı AI bildirimi ve kayıt bildirimi profile göre zorunlu olabilir (BRD §14.2); insan taklidi yasağı her zaman etkindir (Policy Engine).",
+      "residency_hint": "Kayıt/transkript/prompt/KB/audit/backup home-region'da tutulur; sağlayıcı bölge sabitleme adapter region selection ile zorlanır (NFR 10.7). Sınır-ötesi transferde SCC/adequacy/açık-rıza mekanizması gerekir (DPIA §D3).",
+      "retention_hint": "Saklama süresi otomatik uygulanır (FR-REC-006); süre sonunda veri geri döndürülemez biçimde silinir (FR-REC-010). Legal hold (FR-REC-007) aktifken silme geçersiz kılınır. Audit log WORM'dur ve yasal asgariden kısa olamaz.",
+      "outbound_hint": "Outbound öncesi rıza ve suppression kontrolü yapılır (FR-OUT-003); 'bir daha aramayın' talebi anında uygulanır (FR-OUT-006). Türkiye'de İYS izin kaydı + ETK; izin verilen arama saatleri ülkeye göre uygulanır (FR-OUT-004). Bireysel rıza/DNC kayıtları burada saklanmaz; yalnız kaynak adları gösterilir.",
+      "dsr_hint": "Veri sahibi erişim ve silme talepleri SLA içinde işlenir; silme retention/silme motoruna bağlanır (FR-REC-010). İhlal yetkili makama süresi içinde bildirilir; yüksek-riskli durumda veri sahipleri bilgilendirilir.",
+      "overrides_hint": "Tenant yalnız profili SIKILAŞTIRABİLİR (most-restrictive-wins; CLAUDE.md / DPIA §8); gevşeten override audit ihlalidir ve backend'de reddedilir. Bu ekran yalnız görsel kapıdır; nihai yetki backend'de (12.2.x) + RLS.",
+      "field": {
+        "country_profile": "Ülke Profili",
+        "regime": "Hukuki Rejim",
+        "sector_overlays": "Sektörel Overlay",
+        "lawful_basis": "Hukuki Dayanak (öneri)",
+        "dpa_required": "DPA Zorunlu",
+        "channel_mode": "Kanal Modu",
+        "rec_consent": "Kayıt Rıza Modeli",
+        "pii_redaction": "PII Redaction",
+        "card_otp": "Kart/OTP Maskeleme",
+        "ai_disclosure": "AI Bildirimi",
+        "recording_notice": "Kayıt Bildirimi",
+        "no_impersonation": "İnsan Taklidi Yasağı",
+        "home_region": "Home Region",
+        "in_region": "Bölge-içi Depolama",
+        "provider_pinning": "Sağlayıcı Bölge Sabitleme",
+        "cross_border": "Sınır-ötesi Mekanizma",
+        "legal_hold": "Legal Hold",
+        "consent_model": "Rıza Modeli",
+        "consent_registry": "İzin Kaydı (Registry)",
+        "dnc_lists": "DNC Kaynakları",
+        "calling_hours": "Arama Saatleri (yerel)",
+        "cli_required": "Caller ID Zorunlu",
+        "b2b_exemption": "B2B Muafiyeti",
+        "access_sla": "Erişim Talebi SLA",
+        "erasure_sla": "Silme Talebi SLA",
+        "rectification": "Düzeltme Hakkı",
+        "portability": "Taşınabilirlik (export)",
+        "breach_authority": "Yetkili Makam",
+        "breach_deadline": "Makama Bildirim Süresi",
+        "ds_notice": "Veri Sahibine Bildirim"
+      },
+      "col": {
+        "data_class": "Veri Sınıfı",
+        "retention": "Saklama",
+        "parameter": "Parametre",
+        "baseline": "Profil Tabanı",
+        "value": "Override Değeri",
+        "direction": "Yön"
+      },
+      "data_class": {
+        "recording": "Ses Kaydı",
+        "transcript": "Transkript",
+        "audit": "Audit Log"
+      },
+      "no_overrides": "Tenant override'ı yok (profil tabanı uygulanır)",
+      "badge": {
+        "violation": "İHLAL",
+        "worm": "WORM"
+      },
+      "channel": {
+        "off": "Kapalı",
+        "single": "Tek Kanal",
+        "dual": "Çift Kanal"
+      },
+      "rec_consent": {
+        "notice": "Bildirim (notice)",
+        "explicit_optin": "Açık onay (opt-in)",
+        "all_party": "Tüm taraf onayı"
+      },
+      "consent": {
+        "opt_in": "Opt-in",
+        "soft_opt_in": "Soft opt-in",
+        "opt_out": "Opt-out"
+      },
+      "cross_border": {
+        "scc": "SCC",
+        "adequacy": "Yeterlilik (adequacy)",
+        "explicit_consent": "Açık rıza",
+        "none": "Yok"
+      },
+      "dpia_status": {
+        "not_required": "Gerekli değil",
+        "required": "Gerekli",
+        "in_progress": "Devam ediyor",
+        "completed": "Tamamlandı"
+      },
+      "direction": {
+        "tighten": "Sıkılaştır",
+        "equal": "Eşit",
+        "loosen": "Gevşet"
+      },
+      "region": {
+        "UK": "Birleşik Krallık (UK)",
+        "EU": "Avrupa Birliği (EU)",
+        "NA": "Kuzey Amerika (NA)",
+        "ME": "Orta Doğu (ME)"
+      },
+      "ds_notice": {
+        "high_risk": "Yüksek riskte",
+        "always": "Her zaman"
+      }
     }
   }
 }

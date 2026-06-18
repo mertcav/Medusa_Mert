@@ -1,0 +1,20 @@
+{
+  "$comment": "İllüstratif T-06 snapshot — sorunlu durum: kayıt açık ama PII redaction + kart/OTP maskeleme kapalı, AI + kayıt bildirimi zorunlu ama yapılandırılmamış, residency in-region zorunlu ama provider pinning kapalı, outbound opt-in ama izin kaydı/DNC tanımsız, bir saklama süresi geçersiz (0), DPIA gerekli (gate açık), bir override profili gevşetiyor. Tüm UI uyarıları tetiklenir. HİJYEN: yine yalnız tenant konfigürasyonu (son-müşteri PII / sır YOK).",
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Telekom A.Ş.",
+  "profile": { "countryProfile": "PROFILE-EU", "regime": "EU_GDPR", "sectorOverlays": ["HIPAA-benzeri-saglik"], "lawfulBasisDefault": "consent", "dpaRequired": true },
+  "recordingPolicy": { "channelMode": "single", "recordingConsentModel": "explicit_optin", "piiRedaction": false, "cardOtpMasking": false },
+  "transparency": { "aiDisclosureRequired": true, "aiDisclosureConfigured": false, "recordingNoticeRequired": true, "recordingNoticeConfigured": false, "noDeceptiveImpersonation": true },
+  "residency": { "homeRegion": "EU", "inRegionStorageRequired": true, "providerRegionPinning": false, "crossBorderMechanism": "none" },
+  "retention": { "recordingDays": 0, "transcriptDays": 365, "auditDays": 730, "legalHoldSupported": false, "legalHoldActive": 0 },
+  "outbound": { "consentModel": "opt_in", "consentRegistry": "none", "dncLists": [], "callingHoursLocal": "08:00–21:00", "cliPresentationRequired": false, "b2bExemption": true },
+  "dsr": { "accessSlaDays": 30, "erasureSlaDays": 45, "rectificationSupported": false, "portabilitySupported": false },
+  "breach": { "authority": "lead SA", "authorityDeadlineHours": 72, "dataSubjectNotice": "always" },
+  "dpia": { "status": "required", "triggers": ["DPIA-T-01", "DPIA-T-04", "DPIA-T-05"] },
+  "overrides": [
+    { "id": "OV-1", "key": "cp.retention.transcript_days", "baseline": "180", "value": "180", "direction": "equal" },
+    { "id": "OV-2", "key": "cp.retention.audit_days", "baseline": "730", "value": "365", "direction": "loosen" }
+  ],
+  "$expect": { "disclosure_gaps": ["ai_disclosure", "recording_notice"], "recording_gaps": ["pii_redaction", "card_otp"], "residency_gaps": ["provider_pinning"], "outbound_gaps": ["consent_registry", "dnc"], "loosen": ["OV-2"], "invalid_retention": ["recording"], "dpia_pending": true, "open_warnings": 10 }
+}
