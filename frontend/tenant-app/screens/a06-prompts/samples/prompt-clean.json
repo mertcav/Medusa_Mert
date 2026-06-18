@@ -1,0 +1,32 @@
+{
+  "$comment": "A-06 SAĞLIKLI prompt sürüm geçmişi (WBS 13.4.6): v4 aktif (production); v5 test'i geçen bekleyen yeni sürüm; v3/v2 önceki yayınlanmış arşiv (geri çağrılabilir); v1 yayınlanmamış arşiv. Her sürüm ayırt edilebilir (benzersiz no + id — SR-AGT-004); aktif referans sağlam; başarısız test yok → distinguishable=true + missing_active=false + attention=0. assertNoPii temiz (yalnız SÜRÜM META: no/kimlik/aşama/durum/test/boyut SAYISI/değişiklik notu).",
+  "$expect": {
+    "versions": 5,
+    "active": 4,
+    "published": 3,
+    "draft": 2,
+    "recallable": 2,
+    "can_rollback": true,
+    "pending": true,
+    "failed_test": 0,
+    "distinguishable": true,
+    "missing_active": false,
+    "attention": 0
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Finans",
+  "prompt": {
+    "promptRef": "PROMPT-44",
+    "agentRef": "AGT-204",
+    "agentName": "Seviye 1 Destek Asistanı",
+    "activeVersionNo": 4,
+    "versions": [
+      { "versionNo": 5, "versionId": "PV-5c2b", "stage": "test", "isPublished": false, "testStatus": "passed", "createdAt": "2026-06-16T13:00:00.000Z", "author": "Derya Kaya", "changeNote": "SSS yanıtları güncellendi", "charCount": 2600, "variableCount": 8 },
+      { "versionNo": 4, "versionId": "PV-4a9d", "stage": "production", "isPublished": true, "testStatus": "passed", "createdAt": "2026-06-09T10:00:00.000Z", "author": "Derya Kaya", "changeNote": "Yapay zekâ bildirimi netleştirildi", "charCount": 2500, "variableCount": 8 },
+      { "versionNo": 3, "versionId": "PV-3b7e", "stage": "archived", "isPublished": true, "testStatus": "passed", "createdAt": "2026-05-25T09:30:00.000Z", "author": "Mert Aydın", "changeNote": "Eskalasyon ifadesi eklendi", "charCount": 2300, "variableCount": 7 },
+      { "versionNo": 2, "versionId": "PV-2d4c", "stage": "archived", "isPublished": true, "testStatus": "passed", "createdAt": "2026-05-10T11:00:00.000Z", "author": "Mert Aydın", "changeNote": "Dil tonu kurumsallaştırıldı", "charCount": 2100, "variableCount": 6 },
+      { "versionNo": 1, "versionId": "PV-1e8f", "stage": "archived", "isPublished": false, "testStatus": "passed", "createdAt": "2026-04-28T08:00:00.000Z", "author": "Derya Kaya", "changeNote": "İlk sürüm", "charCount": 1800, "variableCount": 4 }
+    ]
+  }
+}

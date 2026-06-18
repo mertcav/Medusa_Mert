@@ -2118,6 +2118,105 @@
         "run_test": "Run test",
         "publish": "Publish"
       }
+    },
+    "a06": {
+      "title": "Prompt Editor (versioning)",
+      "subtitle": "Prompt version history and versioning",
+      "scope_note": "Use this screen to view your agent's system prompt version history and versioning (scoped to your tenant only). Only version metadata is shown; editing the prompt body (the editor field) is a deep action. Edit/test/publish/rollback authority is enforced in the backend; this screen is a configuration view.",
+      "as_of": "View time: {time}",
+      "tenant": "Tenant",
+      "agent_label": "Agent",
+      "prompt_label": "Prompt",
+      "percent": "{n}%",
+      "none": "—",
+      "yes": "Yes",
+      "no": "No",
+      "size": "{chars} chars · {vars} variables",
+      "alert": {
+        "not_distinguishable": "Version integrity violation: {count} duplicate version number(s)/id(s). Every version must be distinguishable (SR-AGT-004).",
+        "missing_active": "An active (production) version is referenced but no matching version was found (dangling reference); verify the version history.",
+        "test_blocked": "{count} version(s) did not pass automated tests; must pass before going live (FR-AGT-010).",
+        "no_active": "No published (production) version yet; publish a version to go live (FR-AGT-005).",
+        "pending_changes": "A version newer than the active one exists (pending changes); follow the test and publish flow (FR-AGT-004)."
+      },
+      "section": {
+        "summary": "Version Summary",
+        "history": "Version History",
+        "stages": "Stage Distribution",
+        "rollback": "Rollback"
+      },
+      "kpi": {
+        "versions": "Versions",
+        "versions_hint": "Total prompt versions (DB §5.2)",
+        "active": "Active Version",
+        "active_hint": "Live (production) version — rollback target",
+        "published": "Published",
+        "published_hint": "Number of published versions",
+        "draft": "Drafts",
+        "draft_hint": "Unpublished (draft) versions",
+        "latest": "Latest",
+        "latest_hint": "Highest numbered version",
+        "pending": "Pending Changes",
+        "pending_hint": "Is there a version newer than active (FR-AGT-004)",
+        "test_blocked": "Test Blocked",
+        "test_blocked_hint": "Versions that failed tests (FR-AGT-010)",
+        "attention": "Open Attention",
+        "attention_hint": "Integrity violations + failed tests total"
+      },
+      "stage": {
+        "draft": "Draft",
+        "test": "Test",
+        "staging": "Staging",
+        "production": "Production",
+        "archived": "Archived"
+      },
+      "stage_desc": {
+        "draft": "Draft version being worked on",
+        "test": "Version under automated test (FR-AGT-010)",
+        "staging": "Pre-release staging environment",
+        "production": "Version live in production",
+        "archived": "Archived previous version"
+      },
+      "status": {
+        "active": "Active",
+        "published": "Published",
+        "draft": "Draft"
+      },
+      "test": {
+        "passed": "Passed",
+        "failed": "Failed",
+        "not_run": "Not run"
+      },
+      "col": {
+        "version": "Version",
+        "stage": "Stage",
+        "status": "Status",
+        "test": "Test",
+        "created": "Created",
+        "author": "Author",
+        "change": "Change note",
+        "size": "Size",
+        "purpose": "Description",
+        "count": "Count",
+        "share": "Share",
+        "action": "Action"
+      },
+      "history_caption": "Prompt version history and version ids",
+      "history_hint": "Every version is immutable and carries a distinguishable id (SR-AGT-004). The prompt body is not shown; editing the body is a deep action (visual gate + backend).",
+      "stages_caption": "Version distribution by stage",
+      "rollback_caption": "Recallable (previously published) versions",
+      "rollback_hint": "Rollback is only a visual gate; final authority + single-action rollback is enforced in the backend (FR-AGT-006, A8).",
+      "no_versions": "No versions to display for this prompt.",
+      "no_recallable": "No recallable previously published versions.",
+      "rollback": {
+        "active": "Active version: {version} ({id}). Rollback makes a previously published version active in a single action (FR-AGT-006).",
+        "no_active": "No active (production) version; there is no published version to roll back to."
+      },
+      "action": {
+        "new_version": "New version",
+        "rollback_to": "Roll back to this",
+        "rollback": "Roll back"
+      }
     }
   }
 }

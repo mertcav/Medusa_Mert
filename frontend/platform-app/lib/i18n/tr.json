@@ -2118,6 +2118,105 @@
         "run_test": "Testi çalıştır",
         "publish": "Yayınla"
       }
+    },
+    "a06": {
+      "title": "Prompt Editör (versiyonlama)",
+      "subtitle": "Prompt sürüm geçmişi ve versiyonlama",
+      "scope_note": "Bu ekranda agent'ınızın system prompt'unun sürüm geçmişini ve versiyonlamasını görüntülersiniz (yalnız tenant'ınız kapsamında). Yalnız sürüm meta verisi gösterilir; prompt gövdesi düzenleme (editör alanı) derin aksiyondur. Düzenle/test/yayınla/geri-al nihai yetkisi backend'de uygulanır; bu ekran yapılandırma görünümüdür.",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "agent_label": "Agent",
+      "prompt_label": "Prompt",
+      "percent": "%{n}",
+      "none": "—",
+      "yes": "Var",
+      "no": "Yok",
+      "size": "{chars} karakter · {vars} değişken",
+      "alert": {
+        "not_distinguishable": "Sürüm bütünlüğü ihlali: {count} yinelenen sürüm numarası/kimliği var. Her sürüm ayırt edilebilir olmalı (SR-AGT-004).",
+        "missing_active": "Aktif (production) sürüm işaret ediliyor ancak eşleşen sürüm bulunamadı (kopuk referans); sürüm geçmişini doğrulayın.",
+        "test_blocked": "{count} sürüm otomatik testten geçemedi; canlıya almadan önce testi geçmeli (FR-AGT-010).",
+        "no_active": "Henüz yayınlanmış (production) sürüm yok; bir sürümü yayınlayarak canlıya alın (FR-AGT-005).",
+        "pending_changes": "Aktif sürümden daha yeni bir sürüm var (bekleyen değişiklik); test ve yayın akışını izleyin (FR-AGT-004)."
+      },
+      "section": {
+        "summary": "Sürüm Özeti",
+        "history": "Sürüm Geçmişi",
+        "stages": "Aşama Dağılımı",
+        "rollback": "Geri Alma"
+      },
+      "kpi": {
+        "versions": "Sürüm",
+        "versions_hint": "Toplam prompt sürümü (DB §5.2)",
+        "active": "Aktif Sürüm",
+        "active_hint": "Canlı (production) sürüm — rollback hedefi",
+        "published": "Yayınlı",
+        "published_hint": "Yayınlanmış sürüm sayısı",
+        "draft": "Taslak",
+        "draft_hint": "Yayınlanmamış (taslak) sürüm",
+        "latest": "En Son",
+        "latest_hint": "En yüksek numaralı sürüm",
+        "pending": "Bekleyen Değişiklik",
+        "pending_hint": "Aktiften daha yeni sürüm var mı (FR-AGT-004)",
+        "test_blocked": "Test Bloklu",
+        "test_blocked_hint": "Testten geçemeyen sürüm (FR-AGT-010)",
+        "attention": "Açık Dikkat",
+        "attention_hint": "Bütünlük ihlali + başarısız test toplamı"
+      },
+      "stage": {
+        "draft": "Taslak",
+        "test": "Test",
+        "staging": "Hazırlık",
+        "production": "Production",
+        "archived": "Arşiv"
+      },
+      "stage_desc": {
+        "draft": "Üzerinde çalışılan taslak sürüm",
+        "test": "Otomatik testte olan sürüm (FR-AGT-010)",
+        "staging": "Yayın öncesi hazırlık ortamı",
+        "production": "Canlı yayında olan sürüm",
+        "archived": "Arşivlenen önceki sürüm"
+      },
+      "status": {
+        "active": "Aktif",
+        "published": "Yayınlı",
+        "draft": "Taslak"
+      },
+      "test": {
+        "passed": "Geçti",
+        "failed": "Başarısız",
+        "not_run": "Çalışmadı"
+      },
+      "col": {
+        "version": "Sürüm",
+        "stage": "Aşama",
+        "status": "Durum",
+        "test": "Test",
+        "created": "Oluşturma",
+        "author": "Yazar",
+        "change": "Değişiklik notu",
+        "size": "Boyut",
+        "purpose": "Açıklama",
+        "count": "Adet",
+        "share": "Pay",
+        "action": "İşlem"
+      },
+      "history_caption": "Prompt sürüm geçmişi ve sürüm kimlikleri",
+      "history_hint": "Her sürüm değişmezdir (immutable) ve ayırt edilebilir kimlik taşır (SR-AGT-004). Prompt gövdesi gösterilmez; gövde düzenleme derin aksiyondur (görsel kapı + backend).",
+      "stages_caption": "Aşamaya göre sürüm dağılımı",
+      "rollback_caption": "Geri çağrılabilir (önceki yayınlanmış) sürümler",
+      "rollback_hint": "Geri al yalnız görsel kapıdır; nihai yetki + tek-işlem rollback backend'de uygulanır (FR-AGT-006, A8).",
+      "no_versions": "Bu prompt için gösterilecek sürüm yok.",
+      "no_recallable": "Geri çağrılabilir önceki yayınlanmış sürüm yok.",
+      "rollback": {
+        "active": "Aktif sürüm: {version} ({id}). Geri alma, yayınlanmış önceki bir sürümü tek işlemle aktif yapar (FR-AGT-006).",
+        "no_active": "Aktif (production) sürüm yok; geri alınacak yayınlanmış sürüm bulunmuyor."
+      },
+      "action": {
+        "new_version": "Yeni sürüm",
+        "rollback_to": "Bu sürüme dön",
+        "rollback": "Geri al"
+      }
     }
   }
 }

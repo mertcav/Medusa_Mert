@@ -1,0 +1,32 @@
+{
+  "$comment": "A-06 SORUNLU prompt sürüm geçmişi (WBS 13.4.6): activeVersionNo=7 işaret ediyor ama v7 YOK (kopuk aktif referans → missing_active); v3 numarası İKİ KEZ (yinelenen no); PV-X kimliği İKİ KEZ (yinelenen id) → ayırt edilemez (SR-AGT-004 ihlali); v4 ve v3(PV-X) otomatik testten BAŞARISIZ (FR-AGT-010) → distinguishable=false + missing_active=true + attention=5. assertNoPii yine temiz (yalnız SÜRÜM META).",
+  "$expect": {
+    "versions": 5,
+    "active": null,
+    "published": 2,
+    "draft": 3,
+    "recallable": 2,
+    "can_rollback": true,
+    "pending": false,
+    "failed_test": 2,
+    "distinguishable": false,
+    "missing_active": true,
+    "attention": 5
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1003",
+  "tenantName": "Gama Telekom",
+  "prompt": {
+    "promptRef": "PROMPT-77",
+    "agentRef": "AGT-309",
+    "agentName": "Fatura Bilgilendirme",
+    "activeVersionNo": 7,
+    "versions": [
+      { "versionNo": 4, "versionId": "PV-4", "stage": "test", "isPublished": false, "testStatus": "failed", "createdAt": "2026-06-15T12:00:00.000Z", "author": "Derya Kaya", "changeNote": "Yeni akış denemesi", "charCount": 2400, "variableCount": 7 },
+      { "versionNo": 3, "versionId": "PV-3", "stage": "production", "isPublished": true, "testStatus": "passed", "createdAt": "2026-06-01T09:00:00.000Z", "author": "Mert Aydın", "changeNote": "Canlı sürüm", "charCount": 2200, "variableCount": 6 },
+      { "versionNo": 3, "versionId": "PV-X", "stage": "staging", "isPublished": false, "testStatus": "failed", "createdAt": "2026-05-30T16:00:00.000Z", "author": "Mert Aydın", "changeNote": "Hatalı sürüm numarası", "charCount": 2150, "variableCount": 6 },
+      { "versionNo": 2, "versionId": "PV-X", "stage": "archived", "isPublished": true, "testStatus": "passed", "createdAt": "2026-05-12T10:00:00.000Z", "author": "Derya Kaya", "changeNote": "Yinelenen kimlik", "charCount": 2000, "variableCount": 5 },
+      { "versionNo": 1, "versionId": "PV-1", "stage": "archived", "isPublished": false, "testStatus": "not_run", "createdAt": "2026-04-30T08:00:00.000Z", "author": "Derya Kaya", "changeNote": "İlk taslak", "charCount": 1700, "variableCount": 3 }
+    ]
+  }
+}
