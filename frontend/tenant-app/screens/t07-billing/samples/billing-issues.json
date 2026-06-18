@@ -1,0 +1,19 @@
+{
+  "$comment": "İllüstratif T-07 snapshot — sorunlu durum: kullanım kotayı aşmış ama overage KAPALI (çağrılar limitlenir), sert kullanım limiti aşılmış, maliyet bileşen toplamı dönem harcamasıyla uzlaşmıyor, bütçe aşılmış, hiç bütçe alarmı yok, minimum ücret negatif (geçersiz plan), fatura aktarımı başarısız. Tüm danger/warning uyarıları tetiklenir. HİJYEN: yine yalnız tenant topluluğu (çağrı-bazlı CDR / PII / ödeme sırrı YOK).",
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Telekom A.Ş.",
+  "plan": { "planName": "Standart-Aylık", "tier": "standard", "billingModel": "per_minute", "currency": "EUR", "minimumCharge": -1, "billingPeriod": "monthly", "dedicatedInfra": false },
+  "usage": { "periodLabel": "2026-06", "billedMinutes": 72000, "billedSeconds": 15, "includedMinutes": 50000, "callCount": 30100 },
+  "costs": [
+    { "category": "telecom", "amount": 30000 },
+    { "category": "stt", "amount": 8000 },
+    { "category": "tts", "amount": 7000 },
+    { "category": "llm", "amount": 12000 },
+    { "category": "platform", "amount": 5000 }
+  ],
+  "overage": { "overageEnabled": false, "overageRate": 0, "overageMinutes": 0, "overageAmount": 0 },
+  "budget": { "budgetAmount": 50000, "spentAmount": 65000, "usageLimitMinutes": 60000, "alarms": [] },
+  "invoiceExport": { "status": "failed", "target": "ERP-GL", "lastSync": "2026-05-01T02:00:00.000Z" },
+  "$expect": { "over_budget": true, "usage_limit_exceeded": true, "quota_overage": 22000, "overage_blocked": true, "cost_mismatch": true, "invalid_plan": ["minimum_charge"], "export_failed": true, "open_warnings": 7 }
+}

@@ -1435,6 +1435,133 @@
         "high_risk": "Yüksek riskte",
         "always": "Her zaman"
       }
+    },
+    "t07": {
+      "title": "Faturalandırma & Kullanım",
+      "subtitle": "Plan, kullanım, maliyet kırılımı, kota/overage, bütçe alarmı ve fatura aktarımı — yalnız kendi tenant'ınızın faturalama görünümü.",
+      "scope_note": "Bu ekran yalnız kendi tenant'ınızın plan, kullanım topluluğu ve maliyet görünümünü gösterir; ham çağrı kaydı/transkript, çağrı-bazlı CDR satırı, müşteri PII ve ödeme sırları (kart, IBAN, finans sistemi credential'ı) buraya gömülmez. Bireysel veri ve ödeme sırları L2/data-plane ile finans/billing motorunda tutulur.",
+      "as_of": "Veri zamanı: {time}",
+      "tenant": "Tenant",
+      "period": "Dönem",
+      "illustrative_note": "Fiyat ve maliyet değerleri illüstratiftir; bağlayıcı rate-card finans/billing motorundan (L0 P-05) beslenir. Değerler yalnız tenant-bütünü topluluk metriğidir.",
+      "yes": "Evet",
+      "no": "Hayır",
+      "undefined_label": "Tanımsız",
+      "no_limit": "Limit yok",
+      "no_alarms": "Tanımlı bütçe alarmı yok.",
+      "minutes": "{n} dk",
+      "min_sec": "{m} dk {s} sn",
+      "alarm_fired": "Tetiklendi",
+      "alarm_armed": "Hazır",
+      "overage_blocked_label": "Aşım engellendi (overage kapalı)",
+      "over_budget_alert": "Bütçe aşıldı: dönem harcaması bütçenin {ratio} seviyesinde.",
+      "usage_limit_alert": "Kullanım limiti aşıldı: faturalanan dakika sert limiti ({limit} dk) geçti.",
+      "reconcile_alert": "Maliyet uzlaşı boşluğu: bileşen toplamı ({components}) ile dönem harcaması ({spent}) tutmuyor.",
+      "export_failed_alert": "Fatura aktarımı başarısız: finans sistemine son aktarım hata verdi.",
+      "plan_invalid_alert": "Plan konfigürasyonunda {count} tutarsızlık var.",
+      "approaching_alert": "Bütçeye yaklaşılıyor: dönem harcaması bütçenin {ratio} seviyesinde.",
+      "overage_blocked_alert": "Kota aşıldı ({minutes} dk) ama overage kapalı — ek çağrılar limitlenebilir.",
+      "no_alarms_alert": "Bütçe tanımlı ama hiç bütçe alarmı yapılandırılmamış.",
+      "export_unconfigured_alert": "Fatura aktarımı yapılandırılmamış: finans sistemi hedefi tanımsız.",
+      "section": {
+        "summary": "Özet",
+        "plan": "Plan",
+        "usage": "Kullanım",
+        "cost": "Maliyet Kırılımı",
+        "overage": "Kota & Overage",
+        "budget": "Bütçe & Alarmlar",
+        "export": "Fatura Aktarımı"
+      },
+      "kpi": {
+        "plan": "Plan",
+        "plan_hint": "Katman: {tier}",
+        "usage": "Faturalanan kullanım",
+        "usage_hint": "Dahil kota: {included} dk",
+        "cost": "Dönem maliyeti",
+        "cost_hint": "Bileşen toplamı (telekom/STT/TTS/LLM/platform)",
+        "budget": "Bütçe tüketimi",
+        "budget_hint": "Dönem bütçesi: {budget}",
+        "warnings": "Açık uyarı",
+        "warnings_hint": "Bütçe/limit/uzlaşı/aktarım boşlukları"
+      },
+      "action": {
+        "change_plan": "Planı Değiştir"
+      },
+      "plan_caption": "Plan ve fiyatlandırma konfigürasyonu",
+      "usage_caption": "Dönem kullanım topluluğu",
+      "cost_caption": "Bileşen bazlı maliyet kırılımı",
+      "overage_caption": "Kota aşımı ve overage politikası",
+      "budget_caption": "Bütçe ve kullanım limiti",
+      "alarms_caption": "Bütçe alarm eşikleri",
+      "export_caption": "Finans sistemine fatura aktarım durumu",
+      "plan_hint": "Plan/rate-card değişikliği backend'de (12.2.x) zorlanır; bu katman yalnız çözümlenmiş planı gösterir. Değerler illüstratiftir.",
+      "usage_hint": "Kullanım dakika ve saniye bazında ölçülür (FR-BIL-001); yalnız tenant-bütünü topluluktur — çağrı-bazlı CDR değil.",
+      "cost_hint": "Telekom, STT, TTS, LLM ve platform maliyeti ayrı izlenir (FR-BIL-002). Bileşen toplamı dönem harcamasıyla uzlaşmalıdır.",
+      "overage_hint": "Kota aşımı ve overage ek ücreti desteklenir (FR-BIL-004); overage kapalıyken kota aşımı çağrıları limitler.",
+      "budget_hint": "Kullanım limiti ve bütçe alarmı tanımlanabilir (FR-BIL-006); eşik aşımında alarm tetiklenir. Bildirim kanalı yalnız ad olarak gösterilir (sır değil).",
+      "export_hint": "Fatura verileri finans sistemine aktarılabilir (FR-BIL-007); aktarım hedefi yalnız ad olarak gösterilir — API credential panele konmaz.",
+      "field": {
+        "plan_name": "Plan adı",
+        "tier": "Katman",
+        "billing_model": "Faturalama modeli",
+        "currency": "Para birimi",
+        "minimum_charge": "Minimum ücret",
+        "billing_period": "Faturalama dönemi",
+        "dedicated_infra": "Dedicated altyapı (ayrı faturalandırma)",
+        "billed_minutes": "Faturalanan kullanım",
+        "included_minutes": "Plana dahil kota",
+        "quota_overage": "Kota aşımı",
+        "call_count": "Çağrı adedi",
+        "overage_enabled": "Overage açık",
+        "overage_rate": "Aşım birim ücreti",
+        "overage_minutes": "Aşım dakikası",
+        "overage_amount": "Aşım maliyeti",
+        "overage_state": "Durum",
+        "budget_amount": "Dönem bütçesi",
+        "spent_amount": "Dönem harcaması",
+        "usage_limit": "Kullanım limiti",
+        "export_status": "Aktarım durumu",
+        "export_target": "Finans sistemi hedefi",
+        "export_last": "Son aktarım"
+      },
+      "col": {
+        "category": "Bileşen",
+        "amount": "Tutar",
+        "share": "Pay",
+        "total": "Toplam",
+        "alarm": "Alarm",
+        "threshold": "Eşik",
+        "channel": "Kanal",
+        "state": "Durum"
+      },
+      "unit": {
+        "minute": "dk"
+      },
+      "billing_model": {
+        "per_minute": "Dakika bazlı",
+        "per_second": "Saniye bazlı",
+        "tiered": "Kademeli",
+        "flat": "Sabit"
+      },
+      "tier": {
+        "pilot": "Pilot",
+        "standard": "Standart",
+        "enterprise": "Enterprise",
+        "dedicated": "Dedicated"
+      },
+      "category": {
+        "telecom": "Telekom",
+        "stt": "STT",
+        "tts": "TTS",
+        "llm": "LLM",
+        "platform": "Platform"
+      },
+      "export_status": {
+        "synced": "Aktarıldı",
+        "pending": "Bekliyor",
+        "failed": "Başarısız",
+        "not_configured": "Yapılandırılmamış"
+      }
     }
   }
 }

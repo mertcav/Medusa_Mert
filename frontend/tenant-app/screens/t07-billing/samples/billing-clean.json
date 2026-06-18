@@ -1,0 +1,22 @@
+{
+  "$comment": "İllüstratif T-07 snapshot — sağlıklı durum: kullanım kota içinde, maliyet bileşen toplamı dönem harcamasıyla uzlaşır, bütçe %75 seviyesinde (alarm tetiklenmedi), overage açık, plan geçerli, fatura aktarımı senkron. HİJYEN: yalnız tenant'ın KENDİ plan/kullanım topluluğu (çağrı-bazlı CDR / PII / ödeme sırrı YOK). Değerler illüstratif.",
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1001",
+  "tenantName": "Acme Lojistik A.Ş.",
+  "plan": { "planName": "Enterprise-Aylık", "tier": "enterprise", "billingModel": "per_minute", "currency": "TRY", "minimumCharge": 5000, "billingPeriod": "monthly", "dedicatedInfra": true },
+  "usage": { "periodLabel": "2026-06", "billedMinutes": 48230, "billedSeconds": 40, "includedMinutes": 50000, "callCount": 12840 },
+  "costs": [
+    { "category": "telecom", "amount": 18200 },
+    { "category": "stt", "amount": 6400 },
+    { "category": "tts", "amount": 5900 },
+    { "category": "llm", "amount": 9800 },
+    { "category": "platform", "amount": 4500 }
+  ],
+  "overage": { "overageEnabled": true, "overageRate": 1.2, "overageMinutes": 0, "overageAmount": 0 },
+  "budget": { "budgetAmount": 60000, "spentAmount": 44800, "usageLimitMinutes": 60000, "alarms": [
+    { "id": "AL-1", "thresholdPct": 80, "channel": "billing_owner_email" },
+    { "id": "AL-2", "thresholdPct": 100, "channel": "finance_webhook" }
+  ] },
+  "invoiceExport": { "status": "synced", "target": "ERP-GL", "lastSync": "2026-06-01T02:00:00.000Z" },
+  "$expect": { "over_budget": false, "usage_limit_exceeded": false, "quota_overage": 0, "overage_blocked": false, "cost_mismatch": false, "invalid_plan": [], "export_failed": false, "open_warnings": 0 }
+}

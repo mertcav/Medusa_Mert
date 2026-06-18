@@ -1435,6 +1435,133 @@
         "high_risk": "High risk only",
         "always": "Always"
       }
+    },
+    "t07": {
+      "title": "Billing & Usage",
+      "subtitle": "Plan, usage, cost breakdown, quota/overage, budget alarm and invoice export — only your own tenant's billing view.",
+      "scope_note": "This screen shows only your own tenant's plan, aggregate usage and cost view; raw call recordings/transcripts, per-call CDR rows, customer PII and payment secrets (card, IBAN, finance system credentials) are not embedded here. Individual data and payment secrets live in the L2/data-plane and the finance/billing engine.",
+      "as_of": "As of: {time}",
+      "tenant": "Tenant",
+      "period": "Period",
+      "illustrative_note": "Price and cost values are illustrative; the binding rate-card is fed from the finance/billing engine (L0 P-05). Values are tenant-wide aggregate metrics only.",
+      "yes": "Yes",
+      "no": "No",
+      "undefined_label": "Undefined",
+      "no_limit": "No limit",
+      "no_alarms": "No budget alarm defined.",
+      "minutes": "{n} min",
+      "min_sec": "{m} min {s} sec",
+      "alarm_fired": "Fired",
+      "alarm_armed": "Armed",
+      "overage_blocked_label": "Overage blocked (overage disabled)",
+      "over_budget_alert": "Budget exceeded: period spend is at {ratio} of budget.",
+      "usage_limit_alert": "Usage limit exceeded: billed minutes passed the hard limit ({limit} min).",
+      "reconcile_alert": "Cost reconciliation gap: component total ({components}) does not match period spend ({spent}).",
+      "export_failed_alert": "Invoice export failed: the last export to the finance system errored.",
+      "plan_invalid_alert": "Plan configuration has {count} inconsistencies.",
+      "approaching_alert": "Approaching budget: period spend is at {ratio} of budget.",
+      "overage_blocked_alert": "Quota exceeded ({minutes} min) but overage is disabled — extra calls may be capped.",
+      "no_alarms_alert": "A budget is set but no budget alarm is configured.",
+      "export_unconfigured_alert": "Invoice export not configured: the finance system target is undefined.",
+      "section": {
+        "summary": "Summary",
+        "plan": "Plan",
+        "usage": "Usage",
+        "cost": "Cost Breakdown",
+        "overage": "Quota & Overage",
+        "budget": "Budget & Alarms",
+        "export": "Invoice Export"
+      },
+      "kpi": {
+        "plan": "Plan",
+        "plan_hint": "Tier: {tier}",
+        "usage": "Billed usage",
+        "usage_hint": "Included quota: {included} min",
+        "cost": "Period cost",
+        "cost_hint": "Component total (telecom/STT/TTS/LLM/platform)",
+        "budget": "Budget consumption",
+        "budget_hint": "Period budget: {budget}",
+        "warnings": "Open warnings",
+        "warnings_hint": "Budget/limit/reconcile/export gaps"
+      },
+      "action": {
+        "change_plan": "Change Plan"
+      },
+      "plan_caption": "Plan and pricing configuration",
+      "usage_caption": "Period usage aggregate",
+      "cost_caption": "Component-level cost breakdown",
+      "overage_caption": "Quota overage and overage policy",
+      "budget_caption": "Budget and usage limit",
+      "alarms_caption": "Budget alarm thresholds",
+      "export_caption": "Invoice export status to the finance system",
+      "plan_hint": "Plan/rate-card changes are enforced in the backend (12.2.x); this layer only shows the resolved plan. Values are illustrative.",
+      "usage_hint": "Usage is metered by minute and second (FR-BIL-001); it is a tenant-wide aggregate only — not per-call CDR.",
+      "cost_hint": "Telecom, STT, TTS, LLM and platform costs are tracked separately (FR-BIL-002). The component total must reconcile with period spend.",
+      "overage_hint": "Quota overage and overage surcharge are supported (FR-BIL-004); when overage is disabled, exceeding the quota caps calls.",
+      "budget_hint": "Usage limit and budget alarm can be defined (FR-BIL-006); alarms fire when thresholds are crossed. The notification channel is shown by name only (not a secret).",
+      "export_hint": "Invoice data can be exported to the finance system (FR-BIL-007); the export target is shown by name only — API credentials are never placed in the panel.",
+      "field": {
+        "plan_name": "Plan name",
+        "tier": "Tier",
+        "billing_model": "Billing model",
+        "currency": "Currency",
+        "minimum_charge": "Minimum charge",
+        "billing_period": "Billing period",
+        "dedicated_infra": "Dedicated infrastructure (billed separately)",
+        "billed_minutes": "Billed usage",
+        "included_minutes": "Included quota",
+        "quota_overage": "Quota overage",
+        "call_count": "Call count",
+        "overage_enabled": "Overage enabled",
+        "overage_rate": "Overage unit rate",
+        "overage_minutes": "Overage minutes",
+        "overage_amount": "Overage cost",
+        "overage_state": "State",
+        "budget_amount": "Period budget",
+        "spent_amount": "Period spend",
+        "usage_limit": "Usage limit",
+        "export_status": "Export status",
+        "export_target": "Finance system target",
+        "export_last": "Last export"
+      },
+      "col": {
+        "category": "Component",
+        "amount": "Amount",
+        "share": "Share",
+        "total": "Total",
+        "alarm": "Alarm",
+        "threshold": "Threshold",
+        "channel": "Channel",
+        "state": "State"
+      },
+      "unit": {
+        "minute": "min"
+      },
+      "billing_model": {
+        "per_minute": "Per minute",
+        "per_second": "Per second",
+        "tiered": "Tiered",
+        "flat": "Flat"
+      },
+      "tier": {
+        "pilot": "Pilot",
+        "standard": "Standard",
+        "enterprise": "Enterprise",
+        "dedicated": "Dedicated"
+      },
+      "category": {
+        "telecom": "Telecom",
+        "stt": "STT",
+        "tts": "TTS",
+        "llm": "LLM",
+        "platform": "Platform"
+      },
+      "export_status": {
+        "synced": "Synced",
+        "pending": "Pending",
+        "failed": "Failed",
+        "not_configured": "Not configured"
+      }
     }
   }
 }

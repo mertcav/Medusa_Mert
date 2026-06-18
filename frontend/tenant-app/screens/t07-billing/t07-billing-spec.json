@@ -1,0 +1,64 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.3.7",
+  "screen": "T-07",
+  "title": "Faturalandırma & Kullanım",
+  "plane": "tenant_application_plane",
+  "tier": "L1",
+  "source": ["BRD §17.4", "BRD §17.6 (RBAC)", "BRD §17.7 (hijyen)", "FR-BIL-001 (dakika/saniye bazlı kullanım)", "FR-BIL-002 (telekom/STT/TTS/LLM/platform ayrı maliyet)", "FR-BIL-003 (tenant fiyat planı)", "FR-BIL-004 (minimum ücret + kota + overage)", "FR-BIL-005 (dedicated altyapı ayrı faturalandırma)", "FR-BIL-006 (kullanım limiti + bütçe alarmı)", "FR-BIL-007 (finans sistemine fatura aktarımı)", "FR-TEN-002 (tenant scope)", "SAD §14.4.1", "NFR 10.6 (sır/finansal credential)"],
+  "rbac": {
+    "tenant_owner": "manage",
+    "tenant_admin": "view",
+    "security_compliance_officer": "none",
+    "billing_viewer": "view",
+    "api_developer": "none",
+    "note": "UI yalnız görsel kapı; nihai yetki backend'de (12.2.x) + RLS. Plan değiştirme/bütçe alarmı kaydetme kararı bu katmanda YOK (A8). Panel yalnız çözümlenmiş plan/kullanım/maliyet görünümünü gösterir + eşik/limit aşımını işaretler. billing_viewer T-07'de Görüntüle (BRD §17.6)."
+  },
+  "content_brd_17_4": [
+    "Plan",
+    "kota",
+    "overage",
+    "bütçe alarmı"
+  ],
+  "invariants": {
+    "S1": "T-07 ekran sayfası mevcut + data-screen=\"T-07\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/tenant/billing) kullanır.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.t07.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK son-müşteri PII/iş-içeriği/çağrı-bazlı CDR taşımaz (FORBIDDEN_PII_KEYS) + sır/finansal credential taşımaz (FORBIDDEN_SECRET_KEYS) + assertNoPii çağrılır (HİJYEN BRD §17.7 + GÜVENLİK NFR 10.6).",
+    "S5": "BRD §17.4 içerik öğeleri (plan / kota / overage / bütçe alarmı) + FR-BIL-001..007 (kullanım dakika/saniye + maliyet bileşenleri + plan + minimum/kota/overage + dedicated + bütçe/limit + fatura aktarımı) i18n bölüm + alt-anahtarlarıyla karşılanır.",
+    "S6": "screen.t07.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (costTotal/costShare/budgetRatio/overBudget/budgetApproaching/triggeredAlarms/unconfiguredAlarms/quotaOverageMinutes/overageBlocked/usageLimitExceeded/costMismatch/invalidPlan/invoiceExportFailed/invoiceExportUnconfigured/openWarningCount/tone'lar) deterministik; Date.now/rastgelelik yok.",
+    "S8": "Vendor-neutral (ADR-002) + illüstratif: veri seam belirli sağlayıcı maliyetini bağlamaz; sır/credential yok; fiyat/maliyet değerleri illüstratiftir (rate-card finans/billing motorundan beslenir)."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "scope_note", "as_of", "tenant", "period", "illustrative_note",
+    "over_budget_alert", "usage_limit_alert", "reconcile_alert", "export_failed_alert", "plan_invalid_alert", "approaching_alert", "overage_blocked_alert", "no_alarms_alert", "export_unconfigured_alert",
+    "yes", "no", "undefined_label", "no_limit", "no_alarms", "minutes", "min_sec", "alarm_fired", "alarm_armed", "overage_blocked_label",
+    "section.summary", "section.plan", "section.usage", "section.cost", "section.overage", "section.budget", "section.export",
+    "kpi.plan", "kpi.plan_hint", "kpi.usage", "kpi.usage_hint", "kpi.cost", "kpi.cost_hint", "kpi.budget", "kpi.budget_hint", "kpi.warnings", "kpi.warnings_hint",
+    "action.change_plan",
+    "plan_caption", "usage_caption", "cost_caption", "overage_caption", "budget_caption", "alarms_caption", "export_caption",
+    "plan_hint", "usage_hint", "cost_hint", "overage_hint", "budget_hint", "export_hint",
+    "field.plan_name", "field.tier", "field.billing_model", "field.currency", "field.minimum_charge", "field.billing_period", "field.dedicated_infra", "field.billed_minutes", "field.included_minutes", "field.quota_overage", "field.call_count", "field.overage_enabled", "field.overage_rate", "field.overage_minutes", "field.overage_amount", "field.overage_state", "field.budget_amount", "field.spent_amount", "field.usage_limit", "field.export_status", "field.export_target", "field.export_last",
+    "col.category", "col.amount", "col.share", "col.total", "col.alarm", "col.threshold", "col.channel", "col.state",
+    "unit.minute",
+    "billing_model.per_minute", "billing_model.per_second", "billing_model.tiered", "billing_model.flat",
+    "tier.pilot", "tier.standard", "tier.enterprise", "tier.dedicated",
+    "category.telecom", "category.stt", "category.tts", "category.llm", "category.platform",
+    "export_status.synced", "export_status.pending", "export_status.failed", "export_status.not_configured"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "over_budget_alert": ["ratio"],
+    "usage_limit_alert": ["limit"],
+    "reconcile_alert": ["components", "spent"],
+    "plan_invalid_alert": ["count"],
+    "approaching_alert": ["ratio"],
+    "overage_blocked_alert": ["minutes"],
+    "kpi.plan_hint": ["tier"],
+    "kpi.usage_hint": ["included"],
+    "kpi.budget_hint": ["budget"],
+    "minutes": ["n"],
+    "min_sec": ["m", "s"]
+  }
+}
