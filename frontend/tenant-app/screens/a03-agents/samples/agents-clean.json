@@ -1,0 +1,32 @@
+{
+  "$comment": "A-03 SAĞLIKLI agent envanteri (WBS 13.4.3): tüm agent'lar production + yayınlı (latest==active) + test geçti + bağlı. Dikkat gerektiren yok. assertNoPii temiz (yalnız konfigürasyon META).",
+  "$expect": {
+    "total": 2,
+    "production": 2,
+    "development": 0,
+    "pending": 0,
+    "test_blocked": 0,
+    "unbound": 0,
+    "missing_version": 0,
+    "variants": 0,
+    "attention": 0,
+    "distinct_languages": ["en", "tr"]
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1001",
+  "tenantName": "Acme Telekom",
+  "agents": [
+    {
+      "id": "AG-1", "agentRef": "AGT-1", "name": "Karşılama", "purpose": "Inbound ilk karşılama",
+      "lifecycle": "production", "mode": "node_flow", "languages": ["tr", "en"], "orgUnit": "Müşteri Hizmetleri",
+      "activeVersionNo": 4, "latestVersionNo": 4, "publishedAt": "2026-06-10T07:30:00.000Z", "updatedAt": "2026-06-10T07:30:00.000Z",
+      "boundNumbers": 2, "boundCampaigns": 0, "testStatus": "passed", "isVariant": false, "baseAgentRef": null
+    },
+    {
+      "id": "AG-2", "agentRef": "AGT-2", "name": "Tahsilat", "purpose": "Outbound ödeme hatırlatma",
+      "lifecycle": "production", "mode": "single_prompt", "languages": ["tr"], "orgUnit": "Tahsilat",
+      "activeVersionNo": 7, "latestVersionNo": 7, "publishedAt": "2026-06-12T09:00:00.000Z", "updatedAt": "2026-06-12T09:00:00.000Z",
+      "boundNumbers": 1, "boundCampaigns": 3, "testStatus": "passed", "isVariant": false, "baseAgentRef": null
+    }
+  ]
+}

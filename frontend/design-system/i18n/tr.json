@@ -1754,6 +1754,101 @@
         "handoff": "Aktarım",
         "latency": "Gecikme"
       }
+    },
+    "a03": {
+      "title": "Agent Listesi",
+      "subtitle": "Tüm agent'lar ve durumları",
+      "scope_note": "Yalnız tenant'ınızın agent envanteri gösterilir (tenant-scope). Oluşturma/düzenleme/yayınlama nihai yetkisi backend'de uygulanır; bu ekran yapılandırma görünümüdür.",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "languages_note": "Diller: {langs}",
+      "dash": "—",
+      "no_attention": "Dikkat gerektiren agent yok.",
+      "no_agents": "Henüz tanımlı agent yok.",
+      "mode_hint": "Konuşma modeli — Tek prompt: {single} · Akış (node): {flow}",
+      "alert": {
+        "test": "{count} agent otomatik test kapısını geçmedi; yayın öncesi gözden geçirin (FR-AGT-010).",
+        "no_version": "{count} production agent'ın yayınlı aktif sürümü yok; yapılandırma tutarsız (FR-AGT-006).",
+        "unbound": "{count} production agent'a bağlı numara/kampanya yok; erişilemez durumda (FR-AGT-007).",
+        "pending": "{count} agent'ta yayınlanmamış değişiklik var (en son sürüm > yayınlı sürüm)."
+      },
+      "section": {
+        "summary": "Özet",
+        "lifecycle": "Yaşam Döngüsü Dağılımı",
+        "attention": "Dikkat Gerektiren Agent'lar",
+        "all": "Tüm Agent'lar"
+      },
+      "kpi": {
+        "total": "Toplam Agent",
+        "total_hint": "Tenant envanterindeki tüm agent'lar",
+        "production": "Production (canlı)",
+        "production_hint": "Canlı yayında olan agent'lar",
+        "development": "Geliştirmede",
+        "development_hint": "Taslak / test / staging",
+        "pending": "Yayınlanmamış Değişiklik",
+        "pending_hint": "En son sürüm > yayınlı sürüm",
+        "test": "Test Bloklu",
+        "test_hint": "Otomatik test kapısı geçmedi (FR-AGT-010)",
+        "unbound": "Bağlantısız Production",
+        "unbound_hint": "Bağlı numara/kampanya yok (FR-AGT-007)",
+        "variants": "Varyant",
+        "variants_hint": "Segment varyantı agent'lar (FR-AGT-008)",
+        "attention": "Açık Dikkat",
+        "attention_hint": "Dikkat gerektiren ayrık agent sayısı"
+      },
+      "lifecycle": {
+        "draft": "Taslak",
+        "test": "Test",
+        "staging": "Staging",
+        "production": "Production",
+        "archived": "Arşivlenmiş"
+      },
+      "mode": {
+        "single_prompt": "Tek prompt",
+        "node_flow": "Akış (node)"
+      },
+      "test": {
+        "passed": "Geçti",
+        "failed": "Başarısız",
+        "not_run": "Çalışmadı"
+      },
+      "version": {
+        "active": "Aktif",
+        "latest": "En son: v{n}",
+        "none": "yok",
+        "v": "v{n}"
+      },
+      "binding": {
+        "numbers": "{n} numara",
+        "campaigns": "{n} kampanya"
+      },
+      "flag": {
+        "pending": "Yayınlanmamış",
+        "variant": "Varyant",
+        "test": "Test bloklu",
+        "unbound": "Bağlantısız",
+        "no_version": "Sürümsüz"
+      },
+      "col": {
+        "agent": "Agent",
+        "lifecycle": "Durum",
+        "mode": "Mod",
+        "languages": "Diller",
+        "version": "Sürüm",
+        "tests": "Testler",
+        "bindings": "Bağlantı",
+        "updated": "Güncellendi",
+        "flags": "İşaretler",
+        "count": "Sayı"
+      },
+      "lifecycle_caption": "Yaşam döngüsü durumuna göre agent dağılımı",
+      "attention_caption": "Dikkat gerektiren agent'lar (test bloklu / bağlantısız / sürümsüz)",
+      "attention_hint": "Test bloklu (FR-AGT-010) ∪ bağlantısız production (FR-AGT-007) ∪ aktif sürümsüz production (FR-AGT-006). Çözüm derin aksiyon → A-04/A-06/A-07/A-09 (görsel kapı).",
+      "all_caption": "Tenant'ın tüm tanımlı agent'ları ve durumları",
+      "all_hint": "Düzenleme/yayınlama/rollback derin aksiyondur (A-04 Builder · A-06 Prompt · A-17 Sürüm Geçmişi); nihai yetki backend'de (RBAC + RLS).",
+      "action": {
+        "new": "Yeni agent"
+      }
     }
   }
 }

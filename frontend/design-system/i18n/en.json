@@ -1754,6 +1754,101 @@
         "handoff": "Handoff",
         "latency": "Latency"
       }
+    },
+    "a03": {
+      "title": "Agent List",
+      "subtitle": "All agents and their states",
+      "scope_note": "Only your tenant's agent inventory is shown (tenant-scope). Create/edit/publish authority is enforced in the backend; this screen is a configuration view.",
+      "as_of": "As of: {time}",
+      "tenant": "Tenant",
+      "languages_note": "Languages: {langs}",
+      "dash": "—",
+      "no_attention": "No agents need attention.",
+      "no_agents": "No agents defined yet.",
+      "mode_hint": "Conversation mode — Single prompt: {single} · Flow (node): {flow}",
+      "alert": {
+        "test": "{count} agent(s) have not passed the automated test gate; review before release (FR-AGT-010).",
+        "no_version": "{count} production agent(s) have no published active version; configuration inconsistent (FR-AGT-006).",
+        "unbound": "{count} production agent(s) have no bound number/campaign; unreachable (FR-AGT-007).",
+        "pending": "{count} agent(s) have unpublished changes (latest version > published version)."
+      },
+      "section": {
+        "summary": "Summary",
+        "lifecycle": "Lifecycle Distribution",
+        "attention": "Agents Needing Attention",
+        "all": "All Agents"
+      },
+      "kpi": {
+        "total": "Total Agents",
+        "total_hint": "All agents in the tenant inventory",
+        "production": "Production (live)",
+        "production_hint": "Agents live in production",
+        "development": "In Development",
+        "development_hint": "Draft / test / staging",
+        "pending": "Unpublished Changes",
+        "pending_hint": "Latest version > published version",
+        "test": "Test Blocked",
+        "test_hint": "Automated test gate not passed (FR-AGT-010)",
+        "unbound": "Unbound Production",
+        "unbound_hint": "No bound number/campaign (FR-AGT-007)",
+        "variants": "Variants",
+        "variants_hint": "Segment variant agents (FR-AGT-008)",
+        "attention": "Open Attention",
+        "attention_hint": "Distinct agents needing attention"
+      },
+      "lifecycle": {
+        "draft": "Draft",
+        "test": "Test",
+        "staging": "Staging",
+        "production": "Production",
+        "archived": "Archived"
+      },
+      "mode": {
+        "single_prompt": "Single prompt",
+        "node_flow": "Flow (node)"
+      },
+      "test": {
+        "passed": "Passed",
+        "failed": "Failed",
+        "not_run": "Not run"
+      },
+      "version": {
+        "active": "Active",
+        "latest": "Latest: v{n}",
+        "none": "none",
+        "v": "v{n}"
+      },
+      "binding": {
+        "numbers": "{n} number(s)",
+        "campaigns": "{n} campaign(s)"
+      },
+      "flag": {
+        "pending": "Unpublished",
+        "variant": "Variant",
+        "test": "Test blocked",
+        "unbound": "Unbound",
+        "no_version": "No version"
+      },
+      "col": {
+        "agent": "Agent",
+        "lifecycle": "State",
+        "mode": "Mode",
+        "languages": "Languages",
+        "version": "Version",
+        "tests": "Tests",
+        "bindings": "Bindings",
+        "updated": "Updated",
+        "flags": "Flags",
+        "count": "Count"
+      },
+      "lifecycle_caption": "Agent distribution by lifecycle state",
+      "attention_caption": "Agents needing attention (test blocked / unbound / no version)",
+      "attention_hint": "Test blocked (FR-AGT-010) ∪ unbound production (FR-AGT-007) ∪ production with no active version (FR-AGT-006). Resolution is a deep action → A-04/A-06/A-07/A-09 (visual gate).",
+      "all_caption": "All agents defined by the tenant and their states",
+      "all_hint": "Editing/publishing/rollback are deep actions (A-04 Builder · A-06 Prompt · A-17 Version History); final authority in the backend (RBAC + RLS).",
+      "action": {
+        "new": "New agent"
+      }
     }
   }
 }

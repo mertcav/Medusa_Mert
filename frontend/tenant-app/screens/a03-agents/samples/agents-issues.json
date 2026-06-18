@@ -1,0 +1,50 @@
+{
+  "$comment": "A-03 SORUNLU agent envanteri (WBS 13.4.3): yayınlanmamış değişiklik + test bloklu production (FR-AGT-010) + aktif sürümsüz production (FR-AGT-006) + bağlantısız production (FR-AGT-007) + segment varyantı (FR-AGT-008). assertNoPii yine temiz (yalnız konfigürasyon META).",
+  "$expect": {
+    "total": 5,
+    "production": 4,
+    "development": 1,
+    "pending": 3,
+    "test_blocked": 1,
+    "unbound": 1,
+    "missing_version": 1,
+    "variants": 1,
+    "attention": 3,
+    "distinct_languages": ["en", "tr"]
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Finans",
+  "agents": [
+    {
+      "id": "AG-10", "agentRef": "AGT-10", "name": "Hasar Karşılama", "purpose": "Inbound hasar kaydı",
+      "lifecycle": "production", "mode": "node_flow", "languages": ["tr", "en"], "orgUnit": "Hasar",
+      "activeVersionNo": 5, "latestVersionNo": 6, "publishedAt": "2026-06-08T07:30:00.000Z", "updatedAt": "2026-06-17T10:00:00.000Z",
+      "boundNumbers": 2, "boundCampaigns": 0, "testStatus": "passed", "isVariant": false, "baseAgentRef": null
+    },
+    {
+      "id": "AG-11", "agentRef": "AGT-11", "name": "Tahsilat", "purpose": "Outbound hatırlatma",
+      "lifecycle": "production", "mode": "single_prompt", "languages": ["tr"], "orgUnit": "Tahsilat",
+      "activeVersionNo": 3, "latestVersionNo": 3, "publishedAt": "2026-06-11T09:00:00.000Z", "updatedAt": "2026-06-15T09:00:00.000Z",
+      "boundNumbers": 1, "boundCampaigns": 0, "testStatus": "failed", "isVariant": false, "baseAgentRef": null
+    },
+    {
+      "id": "AG-12", "agentRef": "AGT-12", "name": "Randevu", "purpose": "Inbound randevu",
+      "lifecycle": "production", "mode": "node_flow", "languages": ["tr", "en"], "orgUnit": "Operasyon",
+      "activeVersionNo": null, "latestVersionNo": 2, "publishedAt": null, "updatedAt": "2026-06-16T12:00:00.000Z",
+      "boundNumbers": 1, "boundCampaigns": 0, "testStatus": "passed", "isVariant": false, "baseAgentRef": null
+    },
+    {
+      "id": "AG-13", "agentRef": "AGT-13", "name": "Bilgi Hattı", "purpose": "Inbound genel bilgi",
+      "lifecycle": "production", "mode": "single_prompt", "languages": ["tr"], "orgUnit": "Operasyon",
+      "activeVersionNo": 2, "latestVersionNo": 2, "publishedAt": "2026-06-05T08:00:00.000Z", "updatedAt": "2026-06-05T08:00:00.000Z",
+      "boundNumbers": 0, "boundCampaigns": 0, "testStatus": "passed", "isVariant": false, "baseAgentRef": null
+    },
+    {
+      "id": "AG-14", "agentRef": "AGT-14", "name": "Hasar Karşılama — Kurumsal", "purpose": "Kurumsal segment varyantı",
+      "lifecycle": "staging", "mode": "node_flow", "languages": ["tr", "en"], "orgUnit": "Hasar",
+      "activeVersionNo": 1, "latestVersionNo": 3, "publishedAt": "2026-06-09T11:00:00.000Z", "updatedAt": "2026-06-16T16:40:00.000Z",
+      "boundNumbers": 0, "boundCampaigns": 0, "testStatus": "passed", "isVariant": true, "baseAgentRef": "AGT-10"
+    }
+  ]
+}
