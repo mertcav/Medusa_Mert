@@ -1,0 +1,82 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.4.8",
+  "screen": "A-08",
+  "title": "Knowledge Base",
+  "plane": "tenant_application_plane",
+  "tier": "L2",
+  "source": [
+    "BRD §17.5 (A-08 Knowledge Base — bilgi kaynağı yükleme/bağlama)",
+    "BRD §17.6 (RBAC)",
+    "BRD §17.7 (hijyen + PII redaction)",
+    "FR-KB-001 (PDF/Word/HTML/metin/CSV/web yüklenebilir)",
+    "FR-KB-003 (otomatik parçalama/indeksleme/versiyonlama)",
+    "FR-KB-004 (tenant ve agent bazında farklı bilgi tabanları)",
+    "FR-KB-005 (doküman bazında erişim yetkisi)",
+    "FR-KB-008 (güncelliğini yitirmiş içerik işaretleme)",
+    "FR-KB-010 (hassas doküman sağlayıcı loguna gitmez)",
+    "DB §12 (knowledge_base/kb_document/kb_chunk: tenant_id/agent_id/namespace + source_uri/access_scope/version_no/content_ttl_at/is_sensitive)",
+    "FR-TEN-002 (tenant scope)",
+    "SAD §14.4.1",
+    "ADR-002 (vendor-neutral)",
+    "NFR 10.6 (sır/credential)"
+  ],
+  "rbac": {
+    "conversation_designer": "manage",
+    "operations_manager": "edit",
+    "qa_analyst": "view",
+    "human_agent": "none",
+    "note": "A-06 ile aynı birincil rol: conversation_designer=Yönet; operations_manager=Düzenle; qa_analyst kalite incelemesi için Görüntüle. UI yalnız görsel kapı; nihai yetki backend'de + RLS. Yükle/bağla/yeniden-indeksle derin aksiyondur (A8); doküman içeriği/ingest pipeline API dilimi. Permission-key: agent:read + agent:manage (SAD §7/§17.2)."
+  },
+  "content_brd_17_5": [
+    "bilgi tabanı özeti (KB / doküman / indeksli / bekleyen / bayat / hassas / kısıtlı + açık dikkat)",
+    "bilgi tabanları (ad / namespace / bağ [agent | tenant geneli] / doküman / indeksli / bayat / hassas)",
+    "dokümanlar (ad / KB / kaynak türü / indeks durumu / sürüm / parça sayısı / güncellik / erişim / hassasiyet)",
+    "kaynak türü dağılımı (PDF / Word / HTML / metin / CSV / web)",
+    "indeksleme sağlığı (indexed / indexing / pending / failed)"
+  ],
+  "source_types": ["pdf", "word", "html", "text", "csv", "web"],
+  "index_statuses": ["indexed", "indexing", "pending", "failed"],
+  "freshness_states": ["fresh", "stale"],
+  "access_scopes": ["tenant", "restricted"],
+  "bindings": ["agent", "shared"],
+  "invariants": {
+    "S1": "A-08 ekran sayfası mevcut + data-screen=\"A-08\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/tenant/kb) kullanır + sunucu-tarafı locale.",
+    "S3": "Tüm kullanıcı-görünür metin i18n katalogundan (screen.a08.*); hardcoded TR/EN cümle yok.",
+    "S4": "Veri katmanı türleri YAPISAL OLARAK son-müşteri ham iş-içeriği/PII (ham numara/transkript/kayıt/CDR/müşteri) taşımaz (FORBIDDEN_PII_KEYS) + sır/credential/DOKÜMAN İÇERİĞİ (apiKey/webhookSecret/token/content/chunkContent/sourceUri/embedding) taşımaz (FORBIDDEN_SECRET_KEYS) + assertNoPii çağrılır (HİJYEN BRD §17.7 + GÜVENLİK NFR 10.6). Yalnız DOKÜMAN META (kaynak türü/indeks durumu/sürüm/parça SAYISI/güncellik/erişim seviyesi/hassasiyet bayrağı + KB adı/namespace).",
+    "S5": "BRD §17.5 içerik öğeleri (bilgi tabanı özeti + bilgi tabanları + dokümanlar + kaynak türü dağılımı + indeksleme sağlığı) + FR-KB-001 (kaynak türleri) + FR-KB-003 (indeksleme/versiyonlama) + FR-KB-004 (tenant/agent bazında izolasyon namespace + bağ) + FR-KB-005 (doküman bazında erişim) + FR-KB-008 (bayatlama) + FR-KB-010 (hassas doküman) i18n bölüm + alt-anahtarlarıyla karşılanır.",
+    "S6": "screen.a08.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (sortedBases/allDocuments/countBySourceType/countByIndexStatus/indexedDocuments/pendingIndexDocuments/failedIndexDocuments/staleDocuments/sensitiveDocuments/restrictedDocuments/agentBoundBases/sharedBases/emptyBases/duplicateNamespaces/openAttentionCount/tone'lar) deterministik; Date.now/rastgelelik yok. SOURCE_ORDER + INDEX_ORDER sabitleri tanımlı.",
+    "S8": "Vendor-neutral (ADR-002): veri seam belirli vektör DB (pgvector/OpenSearch)/embedding sağlayıcısını bağlamaz; sır/credential yok."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "scope_note", "as_of", "tenant", "bases_label", "ratio", "chunks", "percent", "none", "sensitive",
+    "alert.duplicate_namespace", "alert.failed_index", "alert.pending_index", "alert.stale_content", "alert.empty_base", "alert.sensitive_docs",
+    "section.summary", "section.bases", "section.documents", "section.sources", "section.index_health",
+    "kpi.bases", "kpi.bases_hint", "kpi.documents", "kpi.documents_hint", "kpi.indexed", "kpi.indexed_hint", "kpi.pending", "kpi.pending_hint", "kpi.stale", "kpi.stale_hint", "kpi.sensitive", "kpi.sensitive_hint", "kpi.restricted", "kpi.restricted_hint", "kpi.attention", "kpi.attention_hint",
+    "binding.agent", "binding.shared",
+    "source.pdf", "source.word", "source.html", "source.text", "source.csv", "source.web",
+    "index.indexed", "index.indexing", "index.pending", "index.failed",
+    "index_desc.indexed", "index_desc.indexing", "index_desc.pending", "index_desc.failed",
+    "freshness.fresh", "freshness.stale",
+    "access.tenant", "access.restricted",
+    "col.base", "col.namespace", "col.binding", "col.docs", "col.indexed", "col.stale", "col.sensitive", "col.document", "col.source", "col.status", "col.version", "col.chunks", "col.freshness", "col.access", "col.flag", "col.count", "col.share", "col.purpose",
+    "bases_caption", "bases_hint", "documents_caption", "documents_hint", "sources_caption", "index_caption", "index_hint",
+    "no_bases", "no_documents",
+    "action.upload", "action.connect", "action.reindex"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "ratio": ["a", "b"],
+    "chunks": ["n"],
+    "percent": ["n"],
+    "alert.duplicate_namespace": ["count"],
+    "alert.failed_index": ["count"],
+    "alert.pending_index": ["count"],
+    "alert.stale_content": ["count"],
+    "alert.empty_base": ["count"],
+    "alert.sensitive_docs": ["count"],
+    "kpi.bases_hint": ["agent", "shared"]
+  }
+}

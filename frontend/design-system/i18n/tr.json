@@ -2217,6 +2217,118 @@
         "rollback_to": "Bu sürüme dön",
         "rollback": "Geri al"
       }
+    },
+    "a08": {
+      "title": "Bilgi Tabanı",
+      "subtitle": "Bilgi kaynağı yükleme ve bağlama",
+      "scope_note": "Bu ekranda agent'larınızın bilgi tabanlarını ve dokümanlarını görüntülersiniz (yalnız tenant'ınız kapsamında). Yalnız doküman meta verisi gösterilir; doküman içeriği, chunk metni ve kaynak işaretçisi panelde yer almaz. Yükle/bağla/yeniden indeksle nihai yetkisi backend'de uygulanır; bu ekran yapılandırma görünümüdür.",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "bases_label": "Bilgi tabanı",
+      "ratio": "{a}/{b}",
+      "chunks": "{n} parça",
+      "percent": "%{n}",
+      "none": "—",
+      "sensitive": "Hassas",
+      "alert": {
+        "duplicate_namespace": "Namespace bütünlüğü ihlali: {count} yinelenen bilgi tabanı namespace'i var. Her namespace tenant kapsamında benzersiz olmalı (FR-KB-004, DB §12).",
+        "failed_index": "{count} doküman indekslenemedi; yeniden indeksleme gerekir (FR-KB-003).",
+        "pending_index": "{count} doküman indeksleme bekliyor; arama sonuçlarına henüz yansımaz (FR-KB-003).",
+        "stale_content": "{count} doküman güncelliğini yitirmiş olarak işaretlendi; içeriği gözden geçirin (FR-KB-008).",
+        "empty_base": "{count} bilgi tabanında doküman yok; agent yanıtları için kaynak ekleyin (FR-KB-004).",
+        "sensitive_docs": "{count} hassas doküman var; bunlar genel model sağlayıcı loglarında tutulmaz (FR-KB-010)."
+      },
+      "section": {
+        "summary": "Bilgi Tabanı Özeti",
+        "bases": "Bilgi Tabanları",
+        "documents": "Dokümanlar",
+        "sources": "Kaynak Türü Dağılımı",
+        "index_health": "İndeksleme Sağlığı"
+      },
+      "kpi": {
+        "bases": "Bilgi Tabanı",
+        "bases_hint": "{agent} agent'a bağlı · {shared} tenant geneli (FR-KB-004)",
+        "documents": "Doküman",
+        "documents_hint": "Tüm bilgi tabanlarındaki toplam doküman",
+        "indexed": "İndeksli",
+        "indexed_hint": "Aranabilir (indekslenmiş) doküman oranı (FR-KB-003)",
+        "pending": "Bekleyen İndeks",
+        "pending_hint": "İndeksleniyor veya bekleyen doküman (FR-KB-003)",
+        "stale": "Bayat",
+        "stale_hint": "Güncelliğini yitirmiş doküman (FR-KB-008)",
+        "sensitive": "Hassas",
+        "sensitive_hint": "Sağlayıcı loguna gitmeyen doküman (FR-KB-010)",
+        "restricted": "Kısıtlı Erişim",
+        "restricted_hint": "Doküman bazında erişim kısıtlı (FR-KB-005)",
+        "attention": "Açık Dikkat",
+        "attention_hint": "Bayat + başarısız indeks + boş KB + yinelenen namespace"
+      },
+      "binding": {
+        "agent": "Agent'a bağlı",
+        "shared": "Tenant geneli"
+      },
+      "source": {
+        "pdf": "PDF",
+        "word": "Word",
+        "html": "HTML",
+        "text": "Metin",
+        "csv": "CSV",
+        "web": "Web sayfası"
+      },
+      "index": {
+        "indexed": "İndeksli",
+        "indexing": "İndeksleniyor",
+        "pending": "Bekliyor",
+        "failed": "Başarısız"
+      },
+      "index_desc": {
+        "indexed": "Parçalandı, indekslendi ve aranabilir (FR-KB-003)",
+        "indexing": "Parçalama/indeksleme sürüyor",
+        "pending": "İndeksleme kuyruğunda bekliyor",
+        "failed": "İndeksleme başarısız; yeniden denenmeli"
+      },
+      "freshness": {
+        "fresh": "Güncel",
+        "stale": "Bayat"
+      },
+      "access": {
+        "tenant": "Tenant geneli",
+        "restricted": "Kısıtlı"
+      },
+      "col": {
+        "base": "Bilgi tabanı",
+        "namespace": "Namespace",
+        "binding": "Bağ",
+        "docs": "Doküman",
+        "indexed": "İndeksli",
+        "stale": "Bayat",
+        "sensitive": "Hassas",
+        "document": "Doküman",
+        "source": "Kaynak türü",
+        "status": "İndeks durumu",
+        "version": "Sürüm",
+        "chunks": "Parça",
+        "freshness": "Güncellik",
+        "access": "Erişim",
+        "flag": "İşaret",
+        "count": "Adet",
+        "share": "Pay",
+        "purpose": "Açıklama"
+      },
+      "bases_caption": "Bilgi tabanları ve izolasyon namespace'leri",
+      "bases_hint": "Her bilgi tabanı tenant+agent bazında izole bir namespace taşır (FR-KB-004; DB §12 benzersiz namespace). Agent'a bağlı tabanlar yalnız o agent'ın retrieval kapsamındadır; tenant geneli tabanlar tüm agent'lara açıktır.",
+      "documents_caption": "Bilgi tabanı dokümanları (yalnız meta)",
+      "documents_hint": "Yalnız doküman meta verisi gösterilir (kaynak türü · indeks durumu · sürüm · parça sayısı · güncellik · erişim · hassasiyet). Doküman içeriği, chunk metni ve kaynak işaretçisi panele konmaz; içerik yönetimi derin aksiyondur (görsel kapı + backend).",
+      "sources_caption": "Kaynak türüne göre doküman dağılımı",
+      "index_caption": "İndeks durumuna göre doküman dağılımı",
+      "index_hint": "Yeniden indeksle yalnız görsel kapıdır; nihai yetki + ingest/parçalama/indeksleme işlemi backend'de uygulanır (FR-KB-003, A8).",
+      "no_bases": "Bu tenant için tanımlı bilgi tabanı yok.",
+      "no_documents": "Gösterilecek doküman yok; bir bilgi tabanına kaynak yükleyin.",
+      "action": {
+        "upload": "Doküman yükle",
+        "connect": "Kaynak bağla",
+        "reindex": "Yeniden indeksle"
+      }
     }
   }
 }

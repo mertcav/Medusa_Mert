@@ -2217,6 +2217,118 @@
         "rollback_to": "Roll back to this",
         "rollback": "Roll back"
       }
+    },
+    "a08": {
+      "title": "Knowledge Base",
+      "subtitle": "Knowledge source upload and binding",
+      "scope_note": "This screen shows your agents' knowledge bases and documents (your tenant only). Only document metadata is shown; document content, chunk text and source pointers are never placed in the panel. Upload/bind/reindex authority is enforced in the backend; this screen is a configuration view.",
+      "as_of": "As of: {time}",
+      "tenant": "Tenant",
+      "bases_label": "Knowledge bases",
+      "ratio": "{a}/{b}",
+      "chunks": "{n} chunks",
+      "percent": "{n}%",
+      "none": "—",
+      "sensitive": "Sensitive",
+      "alert": {
+        "duplicate_namespace": "Namespace integrity violation: {count} duplicate knowledge base namespace(s). Each namespace must be unique within the tenant (FR-KB-004, DB §12).",
+        "failed_index": "{count} document(s) failed to index; reindexing is required (FR-KB-003).",
+        "pending_index": "{count} document(s) awaiting indexing; not yet reflected in search results (FR-KB-003).",
+        "stale_content": "{count} document(s) flagged as stale; review the content (FR-KB-008).",
+        "empty_base": "{count} knowledge base(s) have no documents; add sources for agent answers (FR-KB-004).",
+        "sensitive_docs": "{count} sensitive document(s); these are not retained in general model provider logs (FR-KB-010)."
+      },
+      "section": {
+        "summary": "Knowledge Base Summary",
+        "bases": "Knowledge Bases",
+        "documents": "Documents",
+        "sources": "Source Type Distribution",
+        "index_health": "Indexing Health"
+      },
+      "kpi": {
+        "bases": "Knowledge Bases",
+        "bases_hint": "{agent} agent-bound · {shared} tenant-shared (FR-KB-004)",
+        "documents": "Documents",
+        "documents_hint": "Total documents across all knowledge bases",
+        "indexed": "Indexed",
+        "indexed_hint": "Searchable (indexed) document ratio (FR-KB-003)",
+        "pending": "Pending Index",
+        "pending_hint": "Documents indexing or awaiting index (FR-KB-003)",
+        "stale": "Stale",
+        "stale_hint": "Documents that have gone stale (FR-KB-008)",
+        "sensitive": "Sensitive",
+        "sensitive_hint": "Documents not sent to provider logs (FR-KB-010)",
+        "restricted": "Restricted Access",
+        "restricted_hint": "Document-level access restricted (FR-KB-005)",
+        "attention": "Open Attention",
+        "attention_hint": "Stale + failed index + empty KB + duplicate namespace"
+      },
+      "binding": {
+        "agent": "Agent-bound",
+        "shared": "Tenant-shared"
+      },
+      "source": {
+        "pdf": "PDF",
+        "word": "Word",
+        "html": "HTML",
+        "text": "Text",
+        "csv": "CSV",
+        "web": "Web page"
+      },
+      "index": {
+        "indexed": "Indexed",
+        "indexing": "Indexing",
+        "pending": "Pending",
+        "failed": "Failed"
+      },
+      "index_desc": {
+        "indexed": "Chunked, indexed and searchable (FR-KB-003)",
+        "indexing": "Chunking/indexing in progress",
+        "pending": "Waiting in the indexing queue",
+        "failed": "Indexing failed; must be retried"
+      },
+      "freshness": {
+        "fresh": "Fresh",
+        "stale": "Stale"
+      },
+      "access": {
+        "tenant": "Tenant-wide",
+        "restricted": "Restricted"
+      },
+      "col": {
+        "base": "Knowledge base",
+        "namespace": "Namespace",
+        "binding": "Binding",
+        "docs": "Documents",
+        "indexed": "Indexed",
+        "stale": "Stale",
+        "sensitive": "Sensitive",
+        "document": "Document",
+        "source": "Source type",
+        "status": "Index status",
+        "version": "Version",
+        "chunks": "Chunks",
+        "freshness": "Freshness",
+        "access": "Access",
+        "flag": "Flag",
+        "count": "Count",
+        "share": "Share",
+        "purpose": "Description"
+      },
+      "bases_caption": "Knowledge bases and isolation namespaces",
+      "bases_hint": "Each knowledge base carries a tenant+agent isolated namespace (FR-KB-004; DB §12 unique namespace). Agent-bound bases are in that agent's retrieval scope only; tenant-shared bases are open to all agents.",
+      "documents_caption": "Knowledge base documents (metadata only)",
+      "documents_hint": "Only document metadata is shown (source type · index status · version · chunk count · freshness · access · sensitivity). Document content, chunk text and source pointers are never placed in the panel; content management is a deep action (visual gate + backend).",
+      "sources_caption": "Document distribution by source type",
+      "index_caption": "Document distribution by index status",
+      "index_hint": "Reindex is a visual gate only; final authority + ingest/chunk/index operations are enforced in the backend (FR-KB-003, A8).",
+      "no_bases": "No knowledge bases defined for this tenant.",
+      "no_documents": "No documents to show; upload sources to a knowledge base.",
+      "action": {
+        "upload": "Upload document",
+        "connect": "Connect source",
+        "reindex": "Reindex"
+      }
     }
   }
 }

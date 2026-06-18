@@ -1,0 +1,43 @@
+{
+  "$comment": "A-08 SAĞLIKLI bilgi tabanı envanteri (WBS 13.4.8): 2 bilgi tabanı (biri agent'a bağlı, biri tenant geneli); tüm dokümanlar indeksli + güncel; namespace'ler benzersiz; boş KB yok; başarısız indeks yok → empty_bases=0 + dup_namespaces=[] + attention=0. Bir doküman hassas (FR-KB-010 bayrağı) + biri kısıtlı erişim (FR-KB-005). assertNoPii temiz (yalnız DOKÜMAN META: kaynak türü/indeks/sürüm/parça SAYISI/güncellik/erişim/hassasiyet bayrağı).",
+  "$expect": {
+    "bases": 2,
+    "documents": 4,
+    "indexed": 4,
+    "pending": 0,
+    "failed": 0,
+    "stale": 0,
+    "sensitive": 1,
+    "restricted": 1,
+    "empty_bases": 0,
+    "dup_namespaces": [],
+    "attention": 0
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Finans",
+  "knowledgeBases": [
+    {
+      "kbRef": "KB-11",
+      "name": "Destek Bilgi Tabanı",
+      "namespace": "ten1002/support",
+      "binding": "agent",
+      "boundAgentRef": "AGT-204",
+      "documents": [
+        { "docRef": "DOC-11", "title": "Seviye 1 SSS", "sourceType": "pdf", "indexStatus": "indexed", "versionNo": 2, "chunkCount": 34, "freshness": "fresh", "accessScope": "tenant", "isSensitive": false, "updatedAt": "2026-06-12T10:00:00.000Z" },
+        { "docRef": "DOC-12", "title": "İç Eskalasyon Rehberi", "sourceType": "word", "indexStatus": "indexed", "versionNo": 1, "chunkCount": 18, "freshness": "fresh", "accessScope": "restricted", "isSensitive": false, "updatedAt": "2026-06-08T09:30:00.000Z" }
+      ]
+    },
+    {
+      "kbRef": "KB-12",
+      "name": "Kurumsal Politikalar",
+      "namespace": "ten1002/corp",
+      "binding": "shared",
+      "boundAgentRef": null,
+      "documents": [
+        { "docRef": "DOC-13", "title": "KVKK Aydınlatma Metni", "sourceType": "pdf", "indexStatus": "indexed", "versionNo": 1, "chunkCount": 12, "freshness": "fresh", "accessScope": "tenant", "isSensitive": true, "updatedAt": "2026-05-30T08:00:00.000Z" },
+        { "docRef": "DOC-14", "title": "Hizmet Şartları", "sourceType": "html", "indexStatus": "indexed", "versionNo": 3, "chunkCount": 22, "freshness": "fresh", "accessScope": "tenant", "isSensitive": false, "updatedAt": "2026-06-01T11:00:00.000Z" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "$comment": "A-08 SORUNLU bilgi tabanı envanteri (WBS 13.4.8): KB-21 ve KB-22 AYNI namespace'i taşır (DB §12 benzersizlik ihlali); KB-21'de bir doküman indeks BAŞARISIZ (FR-KB-003) + biri BAYAT (FR-KB-008); KB-22'de indexing+pending bekleyen + hassas/kısıtlı doküman; KB-23 BOŞTUR (kaynak eksik). → dup_namespaces=[ten1002/dup] + failed=1 + stale=1 + empty_bases=1 → attention=4. assertNoPii temiz (yalnız DOKÜMAN META; içerik/chunk/source_uri yok).",
+  "$expect": {
+    "bases": 3,
+    "documents": 5,
+    "indexed": 2,
+    "pending": 2,
+    "failed": 1,
+    "stale": 1,
+    "sensitive": 1,
+    "restricted": 1,
+    "empty_bases": 1,
+    "dup_namespaces": ["ten1002/dup"],
+    "attention": 4
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Finans",
+  "knowledgeBases": [
+    {
+      "kbRef": "KB-21",
+      "name": "Ürün Bilgi Tabanı",
+      "namespace": "ten1002/dup",
+      "binding": "agent",
+      "boundAgentRef": "AGT-301",
+      "documents": [
+        { "docRef": "DOC-21", "title": "Ürün Kataloğu", "sourceType": "pdf", "indexStatus": "failed", "versionNo": 1, "chunkCount": 0, "freshness": "fresh", "accessScope": "tenant", "isSensitive": false, "updatedAt": "2026-06-16T13:00:00.000Z" },
+        { "docRef": "DOC-22", "title": "Eski Fiyat Listesi", "sourceType": "csv", "indexStatus": "indexed", "versionNo": 4, "chunkCount": 9, "freshness": "stale", "accessScope": "tenant", "isSensitive": false, "updatedAt": "2026-02-15T08:00:00.000Z" }
+      ]
+    },
+    {
+      "kbRef": "KB-22",
+      "name": "Sözleşme Arşivi",
+      "namespace": "ten1002/dup",
+      "binding": "shared",
+      "boundAgentRef": null,
+      "documents": [
+        { "docRef": "DOC-23", "title": "Çerçeve Sözleşme", "sourceType": "word", "indexStatus": "indexing", "versionNo": 1, "chunkCount": 0, "freshness": "fresh", "accessScope": "tenant", "isSensitive": false, "updatedAt": "2026-06-17T16:40:00.000Z" },
+        { "docRef": "DOC-24", "title": "Ek Protokol", "sourceType": "pdf", "indexStatus": "pending", "versionNo": 1, "chunkCount": 0, "freshness": "fresh", "accessScope": "tenant", "isSensitive": false, "updatedAt": "2026-06-18T07:30:00.000Z" },
+        { "docRef": "DOC-25", "title": "Gizli Tarife Eki", "sourceType": "pdf", "indexStatus": "indexed", "versionNo": 2, "chunkCount": 6, "freshness": "fresh", "accessScope": "restricted", "isSensitive": true, "updatedAt": "2026-05-20T09:00:00.000Z" }
+      ]
+    },
+    {
+      "kbRef": "KB-23",
+      "name": "Teknik Notlar",
+      "namespace": "ten1002/tech",
+      "binding": "shared",
+      "boundAgentRef": null,
+      "documents": []
+    }
+  ]
+}
