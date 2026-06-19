@@ -1,0 +1,34 @@
+{
+  "name": "trace-degraded",
+  "$comment": "BİLİNÇLİ bozuk trace üreticisi (FR-TST-008 negatif senaryo): record_all kapalı (tts_first_audio düşer → G1 kapsam + e2e türetilemez) + correct_mapping kapalı (alt-span zaman damgaları root'a → G2) + attach_identity kapalı (span trace_id taşımaz → G5) + enforce_attr kapalı (PII attribute geçer → G6) + nedensel sıra bozuk veri (llm_first_token < llm_request_started → G3 + negatif llm gecikmesi G7). Çoklu kapı eler — bozuk Tracer'ın kapılarca yakalandığını kanıtlar.",
+  "profile": "eu-shared-default",
+  "expect": "fail",
+  "session": {
+    "tenant_id": "t_acme", "correlation_id": "corr-acme-9", "call_id": "call-9", "trace_id": "tr-acme-9"
+  },
+  "must_cover": [
+    "call_connected", "first_audio_received", "speech_ended", "stt_final",
+    "llm_request_started", "llm_first_token", "tts_request", "tts_first_audio",
+    "audio_played", "call_ended"
+  ],
+  "policy": {
+    "record_all": false,
+    "drop_ts": ["tts_first_audio"],
+    "correct_mapping": false,
+    "attach_identity": false,
+    "enforce_attr": false
+  },
+  "events": [
+    { "t": 0, "ts": "call_connected", "turn": 0 },
+    { "t": 50, "ts": "first_audio_received", "turn": 0 },
+    { "t": 100, "ts": "speech_started", "turn": 1 },
+    { "t": 1100, "ts": "speech_ended", "turn": 1, "attrs": ["phone_number"] },
+    { "t": 1250, "ts": "stt_final", "turn": 1, "attrs": ["transcript_text"] },
+    { "t": 1400, "ts": "llm_request_started", "turn": 1 },
+    { "t": 1300, "ts": "llm_first_token", "turn": 1 },
+    { "t": 1600, "ts": "tts_request", "turn": 1 },
+    { "t": 1750, "ts": "tts_first_audio", "turn": 1 },
+    { "t": 1900, "ts": "audio_played", "turn": 1 },
+    { "t": 4500, "ts": "call_ended", "turn": 0 }
+  ]
+}

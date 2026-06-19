@@ -1,0 +1,34 @@
+{
+  "$comment": "WBS 14.1.1 call trace profilleri (illüstratif; sır YOK, PII DEĞERİ YOK). Her profil bir çağrı trace'inin home-region pinini ve sampling disiplinini (tail-based, 0.4.7) taşır. Span üretim invariant'ları SPEC'te (gates); profil yalnız dağıtım/sampling bağlamını sağlar. Vendor-neutral (ADR-002): region pini NFR 10.7. Gerçek değerler canlı runtime'da (Go/Rust + OpenTelemetry W3C traceparent, ADR-003/SAD §17.1) gerçek trace ile ayarlanır. Bölge değerleri ${ENV} ile çözülür (canlı); illüstratif sabit isimler yalnız simülasyon içindir.",
+  "version": "1.0",
+  "default_profile": "eu-shared-default",
+  "profiles": [
+    {
+      "name": "eu-shared-default",
+      "$comment": "Paylaşımlı (shared tenant) izolasyon (SAD §13.1): tek runtime havuzu, her span tenant_id taşır. EU home-region. Tail-based sampling (0.4.7): hata + yavaş (P95 üzeri) + barge-in/transfer/tool-error çağrıları HER ZAMAN tutulur; normal trafik base_rate ile örneklenir. W3C traceparent.",
+      "isolation": "logical-shared",
+      "region": "${RUNTIME_REGION_EU}",
+      "trace_sampling": "tail-based",
+      "trace_base_rate": 0.1,
+      "trace_propagation": "w3c-traceparent"
+    },
+    {
+      "name": "tr-shared-default",
+      "$comment": "Paylaşımlı izolasyon, TR home-region (residency NFR 10.7). Diğer her şey eu-shared ile aynı disiplin.",
+      "isolation": "logical-shared",
+      "region": "${RUNTIME_REGION_TR}",
+      "trace_sampling": "tail-based",
+      "trace_base_rate": 0.1,
+      "trace_propagation": "w3c-traceparent"
+    },
+    {
+      "name": "dedicated-regulated",
+      "$comment": "Ayrılmış (dedicated) izolasyon (SAD §13.1, regüle/Faz 2): ayrı namespace/region. Tam trace tutma (base_rate 1.0) audit yoğunluğu için; span disiplini aynı (her span trace_id+correlation_id+tenant_id, PII attribute yok).",
+      "isolation": "physical-dedicated",
+      "region": "${RUNTIME_REGION_DEDICATED}",
+      "trace_sampling": "always-on",
+      "trace_base_rate": 1.0,
+      "trace_propagation": "w3c-traceparent"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "name": "trace-happy-path",
+  "$comment": "Tam tek-turlu inbound çağrı (tool dahil): ingress'te root call span + trace_id açılır; turn altında stt/llm/tool/tts span'ları; BRD §15'in 14 zaman damgası (transfer alternatif yol) doğru span'a kaydedilir; nedensel sıra korunur; tek trace_id + tek correlation_id; gecikmeler türetilir (e2e=750ms, llm=200ms, tts=150ms). Tüm kapılar geçer.",
+  "profile": "eu-shared-default",
+  "expect": "pass",
+  "session": {
+    "tenant_id": "t_acme", "org_unit": "ou_support", "agent_id": "ag_inbound",
+    "correlation_id": "corr-acme-001", "call_id": "call-001", "trace_id": "tr-acme-001"
+  },
+  "must_cover": [
+    "call_connected", "first_audio_received", "speech_started", "speech_ended",
+    "stt_partial", "stt_final", "llm_request_started", "llm_first_token",
+    "tool_request", "tool_response", "tts_request", "tts_first_audio",
+    "audio_played", "call_ended"
+  ],
+  "expected": {
+    "coverage_missing": 0,
+    "mapping_violations": 0,
+    "ordering_violations": 0,
+    "tree_violations": 0,
+    "identity_violations": 0,
+    "attribute_violations": 0,
+    "derivation_violations": 0,
+    "distinct_trace_ids": 1,
+    "distinct_correlation_ids": 1,
+    "spans_total": 6
+  },
+  "events": [
+    { "t": 0, "ts": "call_connected", "turn": 0, "attrs": ["tenant_id", "agent_id", "sip_code"] },
+    { "t": 50, "ts": "first_audio_received", "turn": 0, "attrs": ["codec"] },
+    { "t": 100, "ts": "speech_started", "turn": 1 },
+    { "t": 1200, "ts": "speech_ended", "turn": 1 },
+    { "t": 300, "ts": "stt_partial", "turn": 1, "attrs": ["provider"] },
+    { "t": 1350, "ts": "stt_final", "turn": 1, "attrs": ["provider"] },
+    { "t": 1360, "ts": "llm_request_started", "turn": 1, "attrs": ["provider", "category"] },
+    { "t": 1560, "ts": "llm_first_token", "turn": 1 },
+    { "t": 1600, "ts": "tool_request", "turn": 1, "attrs": ["agent_id"] },
+    { "t": 1750, "ts": "tool_response", "turn": 1, "attrs": ["outcome"] },
+    { "t": 1800, "ts": "tts_request", "turn": 1, "attrs": ["provider"] },
+    { "t": 1950, "ts": "tts_first_audio", "turn": 1 },
+    { "t": 2100, "ts": "audio_played", "turn": 1 },
+    { "t": 5000, "ts": "call_ended", "turn": 0, "attrs": ["outcome"] }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "name": "trace-transfer",
+  "$comment": "İnsan aktarımıyla biten çağrı (FR-RTC-008): agent bir turu tamamlar, sonra call_transferred bir transfer span'ına (call altında) kaydedilir; call_ended ile kapanır. call_transferred → transfer span eşlemesi (G2) + transfer span call sınırı içinde (G4). Tüm kapılar geçer.",
+  "profile": "eu-shared-default",
+  "expect": "pass",
+  "session": {
+    "tenant_id": "t_initech", "org_unit": "ou_billing", "agent_id": "ag_collections",
+    "correlation_id": "corr-initech-3", "call_id": "call-3", "trace_id": "tr-initech-3"
+  },
+  "must_cover": [
+    "call_connected", "first_audio_received", "speech_ended", "stt_final",
+    "llm_first_token", "tts_first_audio", "audio_played", "call_transferred", "call_ended"
+  ],
+  "expected": {
+    "coverage_missing": 0,
+    "mapping_violations": 0,
+    "tree_violations": 0,
+    "distinct_trace_ids": 1
+  },
+  "events": [
+    { "t": 0, "ts": "call_connected", "turn": 0 },
+    { "t": 50, "ts": "first_audio_received", "turn": 0 },
+    { "t": 100, "ts": "speech_started", "turn": 1 },
+    { "t": 1100, "ts": "speech_ended", "turn": 1 },
+    { "t": 1250, "ts": "stt_final", "turn": 1 },
+    { "t": 1260, "ts": "llm_request_started", "turn": 1 },
+    { "t": 1450, "ts": "llm_first_token", "turn": 1 },
+    { "t": 1600, "ts": "tts_request", "turn": 1 },
+    { "t": 1750, "ts": "tts_first_audio", "turn": 1 },
+    { "t": 1900, "ts": "audio_played", "turn": 1 },
+    { "t": 3000, "ts": "call_transferred", "turn": 0, "attrs": ["outcome"] },
+    { "t": 4500, "ts": "call_ended", "turn": 0, "attrs": ["outcome"] }
+  ]
+}

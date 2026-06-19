@@ -1,0 +1,46 @@
+{
+  "name": "trace-multi-turn",
+  "$comment": "İki turlu çağrı: her turn kendi turn span'ı + stt/llm/tts alt span'ları taşır (turn-bazlı span key). İlk turda tool yok, ikinci turda tool var. Tüm zaman damgaları doğru turn span'larına eşlenir; ağaç iyi-biçimli (her turn span call sınırı içinde); tek trace_id. Tüm kapılar geçer.",
+  "profile": "tr-shared-default",
+  "expect": "pass",
+  "session": {
+    "tenant_id": "t_globex", "org_unit": "ou_tr", "agent_id": "ag_tr_inbound",
+    "correlation_id": "corr-globex-7", "call_id": "call-7", "trace_id": "tr-globex-7"
+  },
+  "must_cover": [
+    "call_connected", "first_audio_received", "speech_ended", "stt_final",
+    "llm_first_token", "tts_first_audio", "audio_played", "call_ended"
+  ],
+  "expected": {
+    "coverage_missing": 0,
+    "ordering_violations": 0,
+    "tree_violations": 0,
+    "distinct_trace_ids": 1
+  },
+  "events": [
+    { "t": 0, "ts": "call_connected", "turn": 0 },
+    { "t": 40, "ts": "first_audio_received", "turn": 0 },
+
+    { "t": 100, "ts": "speech_started", "turn": 1 },
+    { "t": 900, "ts": "speech_ended", "turn": 1 },
+    { "t": 1000, "ts": "stt_final", "turn": 1 },
+    { "t": 1010, "ts": "llm_request_started", "turn": 1 },
+    { "t": 1180, "ts": "llm_first_token", "turn": 1 },
+    { "t": 1200, "ts": "tts_request", "turn": 1 },
+    { "t": 1330, "ts": "tts_first_audio", "turn": 1 },
+    { "t": 1500, "ts": "audio_played", "turn": 1 },
+
+    { "t": 3000, "ts": "speech_started", "turn": 2 },
+    { "t": 3800, "ts": "speech_ended", "turn": 2 },
+    { "t": 3900, "ts": "stt_final", "turn": 2 },
+    { "t": 3910, "ts": "llm_request_started", "turn": 2 },
+    { "t": 4090, "ts": "llm_first_token", "turn": 2 },
+    { "t": 4100, "ts": "tool_request", "turn": 2 },
+    { "t": 4280, "ts": "tool_response", "turn": 2 },
+    { "t": 4300, "ts": "tts_request", "turn": 2 },
+    { "t": 4450, "ts": "tts_first_audio", "turn": 2 },
+    { "t": 4600, "ts": "audio_played", "turn": 2 },
+
+    { "t": 8000, "ts": "call_ended", "turn": 0 }
+  ]
+}

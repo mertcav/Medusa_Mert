@@ -1,0 +1,196 @@
+{
+  "$comment": "WBS 14.1.1 — Çağrı trace span'leri (BRD §15 TÜM zaman damgaları). Conversation Orchestrator (Çekirdek IP, SAD §6) içindeki CALL TRACER sözleşmesi: SAD §17.1 (İzleme Omurgası) runtime karşılığı. Her çağrı bir correlation_id + OpenTelemetry trace_id taşır; BRD §15'teki 15 zaman damgasının HEPSİ bir span ağacında SPAN EVENT olarak kaydedilir (call connected → first audio → speech start/end → STT partial/final → LLM request/first token → tool req/resp → TTS req/first audio → audio played → transfer → end). Bu doküman SPAN AĞACINI ÜRETİR + zaman damgalarını DOĞRU span'a + DOĞRU nedensel sırada + iyi-biçimli hiyerarşide kaydeder; trace'ten BRD §15 gecikme metriklerini (e2e/STT/LLM/TTS/tool) TÜRETİR. KAPSAM AYRIMI: bağlam (tenant_id/correlation_id) İLİŞTİRME + kardinalite/PII enforcement → 3.1.5 (context-propagation, PRODUCER bağlamı); metrik/alarm KATALOĞU + collector guard → 0.4.7 (observability omurgası); teknik metrik DEĞERLERİ (packet loss/jitter/...) → 14.1.2; per-call CPU/bellek → 14.1.3/3.1.4; loglama → 14.1.4. Burada YALNIZ orchestrator-tarafı RUNTIME SPAN ÜRETİMİ (span tree + timestamp recording + ordering + latency derivation). KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): Tracer çekirdeği minimal+deterministik (olay-tetikli, sanal saat, random YOK); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3) + OpenTelemetry W3C traceparent (SAD §17.1). Sır/credential, ham ses payload'ı, transkript ve PII DEĞERİ spec/config/örneklerde TUTULMAZ — olaylar yalnız ZAMAN DAMGASI ADLARI + sanal zaman + kimlik anahtarı ADLARI taşır (PII DEĞER yok).",
+  "version": "1.0",
+  "wbs": "14.1.1",
+  "phase": "F1",
+  "trace": {
+    "fr": ["FR-ANA-012", "FR-RES-012", "FR-TOOL-010", "FR-BIL-002", "FR-REC-004", "FR-RTC-002"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "sad": ["§6", "§6.1", "§6.2", "§6.3", "§17", "§17.1", "§20", "§13.3"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003"],
+    "api": ["§11.1 UsageRecord(correlationId/tenantId/callId)", "§11.6 ErrorTaxonomy", "§12.2 TurnEvent(correlationId+tenantId)"],
+    "srs": ["SR-RES-012", "SR-TOOL-010", "SR-BIL-002"],
+    "rtm": ["TC-RES-012", "TC-TOOL-010", "TC-BIL-002"],
+    "brd": ["§15 (her çağrı correlation_id + 15 zaman damgası)", "§17.7 (panel PII maskeleme)"],
+    "observability": ["spans.root_span/timestamps (0.4.7) — BİREBİR kaynak", "metrics.catalog e2e/stt/llm/tts/tool latency (0.4.7)", "context-propagation 3.1.5 (bağlam iliştirme)"]
+  },
+
+  "placement": {
+    "$comment": "Call Tracer Conversation Orchestrator içindedir (SAD §6.2/§6.3). Trace çağrı INGRESS'inde (call_connected) açılır: root 'call' span + trace_id (çağrı boyu sabit) + correlation_id. Turn state machine (SAD §6.1) ilerledikçe alt span'lar (turn/stt/llm/tool/tts/transfer) açılır ve her BRD §15 zaman damgası DOĞRU span'a bir span event olarak kaydedilir. Kayıt-tetiklidir: zaman damgası oluştuğunda kaydedilir; bloklamaz (asenkron/sampling, FR-RES-012 — hot-path'i bloklamaz; tail-based sampling 0.4.7). trace_id/correlation_id çağrı ömrü boyunca DEĞİŞMEZ.",
+    "in_orchestrator": true,
+    "root_opened_at_ingress": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "trace_id_immutable": true,
+    "trace": "SAD §6.1, SAD §6.2, SAD §6.3, ADR-003, FR-RES-012"
+  },
+
+  "span_model": {
+    "$comment": "Span ağacı modeli (SAD §17.1). root_span: 'call' (çağrı ömrü). Alt span'lar her turn için açılır; turn altında operasyon span'ları (stt/llm/tool/tts). transfer span'ı call altında (insan aktarımı, FR-RTC-008). Hiyerarşi: turn→call; stt/llm/tool/tts→turn; transfer→call. Her span'ın [start,end] aralığı, üzerine kaydedilen zaman damgalarının [min,max] aralığıdır; çocuk span aralığı ebeveyn aralığına SIĞAR (well-formed nesting).",
+    "root_span": "call",
+    "span_kinds": ["call", "turn", "stt", "llm", "tool", "tts", "transfer"],
+    "parent_of": {
+      "turn": "call",
+      "stt": "turn",
+      "llm": "turn",
+      "tool": "turn",
+      "tts": "turn",
+      "transfer": "call"
+    },
+    "trace": "SAD §17.1, SAD §6.1, FR-RTC-008"
+  },
+
+  "timestamps": {
+    "$comment": "BRD §15'in 15 zaman damgası — 0.4.7 observability-spec.json spans.timestamps ile BİREBİR (probe validate çapraz-kontrol eder; tek kaynak doğruluk). catalog: tam liste. span_of: her zaman damgasının kaydedildiği span KINDi (G2 doğru eşleme). required_for_completed: normal tamamlanan (transfer'siz) bir çağrının kaydetmesi ZORUNLU olanlar. conditional: yalnız ilgili özellik varsa (stt_partial streaming STT; tool_request/response tool kullanıldıysa; call_transferred aktarıldıysa).",
+    "catalog": [
+      "call_connected",
+      "first_audio_received",
+      "speech_started",
+      "speech_ended",
+      "stt_partial",
+      "stt_final",
+      "llm_request_started",
+      "llm_first_token",
+      "tool_request",
+      "tool_response",
+      "tts_request",
+      "tts_first_audio",
+      "audio_played",
+      "call_transferred",
+      "call_ended"
+    ],
+    "span_of": {
+      "call_connected": "call",
+      "first_audio_received": "call",
+      "speech_started": "turn",
+      "speech_ended": "turn",
+      "stt_partial": "stt",
+      "stt_final": "stt",
+      "llm_request_started": "llm",
+      "llm_first_token": "llm",
+      "tool_request": "tool",
+      "tool_response": "tool",
+      "tts_request": "tts",
+      "tts_first_audio": "tts",
+      "audio_played": "tts",
+      "call_transferred": "transfer",
+      "call_ended": "call"
+    },
+    "required_for_completed": [
+      "call_connected",
+      "first_audio_received",
+      "speech_started",
+      "speech_ended",
+      "stt_final",
+      "llm_request_started",
+      "llm_first_token",
+      "tts_request",
+      "tts_first_audio",
+      "audio_played",
+      "call_ended"
+    ],
+    "conditional": ["stt_partial", "tool_request", "tool_response", "call_transferred"],
+    "trace": "BRD §15, SAD §17.1, observability 0.4.7"
+  },
+
+  "causal_order": {
+    "$comment": "Nedensel sıra çiftleri [önce, sonra]: her ikisi de kaydedilmişse t[önce] ≤ t[sonra] olmalı (G3 monoton). İhlal hem mantıksal hata (yanlış sıra) hem türetilen gecikmenin negatif çıkması demektir. call_connected en erken, call_ended en geç (root span sınırı).",
+    "pairs": [
+      ["call_connected", "first_audio_received"],
+      ["first_audio_received", "speech_started"],
+      ["speech_started", "speech_ended"],
+      ["speech_ended", "stt_final"],
+      ["stt_partial", "stt_final"],
+      ["stt_final", "llm_request_started"],
+      ["llm_request_started", "llm_first_token"],
+      ["llm_first_token", "tts_request"],
+      ["tts_request", "tts_first_audio"],
+      ["tts_first_audio", "audio_played"],
+      ["tool_request", "tool_response"],
+      ["audio_played", "call_ended"],
+      ["call_connected", "call_ended"]
+    ],
+    "trace": "BRD §15, SAD §17.1"
+  },
+
+  "derived_latencies": {
+    "$comment": "Trace zaman damgalarından TÜRETİLEN BRD §15 gecikme metrikleri (trace→metric köprüsü; metrik DEĞER hesaplama 14.1.2). Her ad 0.4.7 metrics.catalog'da MEVCUT olmalı (probe validate çapraz-kontrol eder). [from,to]: gecikme = t[to] − t[from]; her ikisi kaydedilmişse türetilir ve NON-NEGATIVE + finite olmalı (G7). e2e_response_latency: end-of-utterance (speech_ended) → ilk agent sesi (tts_first_audio) — SAD §20 / NFR 10.1 / 0.3.2 ile aynı tanım.",
+    "map": {
+      "e2e_response_latency_ms": ["speech_ended", "tts_first_audio"],
+      "stt_latency_ms": ["speech_ended", "stt_final"],
+      "llm_latency_ms": ["llm_request_started", "llm_first_token"],
+      "tts_latency_ms": ["tts_request", "tts_first_audio"],
+      "tool_latency_ms": ["tool_request", "tool_response"]
+    },
+    "trace": "BRD §15, SAD §17.1, SAD §20, NFR 10.1, observability 0.4.7"
+  },
+
+  "identity": {
+    "$comment": "Trace kimliği (SAD §17.1). Çağrı başına TEK trace_id (çağrı boyu sabit) + TEK correlation_id; root span ve tüm alt span'lar bu trace_id+correlation_id'yi taşır. W3C traceparent standardı (SAD §17.1). Yüksek-kardinalite kimlikler (correlation_id/call_id/trace_id) span ALANI olarak taşınır ama metrik LABEL'ı olamaz — metriğe exemplar olarak bağlanır (0.4.7/3.1.5 ile birebir). Bağlam İLİŞTİRME enforcement'ı 3.1.5'te; burada span ağacının kimlik bütünlüğü kontrol edilir.",
+    "standard": "w3c-traceparent",
+    "single_trace_id_per_call": true,
+    "single_correlation_id_per_call": true,
+    "identity_keys_on_every_span": ["trace_id", "correlation_id", "tenant_id"],
+    "exemplar_keys": ["correlation_id", "trace_id"],
+    "trace": "SAD §17.1, context-propagation 3.1.5, observability 0.4.7"
+  },
+
+  "attribute_policy": {
+    "$comment": "Span attribute disiplini (G6) — 0.4.7/3.1.5 ile hizalı. Span attribute'ları yalnız PII-OLMAYAN kimlik/teknik anahtarlar taşır; PII anahtarı (telefon/müşteri/kart/OTP/token...) span attribute'u OLAMAZ (BRD §17.7, FR-REC-004; redaction L7'de). Ham ses payload'ı/transkript DEĞERİ span'da TUTULMAZ. Span'lar (metrik değil) yüksek-kardinalite kimlik taşıyabilir (correlation_id/call_id) — bu kardinalite kuralı metriklere özgüdür (3.1.5).",
+    "allowed_attr_keys": ["tenant_id", "org_unit", "agent_id", "region", "provider", "category", "call_id", "correlation_id", "trace_id", "span_id", "parent_span_id", "outcome", "sip_code", "codec", "turn_index"],
+    "forbidden_attr_keys": ["phone_number", "msisdn", "customer_name", "full_name", "email", "national_id", "card_number", "pan", "cvv", "otp", "password", "token", "ssn", "iban", "address", "transcript_text", "audio_payload"],
+    "trace": "BRD §17.7, FR-REC-004, observability 0.4.7, context-propagation 3.1.5"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (orchestrator-tarafı span üretimi). (G1) max_coverage_missing=0: senaryonun kaydetmesi gereken (must_cover) her BRD §15 zaman damgası bir span event olarak kaydedilir — BRD §15/SAD §17.1. (G2) max_mapping_violation=0: her zaman damgası DOĞRU span KINDine kaydedilir (stt_* → stt span, llm_* → llm span...). (G3) max_ordering_violation=0: nedensel çiftler monoton (t[önce] ≤ t[sonra]). (G4) max_tree_violation=0: tek root + her alt span geçerli ebeveyn + çocuk aralığı ebeveyne sığar + span end ≥ start. (G5) max_identity_violation=0: çağrı başına tek trace_id + tek correlation_id; her span bunları taşır. (G6) max_attribute_violation=0: span attribute'unda PII/ham payload yok. (G7) max_derivation_violation=0: türetilen BRD §15 gecikmeleri non-negative + finite.",
+    "max_coverage_missing": 0,
+    "max_mapping_violation": 0,
+    "max_ordering_violation": 0,
+    "max_tree_violation": 0,
+    "max_identity_violation": 0,
+    "max_attribute_violation": 0,
+    "max_derivation_violation": 0,
+    "trace": "BRD §15, SAD §17.1, FR-REC-004, observability 0.4.7"
+  },
+
+  "metrics": {
+    "$comment": "Call Tracer gözlemlenebilirliğe (0.4.7) trace sağlık metriklerini yayar. Yüksek-kardinalite kimlik (correlation_id/call_id/trace_id) metrik LABEL'ı OLMAZ — yalnız exemplar (kendi disiplinini kendine uygular). proposed_observability_additions 0.4.7 kataloğuna ÖNERİLEN eklemelerdir; türetilen gecikme metrikleri (derived_latencies) zaten 0.4.7 metrics.catalog'da MEVCUT.",
+    "emitted": ["call_trace_spans_total", "trace_coverage_missing_total", "trace_mapping_violation_total", "trace_ordering_violation_total"],
+    "derives_into_catalog": ["e2e_response_latency_ms", "stt_latency_ms", "llm_latency_ms", "tts_latency_ms", "tool_latency_ms"],
+    "proposed_observability_additions": ["trace_coverage_ratio", "trace_ordering_violation_total"],
+    "trace": "BRD §15, SAD §17.1, observability 0.4.7"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Trace üretim hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Bilinmeyen/eksik zaman damgası adı veya bozuk olay → INVALID_REQUEST; çağrı ortasında trace_id değişimi (kimlik bozulması) → INVALID_REQUEST; region uyumsuzluğu (span home-region dışı) → REGION_VIOLATION. Yüksek coverage_missing/ordering/tree sayıları bir HATA değil degrade SİNYALİdir (kapılar).",
+    "mapping": {
+      "unknown_timestamp": "INVALID_REQUEST",
+      "malformed_event": "INVALID_REQUEST",
+      "trace_id_mutation": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, NFR 10.7"
+  },
+
+  "pii": {
+    "$comment": "Spec/config/örnekler yalnız ZAMAN DAMGASI ADLARI + sanal zaman + kimlik anahtarı ADLARI taşır; HAM SES payload'ı, transkript, müşteri/PII DEĞERLERİ TUTULMAZ. PII anahtar adları (attribute_policy.forbidden_attr_keys) yalnız YASAK LİSTESİ olarak referans edilir; örneklerde bir span attribute'u 'attempted' anahtar ADI olarak görünebilir ama DEĞER yoktur (Tracer zaten reddeder/çıkarır).",
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true,
+    "trace": "BRD §14, BRD §17.7, FR-REC-004"
+  },
+
+  "invariants": [
+    { "id": "G1", "desc": "Senaryonun kaydetmesi gereken her BRD §15 zaman damgası (must_cover; normal tamamlanan çağrı için required_for_completed) bir span event olarak kaydedilir; coverage_missing=0 (BRD §15 'şu zaman damgaları ölçülmelidir'; SAD §17.1 'tüm zaman damgaları span olarak kaydedilir').", "trace": "BRD §15, SAD §17.1" },
+    { "id": "G2", "desc": "Her zaman damgası DOĞRU span KINDine kaydedilir (timestamps.span_of: stt_*→stt, llm_*→llm, tool_*→tool, tts_*+audio_played→tts, speech_*→turn, call_*→call, transferred→transfer); mapping_violation=0.", "trace": "SAD §17.1" },
+    { "id": "G3", "desc": "Nedensel çiftler (causal_order.pairs) monoton: her ikisi kaydedilmişse t[önce] ≤ t[sonra]; ordering_violation=0 (yanlış sıra → negatif gecikme).", "trace": "BRD §15, SAD §17.1, SAD §20" },
+    { "id": "G4", "desc": "Span ağacı iyi-biçimli: tek root 'call' span + her alt span geçerli ebeveyn (span_model.parent_of) + çocuk [start,end] aralığı ebeveyn aralığına SIĞAR + span end ≥ start; tree_violation=0.", "trace": "SAD §17.1" },
+    { "id": "G5", "desc": "Çağrı başına TEK trace_id (çağrı boyu sabit) + TEK correlation_id; root ve tüm alt span'lar trace_id+correlation_id+tenant_id taşır; identity_violation=0 (W3C traceparent; SAD §17.1).", "trace": "SAD §17.1" },
+    { "id": "G6", "desc": "Span attribute'ları yalnız PII-olmayan izinli anahtar taşır; PII anahtarı / ham ses payload / transkript DEĞERİ span'da yok; attribute_violation=0 (BRD §17.7, FR-REC-004; redaction L7).", "trace": "BRD §17.7, FR-REC-004" },
+    { "id": "G7", "desc": "Trace zaman damgalarından türetilen BRD §15 gecikmeleri (derived_latencies: e2e/STT/LLM/TTS/tool) non-negative + finite; derivation_violation=0 (trace→metric köprüsü, 14.1.2 girdisi).", "trace": "BRD §15, SAD §17.1, SAD §20" },
+    { "id": "G8", "desc": "Call Tracer Conversation Orchestrator içinde, ingress'te açılan trace'i KAYIT-TETİKLİ + bloklamayan (asenkron/sampling, FR-RES-012; tail-based 0.4.7) biçimde üretir; hot-path'i bloklamaz.", "trace": "SAD §6.2, SAD §6.3, ADR-003, FR-RES-012" },
+    { "id": "G9", "desc": "timestamps.catalog 0.4.7 observability-spec.json spans.timestamps ile BİREBİR (15 zaman damgası) ve derived_latencies adları 0.4.7 metrics.catalog'da MEVCUT — tek kaynak doğruluk, probe-sabiti değil.", "trace": "observability 0.4.7, SAD §17.1" },
+    { "id": "G10", "desc": "Trace üretim hataları ortak ErrorTaxonomy'ye (API §11.6) eşlenir (unknown/malformed→INVALID_REQUEST, region→REGION_VIOLATION); spec/config/örneklerde literal sır, ham ses payload'ı, transkript veya PII DEĞERİ yok (yalnız zaman damgası + kimlik anahtarı ADLARI + sanal zaman).", "trace": "API §11.6, BRD §14, BRD §17.7, FR-REC-004" }
+  ]
+}
