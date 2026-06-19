@@ -1,0 +1,31 @@
+{
+  "name": "detection-degraded-input",
+  "$comment": "Bozuk GİRDİ ama motor DOĞRU (kapılar geçer). TR home-region. Multi-reason enjeksiyon (g1: yanlış-bilgi'de hem ungrounded hem unverified_commitment — tek işaret, çoklu reason). in_progress çağrı (ip) UYGUN DEĞİL → kapsam paydasına girmez (sessizce düşmez, açık reason taşır). Replay (g1 iki kez) idempotent daraltılır → tek değerlendirme. Enjekte pozitif (g1 yanlış-bilgi + güvenlik) tespit edilir, temiz (cc) işaret almaz. Beklenen: GEÇER (motor sağlam, yalnız girdi düzensiz).",
+  "expect": "pass",
+  "context": {"tenant_id": "t_tr", "region": "eu-central-1", "correlation_id": "corr-tr-007"},
+  "profile_obj": {"name": "tr-standard", "region": "eu-central-1", "schema_version": 2},
+  "calls": [
+    {"call_id": "g1", "agent_id": "ag_tr", "agent_version_id": "v1", "period": "2026-06-02", "status": "completed",
+     "grounded_answers": 1, "total_answers": 4, "kb_contradictions": 0, "unverified_commitments": 2,
+     "tool_calls": 1, "tool_errors": 0, "tool_timeouts": 0, "provider_errors": 0,
+     "pii_disclosure_events": 0, "prompt_injection_detected": 1, "jailbreak_detected": 0, "unauthorized_actions": 0, "policy_violations": 0,
+     "injected": {"misinformation": true, "tool_error": false, "security_violation": true}},
+    {"call_id": "g1", "agent_id": "ag_tr", "agent_version_id": "v1", "period": "2026-06-02", "status": "completed",
+     "grounded_answers": 1, "total_answers": 4, "kb_contradictions": 0, "unverified_commitments": 2,
+     "tool_calls": 1, "tool_errors": 0, "tool_timeouts": 0, "provider_errors": 0,
+     "pii_disclosure_events": 0, "prompt_injection_detected": 1, "jailbreak_detected": 0, "unauthorized_actions": 0, "policy_violations": 0,
+     "injected": {"misinformation": true, "tool_error": false, "security_violation": true}},
+    {"call_id": "ip", "agent_id": "ag_tr", "agent_version_id": "v1", "period": "2026-06-02", "status": "in_progress",
+     "grounded_answers": 0, "total_answers": 2, "kb_contradictions": 0, "unverified_commitments": 0,
+     "tool_calls": 0, "tool_errors": 0, "tool_timeouts": 0, "provider_errors": 0,
+     "pii_disclosure_events": 0, "prompt_injection_detected": 0, "jailbreak_detected": 0, "unauthorized_actions": 0, "policy_violations": 0,
+     "injected": {"misinformation": false, "tool_error": false, "security_violation": false}},
+    {"call_id": "cc", "agent_id": "ag_tr", "agent_version_id": "v1", "period": "2026-06-02", "status": "completed",
+     "grounded_answers": 5, "total_answers": 5, "kb_contradictions": 0, "unverified_commitments": 0,
+     "tool_calls": 2, "tool_errors": 0, "tool_timeouts": 0, "provider_errors": 0,
+     "pii_disclosure_events": 0, "prompt_injection_detected": 0, "jailbreak_detected": 0, "unauthorized_actions": 0, "policy_violations": 0,
+     "injected": {"misinformation": false, "tool_error": false, "security_violation": false}}
+  ],
+  "expected": {"missed_detection": 0, "false_positive": 0, "coverage_gap": 0, "idempotency_violations": 0},
+  "expected_flag_totals": {"misinformation": 1, "tool_error": 0, "security_violation": 1}
+}

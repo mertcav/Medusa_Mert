@@ -1,0 +1,165 @@
+{
+  "$comment": "WBS 14.2.4 Yanlış bilgi/tool hatası/güvenlik ihlali tespiti — kaynak doğruluk. Analytics/Ops Plane'deki (SAD §4.2 ANALYTICS/OPS PLANE — async, batch; ADR-004/ADR-007) TESPİT (DETECTION) motoru: çağrı bittikten sonra event stream üzerinden (qa.evaluation.v1 [FR-ANA-004, analytics-ingest consumer, pii_class=redacted] + ops.tool.execution.v1 [tool status, FR-TOOL-009] + governance.audit.v1 [policy/consent/güvenlik olayları]) gelen PII-REDAKSİYONLU sayısal/kategorik sinyallerden HER UYGUN çağrı için ÜÇ kategorik ikili işaret (flag_misinformation / flag_tool_error / flag_security) deterministik kurallarla türetir ve OLAP fct_call + fct_qa_evaluation flag_* sütunlarına (FR-ANA-004, pii_class low) + call_evaluation.flags JSONB'ye (DB.md §5.6) yazar. Her işaret kapalı-sözlük reason_code taşır. BİRİNCİL HARD kapı = TESPİT GERİ ÇAĞIRMASI (recall) — SR-ANA-004 yöntem T: 'Enjekte edilen hata vakaları tespit edilir'; ENJEKTE edilen (etiketli) her pozitif vaka tespit edilmeli (missed_detection=0, yanlış-negatif yok); ikincil kapı kesinlik (false_positive=0, temiz vakada sahte işaret yok). Sır/credential, ham ses payload, transkript METNİ, PII DEĞERİ YOK — yalnız REDAKSİYONLU sayısal/kategorik sinyal + düşük-kardinalite boyut anahtarı + ikili işaret + kapalı-sözlük reason_code. KAPSAM AYRIMI: otomatik kalite SKORU → 14.2.1 · per-call intent/outcome/disposition/completion ÇIKARIMI → 14.2.2 · containment/transfer ORANI → 14.2.3 · KRİTİK işaretleme (flag_critical, FR-ANA-008; bu motorun işaretlerini TÜKETİR) → 14.2.5 · MANUEL skor → 14.2.6 · sürüm karşılaştırma → 14.2.7 · dashboard/export → 14.2.8. Burada YALNIZ yanlış-bilgi/tool-hata/güvenlik İŞARETİ tespiti + tespit doğruluğu.",
+  "wbs": "14.2.4",
+  "version": "1.0",
+  "phase": "F2",
+  "priority": "Must",
+  "eval_doc": {
+    "fr": "FR-ANA-004 (yanlış bilgi, tool hatası ve güvenlik ihlali tespit edilmelidir)",
+    "srs": "SR-ANA-004 (Yöntem T — enjekte edilen hata vakaları tespit edilir)",
+    "rtm": "FR-ANA-004 ↔ SR-ANA-004 ↔ TC-ANA-004 (T) ↔ WBS 14.2.4",
+    "brd": "BRD §9.15 (Analitik ve Kalite) + §14.2 (AI disclosure/consent/policy — güvenlik/compliance sinyali) + §15 (gözlemlenebilirlik: provider hata oranı)",
+    "sad": "SAD §4.2 (Analytics/Ops Plane — async batch) + §171 (FR-RES-011 async post-processing) + §6.1 (turn state machine — tool/guardrail sinyal kaynağı)",
+    "db": "DB.md §5.6 (call_evaluation.flags JSONB — kritik konuşma işaretleme alanı; tespit işaretleri burada materyalize) + §5.5 (call)",
+    "olap": "analytics/olap-spec.json fct_call.flag_misinformation/flag_tool_error/flag_security (u8_bool, pii_class low, FR-ANA-004) + fct_qa_evaluation.flag_misinformation/flag_tool_error/flag_security (u8_bool, pii_class low, FR-ANA-004)",
+    "eventstream": "eventstream/topic-spec.json qa.evaluation.v1 (FR-ANA-004, analytics-ingest consumer, pii_class redacted) + ops.tool.execution.v1 (tool status success/error/timeout, FR-TOOL-009) + governance.audit.v1 (policy/consent/güvenlik olayları)",
+    "adr": "ADR-002 (vendor-neutral deterministik tespit) / ADR-004 (plane ayrımı) / ADR-007 (async event pipeline)",
+    "api": "API §11.6 (ErrorTaxonomy)",
+    "upstream": "13.2.6 guardrails (anti_hallucination/pii_redaction/input_guard/output_guard kategorileri → güvenlik/yanlış-bilgi sinyalleri) + ops.tool.execution.v1 (tool hata sinyali) + 14.2.1 qa-eval redaksiyonlu öznitelik whitelist (grounded_answers/total_answers/tool_calls/tool_errors/policy_violations BİREBİR)",
+    "downstream": "14.2.5 kritik konuşma işaretleme (FR-ANA-008) — bu motorun ürettiği flag_misinformation/flag_tool_error/flag_security işaretlerini flag_critical bileşik kararına TÜKETİR"
+  },
+  "placement": {
+    "$comment": "Tespit motoru HOT-PATH'TE DEĞİL — Analytics/Ops Plane'de async batch (SAD §4.2/§171, FR-RES-011). Redaksiyonlu sinyalden çağrı SONRASI çalışır. Başarısızlığı CANLI çağrıyı ASLA etkilemez (non_blocking). from_trace=false: işaret kategorik karardır, trace span türetme değil. deterministic=true: saf kural değerlendirme, random YOK. all_calls=true: HER uygun çağrı ÜÇ kategoride değerlendirilir (sessiz atlama yok).",
+    "in_analytics_plane": true,
+    "async_batch": true,
+    "non_blocking": true,
+    "from_redacted_content": true,
+    "all_calls": true,
+    "deterministic": true,
+    "idempotent": true,
+    "from_trace": false
+  },
+  "categories": {
+    "$comment": "ÜÇ tespit kategorisi (FR-ANA-004) — kapalı küme. Her kategori bir OLAP/DB ikili işaretine BİREBİR eşlenir (flag_column). Her kategori kapalı-sözlük reason_code kümesine + tetikleyici sinyallere sahiptir. İşaret, kategorinin reason_code'larından EN AZ BİRİ tetiklenince fires=true olur (eşik kurallarla).",
+    "set": ["misinformation", "tool_error", "security_violation"],
+    "flag_column": {
+      "misinformation": "flag_misinformation",
+      "tool_error": "flag_tool_error",
+      "security_violation": "flag_security"
+    },
+    "reason_codes": {
+      "misinformation": ["ungrounded_answer", "kb_contradiction", "unverified_commitment"],
+      "tool_error": ["tool_call_failed", "tool_call_timeout", "provider_error"],
+      "security_violation": ["pii_disclosure", "prompt_injection", "jailbreak", "unauthorized_action", "policy_violation"]
+    }
+  },
+  "detection_rules": {
+    "$comment": "Deterministik tespit kuralları (saf eşik; random YOK). Her reason_code bir REDAKSİYONLU sayısal/kategorik sinyalden türetilir; sinyal >= eşik → reason_code tetiklenir; kategori işareti = reason_code'lardan herhangi biri tetiklenirse fires=true. ungrounded_answer: total_answers>0 && grounded_answers<total_answers (en az bir cevap KB'ye dayanmıyor). Diğer count sinyaller >0 eşiği. Eşik profile'da SIKILAŞTIRILABİLİR (yalnız daha duyarlı/sıkı yönde). Detect_all kapatılırsa bir kategori sessizce atlanır (G5 kapsam açığı).",
+    "rules": [
+      {"category": "misinformation", "reason": "ungrounded_answer", "signal": "grounded_answers", "compare_to": "total_answers", "op": "lt", "note": "grounded_answers < total_answers (total>0) → en az bir dayanaksız cevap (FR-KB-006/007)"},
+      {"category": "misinformation", "reason": "kb_contradiction", "signal": "kb_contradictions", "op": "gt", "threshold": 0, "note": "KB ile çelişen yanıt sayısı > 0"},
+      {"category": "misinformation", "reason": "unverified_commitment", "signal": "unverified_commitments", "op": "gt", "threshold": 0, "note": "doğrulanmamış taahhüt/söz > 0"},
+      {"category": "tool_error", "reason": "tool_call_failed", "signal": "tool_errors", "op": "gt", "threshold": 0, "note": "ops.tool.execution.v1 status=error sayısı > 0 (FR-TOOL-009)"},
+      {"category": "tool_error", "reason": "tool_call_timeout", "signal": "tool_timeouts", "op": "gt", "threshold": 0, "note": "ops.tool.execution.v1 status=timeout sayısı > 0"},
+      {"category": "tool_error", "reason": "provider_error", "signal": "provider_errors", "op": "gt", "threshold": 0, "note": "sağlayıcı (STT/LLM/TTS) hata sayısı > 0 (BRD §15)"},
+      {"category": "security_violation", "reason": "pii_disclosure", "signal": "pii_disclosure_events", "op": "gt", "threshold": 0, "note": "yetkisiz/uygunsuz PII ifşası > 0 (pii_redaction guard, BRD §14.2)"},
+      {"category": "security_violation", "reason": "prompt_injection", "signal": "prompt_injection_detected", "op": "gt", "threshold": 0, "note": "başarılı prompt injection > 0 (input_guard)"},
+      {"category": "security_violation", "reason": "jailbreak", "signal": "jailbreak_detected", "op": "gt", "threshold": 0, "note": "başarılı jailbreak > 0 (system_prompt_lock bypass)"},
+      {"category": "security_violation", "reason": "unauthorized_action", "signal": "unauthorized_actions", "op": "gt", "threshold": 0, "note": "yetkisiz/onaysız aksiyon icrası > 0"},
+      {"category": "security_violation", "reason": "policy_violation", "signal": "policy_violations", "op": "gt", "threshold": 0, "note": "politika/guardrail ihlali sayısı > 0 (BRD §14.2)"}
+    ],
+    "groundedness_signals": ["grounded_answers", "total_answers"]
+  },
+  "ground_truth": {
+    "$comment": "SR-ANA-004 yöntem T: enjekte edilen (etiketli) hata vakaları tespit edilir. Etiketli test setinde her çağrı 'injected' yer-doğrusu (ground-truth) taşır: {misinformation, tool_error, security_violation} ikili etiketleri. Motor sinyalden işaret üretir; kapı motor işaretini injected etiketine karşı karşılaştırır: missed_detection (injected=true ama flag=false → yanlış-negatif, BİRİNCİL kapı) + false_positive (injected=false ama flag=true → sahte işaret). injected taşımayan çağrı (üretim) için işaret YİNE üretilir ama recall/precision'a katılmaz.",
+    "label_key": "injected",
+    "labels": ["misinformation", "tool_error", "security_violation"],
+    "missed_detection_is_false_negative": true,
+    "primary_gate": "max_missed_detection (recall == 1.0 enjekte pozitiflerinde)"
+  },
+  "eligibility": {
+    "$comment": "Tespit YALNIZ UYGUN (completed) çağrıya uygulanır. evaluable=completed (çağrı-içi caller_abandoned yine completed). excluded statüleri açık reason_code taşır (sessiz filtreleme yok). Uygun-olmayan çağrı kapsam paydasına (coverage) girmez.",
+    "evaluable_statuses": ["completed"],
+    "excluded_statuses": ["in_progress", "test_call", "blocked"],
+    "exclusion_reason_required": true
+  },
+  "coverage": {
+    "$comment": "HER uygun çağrı ÜÇ kategoride DE değerlendirilir (produced == eligible × 3 kategori; coverage_gap=0). Bir kategorinin sessizce atlanması (detect_all kapalı) kapsam açığıdır. Tespit-pozitif sayısı (işaret fires) DEĞİL — KAPSAM (değerlendirilen kategori) ölçülür. Tespit yok ≠ atlama: temiz çağrı da ÜÇ kategoride değerlendirilir, hepsi false döner.",
+    "produced_equals_eligible_times_categories": true,
+    "categories_per_call": 3
+  },
+  "output_contract": {
+    "$comment": "Tespit çıktısı per-call: ÜÇ ikili işaret + her işaret için fired reason_code listesi. flag_fields OLAP fct_call/fct_qa_evaluation flag_* sütunlarıyla BİREBİR (FR-ANA-004). identity_fields zorunlu (tenant izolasyon + idempotency). reason_code'lar kapalı-sözlük (serbest metin değil → PII taşıyamaz, pii_class low). persists_to: fct_call/fct_qa_evaluation flag_* + call_evaluation.flags JSONB. emits: qa.evaluation.completed (flag_* alanlarıyla). YENİ topic üretmez.",
+    "flag_fields": ["flag_misinformation", "flag_tool_error", "flag_security"],
+    "reason_field": "reason_codes",
+    "identity_fields": ["tenant_id", "call_id", "schema_version"],
+    "consumes_topics": ["qa.evaluation.v1", "ops.tool.execution.v1", "governance.audit.v1"],
+    "emits": "qa.evaluation.completed",
+    "persists_to": ["fct_call.flag_misinformation/flag_tool_error/flag_security (FR-ANA-004)", "fct_qa_evaluation.flag_* (FR-ANA-004)", "call_evaluation.flags JSONB (DB.md §5.6)"]
+  },
+  "consistency": {
+    "$comment": "İşaret ile reason_code TUTARLI olmalı: bir kategori işareti fires=true ⟺ o kategoride EN AZ BİR reason_code tetiklendi. Boş-reason ile fires=true (sahte işaret) veya tetiklenmiş reason ile fires=false (kayıp işaret) tutarsızlıktır (G3). Her fired reason_code o işaretin kategori sözlüğünde olmalı (yetim reason yok).",
+    "flag_iff_reason": true,
+    "reason_in_category_vocab": true
+  },
+  "idempotency": {
+    "$comment": "Replay-güvenli (1.1.8 P3 idempotent consumers). Aynı (tenant_id, call_id, schema_version) bir kez değerlendirilir — at-least-once teslimat çift-üretim/çift-sayım yapmaz (G6). Deterministik: aynı sinyal → aynı işaret.",
+    "dedup_key": ["tenant_id", "call_id", "schema_version"],
+    "replay_safe": true
+  },
+  "feature_policy": {
+    "$comment": "Motor YALNIZ redaksiyonlu sayısal/kategorik sinyal + düşük-kardinalite boyut anahtarı tüketir (FR-REC-004; 14.2.1 qa-eval whitelist ile hizalı). Ham transkript METNİ / ses payload / PII DEĞERİ girdi olamaz (G8). allowed_input_keys whitelist; forbidden_input_keys + PII DEĞER deseni reddedilir.",
+    "allowed_input_keys": [
+      "call_id", "agent_id", "agent_version_id", "period", "tenant_id", "region", "direction", "status",
+      "grounded_answers", "total_answers", "kb_contradictions", "unverified_commitments",
+      "tool_calls", "tool_errors", "tool_timeouts", "provider_errors",
+      "pii_disclosure_events", "prompt_injection_detected", "jailbreak_detected", "unauthorized_actions", "policy_violations",
+      "injected"
+    ],
+    "forbidden_input_keys": [
+      "transcript_text", "transcript", "audio_payload", "recording", "customer_name", "full_name",
+      "phone_number", "msisdn", "email", "national_id", "card_number", "pan", "cvv", "otp", "iban", "address"
+    ]
+  },
+  "isolation": {
+    "$comment": "Her değerlendirme tek tenant_id taşır (FR-TEN-002 izolasyon); cross-tenant çağrı karışmaz; home-region (NFR 10.7 residency). Platform (L0) yalnız agregat metrik görür (altın kural); per-call işaret tenant düzleminde kalır.",
+    "tenant_id_required": true,
+    "residency": "home-region",
+    "cross_tenant_forbidden": true
+  },
+  "gates": {
+    "max_missed_detection": 0,
+    "max_false_positive": 0,
+    "max_consistency_violation": 0,
+    "max_vocab_violation": 0,
+    "max_coverage_gap": 0,
+    "max_idempotency_violation": 0,
+    "max_isolation_violation": 0,
+    "max_pii_violation": 0,
+    "max_blocking_violation": 0
+  },
+  "error_taxonomy": {
+    "$comment": "API §11.6 ErrorTaxonomy eşlemesi.",
+    "mapping": {
+      "malformed_call": "INVALID_REQUEST",
+      "unknown_category": "INVALID_REQUEST",
+      "missing_context": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    }
+  },
+  "pii": {
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true
+  },
+  "metrics_emitted": {
+    "emitted": ["flag_misinformation_total", "flag_tool_error_total", "flag_security_total", "missed_detection_total", "false_positive_total", "evaluated_calls_total"]
+  },
+  "invariants": [
+    {"id": "I1", "desc": "Enjekte edilen (etiketli) HER pozitif vaka tespit edilir: injected[cat]=true → flag[cat]=true (missed_detection=0, yanlış-negatif yok) — SR-ANA-004 yöntem T, BİRİNCİL", "trace": "FR-ANA-004, SR-ANA-004, ground_truth"},
+    {"id": "I2", "desc": "Enjekte-temiz vakada sahte işaret yok: injected[cat]=false → flag[cat]=false (false_positive=0, kesinlik)", "trace": "ground_truth, SR-ANA-004"},
+    {"id": "I3", "desc": "İşaret ⟺ reason_code: kategori işareti fires=true ⟺ o kategoride en az bir reason_code tetiklendi; boş-reason ile fires=true veya tetiklenmiş reason ile fires=false ihlal (G3)", "trace": "consistency, FR-ANA-004"},
+    {"id": "I4", "desc": "Kategori kümesi {misinformation, tool_error, security_violation} kapalı; reason_code'lar kategori kapalı-sözlüğünde (yetim/serbest-metin reason yok); flag_column OLAP fct_call/fct_qa_evaluation flag_* ile BİREBİR (non-circular cross-check)", "trace": "categories, analytics/olap-spec.json fct_call/fct_qa_evaluation, FR-ANA-004"},
+    {"id": "I5", "desc": "HER uygun çağrı ÜÇ kategoride DE değerlendirilir (produced == eligible × 3; coverage_gap=0); tespit-yok ≠ atlama (temiz çağrı da değerlendirilir)", "trace": "coverage, placement.all_calls"},
+    {"id": "I6", "desc": "Aynı (tenant_id, call_id, schema_version) bir kez değerlendirilir (idempotent/replay-safe); at-least-once çift-üretim yapmaz", "trace": "idempotency, 1.1.8 P3, ADR-007"},
+    {"id": "I7", "desc": "Her değerlendirme tek tenant_id taşır (FR-TEN-002); cross-tenant çağrı karışmaz; home-region (NFR 10.7); platform yalnız agregat görür (altın kural)", "trace": "isolation, FR-TEN-002, NFR 10.7, FR-IAM-008"},
+    {"id": "I8", "desc": "Yalnız redaksiyonlu sayısal/kategorik sinyal + düşük-kardinalite boyut tüketir; çıktı (işaret + kapalı-sözlük reason_code) per-call serbest metin/PII DEĞERİ taşımaz (FR-REC-004; pii_class low)", "trace": "feature_policy, FR-REC-004, OLAP §47"},
+    {"id": "I9", "desc": "Analytics plane'de async/non-blocking (SAD §4.2/§171, FR-RES-011); tespit başarısızlığı canlı çağrıyı etkilemez; from_trace=false (hot-path dışı)", "trace": "placement, SAD §4.2/§171, FR-RES-011, ADR-004"},
+    {"id": "I10", "desc": "Tespit sağlayıcı-nötr (ADR-002) deterministik kural değerlendirme (random YOK); aynı sinyal → aynı işaret", "trace": "ADR-002, placement.deterministic"},
+    {"id": "I11", "desc": "Tespit kuralları kapalı-sözlük sinyallerden eşikle türetilir; sinyal whitelist dışı/serbest metin → reddedilir (FR-REC-004)", "trace": "detection_rules, feature_policy"},
+    {"id": "I12", "desc": "Hata API §11.6 ErrorTaxonomy'ye eşlenir (malformed/unknown→INVALID_REQUEST, region→REGION_VIOLATION)", "trace": "API §11.6"},
+    {"id": "I13", "desc": "Bu motor İŞARET üretir (FR-ANA-004); KRİTİK işaretleme (flag_critical, FR-ANA-008→14.2.5) bu işaretleri TÜKETİR; bu dilim kritik bileşik kararı üretmez (kapsam ayrımı)", "trace": "categories, FR-ANA-008, WBS 14.2.5"},
+    {"id": "I14", "desc": "Kapsam ayrımı: skor (FR-ANA-001→14.2.1) + çıkarım (FR-ANA-002→14.2.2) + oran (FR-ANA-003→14.2.3) + kritik (FR-ANA-008→14.2.5) + manuel skor (FR-ANA-009→14.2.6) bu dilimde kapsam dışı; burada YALNIZ yanlış-bilgi/tool-hata/güvenlik tespiti", "trace": "FR-ANA-001/002/003/008/009, WBS"},
+    {"id": "I15", "desc": "spec/config'te sır/ham payload/transkript/PII DEĞERİ yok (yalnız sinyal/boyut/kimlik/sözlük anahtarı ADLARI + sayısal eşik)", "trace": "FR-REC-004, ADR-002"}
+  ]
+}
