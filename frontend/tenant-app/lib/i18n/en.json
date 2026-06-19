@@ -2964,6 +2964,124 @@
         "rescore": "Re-score",
         "assign": "Assign"
       }
+    },
+    "a14": {
+      "title": "Analytics & Reporting",
+      "subtitle": "Containment, CSAT, AHT, etc.",
+      "scope_note": "On this screen you review the operational analytics for the selected period (your tenant only): outcome distribution and containment/transfer rate (FR-ANA-002/003), talk durations (FR-ANA-005), STT/LLM/TTS and total response latency (FR-ANA-006), time series (FR-ANA-011) and cross-version agent comparison (FR-ANA-010). This screen shows aggregate metrics only (Tier A); it carries no single-call content, transcript or PII, so no break-glass is required. Raw data export happens in the backend with redaction + audit (analytics:read).",
+      "as_of": "View time: {time}",
+      "tenant": "Tenant",
+      "period": "Period",
+      "percent": "{n}%",
+      "points": "{n} pts",
+      "ms": "{n} ms",
+      "duration_fmt": "{min}m {sec}s",
+      "na": "—",
+      "total": "Total",
+      "current_badge": "live",
+      "alert": {
+        "latency_over": "Total response latency P95 ({p95}) exceeds the budget ({budget}); the latency target should be reviewed (NFR 10.1).",
+        "containment_low": "Containment rate ({rate}) is below target ({target}); automation coverage should be reviewed (FR-ANA-003).",
+        "csat_low": "CSAT ({csat}) is below target ({target}); customer satisfaction should be reviewed.",
+        "aht_inconsistent": "Stored AHT is inconsistent with the average derived from talk durations; the data source should be verified (FR-ANA-005)."
+      },
+      "section": {
+        "summary": "Summary KPIs",
+        "outcomes": "Outcome Distribution",
+        "talk": "Talk Durations",
+        "latency": "Response Latency",
+        "trend": "Time Series & Trend",
+        "versions": "Agent Version Comparison"
+      },
+      "kpi": {
+        "total_calls": "Total Calls",
+        "total_calls_hint": "All calls in the period (FR-ANA-002)",
+        "containment": "Containment",
+        "containment_hint": "Resolved by automation · target ≥{target} (FR-ANA-003)",
+        "transfer": "Transfer Rate",
+        "transfer_hint": "Transferred to a human agent (FR-ANA-003)",
+        "csat": "CSAT",
+        "csat_hint": "Across {n} responses",
+        "aht": "AHT",
+        "aht_hint": "Average handle time · target ≤{target}",
+        "latency": "Response Latency P95",
+        "latency_hint": "Total chain · budget ≤{budget} (NFR 10.1)"
+      },
+      "outcome": {
+        "contained": "Resolved by automation",
+        "transferred": "Transferred",
+        "abandoned": "Abandoned",
+        "voicemail": "Voicemail",
+        "failed": "Failed"
+      },
+      "outcome_desc": {
+        "contained": "Agent resolved without human transfer (containment)",
+        "transferred": "Transferred to a human agent",
+        "abandoned": "Caller hung up",
+        "voicemail": "Fell through to voicemail",
+        "failed": "Ended with a technical error"
+      },
+      "talk": {
+        "user": "User talk",
+        "agent": "Agent talk",
+        "silence": "Silence/hold",
+        "aht": "Average handle time (AHT)"
+      },
+      "stage": {
+        "stt": "STT (speech→text)",
+        "llm": "LLM (reasoning)",
+        "tts": "TTS (text→speech)",
+        "total": "Total chain"
+      },
+      "trend": {
+        "up": "Rising",
+        "down": "Falling",
+        "flat": "Flat"
+      },
+      "trend_kpi": {
+        "containment": "Containment Trend",
+        "containment_hint": "Period first half vs second half",
+        "csat": "CSAT Trend",
+        "csat_hint": "Period first half vs second half",
+        "volume": "Volume Trend",
+        "volume_hint": "Daily call volume trend"
+      },
+      "col": {
+        "outcome": "Outcome",
+        "purpose": "Description",
+        "count": "Count",
+        "rate": "Rate",
+        "metric": "Metric",
+        "value": "Value",
+        "share": "Share",
+        "stage": "Stage",
+        "p50": "P50",
+        "p95": "P95",
+        "date": "Date",
+        "calls": "Calls",
+        "containment": "Containment",
+        "csat": "CSAT",
+        "aht": "AHT",
+        "version": "Version",
+        "delta": "Δ Avg"
+      },
+      "outcomes_caption": "Period outcome distribution (count + rate)",
+      "outcomes_total_desc": "All calls in the period",
+      "outcomes_hint": "{contained} calls resolved by automation; transfer {transfer}, abandon {abandon} (FR-ANA-002/003). Rates sum to 100%.",
+      "talk_caption": "Talk duration distribution + AHT",
+      "talk_hint": "Agent talk share {agent} (excluding silence). AHT is consistent with average talk time per call (FR-ANA-005).",
+      "latency_caption": "Response latency stages (STT/LLM/TTS separate + total)",
+      "latency_hint": "STT, LLM and TTS latency are shown separately; total chain P95 budget ≤{budget} (FR-ANA-006 / NFR 10.1).",
+      "trend_caption": "Daily aggregate time series",
+      "trend_hint": "Daily containment, CSAT and volume. Series call total reconciles with the period total (FR-ANA-011).",
+      "no_series": "No time series data for this period.",
+      "versions_caption": "Cross-version agent performance comparison",
+      "versions_avg": "Weighted average",
+      "versions_hint": "Live version {v} is {delta} on containment versus the agent average (FR-ANA-010).",
+      "versions_hint_none": "No version is marked live (FR-ANA-010).",
+      "action": {
+        "export": "Export"
+      }
     }
   }
 }

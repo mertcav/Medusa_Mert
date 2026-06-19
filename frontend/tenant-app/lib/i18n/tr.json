@@ -2964,6 +2964,124 @@
         "rescore": "Yeniden skorla",
         "assign": "Ata"
       }
+    },
+    "a14": {
+      "title": "Analytics & Raporlama",
+      "subtitle": "Containment, CSAT, AHT vb.",
+      "scope_note": "Bu ekranda seçili dönemin operasyonel analitiğini incelersiniz (yalnız tenant'ınız kapsamında): sonuç dağılımı ve containment/transfer oranı (FR-ANA-002/003), konuşma süreleri (FR-ANA-005), STT/LLM/TTS ve toplam yanıt gecikmesi (FR-ANA-006), zaman serisi (FR-ANA-011) ve agent sürümleri arası karşılaştırma (FR-ANA-010). Bu ekran yalnız topluluk metriği gösterir (Tier A); tek çağrı içeriği, transkript veya PII taşımaz, bu yüzden break-glass gerekmez. Ham veri export'u backend'de redaction + audit ile gerçekleşir (analytics:read).",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "period": "Dönem",
+      "percent": "%{n}",
+      "points": "{n} puan",
+      "ms": "{n} ms",
+      "duration_fmt": "{min} dk {sec} sn",
+      "na": "—",
+      "total": "Toplam",
+      "current_badge": "yayında",
+      "alert": {
+        "latency_over": "Toplam yanıt gecikmesi P95 ({p95}) bütçeyi ({budget}) aşıyor; gecikme hedefi gözden geçirilmeli (NFR 10.1).",
+        "containment_low": "Containment oranı ({rate}) hedefin ({target}) altında; otomasyon kapsamı gözden geçirilmeli (FR-ANA-003).",
+        "csat_low": "CSAT ({csat}) hedefin ({target}) altında; müşteri memnuniyeti gözden geçirilmeli.",
+        "aht_inconsistent": "Saklanan AHT, konuşma sürelerinden türetilen ortalamayla tutarsız; veri kaynağı doğrulanmalı (FR-ANA-005)."
+      },
+      "section": {
+        "summary": "Özet KPI'lar",
+        "outcomes": "Sonuç Dağılımı",
+        "talk": "Konuşma Süreleri",
+        "latency": "Yanıt Gecikmesi",
+        "trend": "Zaman Serisi & Trend",
+        "versions": "Agent Sürümü Karşılaştırması"
+      },
+      "kpi": {
+        "total_calls": "Toplam Çağrı",
+        "total_calls_hint": "Dönemdeki tüm çağrılar (FR-ANA-002)",
+        "containment": "Containment",
+        "containment_hint": "Otomasyonla çözüldü · hedef ≥{target} (FR-ANA-003)",
+        "transfer": "Transfer Oranı",
+        "transfer_hint": "İnsan temsilciye aktarılan (FR-ANA-003)",
+        "csat": "CSAT",
+        "csat_hint": "{n} yanıt üzerinden",
+        "aht": "AHT",
+        "aht_hint": "Ortalama işlem süresi · hedef ≤{target}",
+        "latency": "Yanıt Gecikmesi P95",
+        "latency_hint": "Toplam zincir · bütçe ≤{budget} (NFR 10.1)"
+      },
+      "outcome": {
+        "contained": "Otomasyonla çözüldü",
+        "transferred": "Aktarıldı",
+        "abandoned": "Terk edildi",
+        "voicemail": "Sesli mesaj",
+        "failed": "Başarısız"
+      },
+      "outcome_desc": {
+        "contained": "Agent insan aktarımı olmadan çözdü (containment)",
+        "transferred": "İnsan temsilciye aktarıldı",
+        "abandoned": "Arayan bağlantıyı kapattı",
+        "voicemail": "Sesli mesaja düştü",
+        "failed": "Teknik hata ile sonlandı"
+      },
+      "talk": {
+        "user": "Kullanıcı konuşma",
+        "agent": "Agent konuşma",
+        "silence": "Sessizlik/bekleme",
+        "aht": "Ortalama işlem süresi (AHT)"
+      },
+      "stage": {
+        "stt": "STT (konuşma→metin)",
+        "llm": "LLM (akıl yürütme)",
+        "tts": "TTS (metin→konuşma)",
+        "total": "Toplam zincir"
+      },
+      "trend": {
+        "up": "Yükseliyor",
+        "down": "Düşüyor",
+        "flat": "Sabit"
+      },
+      "trend_kpi": {
+        "containment": "Containment Trendi",
+        "containment_hint": "Dönem ilk yarı vs ikinci yarı",
+        "csat": "CSAT Trendi",
+        "csat_hint": "Dönem ilk yarı vs ikinci yarı",
+        "volume": "Hacim Trendi",
+        "volume_hint": "Günlük çağrı hacmi eğilimi"
+      },
+      "col": {
+        "outcome": "Sonuç",
+        "purpose": "Açıklama",
+        "count": "Adet",
+        "rate": "Oran",
+        "metric": "Metrik",
+        "value": "Değer",
+        "share": "Pay",
+        "stage": "Aşama",
+        "p50": "P50",
+        "p95": "P95",
+        "date": "Tarih",
+        "calls": "Çağrı",
+        "containment": "Containment",
+        "csat": "CSAT",
+        "aht": "AHT",
+        "version": "Sürüm",
+        "delta": "Δ Ort."
+      },
+      "outcomes_caption": "Dönem sonuç dağılımı (sayı + oran)",
+      "outcomes_total_desc": "Dönemdeki tüm çağrılar",
+      "outcomes_hint": "{contained} çağrı otomasyonla çözüldü; transfer %{transfer}, terk %{abandon} (FR-ANA-002/003). Oranların toplamı %100'e eşittir.",
+      "talk_caption": "Konuşma süresi dağılımı + AHT",
+      "talk_hint": "Agent konuşma payı %{agent} (sessizlik hariç). AHT, çağrı başına ortalama konuşma süresiyle tutarlıdır (FR-ANA-005).",
+      "latency_caption": "Yanıt gecikmesi aşamaları (STT/LLM/TTS ayrı + toplam)",
+      "latency_hint": "STT, LLM ve TTS gecikmesi ayrı gösterilir; toplam zincir P95 bütçesi ≤{budget} (FR-ANA-006 / NFR 10.1).",
+      "trend_caption": "Günlük agregat zaman serisi",
+      "trend_hint": "Günlük containment, CSAT ve hacim. Seri çağrı toplamı dönem toplamıyla bağdaşır (FR-ANA-011).",
+      "no_series": "Bu dönem için zaman serisi verisi yok.",
+      "versions_caption": "Agent sürümleri arası performans karşılaştırması",
+      "versions_avg": "Ağırlıklı ortalama",
+      "versions_hint": "Yayındaki sürüm {v}, containment'te agent ortalamasına göre {delta} (FR-ANA-010).",
+      "versions_hint_none": "Yayında işaretli bir sürüm yok (FR-ANA-010).",
+      "action": {
+        "export": "Dışa aktar"
+      }
     }
   }
 }

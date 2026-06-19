@@ -1,0 +1,47 @@
+{
+  "$comment": "A-14 SAĞLIKLI 7 günlük dönem agregatı (WBS 13.4.14): containment hedef üstü (%71 ≥ %70), CSAT iyi (%88), AHT bütçe içinde, toplam yanıt gecikmesi P95 1080ms ≤ 1200ms bütçe (NFR 10.1), zaman serisi dönemle bağdaşır (FR-ANA-011), yayındaki v7 sürümü agent ortalamasının üstünde (FR-ANA-010). Yalnız agregat; tek çağrı içeriği/PII yok → İKİ KATMAN guard temiz. → total_calls=7600 + containment_rate≈0.7105 + aht_consistent=true + latency_within_budget=true + series_reconciles=true + containment_band=good.",
+  "$expect": {
+    "total_calls": 7600,
+    "containment_rate": 0.7105,
+    "aht_consistent": true,
+    "latency_within_budget": true,
+    "series_reconciles": true,
+    "containment_band": "good"
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-2048",
+  "tenantName": "Kuzey Sigorta A.Ş.",
+  "period": { "from": "2026-06-11", "to": "2026-06-17", "label": "Son 7 gün" },
+  "targets": { "containment": 0.7, "csat": 0.85, "ahtSec": 240, "latencyP95Ms": 1200 },
+  "outcomes": [
+    { "outcome": "contained", "count": 5400 },
+    { "outcome": "transferred", "count": 1500 },
+    { "outcome": "abandoned", "count": 420 },
+    { "outcome": "voicemail", "count": 180 },
+    { "outcome": "failed", "count": 100 }
+  ],
+  "csat": 0.88,
+  "csatResponses": 4120,
+  "ahtSec": 196,
+  "talk": { "userSec": 612000, "agentSec": 735000, "silenceSec": 168400 },
+  "latency": [
+    { "stage": "stt", "p50Ms": 180, "p95Ms": 320 },
+    { "stage": "llm", "p50Ms": 240, "p95Ms": 520 },
+    { "stage": "tts", "p50Ms": 150, "p95Ms": 280 },
+    { "stage": "total", "p50Ms": 620, "p95Ms": 1080 }
+  ],
+  "series": [
+    { "date": "2026-06-11", "calls": 1080, "contained": 745, "csat": 0.86, "ahtSec": 201 },
+    { "date": "2026-06-12", "calls": 1120, "contained": 781, "csat": 0.87, "ahtSec": 198 },
+    { "date": "2026-06-13", "calls": 940, "contained": 668, "csat": 0.88, "ahtSec": 195 },
+    { "date": "2026-06-14", "calls": 760, "contained": 547, "csat": 0.89, "ahtSec": 192 },
+    { "date": "2026-06-15", "calls": 1210, "contained": 872, "csat": 0.88, "ahtSec": 197 },
+    { "date": "2026-06-16", "calls": 1190, "contained": 869, "csat": 0.90, "ahtSec": 193 },
+    { "date": "2026-06-17", "calls": 1300, "contained": 918, "csat": 0.90, "ahtSec": 190 }
+  ],
+  "versions": [
+    { "agentVersion": "v7", "calls": 4200, "containmentRate": 0.78, "csat": 0.90, "ahtSec": 190, "current": true },
+    { "agentVersion": "v6", "calls": 2400, "containmentRate": 0.72, "csat": 0.86, "ahtSec": 205, "current": false },
+    { "agentVersion": "v5", "calls": 1000, "containmentRate": 0.68, "csat": 0.84, "ahtSec": 214, "current": false }
+  ]
+}
