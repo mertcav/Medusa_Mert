@@ -1,0 +1,26 @@
+{
+  "name": "containment-degraded-input",
+  "$comment": "Zorlu ama GEÇERLİ rapor: bir büyük grup (v1, handled=10 ≥ min_group_n=8 → YAYIMLANIR) + bir küçük grup (v2, handled=3 < 8 → insufficient_sample BASTIRILIR) + 1 replay (aynı call_id → idempotent daraltılır). Önemli kanıt: küçük grup SESSİZCE DÜŞÜRÜLMEZ — sayımları tutulur, oranı bastırılır ve açık status taşır (k-anonimlik + istatistiksel güvenilirlik). Replay çift-saymaz. Bunlar DOĞRU davranıştır → tüm HARD kapı GEÇER (suppressed_groups=1, idempotency=0). PII DEĞERİ / ham transkript YOK.",
+  "expect": "pass",
+  "context": {"tenant_id": "t_globex", "region": "tr-central-1", "correlation_id": "corr-globex-007"},
+  "profile_obj": {"name": "tr-standard", "region": "tr-central-1", "schema_version": 1, "min_group_n": 8, "containment_target": 0.60, "denominator_basis": "handled"},
+  "calls": [
+    {"call_id": "g1", "outcome": "contained", "agent_id": "ag_support", "agent_version_id": "v1", "period": "2026-06-02"},
+    {"call_id": "g2", "outcome": "contained", "agent_id": "ag_support", "agent_version_id": "v1", "period": "2026-06-02"},
+    {"call_id": "g3", "outcome": "contained", "agent_id": "ag_support", "agent_version_id": "v1", "period": "2026-06-02"},
+    {"call_id": "g4", "outcome": "contained", "agent_id": "ag_support", "agent_version_id": "v1", "period": "2026-06-02"},
+    {"call_id": "g5", "outcome": "contained", "agent_id": "ag_support", "agent_version_id": "v1", "period": "2026-06-02"},
+    {"call_id": "g6", "outcome": "contained", "agent_id": "ag_support", "agent_version_id": "v1", "period": "2026-06-02"},
+    {"call_id": "g7", "outcome": "transferred_to_human", "agent_id": "ag_support", "agent_version_id": "v1", "period": "2026-06-02"},
+    {"call_id": "g8", "outcome": "transferred_to_human", "agent_id": "ag_support", "agent_version_id": "v1", "period": "2026-06-02"},
+    {"call_id": "g9", "outcome": "abandoned", "agent_id": "ag_support", "agent_version_id": "v1", "period": "2026-06-02"},
+    {"call_id": "g10", "outcome": "unresolved", "agent_id": "ag_support", "agent_version_id": "v1", "period": "2026-06-02"},
+    {"call_id": "g1", "outcome": "contained", "agent_id": "ag_support", "agent_version_id": "v1", "period": "2026-06-02"},
+    {"call_id": "s1", "outcome": "contained", "agent_id": "ag_sales", "agent_version_id": "v2", "period": "2026-06-02"},
+    {"call_id": "s2", "outcome": "contained", "agent_id": "ag_sales", "agent_version_id": "v2", "period": "2026-06-02"},
+    {"call_id": "s3", "outcome": "transferred_to_human", "agent_id": "ag_sales", "agent_version_id": "v2", "period": "2026-06-02"},
+    {"call_id": "n1", "outcome": "not_connected", "agent_id": "ag_sales", "agent_version_id": "v2", "period": "2026-06-02", "direction": "outbound"}
+  ],
+  "expected_overall": {"handled": 13},
+  "expected": {"idempotency_violations": 0, "isolation_violations": 0, "pii_violations": 0}
+}

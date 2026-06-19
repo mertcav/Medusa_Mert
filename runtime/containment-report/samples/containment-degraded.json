@@ -1,0 +1,15 @@
+{
+  "name": "containment-degraded",
+  "$comment": "BİLİNÇLİ bozuk motor — çoklu kapı eler (negatif kapı kanıtı). correct_denom kapalı → containment/transfer paydası = total (not_connected dahil) → dört partisyon oranı toplamı ≠ 1.0 (G2 payda bütünlüğü). exclusive_buckets kapalı → contained çağrı transferred'a da sayılır (G3 münhasırlık). suppress_small kapalı → küçük grup (handled<min_group_n) oranı yayımlanır (G6 k-anon). isolate_tenant kapalı → cross-tenant çağrı (t_other) agregasyona karışır (G7). Bir bilinmeyen outcome (free-text) → G4. Beklenen: ELENİR (expect=fail).",
+  "expect": "fail",
+  "context": {"tenant_id": "t_acme", "region": "eu-west-1", "correlation_id": "corr-acme-099"},
+  "profile_obj": {"name": "broken", "region": "eu-west-1", "schema_version": 1, "min_group_n": 8, "containment_target": 0.60, "denominator_basis": "handled"},
+  "policy": {"correct_denom": false, "exclusive_buckets": false, "suppress_small": false, "isolate_tenant": false, "closed_vocab": true},
+  "calls": [
+    {"call_id": "x1", "outcome": "contained", "agent_id": "ag1", "agent_version_id": "v1", "period": "2026-06-03"},
+    {"call_id": "x2", "outcome": "transferred_to_human", "agent_id": "ag1", "agent_version_id": "v1", "period": "2026-06-03"},
+    {"call_id": "x3", "outcome": "not_connected", "agent_id": "ag1", "agent_version_id": "v1", "period": "2026-06-03"},
+    {"call_id": "x4", "outcome": "made_up_free_text_outcome", "agent_id": "ag1", "agent_version_id": "v1", "period": "2026-06-03"},
+    {"call_id": "x5", "outcome": "contained", "tenant_id": "t_other", "agent_id": "ag1", "agent_version_id": "v1", "period": "2026-06-03"}
+  ]
+}

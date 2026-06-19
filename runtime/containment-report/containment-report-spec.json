@@ -1,0 +1,142 @@
+{
+  "$comment": "WBS 14.2.3 Containment/transfer oranı raporu — kaynak doğruluk. Analytics/Ops Plane'deki (SAD §4.2 ANALYTICS/OPS PLANE — async, batch; ADR-004/ADR-007) ORAN (RATE) AGREGASYON/RAPOR motoru: 14.2.2'nin per-call outcome ETİKETİNİ (contained/transferred_to_human/abandoned/unresolved/not_connected — kapalı-sözlük) AGREGE eder ve FR-ANA-003 containment_rate + transfer_rate metriklerini (BRD §18.1 KPI; OLAP mv_call_daily rollup) rapor boyutlarına (tenant_id + agent_id + agent_version_id + period) göre + genel olarak hesaplar. Bu dilim ORAN'ı üretir; per-call ETİKET 14.2.2'de üretilir (bu motor onu YENİDEN TÜRETMEZ, AGREGE eder). BİRİNCİL HARD kapı = PARTİSYON BÜTÜNLÜĞÜ — outcome kovaları girdiyi TAM olarak partisyonlar (her çağrı tam BİR kovada, çift-sayım yok, sessiz düşürme yok; toplam kova == girdi) ve oranlar pay/payda bütünlüğünü korur (handled paydası üzerinde dört partisyon oranı toplamı == 1.0). Sır/credential, ham ses payload, transkript METNİ, PII DEĞERİ YOK — yalnız REDAKSİYONLU kategorik (outcome etiketi) + düşük-kardinalite boyut anahtarı + sayım/oran. Yayımlanan agregat oran serbest metin/PII/per-call kimlik taşımaz (pii_class low). KAPSAM AYRIMI: otomatik kalite skoru → 14.2.1 · per-call intent/outcome/disposition/completion ÇIKARIMI → 14.2.2 (bu motorun GİRDİSİNİ üretir) · yanlış-bilgi/tool-hata/güvenlik İŞARETİ → 14.2.4 · kritik işaretleme → 14.2.5 · MANUEL skor → 14.2.6 · dashboard/export → 14.2.8. Burada YALNIZ containment/transfer ORAN agregasyonu + partisyon/payda bütünlüğü.",
+  "wbs": "14.2.3",
+  "version": "1.0",
+  "phase": "F1",
+  "priority": "Must",
+  "eval_doc": {
+    "fr": "FR-ANA-003 (containment ve transfer oranı raporlanmalıdır)",
+    "srs": "SR-ANA-003 (Yöntem A — rapor doğru oranları gösterir)",
+    "rtm": "FR-ANA-003 ↔ SR-ANA-003 ↔ TC-ANA-003 (A) ↔ WBS 14.2.3",
+    "brd": "BRD §18.1 (KPI: Containment rate = insana aktarılmadan tamamlanan çağrı oranı; Transfer rate = insana aktarılan çağrı oranı) + §3.2.1 (containment ≥ %60 hedef) + OBJ-01 (inbound containment) + §9.15 (Analitik ve Kalite)",
+    "sad": "SAD §4.2 (Analytics/Ops Plane — async batch) + §12.1 (OLAP rollup mv_call_daily) + §171 (FR-RES-011 async post-processing)",
+    "db": "DB.md §5.5 (call.outcome FR-ANA-002/003 — agregasyon kaynağı per-call etiket)",
+    "olap": "analytics/olap-spec.json fct_call.contained + fct_call.transferred (u8_bool, pii_class low, FR-ANA-003) → rollup mv_call_daily{calls, contained_calls, transferred_calls, containment_rate, transfer_rate} (dashboard_fr FR-ANA-003)",
+    "adr": "ADR-002 (vendor-neutral deterministik agregasyon) / ADR-004 (plane ayrımı) / ADR-007 (async event pipeline)",
+    "api": "API §11.6 (ErrorTaxonomy) + Analytics GET /analytics/{report} (FR-ANA-003 containment/transfer)",
+    "upstream": "14.2.2 call-derivation per-call outcome etiketi (contained/transferred_to_human/abandoned/unresolved/not_connected — kapalı-sözlük) + OLAP fct_call.contained/transferred boolean materyalizasyonu → bu motor AGREGE eder"
+  },
+  "placement": {
+    "$comment": "Rapor motoru HOT-PATH'TE DEĞİL — Analytics/Ops Plane'de async batch (SAD §4.2/§171, FR-RES-011). 14.2.2'nin ürettiği per-call outcome etiketini / OLAP fct_call boolean'larını agrege eder. Başarısızlığı CANLI çağrıyı ASLA etkilemez (non_blocking). from_trace=false: oran agregasyondur, trace span türetme değil. aggregates_labels=true: per-call ETİKETİ yeniden türetmez (14.2.2), AGREGE eder. deterministic=true: saf sayım/bölme, random YOK.",
+    "in_analytics_plane": true,
+    "async_batch": true,
+    "non_blocking": true,
+    "from_redacted_content": true,
+    "aggregates_labels": true,
+    "deterministic": true,
+    "idempotent": true,
+    "from_trace": false
+  },
+  "outcome_vocabulary": {
+    "$comment": "BİREBİR 14.2.2 derivation-spec.json vocabularies.outcome (kapalı-sözlük; bu motor onu agrege eder, yeniden tanımlamaz — validate non-circular cross-check). handled = bağlanıp insana/AI'a fiilen ULAŞAN çağrı (containment paydası); not_handled = hiç bağlanmadı (not_connected — outbound voicemail/busy/no_answer/invalid) → containment paydasına GİRMEZ (aksi halde containment yapay düşer). bucket_of: outcome → rapor kovası adı.",
+    "all_outcomes": ["contained", "transferred_to_human", "abandoned", "unresolved", "not_connected"],
+    "handled_outcomes": ["contained", "transferred_to_human", "abandoned", "unresolved"],
+    "not_handled_outcomes": ["not_connected"],
+    "bucket_of": {
+      "contained": "contained",
+      "transferred_to_human": "transferred",
+      "abandoned": "abandoned",
+      "unresolved": "unresolved",
+      "not_connected": "not_connected"
+    },
+    "partition_buckets": ["contained", "transferred", "abandoned", "unresolved"]
+  },
+  "denominator": {
+    "$comment": "ORAN PAYDASI tanımı (raporun istatistiksel çekirdek kararı). basis=handled (varsayılan): containment/transfer paydası BAĞLANAN (handled) çağrıdır → not_connected HARİÇ (hiç bağlanmadı → containment'a dahil edilemez; BRD §18.1 + contact-centre standardı + OBJ-01 inbound). containment_rate = contained / handled; transfer_rate = transferred / handled. partition_sum_invariant: dört partisyon oranı (containment+transfer+abandon+unresolved) handled üzerinde TAM partisyon → toplam == 1.0 (handled>0). not_connected ayrı raporlanır (not_connected_rate = not_connected / total — bilgilendirici), paydaya girmez. basis profile'da override edilebilir (handled|connected_or_total) ama varsayılan handled BEYAN EDİLİR.",
+    "basis": "handled",
+    "containment_rate": "contained / handled",
+    "transfer_rate": "transferred / handled",
+    "partition_sum_invariant": "containment_rate + transfer_rate + abandon_rate + unresolved_rate == 1.0 (handled>0)",
+    "not_connected_excluded_from_handled": true,
+    "rate_bounds": [0.0, 1.0]
+  },
+  "report_grain": {
+    "$comment": "Rapor boyutu OLAP mv_call_daily grain'i ile hizalı (tenant_id + agent_id + agent_version_id + event_date). tenant_id bağlamdan gelir (rapor tek tenant — izolasyon). group_key = (agent_id, agent_version_id, period). overall = tüm gruplar toplamı (tek tenant). agent_version_id → FR-ANA-010 sürüm karşılaştırması girdisi.",
+    "grain": ["tenant_id", "agent_id", "agent_version_id", "period"],
+    "group_key": ["agent_id", "agent_version_id", "period"],
+    "produces_overall": true
+  },
+  "small_sample": {
+    "$comment": "Küçük-örnek bastırma (k-anonimlik + istatistiksel güvenilirlik). Paydası (handled) min_group_n altındaki grup için ORAN YAYIMLANMAZ (status=insufficient_sample) — hem istatistiksel anlamsız (1-2 çağrıdan oran) hem re-identification riski (küçük grup). SESSİZCE düşürülmez: sayımlar tutulur, oran bastırılır ve açık status taşır (kapsam bütünlüğü). min_group_n profile'da sıkılaştırılabilir.",
+    "min_group_n": 20,
+    "suppressed_status": "insufficient_sample",
+    "published_status": "published"
+  },
+  "target": {
+    "$comment": "BRD §3.2.1: otomatikleştirilebilir çağrılarda containment ≥ %60 HEDEF. Rapor hedefe karşı bilgilendirici target_met bayrağı üretir — bu motorun HARD kapısı DEĞİL (kapılar HESAP DOĞRULUĞU içindir, iş hedefi karşılandı mı değil). containment_target profile'da ayarlanır.",
+    "containment_target": 0.60,
+    "soft": true
+  },
+  "output_contract": {
+    "$comment": "Rapor satırı (grup) + overall. metrics: per-grup containment_rate/transfer_rate + sayımlar. categorical/aggregate output: yalnız düşük-kardinalite boyut anahtarı + sayım/oran — per-call kimlik / serbest metin / PII YOK (yayımlanan agregat pii_class low). identity_fields rapor satırında zorunlu (tenant izolasyon + sürüm + idempotency). consumes: fct_call (OLAP boolean materyalizasyonu) veya per-call outcome etiketi (14.2.2). persists_to: mv_call_daily (OLAP rollup) — yeni topic üretmez.",
+    "group_fields": ["agent_id", "agent_version_id", "period"],
+    "metric_fields": ["calls", "handled", "contained_count", "transferred_count", "abandoned_count", "unresolved_count", "not_connected_count", "containment_rate", "transfer_rate"],
+    "identity_fields": ["tenant_id", "report_id", "schema_version"],
+    "consumes": ["fct_call.contained", "fct_call.transferred", "call.outcome (14.2.2 etiketi)"],
+    "persists_to": ["mv_call_daily (OLAP rollup — containment_rate/transfer_rate; FR-ANA-003)"]
+  },
+  "idempotency": {
+    "$comment": "Replay-güvenli (1.1.8 P3 idempotent consumers; fct_call dedup_key=call_id). Aynı (tenant_id, call_id) bir kez sayılır — at-least-once teslimat çift-sayım üretmez (G5). Agregat deterministik: aynı çağrı seti → aynı oran.",
+    "dedup_key": ["tenant_id", "call_id"],
+    "replay_safe": true
+  },
+  "feature_policy": {
+    "$comment": "Motor YALNIZ redaksiyonlu kategorik etiket (outcome) + düşük-kardinalite boyut anahtarı tüketir (FR-REC-004). Ham transkript METNİ / ses payload / PII DEĞERİ girdi olamaz (G8). allowed_input_keys whitelist; forbidden_input_keys + PII DEĞER deseni reddedilir.",
+    "allowed_input_keys": ["call_id", "outcome", "agent_id", "agent_version_id", "period", "direction", "tenant_id", "region"],
+    "forbidden_input_keys": [
+      "transcript_text", "transcript", "audio_payload", "recording", "customer_name", "full_name",
+      "phone_number", "msisdn", "email", "national_id", "card_number", "pan", "cvv", "otp", "iban", "address"
+    ]
+  },
+  "isolation": {
+    "$comment": "Her rapor tek tenant_id taşır (FR-TEN-002 izolasyon); cross-tenant çağrı agregasyona karışmaz; home-region (NFR 10.7 residency). Platform (L0) yalnız agregat metrik görür (altın kural) — oran agregat olduğu için platform-görünür sınıftadır; içerik/per-call değil.",
+    "tenant_id_required": true,
+    "residency": "home-region",
+    "cross_tenant_forbidden": true
+  },
+  "gates": {
+    "max_partition_gap": 0,
+    "max_rate_bound_violation": 0,
+    "max_exclusivity_violation": 0,
+    "max_vocab_violation": 0,
+    "max_idempotency_violation": 0,
+    "max_suppression_violation": 0,
+    "max_isolation_violation": 0,
+    "max_pii_violation": 0,
+    "max_blocking_violation": 0
+  },
+  "error_taxonomy": {
+    "$comment": "API §11.6 ErrorTaxonomy eşlemesi.",
+    "mapping": {
+      "malformed_report": "INVALID_REQUEST",
+      "unknown_outcome": "INVALID_REQUEST",
+      "missing_context": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    }
+  },
+  "pii": {
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true
+  },
+  "metrics_emitted": {
+    "emitted": ["containment_rate", "transfer_rate", "abandon_rate", "unresolved_rate", "not_connected_rate", "report_groups_total", "suppressed_groups_total"]
+  },
+  "invariants": [
+    {"id": "I1", "desc": "Outcome kovaları girdiyi TAM partisyonlar: her çağrı tam BİR kovada (contained/transferred/abandoned/unresolved/not_connected); toplam kova == girdi (çift-sayım yok, sessiz düşürme yok, partition_gap=0) — BİRİNCİL", "trace": "FR-ANA-003, SR-ANA-003, outcome_vocabulary"},
+    {"id": "I2", "desc": "containment_rate = contained/handled, transfer_rate = transferred/handled; pay ≤ payda; her oran ∈ [0,1]; dört partisyon oranı (containment+transfer+abandon+unresolved) handled üzerinde toplamı == 1.0 (handled>0) — payda bütünlüğü", "trace": "denominator, BRD §18.1"},
+    {"id": "I3", "desc": "Bir çağrı tam BİR outcome kovasında sayılır (mutually exclusive); aynı çağrının iki kovada sayılması ihlal (G3)", "trace": "outcome_vocabulary, FR-ANA-003"},
+    {"id": "I4", "desc": "Outcome sözlüğü 14.2.2 derivation-spec.json vocabularies.outcome ile BİREBİR + OLAP fct_call.contained/transferred boolean (FR-ANA-003) ile hizalı (non-circular cross-check); bilinmeyen outcome ihlal", "trace": "14.2.2 derivation-spec.json, analytics/olap-spec.json fct_call, FR-ANA-003"},
+    {"id": "I5", "desc": "Aynı (tenant_id, call_id) bir kez sayılır (idempotent/replay-safe); at-least-once çift-sayım üretmez", "trace": "1.1.8 P3, ADR-007, fct_call dedup_key=call_id"},
+    {"id": "I6", "desc": "Paydası min_group_n altındaki grup oranı YAYIMLANMAZ (insufficient_sample) — istatistiksel güvenilirlik + k-anonimlik; sessizce düşürülmez (sayım tutulur, açık status)", "trace": "small_sample, FR-REC-004 (re-identification)"},
+    {"id": "I7", "desc": "Her rapor tek tenant_id taşır (FR-TEN-002); cross-tenant çağrı agregasyona karışmaz; home-region (NFR 10.7); platform yalnız agregat metrik görür (altın kural)", "trace": "FR-TEN-002, NFR 10.7, FR-IAM-008"},
+    {"id": "I8", "desc": "Yalnız redaksiyonlu kategorik etiket + düşük-kardinalite boyut anahtarı tüketir; yayımlanan agregat per-call kimlik/serbest metin/PII DEĞERİ taşımaz (FR-REC-004; pii_class low)", "trace": "FR-REC-004, feature_policy, OLAP §47"},
+    {"id": "I9", "desc": "Analytics plane'de async/non-blocking (SAD §4.2/§171, FR-RES-011); rapor başarısızlığı canlı çağrıyı etkilemez; from_trace=false (hot-path dışı); aggregates_labels=true (etiketi yeniden türetmez)", "trace": "SAD §4.2/§171, FR-RES-011, ADR-004"},
+    {"id": "I10", "desc": "Agregasyon sağlayıcı-nötr (ADR-002) deterministik sayım/bölme (random YOK); aynı çağrı seti → aynı oran", "trace": "ADR-002, placement.deterministic"},
+    {"id": "I11", "desc": "Containment paydası HANDLED (not_connected HARİÇ) — beyan edilen denominator.basis; not_connected paydaya girerse containment yapay düşer (yanlış denominator → partisyon toplamı ≠ 1.0, G2)", "trace": "denominator.basis, BRD §18.1, OBJ-01"},
+    {"id": "I12", "desc": "Hata API §11.6 ErrorTaxonomy'ye eşlenir (malformed/unknown→INVALID_REQUEST, region→REGION_VIOLATION)", "trace": "API §11.6"},
+    {"id": "I13", "desc": "containment ≥ hedef (BRD §3.2.1 %60) target_met SOFT bilgilendirici bayrak — HARD kapı DEĞİL (kapılar hesap doğruluğu içindir)", "trace": "BRD §3.2.1, target.soft"},
+    {"id": "I14", "desc": "Kapsam ayrımı: per-call ÇIKARIM (FR-ANA-002→14.2.2, bu motorun GİRDİSİ) + skor (FR-ANA-001→14.2.1) + İŞARETLER (FR-ANA-004→14.2.4) + dashboard/export (→14.2.8) bu dilimde kapsam dışı; burada YALNIZ oran agregasyonu", "trace": "FR-ANA-001/002/004, WBS"},
+    {"id": "I15", "desc": "spec/config'te sır/ham payload/transkript/PII DEĞERİ yok (yalnız etiket/boyut/kimlik/sözlük anahtarı ADLARI + sayısal eşik)", "trace": "FR-REC-004, ADR-002"}
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "containment-happy-path",
+  "$comment": "Sağlıklı rapor: tek tenant (t_acme), iki agent_version grubu (v3/v4 — FR-ANA-010 sürüm karşılaştırması girdisi). Her grubun handled paydası ≥ min_group_n=5 → ORAN YAYIMLANIR. v3 containment 4/5=0.80, v4 2/5=0.40. overall handled=10 → containment 6/10=0.60 (hedef ≥0.60 → target_met). not_connected (outbound) handled paydaya GİRMEZ — ayrı raporlanır (not_connected_rate=2/12 total). Dört partisyon oranı (containment+transfer+abandon+unresolved) handled üzerinde toplamı == 1.0. Tüm outcome değerleri 14.2.2 kapalı-sözlüğünde, tek tenant, redaksiyonlu etiket. PII DEĞERİ / ham transkript YOK — yalnız redaksiyonlu outcome etiketi + düşük-kardinalite boyut/kimlik anahtarı ADLARI.",
+  "expect": "pass",
+  "context": {"tenant_id": "t_acme", "region": "eu-west-1", "correlation_id": "corr-acme-001"},
+  "profile_obj": {"name": "eu-standard", "region": "eu-west-1", "schema_version": 1, "min_group_n": 5, "containment_target": 0.60, "denominator_basis": "handled"},
+  "calls": [
+    {"call_id": "a1", "outcome": "contained", "agent_id": "ag_billing", "agent_version_id": "v3", "period": "2026-06-01"},
+    {"call_id": "a2", "outcome": "contained", "agent_id": "ag_billing", "agent_version_id": "v3", "period": "2026-06-01"},
+    {"call_id": "a3", "outcome": "contained", "agent_id": "ag_billing", "agent_version_id": "v3", "period": "2026-06-01"},
+    {"call_id": "a4", "outcome": "contained", "agent_id": "ag_billing", "agent_version_id": "v3", "period": "2026-06-01"},
+    {"call_id": "a5", "outcome": "transferred_to_human", "agent_id": "ag_billing", "agent_version_id": "v3", "period": "2026-06-01"},
+    {"call_id": "a6", "outcome": "not_connected", "agent_id": "ag_billing", "agent_version_id": "v3", "period": "2026-06-01", "direction": "outbound"},
+    {"call_id": "b1", "outcome": "contained", "agent_id": "ag_billing", "agent_version_id": "v4", "period": "2026-06-01"},
+    {"call_id": "b2", "outcome": "contained", "agent_id": "ag_billing", "agent_version_id": "v4", "period": "2026-06-01"},
+    {"call_id": "b3", "outcome": "transferred_to_human", "agent_id": "ag_billing", "agent_version_id": "v4", "period": "2026-06-01"},
+    {"call_id": "b4", "outcome": "transferred_to_human", "agent_id": "ag_billing", "agent_version_id": "v4", "period": "2026-06-01"},
+    {"call_id": "b5", "outcome": "abandoned", "agent_id": "ag_billing", "agent_version_id": "v4", "period": "2026-06-01"},
+    {"call_id": "b6", "outcome": "not_connected", "agent_id": "ag_billing", "agent_version_id": "v4", "period": "2026-06-01", "direction": "outbound"}
+  ],
+  "expected_overall": {"handled": 10, "containment_rate": 0.6, "transfer_rate": 0.3, "target_met": true}
+}
