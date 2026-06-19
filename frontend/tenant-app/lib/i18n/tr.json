@@ -3082,6 +3082,131 @@
       "action": {
         "export": "Dışa aktar"
       }
+    },
+    "a15": {
+      "title": "Maliyet & Kaynak Tüketimi",
+      "subtitle": "Operasyonel maliyet ve çağrı başı kaynak görünümü",
+      "scope_note": "Bu ekranda seçili dönemin operasyonel maliyetini ve çağrı başına kaynak tüketimini incelersiniz (yalnız tenant'ınız kapsamında): bileşen/sağlayıcı bazında maliyet dağılımı ve agent bazında maliyet (FR-ANA-007), çağrı başına CPU/bellek/eşzamanlılık (FR-ANA-013), worker density ve lean-runtime verimlilik göstergeleri (NFR 10.2) ve zaman serisi (FR-ANA-011). Bu ekran yalnız topluluk metriği gösterir (Tier A); tek çağrı içeriği, transkript veya PII taşımaz, bu yüzden break-glass gerekmez. Maliyet değerleri illüstratif mühendislik örneğidir; gerçek rate-card finans/billing motorundan beslenir. Ham veri export'u backend'de redaction + audit ile gerçekleşir (cost:read).",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "period": "Dönem",
+      "percent": "%{n}",
+      "ms": "{n} ms",
+      "mb": "{n} MB",
+      "na": "—",
+      "total": "Toplam",
+      "footnote": "Maliyet değerleri illüstratif mühendislik örneğidir (gerçek rate-card finans/billing motorundan); per-call kaynak Cost/Resource Meter'dan (SAD §13.3) beslenir. Faturalandırma ve plan görünümü için T-07'ye bakın.",
+      "alert": {
+        "cost_over": "Çağrı başına maliyet ({cost}) hedefin ({target}) üzerinde; model routing/cache ve tur dağılımı gözden geçirilmeli (BRD §18.2).",
+        "mem_over": "Çağrı başına bellek P95 ({mem}) bütçeyi ({budget}) aşıyor; lean-runtime bütçesi gözden geçirilmeli (FR-RES-016 / NFR 10.2).",
+        "cpu_over": "Çağrı başına CPU P95 ({cpu}) bütçeyi ({budget}) aşıyor; hot-path verimliliği gözden geçirilmeli (FR-ANA-013).",
+        "density_low": "Worker density ({density}) hedefin ({target}) altında; kapasite/yoğunluk gözden geçirilmeli (NFR 10.2)."
+      },
+      "section": {
+        "summary": "Özet Maliyet KPI'ları",
+        "components": "Maliyet Dağılımı (Bileşen/Sağlayıcı)",
+        "agents": "Agent Bazında Maliyet",
+        "resources": "Çağrı Başına Kaynak Tüketimi",
+        "efficiency": "Verimlilik & Lean-Runtime",
+        "trend": "Zaman Serisi & Trend"
+      },
+      "kpi": {
+        "total_cost": "Toplam Maliyet",
+        "total_cost_hint": "{calls} çağrı (dönem agregatı)",
+        "per_call": "Çağrı Başına Maliyet",
+        "per_call_hint": "hedef ≤ {target}",
+        "per_resolved": "Çözülen Çağrı Başına Maliyet",
+        "per_resolved_hint": "{resolved} çözülen çağrı (cost per resolved call)",
+        "per_minute": "Dakika Başına Maliyet",
+        "per_minute_hint": "{minutes} faturalanan dakika",
+        "cpu": "Çağrı Başı CPU (P95)",
+        "cpu_hint": "bütçe ≤ {budget}",
+        "mem": "Çağrı Başı Bellek (P95)",
+        "mem_hint": "bütçe ≤ {budget}",
+        "density": "Worker Density",
+        "density_hint": "hedef ≥ {min} (stretch ≥ {stretch})"
+      },
+      "component": {
+        "stt": "STT (konuşma→metin)",
+        "llm": "LLM (dil modeli)",
+        "tts": "TTS (metin→konuşma)",
+        "telephony": "Telekom",
+        "compute": "Compute (altyapı)"
+      },
+      "component_desc": {
+        "stt": "Konuşma tanıma sağlayıcı kullanımı",
+        "llm": "Dil modeli token/çağrı kullanımı (tier dahil)",
+        "tts": "Konuşma sentezi karakter/çağrı kullanımı",
+        "telephony": "Telekom dakika/SIP trunk kullanımı",
+        "compute": "Orkestratör/medya işleme altyapı maliyeti"
+      },
+      "metric": {
+        "cpuMs": "CPU (çağrı başına)",
+        "memMb": "Bellek (çağrı başına)",
+        "concurrency": "Eşzamanlılık (worker density)"
+      },
+      "status": {
+        "within": "Bütçe içinde",
+        "over": "Bütçe aşımı"
+      },
+      "trend": {
+        "up": "Artış",
+        "down": "Azalış",
+        "flat": "Sabit"
+      },
+      "trend_kpi": {
+        "cost": "Çağrı Başı Maliyet Eğilimi",
+        "cost_hint": "ilk yarı vs ikinci yarı (azalış = iyileşme)",
+        "mem": "Çağrı Başı Bellek Eğilimi",
+        "mem_hint": "ilk yarı vs ikinci yarı (azalış = iyileşme)",
+        "volume": "Çağrı Hacmi Eğilimi",
+        "volume_hint": "ilk yarı vs ikinci yarı"
+      },
+      "col": {
+        "component": "Bileşen",
+        "purpose": "Açıklama",
+        "amount": "Maliyet",
+        "share": "Pay",
+        "agent": "Agent",
+        "calls": "Çağrı",
+        "per_call": "Çağrı Başı",
+        "metric": "Metrik",
+        "p50": "P50",
+        "p95": "P95",
+        "budget": "Bütçe",
+        "status": "Durum",
+        "date": "Tarih",
+        "cpu": "CPU P95",
+        "mem": "Bellek P95"
+      },
+      "components_caption": "Maliyet bileşen/sağlayıcı bazında dağılımı (STT/LLM/TTS/telekom/compute; FR-ANA-007)",
+      "components_total_desc": "Tüm bileşenlerin dönem toplamı",
+      "components_hint": "En büyük maliyet sürücüsü: {driver} (toplam maliyetin %{share}'i). Maliyet bileşenleri toplamı dönem toplamına eşittir.",
+      "components_hint_none": "Bu dönem için maliyet bileşeni bulunmuyor.",
+      "agents_caption": "Agent bazında maliyet dağılımı (çağrı / maliyet / pay / çağrı başı; FR-ANA-007)",
+      "agents_hint_ok": "Agent maliyet ve çağrı toplamları dönem toplamıyla uzlaşır (FR-ANA-007).",
+      "agents_hint_mismatch": "Agent maliyet veya çağrı toplamı dönem toplamıyla uzlaşmıyor; veri kaynağı doğrulanmalı.",
+      "no_agents": "Bu dönem için agent maliyet kaydı bulunmuyor.",
+      "resources_caption": "Çağrı başına kaynak tüketimi (CPU/bellek P50/P95 + eşzamanlılık; FR-ANA-013)",
+      "resources_hint": "Çağrı başına bellek bütçesi ≤ {budget}'tır (FR-RES-016 / NFR 10.2); eşzamanlılık worker başına eş zamanlı oturum (density) olarak ölçülür.",
+      "eff": {
+        "density": "Worker Density",
+        "density_stretch": "stretch hedefi (≥ {stretch}) karşılandı",
+        "density_min": "alt hedef ≥ {min}",
+        "cache": "TTS Cache Hit",
+        "cache_hint": "hedef ≥ {target} (maliyeti düşürür)",
+        "small_model": "Küçük-Model Tur Oranı",
+        "small_model_hint": "hedef ≥ {target} (maliyeti düşürür)",
+        "idle": "Boşta Kaynak Geri Kazanımı",
+        "idle_hint": "hedef ≥ {target} (scale-to-zero)"
+      },
+      "efficiency_hint": "Bu göstergeler lean-runtime mandasını sürekli doğrular (NFR 10.2 / BRD §18.2): yüksek density + cache hit + küçük-model tur oranı + boşta geri kazanım maliyeti düşürür.",
+      "trend_caption": "Günlük maliyet / çağrı başı maliyet / kaynak eğilimi (FR-ANA-011)",
+      "trend_hint": "Zaman serisi maliyet ve çağrı toplamları dönem toplamıyla uzlaşır (FR-ANA-011 export bütünlüğü).",
+      "no_series": "Bu dönem için zaman serisi verisi bulunmuyor.",
+      "action": {
+        "export": "Raporu dışa aktar"
+      }
     }
   }
 }

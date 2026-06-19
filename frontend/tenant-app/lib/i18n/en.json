@@ -3082,6 +3082,131 @@
       "action": {
         "export": "Export"
       }
+    },
+    "a15": {
+      "title": "Cost & Resource Consumption",
+      "subtitle": "Operational cost and per-call resource view",
+      "scope_note": "On this screen you review the selected period's operational cost and per-call resource consumption (within your tenant only): cost breakdown by component/provider and by agent (FR-ANA-007), per-call CPU/memory/concurrency (FR-ANA-013), worker density and lean-runtime efficiency indicators (NFR 10.2), and the time series (FR-ANA-011). This screen shows aggregate metrics only (Tier A); it carries no single-call content, transcript or PII, so no break-glass is required. Cost figures are illustrative engineering examples fed by the finance/billing rate-card. Raw data export happens in the backend with redaction + audit (cost:read).",
+      "as_of": "View as of: {time}",
+      "tenant": "Tenant",
+      "period": "Period",
+      "percent": "{n}%",
+      "ms": "{n} ms",
+      "mb": "{n} MB",
+      "na": "—",
+      "total": "Total",
+      "footnote": "Cost figures are illustrative engineering examples (from the finance/billing rate-card); per-call resource is fed by the Cost/Resource Meter (SAD §13.3). See T-07 for billing and plan view.",
+      "alert": {
+        "cost_over": "Cost per call ({cost}) exceeds the target ({target}); model routing/cache and turn mix should be reviewed (BRD §18.2).",
+        "mem_over": "Per-call memory P95 ({mem}) exceeds the budget ({budget}); the lean-runtime budget should be reviewed (FR-RES-016 / NFR 10.2).",
+        "cpu_over": "Per-call CPU P95 ({cpu}) exceeds the budget ({budget}); hot-path efficiency should be reviewed (FR-ANA-013).",
+        "density_low": "Worker density ({density}) is below the target ({target}); capacity/density should be reviewed (NFR 10.2)."
+      },
+      "section": {
+        "summary": "Cost Summary KPIs",
+        "components": "Cost Breakdown (Component/Provider)",
+        "agents": "Cost by Agent",
+        "resources": "Per-Call Resource Consumption",
+        "efficiency": "Efficiency & Lean-Runtime",
+        "trend": "Time Series & Trend"
+      },
+      "kpi": {
+        "total_cost": "Total Cost",
+        "total_cost_hint": "{calls} calls (period aggregate)",
+        "per_call": "Cost per Call",
+        "per_call_hint": "target ≤ {target}",
+        "per_resolved": "Cost per Resolved Call",
+        "per_resolved_hint": "{resolved} resolved calls (cost per resolved call)",
+        "per_minute": "Cost per Minute",
+        "per_minute_hint": "{minutes} billed minutes",
+        "cpu": "Per-Call CPU (P95)",
+        "cpu_hint": "budget ≤ {budget}",
+        "mem": "Per-Call Memory (P95)",
+        "mem_hint": "budget ≤ {budget}",
+        "density": "Worker Density",
+        "density_hint": "target ≥ {min} (stretch ≥ {stretch})"
+      },
+      "component": {
+        "stt": "STT (speech→text)",
+        "llm": "LLM (language model)",
+        "tts": "TTS (text→speech)",
+        "telephony": "Telephony",
+        "compute": "Compute (infrastructure)"
+      },
+      "component_desc": {
+        "stt": "Speech recognition provider usage",
+        "llm": "Language model token/call usage (incl. tier)",
+        "tts": "Speech synthesis character/call usage",
+        "telephony": "Telephony minutes/SIP trunk usage",
+        "compute": "Orchestrator/media-processing infrastructure cost"
+      },
+      "metric": {
+        "cpuMs": "CPU (per call)",
+        "memMb": "Memory (per call)",
+        "concurrency": "Concurrency (worker density)"
+      },
+      "status": {
+        "within": "Within budget",
+        "over": "Over budget"
+      },
+      "trend": {
+        "up": "Up",
+        "down": "Down",
+        "flat": "Flat"
+      },
+      "trend_kpi": {
+        "cost": "Cost-per-Call Trend",
+        "cost_hint": "first half vs second half (down = improvement)",
+        "mem": "Per-Call Memory Trend",
+        "mem_hint": "first half vs second half (down = improvement)",
+        "volume": "Call Volume Trend",
+        "volume_hint": "first half vs second half"
+      },
+      "col": {
+        "component": "Component",
+        "purpose": "Description",
+        "amount": "Cost",
+        "share": "Share",
+        "agent": "Agent",
+        "calls": "Calls",
+        "per_call": "Per Call",
+        "metric": "Metric",
+        "p50": "P50",
+        "p95": "P95",
+        "budget": "Budget",
+        "status": "Status",
+        "date": "Date",
+        "cpu": "CPU P95",
+        "mem": "Memory P95"
+      },
+      "components_caption": "Cost breakdown by component/provider (STT/LLM/TTS/telephony/compute; FR-ANA-007)",
+      "components_total_desc": "Period total across all components",
+      "components_hint": "Largest cost driver: {driver} ({share}% of total cost). Component costs sum to the period total.",
+      "components_hint_none": "No cost components for this period.",
+      "agents_caption": "Cost breakdown by agent (calls / cost / share / per call; FR-ANA-007)",
+      "agents_hint_ok": "Agent cost and call totals reconcile with the period total (FR-ANA-007).",
+      "agents_hint_mismatch": "Agent cost or call total does not reconcile with the period total; the data source should be verified.",
+      "no_agents": "No agent cost records for this period.",
+      "resources_caption": "Per-call resource consumption (CPU/memory P50/P95 + concurrency; FR-ANA-013)",
+      "resources_hint": "The per-call memory budget is ≤ {budget} (FR-RES-016 / NFR 10.2); concurrency is measured as concurrent sessions per worker (density).",
+      "eff": {
+        "density": "Worker Density",
+        "density_stretch": "stretch target (≥ {stretch}) met",
+        "density_min": "minimum target ≥ {min}",
+        "cache": "TTS Cache Hit",
+        "cache_hint": "target ≥ {target} (lowers cost)",
+        "small_model": "Small-Model Turn Ratio",
+        "small_model_hint": "target ≥ {target} (lowers cost)",
+        "idle": "Idle Resource Reclaim",
+        "idle_hint": "target ≥ {target} (scale-to-zero)"
+      },
+      "efficiency_hint": "These indicators continuously validate the lean-runtime mandate (NFR 10.2 / BRD §18.2): high density + cache hit + small-model turn ratio + idle reclaim lower cost.",
+      "trend_caption": "Daily cost / cost-per-call / resource trend (FR-ANA-011)",
+      "trend_hint": "Time-series cost and call totals reconcile with the period total (FR-ANA-011 export integrity).",
+      "no_series": "No time-series data for this period.",
+      "action": {
+        "export": "Export report"
+      }
     }
   }
 }

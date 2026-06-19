@@ -1,0 +1,46 @@
+{
+  "$comment": "A-15 SAĞLIKLI 7 günlük dönem maliyet/kaynak agregatı (WBS 13.4.15): çağrı başına maliyet bütçe içinde (1150 minor ≤ 1200), çağrı başı bellek P95 13.4MB ≤ 15MB (FR-RES-016/NFR 10.2), CPU P95 180ms ≤ 250ms, worker density 540 ≥ 500 stretch (NFR 10.2), agent + zaman serisi toplamları dönemle uzlaşır (FR-ANA-007/011). Yalnız agregat; tek çağrı içeriği/PII yok → İKİ KATMAN guard temiz. → total_cost_minor=8740000 + cost_per_call_minor≈1150 + mem_within_budget=true + cpu_within_budget=true + density_meets=true + cost_band=good.",
+  "$expect": {
+    "total_cost_minor": 8740000,
+    "cost_per_call_minor": 1150.0,
+    "mem_within_budget": true,
+    "cpu_within_budget": true,
+    "density_meets": true,
+    "cost_band": "good"
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-2048",
+  "tenantName": "Kuzey Sigorta A.Ş.",
+  "currency": "TRY",
+  "period": { "from": "2026-06-11", "to": "2026-06-17", "label": "Son 7 gün" },
+  "targets": { "costPerCallMinor": 1200, "cpuMsP95": 250, "memMbP95": 15, "densityMin": 250, "densityStretch": 500, "cacheHit": 0.6, "smallModelRatio": 0.5, "idleReclaim": 0.6 },
+  "totalCalls": 7600,
+  "resolvedCalls": 5400,
+  "billedMinutes": 22450,
+  "components": [
+    { "component": "stt", "amountMinor": 1560000 },
+    { "component": "llm", "amountMinor": 3150000 },
+    { "component": "tts", "amountMinor": 1320000 },
+    { "component": "telephony", "amountMinor": 2010000 },
+    { "component": "compute", "amountMinor": 700000 }
+  ],
+  "agents": [
+    { "agentRef": "AG-CALL", "agentName": "Tahsilat Asistanı", "calls": 4200, "amountMinor": 4830000 },
+    { "agentRef": "AG-APPT", "agentName": "Randevu Botu", "calls": 2400, "amountMinor": 2510000 },
+    { "agentRef": "AG-INFO", "agentName": "Bilgi Hattı", "calls": 1000, "amountMinor": 1400000 }
+  ],
+  "resources": [
+    { "metric": "cpuMs", "p50": 95, "p95": 180, "budget": 250 },
+    { "metric": "memMb", "p50": 9, "p95": 13.4, "budget": 15 }
+  ],
+  "efficiency": { "density": 540, "cacheHitRatio": 0.64, "smallModelTurnRatio": 0.58, "idleReclaimRatio": 0.72 },
+  "series": [
+    { "date": "2026-06-11", "calls": 1080, "amountMinor": 1242000, "cpuMsP95": 175, "memMbP95": 13.2 },
+    { "date": "2026-06-12", "calls": 1120, "amountMinor": 1288000, "cpuMsP95": 178, "memMbP95": 13.4 },
+    { "date": "2026-06-13", "calls": 940, "amountMinor": 1081000, "cpuMsP95": 180, "memMbP95": 13.1 },
+    { "date": "2026-06-14", "calls": 760, "amountMinor": 874000, "cpuMsP95": 176, "memMbP95": 12.9 },
+    { "date": "2026-06-15", "calls": 1210, "amountMinor": 1391000, "cpuMsP95": 182, "memMbP95": 13.5 },
+    { "date": "2026-06-16", "calls": 1190, "amountMinor": 1369000, "cpuMsP95": 179, "memMbP95": 13.3 },
+    { "date": "2026-06-17", "calls": 1300, "amountMinor": 1495000, "cpuMsP95": 180, "memMbP95": 13.4 }
+  ]
+}
