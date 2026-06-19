@@ -1,0 +1,19 @@
+{
+  "name": "derivation-degraded-input",
+  "$comment": "Zorlu ama GEÇERLİ batch: 4 uygun çağrının 3'ü eksik/zayıf sinyalli (degraded) + 1 outbound voicemail. Önemli kanıt: degraded çağrılar SESSİZCE ATLANMAZ — her biri yine DÖRT alanı dolu bir çıkarım alır (FR-ANA-002 %100 kapsam korunur, sentinel'lerle null yok). 'sınıflanamadı' ≠ çıkarım atlama. d4 outbound no-answer → not_connected/not_started/no_action. Kapsam tam (coverage_gap=0), tüm değerler kapalı-sözlükte, cross-field tutarlı. PII DEĞERİ / ham transkript YOK.",
+  "profile": "tr-standard",
+  "expect": "pass",
+  "context": {"tenant_id": "t_globex", "correlation_id": "corr-globex-007"},
+  "profile_obj": {"name": "tr-standard", "region": "tr-central-1", "schema_version": 1, "batch_interval_s": 30},
+  "calls": [
+    {"call_id": "d1", "status": "completed", "features": {}},
+    {"call_id": "d2", "status": "completed", "features": {
+      "intent_signal": "unknown_topic_xyz", "direction": "inbound", "turns": 1}},
+    {"call_id": "d3", "status": "completed", "features": {
+      "intent_signal": "complaint", "direction": "inbound", "turns": 6,
+      "follow_up_required": true, "flow_completed": true}},
+    {"call_id": "d4", "status": "completed", "features": {
+      "intent_signal": "sales", "direction": "outbound", "not_connected_reason": "no_answer"}}
+  ],
+  "expected": {"coverage_gap": 0, "produced": 4, "vocab_violations": 0, "consistency_violations": 0}
+}

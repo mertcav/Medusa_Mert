@@ -1,0 +1,20 @@
+{
+  "name": "derivation-happy-path",
+  "$comment": "Sağlıklı batch: 4 uygun (completed) + 2 uygun-olmayan (abandoned/test, reason'lı). 4 uygun çağrının her biri DÖRT alanı dolu bir çıkarım alır (kapsam %100, coverage_gap=0). c1 çözülmüş → contained/completed/resolved; c2 insana aktarıldı → transferred_to_human/transferred/escalated; c3 müşteri terk → abandoned/abandoned; c4 sinyal yok → degraded ama YİNE türetilir (unknown/unresolved/no_action/partial sentinel'leri). Tüm değerler kapalı-sözlükte, cross-field tutarlı, tenant_id taşınır, redaksiyonlu sinyal. PII DEĞERİ / ham transkript YOK — yalnız redaksiyonlu kategorik/sayısal sinyal + kimlik anahtarı ADLARI.",
+  "profile": "eu-standard",
+  "expect": "pass",
+  "context": {"tenant_id": "t_acme", "region": "eu-west-1", "correlation_id": "corr-acme-001"},
+  "calls": [
+    {"call_id": "c1", "status": "completed", "features": {
+      "intent_signal": "billing", "direction": "inbound", "turns": 8,
+      "resolved": true, "flow_completed": true, "slots_filled": 3}},
+    {"call_id": "c2", "status": "completed", "features": {
+      "intent_signal": "technical_support", "direction": "inbound", "turns": 5, "transferred": true}},
+    {"call_id": "c3", "status": "completed", "features": {
+      "intent_signal": "information", "direction": "inbound", "turns": 2, "caller_abandoned": true}},
+    {"call_id": "c4", "status": "completed", "features": {}},
+    {"call_id": "c5", "status": "abandoned_pre_connect", "reason": "abandoned_pre_connect"},
+    {"call_id": "c6", "status": "test_call", "reason": "test_call"}
+  ],
+  "expected": {"coverage_gap": 0, "produced": 4, "vocab_violations": 0, "consistency_violations": 0, "pii_violations": 0, "isolation_violations": 0}
+}

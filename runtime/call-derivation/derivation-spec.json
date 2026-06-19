@@ -1,0 +1,163 @@
+{
+  "$comment": "WBS 14.2.2 Intent/outcome/disposition/completion çıkarımı — kaynak doğruluk. Analytics/Ops Plane'deki (SAD §4.2 ANALYTICS/OPS PLANE — async, batch; ADR-004/ADR-007) ÇIKARIM (DERIVATION) motoru: çağrı bittikten sonra event stream üzerinden (voice.call.lifecycle.v1 [FR-ANA-002] + voice.transcript.redacted.v1 [redacted]) PII-REDAKSİYONLU sinyallerle çalışır, HER UYGUN tamamlanmış çağrı için DÖRT kategorik alanı (intent · outcome · disposition · completion_status) kapalı-sözlükten (controlled vocabulary, düşük-kardinalite enum) DETERMİNİSTİK olarak türetir ve sonucu call (DB.md §5.5 outcome/intent/disposition/completion) + OLAP fct_call (intent/disposition/completion_status — FR-ANA-002) ile BİREBİR alanlarla doldurur. BİRİNCİL HARD kapı = %100 kapsam (her uygun çağrı → DÖRT alan da dolu, coverage_gap=0; SR-ANA-002 Yöntem A). Sır/credential, ham ses payload, transkript METNİ, PII DEĞERİ YOK — yalnız REDAKSİYONLU kategorik/sayısal sinyal + alan/kimlik anahtarı ADLARI; türetilen alanlar KAPALI enum (serbest metin değil → PII taşıyamaz, pii_class low). KAPSAM AYRIMI: otomatik kalite skoru → 14.2.1 · containment/transfer ORANI raporu → 14.2.3 (bu motorun ürettiği outcome=contained/transferred per-call etiketini AGREGE eder; oran kapısı orada) · yanlış-bilgi/tool-hata/güvenlik İŞARETİ → 14.2.4 · kritik işaretleme → 14.2.5 · MANUEL skor → 14.2.6. Burada YALNIZ per-call DÖRT-alan deterministik çıkarımı + %100 kapsam.",
+  "wbs": "14.2.2",
+  "version": "1.0",
+  "phase": "F1/F2",
+  "priority": "Must",
+  "eval_doc": {
+    "fr": "FR-ANA-002 (çağrı sonucu, intent, disposition ve completion durumu çıkarılmalıdır) + FR-OUT-011 (çağrı başına disposition otomatik)",
+    "srs": "SR-ANA-002 (Yöntem A — her çağrıda intent/outcome/disposition/completion alanları doldurulur) + SR-OUT-011",
+    "rtm": "FR-ANA-002 ↔ SR-ANA-002 ↔ TC-ANA-002 (A) ↔ WBS 2.1.7, 14.2.2",
+    "brd": "BRD §6.1 (Intent/outcome/sentiment analizi) + §9.15 (Analitik ve Kalite Yönetimi) + §9.6 (FR-OUT-011 disposition)",
+    "sad": "SAD §4.2 (Analytics/Ops Plane — async batch) + §6.1 [2] (tur sınıflandırma intent/complexity) + §12.1 (OLAP) + §171 (FR-RES-011 async post-processing)",
+    "db": "DB.md §5.5 (call: end_reason FR-TEL-012, outcome FR-ANA-002/003; intent/disposition/completion türetilmiş kategorik)",
+    "olap": "analytics/olap-spec.json fct_call (intent + disposition + completion_status — pii_class low, FR-ANA-002 BİREBİR; contained/transferred booleanları FR-ANA-003 → 14.2.3)",
+    "eventstream": "eventstream/topic-spec.json voice.call.lifecycle.v1 (FR-ANA-002, pii_class=low, consumer=analytics-ingest) + voice.transcript.redacted.v1 (pii_class=redacted, FR-REC-004)",
+    "adr": "ADR-002 (vendor-neutral kapalı-sözlük taksonomisi) / ADR-004 (plane ayrımı) / ADR-007 (async event pipeline)",
+    "api": "API §11.6 (ErrorTaxonomy) + Analytics GET /analytics/{report} (FR-ANA-002)",
+    "upstream": "14.1.1 call-trace + voice.call.lifecycle.v1 (lifecycle sinyalleri) + redaction pipeline (PII redaction L7 → voice.transcript.redacted.v1) → redaksiyonlu kategorik/sayısal sinyaller"
+  },
+  "placement": {
+    "$comment": "Çıkarım motoru HOT-PATH'TE DEĞİL — Analytics/Ops Plane'de async batch (SAD §4.2/§171, FR-RES-011). Çağrı bittikten sonra lifecycle+redacted event stream'inden PII-redaksiyonlu sinyallerle çalışır (analytics-ingest consumer). Başarısızlığı CANLI çağrıyı ASLA etkilemez (non_blocking). from_trace=false: kategorik çıkarım sinyalden türetmedir, trace span türetme değil (trace=14.1.1). all_calls=true: FR-ANA-002 — her uygun çağrı (%100, SR-ANA-002). deterministic_taxonomy=true: kapalı-sözlük öncelik kuralları, random YOK (LLM/NLU sınıflayıcı canlıda redaksiyonlu intent_signal'i ÜRETİR; bu motor onu kapalı-sözlüğe NORMALİZE eder — zarf+kapılar değişmez).",
+    "in_analytics_plane": true,
+    "async_batch": true,
+    "non_blocking": true,
+    "from_redacted_content": true,
+    "all_calls": true,
+    "deterministic_taxonomy": true,
+    "idempotent": true,
+    "from_trace": false
+  },
+  "coverage": {
+    "$comment": "BİRİNCİL HARD kapı (G1) — FR-ANA-002/SR-ANA-002 %100. Her UYGUN (evaluable_status) çağrı tam olarak BİR çıkarım satırı üretir ve DÖRT alanın HEPSİ dolu (intent/outcome/disposition/completion_status; null YOK — sınıflanamayan → kapalı-sözlük sentinel'i 'unknown'/'unresolved'/'no_action'/'partial'). Sinyal eksik/zayıf çağrı yine çıkarılır (degraded=true) — SESSİZCE ATLANMAZ (atlamak %100'ü bozar; 'sınıflanamadı' ≠ atla). Uygun-olmayan statüler açık reason_code taşımalı (G9).",
+    "metric": "produced / eligible == 1.0",
+    "target": 1.0,
+    "all_fields_required": ["intent", "outcome", "disposition", "completion_status"],
+    "degraded_still_counts": true
+  },
+  "eligibility": {
+    "$comment": "Hangi çağrı çıkarıma UYGUN. evaluable_status → türetilir (kapsam paydası). NOT: 'completed' bağlanmış+normal sonlanmış çağrıdır; çağrı içinde MÜŞTERİ TERK ETTİYSE (caller_abandoned) statü yine 'completed', outcome='abandoned' türetilir. 'abandoned_pre_connect' (hiç bağlanmadı) UYGUN DEĞİL. excluded_status → türetilmez ama açık reason_code TAŞIMALI (sessiz atlama yok, G9). Bilinmeyen statü → reddedilir (INVALID_REQUEST).",
+    "evaluable_status": ["completed"],
+    "excluded_status": ["abandoned_pre_connect", "test_call", "in_progress", "blocked"],
+    "reason_codes": ["abandoned_pre_connect", "test_call", "in_progress", "blocked"]
+  },
+  "vocabularies": {
+    "$comment": "Kapalı-sözlük (controlled vocabulary) — düşük-kardinalite enum (serbest metin DEĞİL → PII taşıyamaz, pii_class low, OLAP §47). Türetilen DÖRT alanın HER değeri ilgili sözlükte olmalı (G3). Her sözlük bir 'çıkarılamadı' sentinel'i içerir (kapsam için null yerine).",
+    "intent": ["billing", "payment", "appointment", "technical_support", "account_management", "information", "complaint", "sales", "other", "unknown"],
+    "outcome": ["contained", "transferred_to_human", "abandoned", "not_connected", "unresolved"],
+    "disposition": ["resolved", "escalated", "callback_scheduled", "voicemail_left", "dnc_requested", "wrong_number", "not_interested", "follow_up_required", "no_action"],
+    "completion_status": ["completed", "partial", "abandoned", "transferred", "not_started"],
+    "sentinels": {"intent": "unknown", "outcome": "unresolved", "disposition": "no_action", "completion_status": "partial"}
+  },
+  "derivation": {
+    "$comment": "Sağlayıcı-nötr (ADR-002) DETERMİNİSTİK öncelik kuralları (saf; random YOK). Her alan redaksiyonlu sinyallerden kapalı-sözlüğe türetilir. disposition outcome'a REFERANSLA türetilir → tuple içsel-tutarlı (G4 cross-field invariant'ları kurarak sağlanır). intent: runtime NLU'nun ürettiği redaksiyonlu intent_signal kapalı-sözlüğe NORMALİZE edilir (tam-eşleşme; yoksa 'unknown').",
+    "outcome_precedence": [
+      "not_connected_reason ∈ {voicemail,busy,no_answer,invalid} → not_connected",
+      "caller_abandoned → abandoned",
+      "transferred → transferred_to_human",
+      "resolved → contained",
+      "aksi → unresolved"
+    ],
+    "completion_precedence": [
+      "not_connected_reason set → not_started",
+      "caller_abandoned → abandoned",
+      "transferred → transferred",
+      "flow_completed → completed",
+      "aksi → partial"
+    ],
+    "disposition_precedence": [
+      "dnc_requested → dnc_requested",
+      "wrong_number → wrong_number",
+      "outcome==not_connected → (voicemail_left? voicemail_left : no_action)",
+      "outcome==transferred_to_human → escalated",
+      "callback_scheduled → callback_scheduled",
+      "outcome==contained → resolved",
+      "not_interested → not_interested",
+      "follow_up_required → follow_up_required",
+      "aksi → no_action"
+    ],
+    "intent_rule": "intent_signal kapalı-sözlükte ise o; değilse 'unknown' (sentinel; null değil → kapsam korunur)",
+    "consistency_invariants": [
+      "C1: outcome=transferred_to_human ⟹ completion_status=transferred",
+      "C2: outcome=abandoned ⟹ completion_status=abandoned",
+      "C3: outcome=not_connected ⟹ completion_status=not_started",
+      "C4: completion_status=completed ⟹ outcome ∈ {contained, unresolved}",
+      "C5: disposition=escalated ⟹ outcome=transferred_to_human"
+    ]
+  },
+  "output_contract": {
+    "$comment": "Çıkarım satırı. categorical_fields {intent,disposition,completion_status} OLAP fct_call'da AYNI ADLI FR-ANA-002 sütunlarıyla BİREBİR (probe non-circular türetir). result_field 'outcome' DB call.outcome (DB.md §5.5, FR-ANA-002/003) — OLAP'ta contained/transferred boolean'ları (FR-ANA-003) ile temsil edilir, ORAN raporu 14.2.3. identity_fields her satırda zorunlu (tenant izolasyon + sürüm + idempotency). consumes_topics: motor analytics-ingest consumer'ı olarak bu topic'leri tüketir; YENİ topic üretmez (sink=fct_call/call).",
+    "all_fields": ["intent", "outcome", "disposition", "completion_status"],
+    "categorical_fields": ["intent", "disposition", "completion_status"],
+    "result_field": "outcome",
+    "identity_fields": ["tenant_id", "derivation_id", "call_id", "agent_id", "agent_version_id", "schema_version"],
+    "consumes_topics": ["voice.call.lifecycle.v1", "voice.transcript.redacted.v1"],
+    "persists_to": ["call (DB.md §5.5 — outcome/intent/disposition/completion)", "fct_call (OLAP — intent/disposition/completion_status)"]
+  },
+  "idempotency": {
+    "$comment": "Replay-güvenli (1.1.8 P3 idempotent consumers; fct_call dedup_key=call_id). Aynı (tenant_id, call_id, schema_version) bir çıkarıma daraltılır — at-least-once teslimat çift satır üretmez (G5). schema_version değişince yeni taksonomi sürümü yeni satır üretir (yeniden-türetme).",
+    "dedup_key": ["tenant_id", "call_id", "schema_version"],
+    "replay_safe": true
+  },
+  "feature_policy": {
+    "$comment": "Motor YALNIZ redaksiyonlu kategorik/sayısal sinyal tüketir (FR-REC-004). Ham transkript METNİ / ses payload / PII DEĞERİ sinyal olamaz (G7). allowed_feature_keys whitelist; forbidden_feature_keys + PII DEĞER deseni reddedilir. NOT: intent_signal düşük-kardinalite kapalı kategoriktir (redaksiyon pipeline çıktısı); ham utterance değil.",
+    "allowed_feature_keys": [
+      "intent_signal", "direction", "turns",
+      "resolved", "transferred", "caller_abandoned", "not_connected_reason", "flow_completed", "slots_filled",
+      "voicemail_left", "callback_scheduled", "dnc_requested", "wrong_number", "not_interested", "follow_up_required"
+    ],
+    "forbidden_feature_keys": [
+      "transcript_text", "transcript", "audio_payload", "recording", "customer_name", "full_name",
+      "phone_number", "msisdn", "email", "national_id", "card_number", "pan", "cvv", "otp", "iban", "address"
+    ]
+  },
+  "isolation": {
+    "$comment": "Her çıkarım tenant_id taşır (FR-TEN-002 izolasyon); cross-tenant sinyal karışmaz; home-region (NFR 10.7 residency). Platform (L0) içeriği görmez — yalnız agregat metrik (altın kural); çıkarım tenant düzlemindedir.",
+    "tenant_id_required": true,
+    "residency": "home-region",
+    "cross_tenant_forbidden": true
+  },
+  "gates": {
+    "max_coverage_gap": 0,
+    "max_catalog_mismatch": 0,
+    "max_vocab_violation": 0,
+    "max_consistency_violation": 0,
+    "max_idempotency_violation": 0,
+    "max_blocking_violation": 0,
+    "max_pii_violation": 0,
+    "max_isolation_violation": 0,
+    "max_eligibility_reason_missing": 0
+  },
+  "error_taxonomy": {
+    "$comment": "API §11.6 ErrorTaxonomy eşlemesi.",
+    "mapping": {
+      "malformed_call": "INVALID_REQUEST",
+      "unknown_status": "INVALID_REQUEST",
+      "missing_context": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    }
+  },
+  "pii": {
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true
+  },
+  "metrics_emitted": {
+    "emitted": ["call_derivations_total", "derivation_coverage_ratio", "derivation_by_outcome", "derivation_by_intent", "derivation_degraded_total"]
+  },
+  "invariants": [
+    {"id": "I1", "desc": "Her UYGUN çağrı tam olarak BİR çıkarım üretir ve DÖRT alanın HEPSİ dolu (intent/outcome/disposition/completion_status); üretilen==uygun (%100, coverage_gap=0) — BİRİNCİL kapı", "trace": "FR-ANA-002, SR-ANA-002, BRD §9.15"},
+    {"id": "I2", "desc": "categorical_fields {intent,disposition,completion_status} OLAP fct_call'da AYNI ADLI FR-ANA-002 sütunlarıyla BİREBİR (non-circular türetilir); outcome DB call.outcome (FR-ANA-002/003)", "trace": "analytics/olap-spec.json fct_call, DB.md §5.5, FR-ANA-002"},
+    {"id": "I3", "desc": "Türetilen DÖRT alanın HER değeri ilgili kapalı-sözlükte (düşük-kardinalite enum, serbest metin değil); sentinel ile null yok", "trace": "ADR-002, vocabularies, OLAP §47 pii_class low"},
+    {"id": "I4", "desc": "Cross-field tutarlılık (C1–C5): outcome↔completion_status↔disposition mantıksal olarak çelişmez (deterministik tuple içsel-tutarlı)", "trace": "derivation.consistency_invariants"},
+    {"id": "I5", "desc": "Aynı (tenant_id, call_id, schema_version) bir çıkarıma daraltılır (idempotent/replay-safe); at-least-once çift satır üretmez", "trace": "1.1.8 P3, ADR-007, fct_call dedup_key"},
+    {"id": "I6", "desc": "Analytics plane'de async/non-blocking (SAD §4.2/§171, FR-RES-011); çıkarım başarısızlığı canlı çağrıyı etkilemez; from_trace=false (hot-path dışı)", "trace": "SAD §4.2/§171, FR-RES-011, ADR-004"},
+    {"id": "I7", "desc": "Yalnız PII-redaksiyonlu kategorik/sayısal sinyal tüketir; ham transkript METNİ/ses payload/PII DEĞERİ sinyal/çıktıda yok (FR-REC-004; topic pii_class redacted/low)", "trace": "FR-REC-004, eventstream voice.transcript.redacted.v1, BRD §17.7"},
+    {"id": "I8", "desc": "Her çıkarım tenant_id taşır (FR-TEN-002); cross-tenant sinyal karışmaz; home-region (NFR 10.7); platform içeriği görmez (altın kural)", "trace": "FR-TEN-002, NFR 10.7, FR-IAM-008"},
+    {"id": "I9", "desc": "Uygun-olmayan statü açık reason_code taşır (sessiz atlama yok) — kapsam bütünlüğü", "trace": "FR-ANA-002, eligibility"},
+    {"id": "I10", "desc": "Taksonomi sağlayıcı-nötr (ADR-002) deterministik öncelik kuralı; LLM/NLU sınıflayıcı redaksiyonlu intent_signal ÜRETİR, motor onu kapalı-sözlüğe NORMALİZE eder; kapılar değişmez", "trace": "ADR-002, SAD §6.1 [2]"},
+    {"id": "I11", "desc": "Hata API §11.6 ErrorTaxonomy'ye eşlenir (malformed/unknown→INVALID_REQUEST, region→REGION_VIOLATION)", "trace": "API §11.6"},
+    {"id": "I12", "desc": "Kapsam ayrımı: otomatik skor (FR-ANA-001→14.2.1) + containment/transfer ORANI (FR-ANA-003→14.2.3, bu motorun outcome etiketini AGREGE eder) + İŞARETLER (FR-ANA-004→14.2.4) bu dilimde kapsam dışı", "trace": "FR-ANA-001/003/004, WBS"},
+    {"id": "I13", "desc": "spec/config'te sır/ham payload/transkript/PII DEĞERİ yok (yalnız sinyal/alan/kimlik/sözlük anahtarı ADLARI)", "trace": "FR-REC-004, ADR-002"}
+  ]
+}

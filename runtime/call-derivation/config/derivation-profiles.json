@@ -1,0 +1,28 @@
+{
+  "$comment": "WBS 14.2.2 intent/outcome/disposition/completion çıkarımı deployment profilleri (illüstratif; sır YOK, PII DEĞERİ YOK). Her profil çıkarım motorunun (Analytics/Ops Plane, async batch — SAD §4.2/§171) DEPLOYMENT parametrelerini taşır: region (residency home-region pini, NFR 10.7), schema_version (taksonomi/sözlük sürümü — idempotency dedup anahtarının parçası; sürüm artınca yeniden-türetme), batch_interval_s (event stream consumer tüketim periyodu — gecikme HARD kapı DEĞİL; FR-ANA-002 kapsam+kapalı-sözlük kapısıdır, latency değil). Vendor-neutral (ADR-002). Gerçek değerler canlı analytics plane'de (lifecycle+redacted consumer + OLAP/OLTP sink, SAD §12.1; ADR-007) ayarlanır. Bölge değerleri ${ENV} ile çözülür.",
+  "version": "1.0",
+  "default_profile": "eu-standard",
+  "profiles": [
+    {
+      "name": "eu-standard",
+      "$comment": "Standart EU dağıtımı. Async batch consumer; çıkarım başarısızlığı canlı çağrıyı ASLA etkilemez (non-blocking, FR-RES-011).",
+      "region": "${RUNTIME_REGION_EU}",
+      "schema_version": 1,
+      "batch_interval_s": 30
+    },
+    {
+      "name": "tr-standard",
+      "$comment": "TR home-region (residency NFR 10.7). Aynı taksonomi sürümü; çıkarım tenant home-region'ında üretilir ve oradan çıkmaz.",
+      "region": "${RUNTIME_REGION_TR}",
+      "schema_version": 1,
+      "batch_interval_s": 30
+    },
+    {
+      "name": "regulated-dedicated",
+      "$comment": "Regüle/dedicated tenant (finans/sağlık). İçerik tenant düzleminde kalır; platform (L0) yalnız agregat metrik görür (altın kural). Sözlük sürümü ayrı yönetilebilir.",
+      "region": "${RUNTIME_REGION_EU}",
+      "schema_version": 1,
+      "batch_interval_s": 15
+    }
+  ]
+}

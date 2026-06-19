@@ -1,0 +1,14 @@
+{
+  "name": "derivation-degraded",
+  "$comment": "BİLİNÇLİ bozuk motor — çoklu kapı eler (negatif kapı kanıtı). classify_all kapalı → sinyalsiz çağrı sessizce atlanır (G1 kapsam %100 bozulur). enforce_consistency kapalı → completion outcome ile desenkronize (b2 transferred ama completion=partial → C1/C4 G4). closed_vocab kapalı → ham intent_signal vocab-dışı geçer (G3). isolate_tenant kapalı → çıkarımda tenant_id yok (G8). non_blocking kapalı → motor çağrıyı bloklar (G6). Bir uygun-olmayan çağrı reason'sız (G9). Beklenen: ELENİR (expect=fail).",
+  "profile_obj": {"name": "broken", "region": "eu-west-1", "schema_version": 1, "batch_interval_s": 30},
+  "expect": "fail",
+  "context": {"tenant_id": "t_acme", "region": "eu-west-1", "correlation_id": "corr-acme-099"},
+  "policy": {"classify_all": false, "enforce_consistency": false, "closed_vocab": false, "isolate_tenant": false, "non_blocking": false},
+  "calls": [
+    {"call_id": "b1", "status": "completed", "features": {}},
+    {"call_id": "b2", "status": "completed", "features": {
+      "intent_signal": "wants_refund_free_text", "transferred": true, "flow_completed": true}},
+    {"call_id": "b3", "status": "abandoned_pre_connect"}
+  ]
+}
