@@ -1,0 +1,154 @@
+{
+  "$comment": "WBS 14.2.8 Dashboard + ham veri export — kaynak doğruluk. Analytics/Ops Plane'deki (SAD §4.2 ANALYTICS/OPS PLANE — async, batch; ADR-004/ADR-007) DASHBOARD + HAM VERİ EXPORT motoru: OLAP rollup/fact tablolarından (mv_call_daily / mv_usage_daily / mv_agent_version_perf / fct_call — 14.2.1/14.2.2/14.2.3/14.2.4/14.2.5 tarafından üretilir; bu motor metriği YENİDEN HESAPLAMAZ, OKUR) hem (a) dashboard panel agregatlarını tüketir hem (b) ALTTAKİ redaksiyonlu satırları bir EXPORT DOSYASINA (csv/jsonl/ndjson) yazar (FR-ANA-011). Çekirdek SR-ANA-011 (Yöntem T) gereği: 'Export dosyası üretilir ve TUTARLIDIR' — yani export edilen ham satırlar dashboard agregatını YENİDEN ÜRETİR (re-aggregation == tile değeri). BİRİNCİL HARD kapı = EXPORT BÜTÜNLÜĞÜ/TUTARLILIĞI (export edilen satır sayısı sorgulanan kümeyle birebir; düşme/çift yok; deterministik sıralama; manifest row_count+checksum tutarlı) + UZLAŞMA (dashboard tile agregatı == export satırlarının yeniden-agregasyonu). İKİNCİL çekirdek = YETKİLENDİRME (export `analytics:read` izni ister; karar backend'de; platform L0 altın kural). Sır/credential, ham ses payload, transkript METNİ, PII DEĞERİ YOK — export YALNIZ OLAP redaksiyonlu/agregat satır (pii_class ∈ {none,low,redacted}) taşır; ham PII/transkript/kayıt EXPORT'A GİRMEZ (FR-REC-004/005). Her export DERİN AKSİYONDUR → WORM audit (governance.audit.v1) izi (kim/ne zaman/hangi rapor/satır sayısı; içerik/PII taşımaz). KAPSAM AYRIMI: otomatik skor → 14.2.1 · per-call çıkarım → 14.2.2 · containment/transfer oranı → 14.2.3 · işaretler → 14.2.4 · kritik → 14.2.5 · MANUEL skor → 14.2.6 · sürüm karşılaştırma → 14.2.7 · maliyet raporu → 14.2.9 · GERÇEK-ZAMANLI op ekranı (≤60s, FR-ANA-012) → 14.1.6. Burada YALNIZ analitik dashboard agregatı + ham veri export + export-dashboard tutarlılığı.",
+  "wbs": "14.2.8",
+  "version": "1.0",
+  "phase": "F2",
+  "priority": "Must",
+  "eval_doc": {
+    "fr": "FR-ANA-011 (Dashboard ve ham veri export edilebilmelidir)",
+    "srs": "SR-ANA-011 (Yöntem T — Export dosyası üretilir ve tutarlıdır)",
+    "rtm": "FR-ANA-011 ↔ SR-ANA-011 ↔ TC-ANA-011 (T) ↔ WBS 14.2.8",
+    "brd": "BRD §15 (Analitik & Gözlemlenebilirlik) + §17.5/§17.6 A-14 (Analytics — dashboard içerik öğeleri + rol matrisi) + §17.7 (altın kural; PII redaction panoda) + §18.1 (KPI)",
+    "sad": "SAD §4.2 (Analytics/Ops Plane — async batch) + §12.1 (OLAP rollup/fact) + §14.4.1 (A-14 UI görsel kapı; nihai export + redaction + audit backend) + §17.1 (Visualization: Grafana/dashboard) + §171 (FR-RES-011 async post-processing)",
+    "db": "DB.md §5.5 (call ham transkript/kayıt PostgreSQL'de; OLAP'a girmez) + §6.5 (WORM audit)",
+    "olap": "analytics/olap-spec.json fact_tables (fct_call columns+pii_class) + rollups (mv_call_daily/mv_usage_daily/mv_agent_version_perf metrics; mv_usage_daily.dashboard_fr FR-ANA-011) + dim_date.fr FR-ANA-011 + invariant A4 (her sütun pii_class ∈ {none,low,redacted}; ham PII/transkript OLAP'a yazılmaz)",
+    "adr": "ADR-002 (vendor-neutral deterministik export) / ADR-004 (plane ayrımı) / ADR-007 (async event pipeline) / ADR-012 (RBAC bundle — analytics:read)",
+    "api": "API §8.1 (GET /analytics/{report} — export, redaction + audit ile) + §11.6 (ErrorTaxonomy) + x-required-permission analytics:read",
+    "frontend": "frontend/tenant-app/screens/a14-analytics (A-14 UI görsel kapı; action.export; FR-ANA-011 zaman serisi + export; bu motor BACKEND export + uzlaşma + redaction + audit yüzeyi)",
+    "upstream": "14.2.1 (auto_score) + 14.2.2 (intent/outcome) + 14.2.3 (containment/transfer) + 14.2.4/14.2.5 (flag_*) → OLAP fct_call/mv_* rollup → bu motor agregatı OKUR (dashboard) + ALTTAKİ redaksiyonlu satırı EXPORT eder; metriği yeniden hesaplamaz"
+  },
+  "placement": {
+    "$comment": "Export/dashboard motoru HOT-PATH'TE DEĞİL — Analytics/Ops Plane'de async batch (SAD §4.2/§171, FR-RES-011). OLAP rollup/fact'ı OKUR; başarısızlığı CANLI çağrıyı ASLA etkilemez (non_blocking). from_trace=false: export OLAP agregat/satır üzerinedir, trace span türetme değil. read_only=true / recomputes_metrics=false: metriği yeniden TÜRETMEZ/HESAPLAMAZ (14.2.1/14.2.2/14.2.3/14.2.4/14.2.5 üretir) — OKUR + EXPORT eder + dashboard ile UZLAŞTIRIR. deterministic=true: deterministik sıralama + checksum (sha256 sufficient-content'ten); random YOK.",
+    "in_analytics_plane": true,
+    "async_batch": true,
+    "non_blocking": true,
+    "from_redacted_content": true,
+    "read_only": true,
+    "recomputes_metrics": false,
+    "deterministic": true,
+    "idempotent": true,
+    "from_trace": false
+  },
+  "export_format": {
+    "$comment": "Export dosya formatı + manifest. supported_formats: dosya-yönelimli, kolon-tutarlı, makine-okunur (csv tablo / jsonl,ndjson satır-başına-JSON). Her export bir MANIFEST taşır (kaynak/sorgu kimliği + satır sayısı + checksum) → tüketici export'un TAM ve TUTARLI olduğunu doğrular. checksum: sha256 (deterministik; sıralı satırların kanonik serileştirmesi üzerinde) — random YOK. deterministic_order=true: satırlar order_by ile kararlı sıralanır (aynı sorgu → aynı dosya → aynı checksum, idempotency/replay-safe).",
+    "supported_formats": ["csv", "jsonl", "ndjson"],
+    "default_format": "csv",
+    "manifest_fields": ["report_id", "tenant_id", "source", "period", "format", "schema_version", "row_count", "checksum", "max_pii_class"],
+    "checksum_algo": "sha256",
+    "deterministic_order": true
+  },
+  "export_sources": {
+    "$comment": "Export edilebilir OLAP kaynakları KAPALI-KATALOĞU — analytics/olap-spec.json rollups/fact_tables ile BİREBİR (non-circular cross-check). Her kaynak redaksiyonlu/agregat (max_pii_class ∈ {none,low,redacted}; ham PII/transkript OLAP'a yazılmaz — A4). kind=rollup (önceden-agregat pano kaynağı) | fact (satır-düzeyi redaksiyonlu fact, ör. fct_call). Bilinmeyen kaynak export edilemez (G3). FR-ANA-011 izlenebilirliği: mv_usage_daily.dashboard_fr + dim_date.fr FR-ANA-011 taşır.",
+    "sources": {
+      "mv_call_daily": {"kind": "rollup", "fr": "FR-ANA-003"},
+      "mv_usage_daily": {"kind": "rollup", "fr": "FR-ANA-011"},
+      "mv_agent_version_perf": {"kind": "rollup", "fr": "FR-ANA-010"},
+      "fct_call": {"kind": "fact", "fr": "FR-ANA-002"}
+    },
+    "max_pii_class_allowed": ["none", "low", "redacted"]
+  },
+  "reconciliation": {
+    "$comment": "EXPORT-DASHBOARD TUTARLILIĞI — SR-ANA-011 'tutarlıdır'ın çekirdeği. Dashboard her tile'ı bir agregat gösterir; export edilen ALTTAKİ satırlar bu agregatı YENİDEN ÜRETMELİDİR (re-aggregation == tile değeri ±tolerance). agg_kinds: count (satır sayısı) · sum (bir sayısal sütun toplamı) · rate (num_column toplamı / den_column toplamı). partition_sum_check: bir tile grubu (ör. outcome dağılımı) handled paydası üzerinde toplamı 1.0 olmalı (14.2.3 ile hizalı). Uzlaşmazsa dashboard YANILTIR → G2 eler. Yeniden HESAPLAMAZ (14.2.x üretir) — export satırından AYNI agregatı türetip dashboard ile KARŞILAŞTIRIR.",
+    "agg_kinds": ["count", "sum", "rate"],
+    "tolerance": 1e-06,
+    "partition_sum_check": true
+  },
+  "authorization": {
+    "$comment": "Export DERİN AKSİYONDUR (A-14 spec: 'Export derin aksiyondur ve redaction + audit ile gerçekleşir'). required_permission = analytics:read (permission-key kaynak:eylem; FR-IAM-011/ADR-012). Karar HER ZAMAN backend'de (decided_in_backend). Platform L0 (RMC cross-tenant) tenant ham/agregat içeriğini EXPORT EDEMEZ (altın kural FR-IAM-008) — yalnız tenant düzlemi rolleri. Yetkisiz/L0/cross-tenant → AUTH. allowed/forbidden roller İLLÜSTRATİF (nihai yetki backend RBAC + RLS).",
+    "required_permission": "analytics:read",
+    "decided_in_backend": true,
+    "platform_l0_forbidden": true,
+    "unauthorized_error": "AUTH",
+    "allowed_roles_illustrative": ["operations_manager", "qa_analyst", "conversation_designer", "tenant_owner", "tenant_admin"],
+    "forbidden_roles_illustrative": ["human_agent", "platform_owner", "platform_sre", "platform_billing"]
+  },
+  "audit": {
+    "$comment": "Her export KAYIPSIZ governance.audit.v1 (no-loss, 365g WORM) izi üretir (action_code=data_export): kim (actor_role) / ne zaman / hangi rapor (report_id+source+period) / satır sayısı (row_count) / format. Audit izi İÇERİK/PII/ham satır TAŞIMAZ (yalnız metadata). SESSİZ export YOK (no_silent_export) — audit'siz export ihlal. Append-only WORM (düzeltme=yeni kayıt).",
+    "topic": "governance.audit.v1",
+    "action_code": "data_export",
+    "append_only_worm": true,
+    "no_silent_export": true,
+    "audit_fields": ["tenant_id", "actor_role", "action_code", "report_id", "source", "period", "row_count", "format", "created_at"],
+    "no_content_in_audit": true
+  },
+  "row_integrity": {
+    "$comment": "Export BÜTÜNLÜĞÜ (BİRİNCİL G1). order_by: deterministik sıralama anahtarları (kararlı sıra → aynı dosya → aynı checksum). dedup_key: satır benzersizlik anahtarı (at-least-once OLAP teslimat çift-satır üretmez — 1.1.8 P3; çift dedup_key DARALTILIR). Export edilen benzersiz satır sayısı == sorgulanan benzersiz satır sayısı (düşme=0, hayalet=0). manifest.row_count == export satır sayısı. preserve_all_rows: benzersiz satır SESSİZCE DÜŞMEZ.",
+    "requires_order_by": true,
+    "requires_dedup_key": true,
+    "no_silent_drop": true
+  },
+  "feature_policy": {
+    "$comment": "Export YALNIZ OLAP redaksiyonlu/agregat sütun taşır (FR-REC-004/005). Ham transkript METNİ / ses payload / kayıt URI / PII DEĞERİ / per-call serbest metin EXPORT'A GİREMEZ (G4). forbidden_export_keys whitelist-dışı yasak; cell DEĞERİnde ham PII deseni reddedilir. Export sütunları kaynağın (export_sources) OLAP sütun/metrik kataloğundan gelir (G3).",
+    "forbidden_export_keys": [
+      "transcript_text", "transcript", "audio_payload", "recording", "recording_uri", "object_uri",
+      "customer_name", "full_name", "phone_number", "msisdn", "email", "national_id",
+      "card_number", "pan", "cvv", "otp", "iban", "address", "human_comment", "comment_text"
+    ]
+  },
+  "isolation": {
+    "$comment": "Her export tek tenant_id taşır (FR-TEN-002 izolasyon); cross-tenant satır karışmaz; home-region (NFR 10.7 residency). Platform (L0) tenant içeriğini export edemez (altın kural — authorization.platform_l0_forbidden).",
+    "tenant_id_required": true,
+    "residency": "home-region",
+    "cross_tenant_forbidden": true
+  },
+  "idempotency": {
+    "$comment": "Replay-güvenli (1.1.8 P3 idempotent consumers). Aynı (tenant_id, report_id, source, period, format, schema_version) export bir kez üretilir — at-least-once teslimat çift-export üretmez (G8). Deterministik: aynı sorgu sonucu → aynı sıralı satır → aynı checksum (deterministic_content).",
+    "dedup_key": ["tenant_id", "report_id", "source", "period", "format", "schema_version"],
+    "replay_safe": true,
+    "deterministic_content": true
+  },
+  "output_contract": {
+    "$comment": "Export çıktısı = manifest + sıralı redaksiyonlu satırlar (dosya). consumes: OLAP rollup/fact (export_sources). persists/emits: export artifact (nesne depolama referansı — runtime'da; bu iskelette manifest) + governance.audit.v1 (data_export). identity_fields zorunlu (tenant izolasyon + rapor kimliği + idempotency). Yayımlanan export per-call PII/serbest metin taşımaz (pii_class ∈ {none,low,redacted}).",
+    "manifest_fields": ["report_id", "tenant_id", "source", "period", "format", "schema_version", "row_count", "checksum", "max_pii_class"],
+    "consumes": ["mv_call_daily", "mv_usage_daily", "mv_agent_version_perf", "fct_call"],
+    "emits": ["governance.audit.v1 (data_export)"]
+  },
+  "gates": {
+    "max_fidelity_violation": 0,
+    "max_reconciliation_violation": 0,
+    "max_format_violation": 0,
+    "max_pii_violation": 0,
+    "max_authz_violation": 0,
+    "max_isolation_violation": 0,
+    "max_audit_violation": 0,
+    "max_idempotency_violation": 0,
+    "max_blocking_violation": 0
+  },
+  "error_taxonomy": {
+    "$comment": "API §11.6 ErrorTaxonomy eşlemesi.",
+    "mapping": {
+      "malformed_request": "INVALID_REQUEST",
+      "unknown_source": "INVALID_REQUEST",
+      "unknown_format": "INVALID_REQUEST",
+      "missing_context": "INVALID_REQUEST",
+      "unauthorized_export": "AUTH",
+      "cross_tenant": "AUTH",
+      "region_mismatch": "REGION_VIOLATION"
+    }
+  },
+  "pii": {
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true
+  },
+  "metrics_emitted": {
+    "emitted": ["exports_total", "rows_exported_total", "reconciled_total", "rejected_total"]
+  },
+  "invariants": [
+    {"id": "I1", "desc": "Export edilen benzersiz satır sayısı == sorgulanan benzersiz satır sayısı (düşme=0, hayalet=0); manifest.row_count == export satır sayısı; benzersiz satır SESSİZCE DÜŞMEZ — EXPORT BÜTÜNLÜĞÜ (BİRİNCİL)", "trace": "FR-ANA-011, SR-ANA-011 (T), row_integrity"},
+    {"id": "I2", "desc": "Export edilen ALTTAKİ satırlar dashboard tile agregatını YENİDEN ÜRETİR (re-aggregation == tile değeri ±tolerance); partition tile grubu handled paydası üzerinde toplamı 1.0 — EXPORT-DASHBOARD TUTARLILIĞI (SR-ANA-011 'tutarlıdır')", "trace": "SR-ANA-011, reconciliation, FR-ANA-003"},
+    {"id": "I3", "desc": "Satırlar order_by ile DETERMİNİSTİK sıralanır + dedup_key ile benzersizleştirilir; checksum (sha256) sıralı kanonik içerikten — aynı sorgu → aynı dosya → aynı checksum (deterministik/replay-safe)", "trace": "export_format, idempotency.deterministic_content, ADR-002"},
+    {"id": "I4", "desc": "Export kaynağı export_sources kapalı-kataloğunda + analytics/olap-spec.json rollups/fact_tables ile BİREBİR (non-circular); bilinmeyen kaynak/format export edilemez", "trace": "export_sources, analytics/olap-spec.json, G3"},
+    {"id": "I5", "desc": "Export DERİN AKSİYON → analytics:read izni gerekir; karar backend'de; platform L0 tenant içeriğini export EDEMEZ (altın kural); yetkisiz/L0/cross-tenant → AUTH — YETKİLENDİRME (İKİNCİL çekirdek)", "trace": "FR-IAM-008/011, ADR-012, authorization, API x-required-permission"},
+    {"id": "I6", "desc": "Export YALNIZ OLAP redaksiyonlu/agregat sütun taşır (pii_class ∈ {none,low,redacted}); ham transkript/ses/kayıt URI/PII DEĞERİ/per-call serbest metin EXPORT'A GİRMEZ", "trace": "FR-REC-004/005, feature_policy, OLAP A4"},
+    {"id": "I7", "desc": "Her export tek tenant_id taşır (FR-TEN-002); cross-tenant satır karışmaz; home-region (NFR 10.7)", "trace": "FR-TEN-002, NFR 10.7, isolation"},
+    {"id": "I8", "desc": "Her export KAYIPSIZ governance.audit.v1 (data_export, no-loss WORM) izi üretir (kim/ne zaman/hangi rapor/satır sayısı/format); SESSİZ export YOK; audit içerik/PII TAŞIMAZ", "trace": "FR-IAM-006, governance.audit.v1, audit", "x": "BRD §17.7"},
+    {"id": "I9", "desc": "Aynı (tenant,report,source,period,format,schema) bir kez üretilir (idempotent/replay-safe); duplicate export ihlal", "trace": "1.1.8 P3, ADR-007, idempotency.dedup_key"},
+    {"id": "I10", "desc": "Analytics plane'de async/non-blocking (SAD §4.2/§171, FR-RES-011); export başarısızlığı canlı çağrıyı etkilemez; from_trace=false (hot-path dışı); read_only/recomputes_metrics=false (metriği yeniden hesaplamaz — 14.2.x üretir, OKUR)", "trace": "SAD §4.2/§171, FR-RES-011, ADR-004, placement"},
+    {"id": "I11", "desc": "Export sağlayıcı-nötr (ADR-002) deterministik (sıralama + sha256 checksum; random YOK); aynı sorgu → aynı dosya", "trace": "ADR-002, placement.deterministic"},
+    {"id": "I12", "desc": "Hata API §11.6 ErrorTaxonomy'ye eşlenir (malformed/unknown_source/unknown_format→INVALID_REQUEST, unauthorized/cross_tenant→AUTH, region→REGION_VIOLATION)", "trace": "API §11.6"},
+    {"id": "I13", "desc": "Dashboard tile agregatı OLAP rollup/fact'tan OKUNUR (14.2.x üretir) — bu motor agregatı YENİDEN HESAPLAMAZ, export ile UZLAŞTIRIR; uzlaşma export'un dashboard'a SADAKATİNİ doğrular", "trace": "reconciliation, recomputes_metrics=false, FR-ANA-011"},
+    {"id": "I14", "desc": "Kapsam ayrımı: otomatik skor (→14.2.1) + per-call çıkarım (→14.2.2) + oran (→14.2.3) + işaretler (→14.2.4) + kritik (→14.2.5) + manuel skor (→14.2.6) + sürüm karşılaştırma (→14.2.7) + maliyet (→14.2.9) + GERÇEK-ZAMANLI op ekranı ≤60s (FR-ANA-012→14.1.6) bu dilimde kapsam dışı; burada YALNIZ dashboard agregatı + ham veri export + tutarlılık", "trace": "FR-ANA-001/002/003/004/008/012, WBS"},
+    {"id": "I15", "desc": "spec/config'te sır/ham payload/transkript/PII DEĞERİ yok (yalnız kaynak/sütun/kimlik/sözlük anahtarı ADLARI + sayısal eşik + ${ENV} placeholder)", "trace": "FR-REC-004, ADR-002"}
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "name": "export-happy-path",
+  "$comment": "Temiz analitik dashboard + ham veri export: yetkili operations_manager (analytics:read) mv_call_daily kaynağından 3 günlük (2026-06-01..03) redaksiyonlu agregat satırı CSV export eder. Dashboard 4 tile gösterir: total_calls=300 (sum), days=3 (count), containment_rate=0.70 (rate=contained/calls) + outcome partition (contained 0.70 + transferred 0.30 = 1.0). EXPORT BÜTÜNLÜĞÜ: 3 benzersiz satır, deterministik sıralama (event_date), manifest row_count=3 + sha256 checksum. TUTARLILIK: export satırlarının yeniden-agregasyonu tüm tile'ları YENİDEN ÜRETİR (SR-ANA-011). Tüm sütunlar OLAP redaksiyonlu/agregat (pii_class none/low); ham PII/transkript YOK. Her export → governance.audit.v1 (data_export) WORM izi. Tüm HARD kapı (G1–G9) geçer.",
+  "expect": "pass",
+  "context": {"tenant_id": "t_acme", "region": "eu-west-1", "correlation_id": "corr-acme-031"},
+  "profile_obj": {"name": "eu-standard", "region": "eu-west-1", "schema_version": 1, "default_format": "csv"},
+  "request": {
+    "exports": [
+      {
+        "report_id": "rep_call_daily_2026_06",
+        "source": "mv_call_daily",
+        "format": "csv",
+        "period": "2026-06",
+        "schema_version": 1,
+        "actor": {"role": "operations_manager", "permissions": ["analytics:read", "calls:read"]},
+        "columns": ["tenant_id", "event_date", "agent_id", "agent_version_id", "calls", "contained_calls", "transferred_calls"],
+        "order_by": ["event_date"],
+        "dedup_key": ["event_date"],
+        "dashboard": {
+          "tiles": [
+            {"name": "total_calls", "agg": "sum", "column": "calls", "value": 300},
+            {"name": "days", "agg": "count", "value": 3},
+            {"name": "containment_rate", "agg": "rate", "num_column": "contained_calls", "den_column": "calls", "value": 0.7},
+            {"name": "contained_share", "agg": "rate", "num_column": "contained_calls", "den_column": "calls", "value": 0.7, "group": "outcome", "tol": 1e-9},
+            {"name": "transferred_share", "agg": "rate", "num_column": "transferred_calls", "den_column": "calls", "value": 0.3, "group": "outcome", "tol": 1e-9}
+          ]
+        },
+        "rows": [
+          {"tenant_id": "t_acme", "event_date": "2026-06-01", "agent_id": "ag_support", "agent_version_id": "v2", "calls": 100, "contained_calls": 70, "transferred_calls": 30},
+          {"tenant_id": "t_acme", "event_date": "2026-06-02", "agent_id": "ag_support", "agent_version_id": "v2", "calls": 80, "contained_calls": 56, "transferred_calls": 24},
+          {"tenant_id": "t_acme", "event_date": "2026-06-03", "agent_id": "ag_support", "agent_version_id": "v2", "calls": 120, "contained_calls": 84, "transferred_calls": 36}
+        ]
+      }
+    ]
+  },
+  "expected": {"fidelity_violations": 0, "reconciliation_violations": 0, "format_violations": 0,
+               "pii_violations": 0, "authz_violations": 0, "isolation_violations": 0, "audit_violations": 0,
+               "idempotency_violations": 0, "blocking_violations": 0},
+  "expected_derived": {"exports_count": 1, "rows_exported": 3, "reconciled_tiles": 5}
+}

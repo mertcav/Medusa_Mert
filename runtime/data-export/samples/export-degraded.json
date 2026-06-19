@@ -1,0 +1,34 @@
+{
+  "name": "export-degraded",
+  "$comment": "BUGGY motor simülasyonu (expect=fail): policy + girdi ile ÇOKLU kusur açılır — (1) preserve_all_rows KAPALI → benzersiz satır SESSİZCE düşürülür (G1 bütünlük: export 2 ≠ sorgulanan 3) → dashboard agregatı da YENİDEN ÜRETİLEMEZ (G2 uzlaşma: total_calls=300 ama düşük satırdan ≠300); (2) actor=human_agent (A-14 erişim YOK) → yetkisiz export (G5 yetki); (3) audit KAPALI → SESSİZ export (G7 audit). HARD kapılar bu kusurları yakalamalı → ELENİR. PII DEĞERİ / ham transkript YOK.",
+  "expect": "fail",
+  "context": {"tenant_id": "t_acme", "region": "eu-west-1", "correlation_id": "corr-acme-099"},
+  "profile_obj": {"name": "eu-standard", "region": "eu-west-1", "schema_version": 1, "default_format": "csv"},
+  "policy": {"preserve_all_rows": false, "audit": false},
+  "request": {
+    "exports": [
+      {
+        "report_id": "rep_call_daily_bad",
+        "source": "mv_call_daily",
+        "format": "csv",
+        "period": "2026-06",
+        "schema_version": 1,
+        "actor": {"role": "human_agent", "permissions": ["analytics:read"]},
+        "columns": ["tenant_id", "event_date", "agent_id", "calls", "contained_calls", "transferred_calls"],
+        "order_by": ["event_date"],
+        "dedup_key": ["event_date"],
+        "dashboard": {
+          "tiles": [
+            {"name": "total_calls", "agg": "sum", "column": "calls", "value": 300},
+            {"name": "days", "agg": "count", "value": 3}
+          ]
+        },
+        "rows": [
+          {"tenant_id": "t_acme", "event_date": "2026-06-01", "agent_id": "ag_support", "calls": 100, "contained_calls": 70, "transferred_calls": 30},
+          {"tenant_id": "t_acme", "event_date": "2026-06-02", "agent_id": "ag_support", "calls": 80, "contained_calls": 56, "transferred_calls": 24},
+          {"tenant_id": "t_acme", "event_date": "2026-06-03", "agent_id": "ag_support", "calls": 120, "contained_calls": 84, "transferred_calls": 36}
+        ]
+      }
+    ]
+  }
+}

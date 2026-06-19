@@ -1,0 +1,38 @@
+{
+  "name": "export-degraded-input",
+  "$comment": "Zorlu ama GEÇERLİ export: TR home-region, qa_analyst (analytics:read), JSONL format, mv_call_daily. Önemli kanıt: girdi at-least-once teslimat nedeniyle 2026-06-01 satırını İKİ KEZ içerir (replay) — engine dedup_key (event_date) ile DARALTIR → 2 benzersiz satır (1.1.8 P3 idempotent ingest); çift-satır SESSİZ kayıp/çift-sayım üretmez. Dashboard agregatı (total_calls=180, days=2, containment 0.70) BENZERSİZ satırlar üzerinden uzlaşır — replay satır agregatı şişirmez. Bunlar DOĞRU davranıştır → tüm HARD kapı GEÇER (fidelity/reconciliation/idempotency=0). PII DEĞERİ / ham transkript YOK.",
+  "expect": "pass",
+  "context": {"tenant_id": "t_globex", "region": "tr-central-1", "correlation_id": "corr-globex-044"},
+  "profile_obj": {"name": "tr-standard", "region": "tr-central-1", "schema_version": 1, "default_format": "jsonl"},
+  "request": {
+    "exports": [
+      {
+        "report_id": "rep_call_daily_tr",
+        "source": "mv_call_daily",
+        "format": "jsonl",
+        "period": "2026-06",
+        "schema_version": 1,
+        "actor": {"role": "qa_analyst", "permissions": ["analytics:read"]},
+        "columns": ["tenant_id", "event_date", "agent_id", "calls", "contained_calls", "transferred_calls"],
+        "order_by": ["event_date"],
+        "dedup_key": ["event_date"],
+        "dashboard": {
+          "tiles": [
+            {"name": "total_calls", "agg": "sum", "column": "calls", "value": 180},
+            {"name": "days", "agg": "count", "value": 2},
+            {"name": "containment_rate", "agg": "rate", "num_column": "contained_calls", "den_column": "calls", "value": 0.7}
+          ]
+        },
+        "rows": [
+          {"tenant_id": "t_globex", "event_date": "2026-06-01", "agent_id": "ag_collections", "calls": 100, "contained_calls": 70, "transferred_calls": 30},
+          {"tenant_id": "t_globex", "event_date": "2026-06-02", "agent_id": "ag_collections", "calls": 80, "contained_calls": 56, "transferred_calls": 24},
+          {"tenant_id": "t_globex", "event_date": "2026-06-01", "agent_id": "ag_collections", "calls": 100, "contained_calls": 70, "transferred_calls": 30}
+        ]
+      }
+    ]
+  },
+  "expected": {"fidelity_violations": 0, "reconciliation_violations": 0, "format_violations": 0,
+               "pii_violations": 0, "authz_violations": 0, "isolation_violations": 0, "audit_violations": 0,
+               "idempotency_violations": 0, "blocking_violations": 0},
+  "expected_derived": {"exports_count": 1, "rows_exported": 2}
+}
