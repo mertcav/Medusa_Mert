@@ -1,0 +1,31 @@
+{
+  "$comment": "WBS 14.1.6 gerçek zamanlı operasyon ekranı VERİ TAZELİĞİ deployment profilleri (illüstratif; sır YOK, PII DEĞERİ YOK). Her profil tazelik zincirinin DEPLOYMENT zamanlamasını taşır: ingest_lag_s (sinyal emisyonu→TSDB/datasource görünürlüğü, scrape) + refresh_interval_s (pano otomatik yenileme periyodu) + render_lag_s (sorgu+render). Tazelik = ingest+query_step(tile)+refresh+render ≤ 60s (FR-ANA-012, spec freshness_budget). Tile başına query_step_s SPEC'tedir; profil yalnız altyapı zamanlamasını + region pinini (residency NFR 10.7) sağlar. refresh_interval_s 0.4.7 grafana refresh (30s) ile ≤ (tightens-or-equals). Vendor-neutral (ADR-002; Grafana açık). Gerçek değerler canlı runtime'da (Prometheus scrape + Grafana refresh, SAD §11/§17.1; ADR-003 Go/Rust runtime sinyal emisyonu) ayarlanır. Bölge değerleri ${ENV} ile çözülür.",
+  "version": "1.0",
+  "default_profile": "eu-standard",
+  "profiles": [
+    {
+      "name": "eu-standard",
+      "$comment": "Standart EU dağıtımı. ingest 10s + refresh 30s + render 5s = 45s sabit ek yük; en geniş query_step (10s) + bu ek yük = 55s ≤ 60s (FR-ANA-012 headroom 5s).",
+      "region": "${RUNTIME_REGION_EU}",
+      "ingest_lag_s": 10,
+      "refresh_interval_s": 30,
+      "render_lag_s": 5
+    },
+    {
+      "name": "tr-standard",
+      "$comment": "TR home-region (residency NFR 10.7). Aynı tazelik disiplini; tenant panoları home-region datasource'a yönlenir.",
+      "region": "${RUNTIME_REGION_TR}",
+      "ingest_lag_s": 10,
+      "refresh_interval_s": 30,
+      "render_lag_s": 5
+    },
+    {
+      "name": "low-latency-ops",
+      "$comment": "Sıkı tazelik (kritik op merkezi): ingest 5s + refresh 15s + render 3s = 23s ek yük → daha fazla query_step headroom. FR-ANA-012'yi geniş marjla karşılar.",
+      "region": "${RUNTIME_REGION_EU}",
+      "ingest_lag_s": 5,
+      "refresh_interval_s": 15,
+      "render_lag_s": 3
+    }
+  ]
+}

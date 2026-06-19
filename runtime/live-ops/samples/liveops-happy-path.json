@@ -1,0 +1,19 @@
+{
+  "name": "liveops-happy-path",
+  "$comment": "Sağlıklı tenant operasyon görünümü: tenant t_acme kendi gerçek zamanlı op ekranını açar. 7/7 operasyonel grup + 15/15 grafana metrik yüzeylenir, 8 tile kompoze edilir, her tile veri tazeliği = 45s ek-yük (ingest 10 + refresh 30 + render 5) + query_step ≤ 10 = ≤55s ≤ 60s (FR-ANA-012), tenant-scope tile tenant_id filtresi taşır (izolasyon), tile boyutları DÜŞÜK-kardinalite + PII yok, Tier A (ham içerik yok), auto-refresh açık, drill-down exemplar. PII DEĞERİ YOK — yalnız sinyal + kimlik/etiket anahtarı ADLARI.",
+  "profile": "eu-standard",
+  "expect": "pass",
+  "context": {"tenant_id": "t_acme", "org_unit": "ou_support", "region": "eu-west-1", "correlation_id": "corr-acme-001"},
+  "view_request": {"scope": "tenant", "tenant_id": "t_acme"},
+  "signals": [
+    {"tile": "tile_e2e_latency", "value": 980},
+    {"tile": "tile_component_latency", "value": 420},
+    {"tile": "tile_provider_errors", "value": 0.01},
+    {"tile": "tile_traffic_outcomes", "value": 3},
+    {"tile": "tile_media_quality", "value": 0.012},
+    {"tile": "tile_per_call_resource", "value": 11000000},
+    {"tile": "tile_cost_tokens", "value": 0.42},
+    {"tile": "tile_active_alarms", "value": 1}
+  ],
+  "expected": {"composed": 8, "coverage_missing": 0, "freshness_violations": 0, "scope_violations": 0}
+}

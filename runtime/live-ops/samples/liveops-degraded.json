@@ -1,0 +1,13 @@
+{
+  "name": "liveops-degraded",
+  "$comment": "BİLİNÇLİ bozuk yapılandırma — çoklu kapı eler (negatif kapı kanıtı). Yavaş profil (ingest 20 + refresh 30 + render 15 = 65s ek-yük) + honor_freshness kapalı (query/render şişer) → G3 tazelik bütçe aşımı (>60s). scope_tenant kapalı → tenant görünümü tenant_id taşımaz (G4 cross-tenant sızıntı). enforce_pii kapalı → phone_number tile boyutu (G6). enforce_tier_a kapalı → transcript_text tile'da (G6 content; Tier A ihlali). auto_refresh kapalı → durağan pano (G7). Beklenen: ELENİR (expect=fail).",
+  "profile_obj": {"name": "slow-broken", "region": "eu-west-1", "ingest_lag_s": 20, "refresh_interval_s": 30, "render_lag_s": 15},
+  "expect": "fail",
+  "context": {"tenant_id": "t_acme", "region": "eu-west-1", "correlation_id": "corr-acme-009"},
+  "view_request": {"scope": "tenant", "tenant_id": "t_acme"},
+  "policy": {"honor_freshness": false, "scope_tenant": false, "enforce_pii": false, "enforce_tier_a": false, "auto_refresh": false},
+  "signals": [
+    {"tile": "tile_e2e_latency", "value": 1600},
+    {"tile": "tile_active_alarms", "value": 2}
+  ]
+}

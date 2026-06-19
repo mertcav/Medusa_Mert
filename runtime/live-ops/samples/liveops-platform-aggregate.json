@@ -1,0 +1,14 @@
+{
+  "name": "liveops-platform-aggregate",
+  "$comment": "L0 platform (RMC SRE) cross-tenant operasyon görünümü: scope=platform → Tier A AGREGAT metrik/alarm (tenant_id boyutu YOK; altın kural — L0 tenant iş içeriğini GÖRMEZ, yalnız metrik/kaynak verisi). Platform görünümünde tile'lar tenant_id filtresi taşımaması SIZINTI DEĞİL — agregat görünüm bilinçlidir, içerik (transkript/kayıt) hâlâ yasak (Tier A). low-latency-ops profili (ingest 5 + refresh 15 + render 3 = 23s ek-yük → daha düşük tazelik). Tüm kapılar geçer.",
+  "profile": "low-latency-ops",
+  "expect": "pass",
+  "context": {"tenant_id": "rmc_platform", "org_unit": "rmc_sre", "region": "eu-west-1", "correlation_id": "corr-rmc-001"},
+  "view_request": {"scope": "platform"},
+  "signals": [
+    {"tile": "tile_e2e_latency", "value": 1100},
+    {"tile": "tile_per_call_resource", "value": 13000000},
+    {"tile": "tile_active_alarms", "value": 4}
+  ],
+  "expected": {"scope_violations": 0, "coverage_missing": 0, "freshness_violations": 0, "content_violations": 0}
+}

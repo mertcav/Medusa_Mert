@@ -1,0 +1,215 @@
+{
+  "$comment": "WBS 14.1.6 Gerçek zamanlı operasyon ekranı (≤60sn gecikme) — kaynak doğruluk. SAD §17.1 'Visualization: Grafana dashboard'ları; gerçek zamanlı operasyon ekranı (FR-ANA-012, ≤60sn gecikme)' runtime/gözlemlenebilirlik karşılığı: REAL-TIME OPERATIONS VIEW COMPOSER. 14.1.2 (call-metrics) + 14.1.3 (call-resource) metrik sinyallerini ve 14.1.5 (call-alarms) aktif alarmlarını TÜKETİR (yeniden ÖLÇMEZ/ÜRETMEZ); operasyon ekranının panel/tile modelini, BRD §15/SAD §17.1 operasyonel sinyal gruplarının kapsamını ve ≤60sn TAZELİK (freshness) bütçesini (FR-ANA-012; max_freshness_budget_s ≤ 60) tanımlar. Tile→metrik bağı 0.4.7 observability-spec metrics.catalog + grafana-dashboard-voice-runtime paneli ile BİREBİR (probe çapraz-kontrol; non-circular); alarm tile'ı 0.4.7 alerts.catalog (11) ile BİREBİR. Tier A (yalnız metrik/agregat) — ham transkript/kayıt/ses payload + PII DEĞERİ YOK (içerik → A-12; altın kural: L0 platform tenant iş içeriğini GÖRMEZ). Sır/credential, ham payload, transkript, PII DEĞERİ YOK — yalnız sinyal/etiket/kimlik anahtarı ADLARI.",
+  "wbs": "14.1.6",
+  "version": "1.0",
+  "phase": "F1",
+  "priority": "Must",
+  "view_doc": {
+    "brd": "BRD §15 (operasyonel gözlemlenebilirlik: teknik metrikler + alarm) + §17.5 (A-02 canlı izleme ekranı)",
+    "nfr": "NFR 10.1 (gecikme bütçesi) — gerçek zamanlı op ekranı veri tazeliği ≤60sn (FR-ANA-012)",
+    "fr": "FR-ANA-012 (gerçek zamanlı operasyon ekranı bulunmalıdır — ≤60sn) / FR-ANA-013 (per-call kaynak) / FR-REC-004 (PII redaction) / FR-TEN-002 (tenant izolasyon)",
+    "sad": "SAD §17.1 (İzleme Omurgası → Visualization: Grafana, gerçek-zamanlı op ekranı ≤60sn) + §17.3 (maliyet/kaynak gözlemlenebilirliği) + §13.3 (context/label) + §14.4.1 (panel)",
+    "adr": "ADR-001 (bağımsız Orchestrator) / ADR-002 (vendor-neutral; Grafana açık) / ADR-003 (Go/Rust runtime sinyal emisyonu) / ADR-011 (L0/L1/L2 plane ayrımı)",
+    "api": "API §11.6 (ErrorTaxonomy)",
+    "observability": "0.4.7 observability-spec.json dashboards (freshness_budget_s=60, required=voice-runtime) + metrics.catalog (15 panel-referanslı, BİREBİR) + alerts.catalog (11) + label_policy + config/grafana-dashboard-voice-runtime.json (refresh 30s)",
+    "upstream": "14.1.2 call-metrics (metrik DEĞERLERİ) + 14.1.3 call-resource (per-call CPU/bellek) + 14.1.5 call-alarms (aktif alarmlar) + 14.1.1 call-trace (drill-down hedefi)"
+  },
+  "placement": {
+    "$comment": "Real-time Operations View Composer gözlemlenebilirlik VISUALIZATION katmanında (SAD §17.1); sinyallerden (metrik/alarm) okur, READ-ONLY view komposizyonu yapar. from_signals=true (14.1.2/14.1.3/14.1.5'ten okur), from_trace=false (trace türetme değil; trace=14.1.1). tier_a_metrics_only=true: gerçek zamanlı ekran YALNIZ metrik/agregat gösterir — ham içerik (transkript/kayıt/PII) GÖSTERMEZ (altın kural; içerik → A-12). tenant_scoped_view=true: tenant görünümü yalnız kendi verisi (FR-TEN-002).",
+    "in_observability_plane": true,
+    "visualization_layer": true,
+    "read_only": true,
+    "from_signals": true,
+    "tenant_scoped_view": true,
+    "tier_a_metrics_only": true,
+    "from_trace": false
+  },
+  "freshness_budget": {
+    "$comment": "FR-ANA-012 'gerçek zamanlı operasyon ekranı (≤60sn gecikme)'. Uçtan-uca VERİ TAZELİĞİ (en yeni gösterilen veri noktasının yaşı) = ingest_lag (sinyal emisyonu→TSDB/datasource görünürlüğü, scrape) + query_step (pano sorgu adımı/min-interval değerlendirme gecikmesi — lookback PENCERESİ DEĞİL) + refresh_interval (pano otomatik yenileme periyodu) + render_lag (sorgu+render). Her tile için bu toplam ≤ max_freshness_budget_s olmalı. Bu, 14.1.6'nın BİRİNCİL HARD kapısı (G3). max_freshness_budget_s 0.4.7 dashboards.freshness_budget_s ile BİREBİR (60). 14.1.5 detection_budget'ın (alarm ≤2dk) GÖRSELLEŞTİRME muadili.",
+    "max_freshness_budget_s": 60,
+    "components": ["ingest_lag_s", "query_step_s", "refresh_interval_s", "render_lag_s"],
+    "formula": "ingest_lag_s + query_step_s + refresh_interval_s + render_lag_s <= max_freshness_budget_s"
+  },
+  "refresh": {
+    "$comment": "Pano otomatik-yenileme disiplini (G7). default_refresh_interval_s RUNTIME yenileme periyodu; 0.4.7 grafana-dashboard-voice-runtime.json refresh (30s) ile küçük-veya-eşit (runtime tightens-or-equals — tam tazelik zincirini bağlar, yalnız refresh değil). auto_refresh zorunlu (durağan pano gerçek zamanlı değil). stale_indicator: veri tazeliği bütçeyi aşarsa kullanıcıya bayat-veri göstergesi. grafana_dashboard_uid 0.4.7 dashboards.required içinde olmalı.",
+    "default_refresh_interval_s": 30,
+    "grafana_dashboard_uid": "voice-runtime",
+    "auto_refresh": true,
+    "stale_indicator": true
+  },
+  "label_policy": {
+    "$comment": "0.4.7 observability-spec label_policy ile hizalı (probe çapraz-kontrol). Tile filtre/boyutları DÜŞÜK-kardinalite: yönlendirme/gruplama (tenant_id/agent_id/region/...). Yüksek-kardinalite kimlik (correlation_id/call_id) tile BOYUTU OLAMAZ — yalnız drill-down exemplar/annotation (G5/G8). PII anahtarı hiçbir tile boyutunda olamaz (G6, BRD §17.7/FR-REC-004). tile_dims_allowed ⊆ 0.4.7 metric_labels_allowed.",
+    "tile_dims_allowed": ["tenant_id", "org_unit", "agent_id", "region", "provider", "category", "outcome", "sip_code", "codec"],
+    "high_cardinality_keys": ["correlation_id", "call_id", "customer_id", "session_id"],
+    "pii_forbidden_keys": ["phone_number", "msisdn", "customer_name", "full_name", "email", "national_id", "card_number", "pan", "cvv", "otp", "password", "token", "ssn", "iban", "address", "transcript_text", "audio_payload"],
+    "exemplar_keys": ["correlation_id", "trace_id"]
+  },
+  "content_policy": {
+    "$comment": "Tier A disiplini (altın kural — L0/L1/L2 §14.4.1). Gerçek zamanlı operasyon ekranı YALNIZ metrik/agregat gösterir; ham çağrı içeriği (transkript metni / ses kaydı byte / nesne-depo URI / çağrı özeti) GÖSTERMEZ — içerik tek-çağrı detayında (A-12) yetki+audit ile. forbidden_content_keys bir tile'da bulunamaz (G6 content).",
+    "tier": "A",
+    "forbidden_content_keys": ["transcript_text", "transcript", "recording", "recording_bytes", "audio_payload", "audio", "call_summary", "storage_uri", "signed_url", "customer_pii"]
+  },
+  "signal_catalog": {
+    "$comment": "Her tile'ın sinyali bu katalogda olmalı (G2: orphan tile yok). metric_signals 0.4.7 observability-spec grafana-dashboard-voice-runtime panellerinin REFERANSLADIĞI 15 metrik = gerçek zamanlı ekranın yüzeylediği küme (BİREBİR; probe grafana JSON'undan çapraz-türetir, non-circular) + tümü 0.4.7 metrics.catalog (20) ALT-KÜMESİ. alarm_signals 0.4.7 alerts.catalog (11) ile BİREBİR (14.1.5). 0.4.7 metrics.catalog'un grafana'da REFERANSLANMAYAN 5 metriği (voice_codec_info/telephony_sip_response_total/stt_word_confidence/tool_latency_ms/silence_duration_ms) gerçek zamanlı GLANCE ekranında değil — drill-down/analitik (14.2) yüzeyinde.",
+    "metric_signals": [
+      "e2e_response_latency_ms", "stt_latency_ms", "llm_latency_ms", "tts_latency_ms",
+      "provider_error_ratio", "retry_fallback_total",
+      "barge_in_total", "transfer_result_total", "call_termination_total",
+      "voice_packet_loss_ratio", "voice_jitter_ms",
+      "call_memory_bytes", "call_cpu_seconds",
+      "cost_per_minute", "llm_tokens_total"
+    ],
+    "alarm_signals": [
+      "E2EP95LatencyHigh", "STTErrorRateHigh", "LLMProviderErrorRateHigh", "HandoffFailure",
+      "ToolErrorRateHigh", "SilentCallDetected", "ConsentSkipDetected", "InfoLeakDetected",
+      "TenantCapacity80", "SpendLimitExceeded", "ResourceBudgetExceeded"
+    ]
+  },
+  "tile_groups": {
+    "$comment": "Gerçek zamanlı operasyon ekranının taşıması gereken operasyonel sinyal GRUPLARI (G1 kapsam). Her grubun ≥1 tile'ı olmalı + grafana panellerinin referansladığı her metrik bir tile'da yüzeylenmeli (non-circular kapsam).",
+    "required": ["latency", "errors", "traffic", "quality", "resource", "cost", "alarms"]
+  },
+  "tiles": [
+    {
+      "name": "tile_e2e_latency",
+      "group": "latency",
+      "kind": "metric",
+      "title": "E2E Yanıt Gecikmesi P50/P95/P99",
+      "signals": ["e2e_response_latency_ms"],
+      "aggregation": "histogram_quantile(0.50|0.95|0.99)",
+      "scope_support": ["platform", "tenant"],
+      "query_step_s": 10,
+      "panel_id": 1,
+      "slo": "P95 ≤ 1200ms (NFR 10.1) / alarm P95 > 1500ms (E2EP95LatencyHigh)"
+    },
+    {
+      "name": "tile_component_latency",
+      "group": "latency",
+      "kind": "metric",
+      "title": "STT / LLM / TTS Gecikme P95",
+      "signals": ["stt_latency_ms", "llm_latency_ms", "tts_latency_ms"],
+      "aggregation": "histogram_quantile(0.95)",
+      "scope_support": ["platform", "tenant"],
+      "query_step_s": 10,
+      "panel_id": 2,
+      "slo": "SAD §20 bileşen bütçesi"
+    },
+    {
+      "name": "tile_provider_errors",
+      "group": "errors",
+      "kind": "metric",
+      "title": "Sağlayıcı Hata Oranı + Retry/Fallback",
+      "signals": ["provider_error_ratio", "retry_fallback_total"],
+      "aggregation": "max by(provider) | rate by(category)",
+      "scope_support": ["platform", "tenant"],
+      "query_step_s": 5,
+      "panel_id": 3,
+      "slo": "alarm provider err > 0.05 (LLMProviderErrorRateHigh)"
+    },
+    {
+      "name": "tile_traffic_outcomes",
+      "group": "traffic",
+      "kind": "metric",
+      "title": "Barge-in + Transfer Sonucu + Sonlandırma",
+      "signals": ["barge_in_total", "transfer_result_total", "call_termination_total"],
+      "aggregation": "rate by(outcome)",
+      "scope_support": ["platform", "tenant"],
+      "query_step_s": 5,
+      "panel_id": 4,
+      "slo": "alarm transfer failed / silent call"
+    },
+    {
+      "name": "tile_media_quality",
+      "group": "quality",
+      "kind": "metric",
+      "title": "Medya Kalitesi: Packet Loss / Jitter",
+      "signals": ["voice_packet_loss_ratio", "voice_jitter_ms"],
+      "aggregation": "avg by(tenant_id) | histogram_quantile(0.95)",
+      "scope_support": ["platform", "tenant"],
+      "query_step_s": 5,
+      "panel_id": 5,
+      "slo": "SAD §20 medya bütçesi"
+    },
+    {
+      "name": "tile_per_call_resource",
+      "group": "resource",
+      "kind": "metric",
+      "title": "Per-call Kaynak: CPU / Bellek (FR-ANA-013)",
+      "signals": ["call_memory_bytes", "call_cpu_seconds"],
+      "aggregation": "histogram_quantile(0.95)",
+      "scope_support": ["platform", "tenant"],
+      "query_step_s": 10,
+      "panel_id": 6,
+      "slo": "bellek P95 ≤ 15MB (FR-RES-016, NFR 10.2) / alarm ResourceBudgetExceeded"
+    },
+    {
+      "name": "tile_cost_tokens",
+      "group": "cost",
+      "kind": "metric",
+      "title": "Maliyet / Dakika + Token Kullanımı",
+      "signals": ["cost_per_minute", "llm_tokens_total"],
+      "aggregation": "avg by(tenant_id) | rate by(provider)",
+      "scope_support": ["platform", "tenant"],
+      "query_step_s": 10,
+      "panel_id": 7,
+      "slo": "alarm SpendLimitExceeded (FR-ANA-007, FR-BIL-002)"
+    },
+    {
+      "name": "tile_active_alarms",
+      "group": "alarms",
+      "kind": "alarm",
+      "title": "Aktif Alarmlar (BRD §15)",
+      "signals": ["E2EP95LatencyHigh", "STTErrorRateHigh", "LLMProviderErrorRateHigh", "HandoffFailure", "ToolErrorRateHigh", "SilentCallDetected", "ConsentSkipDetected", "InfoLeakDetected", "TenantCapacity80", "SpendLimitExceeded", "ResourceBudgetExceeded"],
+      "aggregation": "ALERTS{alertstate=firing}",
+      "scope_support": ["platform", "tenant"],
+      "query_step_s": 0,
+      "panel_id": null,
+      "slo": "14.1.5 call-alarms — aktif alarm overlay (≤2dk üretim NFR 10.1)"
+    }
+  ],
+  "drilldown": {
+    "$comment": "Tile'dan tek-çağrı trace'ine (14.1.1) drill-down YALNIZ exemplar/annotation üzerinden (correlation_id/trace_id) — yüksek-kardinalite kimlik tile BOYUTU/metrik label OLMAZ (G8; 0.4.7 exemplar_keys). Hedef call-trace (14.1.1) span'i.",
+    "exemplar_keys": ["correlation_id", "trace_id"],
+    "target": "call-trace (14.1.1) span"
+  },
+  "gates": {
+    "max_coverage_missing": 0,
+    "max_catalog_mismatch": 0,
+    "max_freshness_violation": 0,
+    "max_scope_violation": 0,
+    "max_cardinality_violation": 0,
+    "max_label_violation": 0,
+    "max_pii_violation": 0,
+    "max_content_violation": 0,
+    "max_refresh_violation": 0,
+    "max_drilldown_violation": 0
+  },
+  "error_taxonomy": {
+    "$comment": "API §11.6 ErrorTaxonomy eşlemesi.",
+    "mapping": {
+      "malformed_signal": "INVALID_REQUEST",
+      "unknown_tile": "INVALID_REQUEST",
+      "missing_context": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    }
+  },
+  "pii": {
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true
+  },
+  "invariants": [
+    {"id": "I1", "desc": "Gerçek zamanlı op ekranı BRD §15/SAD §17.1 operasyonel sinyal gruplarının HEPSİNİ kapsar (latency/errors/traffic/quality/resource/cost/alarms) + grafana panellerinin referansladığı her metrik bir tile'da yüzeylenir (non-circular)", "trace": "BRD §15, SAD §17.1, 0.4.7 dashboards/grafana"},
+    {"id": "I2", "desc": "Her metrik-tile sinyali 0.4.7 metrics.catalog'da (grafana panel-referans kümesiyle BİREBİR) + alarm-tile 0.4.7 alerts.catalog (11) ile BİREBİR — orphan tile yok", "trace": "0.4.7 metrics.catalog/alerts.catalog, 14.1.2/14.1.3/14.1.5"},
+    {"id": "I3", "desc": "Her tile için ingest_lag+query_step+refresh+render ≤ 60s (FR-ANA-012 gerçek zamanlı op ≤60sn) — BİRİNCİL kapı", "trace": "FR-ANA-012, SAD §17.1, 0.4.7 freshness_budget_s"},
+    {"id": "I4", "desc": "Tenant görünümü yalnız kendi tenant verisi: tenant-scope tile tenant_id filtresi taşır (cross-tenant sızıntı yok); platform (L0) görünümü Tier A agregat (içerik değil)", "trace": "FR-TEN-002, SAD §13.1, altın kural §14.4.1"},
+    {"id": "I5", "desc": "Tile boyutu yüksek-kardinalite kimlik (correlation_id/call_id) taşımaz + yalnız tile_dims_allowed (0.4.7 metric_labels_allowed ⊇)", "trace": "0.4.7 label_policy, SAD §13.3"},
+    {"id": "I6", "desc": "Tile boyutunda PII anahtarı yok (FR-REC-004) + Tier A: tile ham içerik (transkript/kayıt/ses payload) yüzeylemez (içerik → A-12)", "trace": "FR-REC-004, BRD §17.7, altın kural"},
+    {"id": "I7", "desc": "Pano auto-refresh açık + refresh_interval ≤ freshness bütçesi + runtime refresh ≤ 0.4.7 grafana refresh (30s; tightens-or-equals) + bayat-veri göstergesi", "trace": "FR-ANA-012, 0.4.7 grafana refresh"},
+    {"id": "I8", "desc": "Drill-down YALNIZ exemplar/annotation (correlation_id/trace_id) → trace (14.1.1); kimlik tile boyutu/metrik label değil + her tile bir gruba ait (orphan tile yok)", "trace": "0.4.7 exemplar_keys, 14.1.1"},
+    {"id": "I9", "desc": "max_freshness_budget_s 0.4.7 dashboards.freshness_budget_s (60) ile BİREBİR + grafana_dashboard_uid 0.4.7 dashboards.required içinde", "trace": "0.4.7 dashboards"},
+    {"id": "I10", "desc": "metric_signals = grafana-dashboard-voice-runtime panel-referans metrik kümesi (BİREBİR, probe grafana JSON'undan türetir) ⊆ 0.4.7 metrics.catalog", "trace": "0.4.7 grafana/metrics.catalog"},
+    {"id": "I11", "desc": "Hata API §11.6 ErrorTaxonomy'ye eşlenir (malformed/unknown→INVALID_REQUEST, region→REGION_VIOLATION)", "trace": "API §11.6"},
+    {"id": "I12", "desc": "spec/config'te sır/ham payload/transkript/PII DEĞERİ yok (yalnız sinyal/etiket/kimlik anahtarı ADLARI)", "trace": "FR-REC-004, ADR-002"}
+  ]
+}
