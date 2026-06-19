@@ -2533,6 +2533,126 @@
         "create": "Kampanya oluştur",
         "stop": "Kampanyayı durdur"
       }
+    },
+    "a11": {
+      "title": "Çağrı Kayıtları",
+      "subtitle": "Kayıt arama/filtreleme",
+      "scope_note": "Bu ekranda tenant'ınızın çağrı kayıtlarını arar ve filtrelersiniz (yalnız tenant'ınız kapsamında). Yalnız çağrı meta verisi ve agregat sayılar gösterilir; ham ses kaydı, transkript metni, ham numara (e164), müşteri PII, kart/OTP, nesne-depo URI'si ve çağrı özeti panelde yer almaz. Çağrıyı dinleme ve transkripti görme yetkili kullanıcı için ayrı bir aksiyondur (A-12) ve her erişim audit edilir (FR-REC-008/009); bu ekran arama/filtreleme görünümüdür.",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "calls_label": "Çağrı",
+      "ratio": "{a}/{b}",
+      "percent": "%{n}",
+      "own_badge": "Kendi",
+      "channels_fmt": "{n} kanal",
+      "duration_fmt": "{min} dk {sec} sn",
+      "alert": {
+        "legal_hold_conflict": "{count} kayıt yasal tutma altında ama saklama silmesi için işaretli; yasal tutma retention'ı askıya almalıdır (FR-REC-007).",
+        "unaudited_access": "{count} kayıtta erişim-audit yolu işaretsiz; her kayıt/transkript erişimi audit edilmelidir (FR-REC-009).",
+        "redaction_pending": "{count} çağrıda transkript PII redaction'ı beklemede; erişimden önce redaction tamamlanmalıdır (FR-REC-004).",
+        "retention_imminent": "{count} kaydın saklama süresi dolmak üzere; süre sonunda geri döndürülemez biçimde silinir (FR-REC-006/010).",
+        "recording_disabled": "{count} çağrıda ses kaydı kapalı; kayıt politikası tenant/ülke/use-case bazında uygulanır (FR-REC-001/002)."
+      },
+      "section": {
+        "summary": "Kayıt Özeti",
+        "records": "Çağrı Kayıtları",
+        "outcomes": "Sonuç Dağılımı",
+        "recording_states": "Kayıt Durumu Dağılımı",
+        "retention": "Saklama & Yasal Tutma Sağlığı",
+        "access": "Erişim & Redaction Sağlığı"
+      },
+      "kpi": {
+        "calls": "Çağrı Kaydı",
+        "calls_hint": "{inbound} gelen · {outbound} giden",
+        "recorded": "Kayıtlı Çağrı",
+        "recorded_hint": "{disabled} çağrıda kayıt kapalı (FR-REC-002)",
+        "transcripts": "Transkript",
+        "transcripts_hint": "{pending} redaction bekliyor (FR-REC-004)",
+        "legal_hold": "Yasal Tutma",
+        "legal_hold_hint": "Silmeye karşı korunan kayıt (FR-REC-007)",
+        "retention_due": "Silinmek Üzere",
+        "retention_due_hint": "Saklama süresi dolan kayıt (FR-REC-006/010)",
+        "dual_channel": "Çift Kanal",
+        "dual_channel_hint": "Çift kanallı kayıt (FR-REC-003)",
+        "redaction": "Redaction Kapsamı",
+        "redaction_hint": "Redaction tamam / transkriptli çağrı (FR-REC-004)",
+        "attention": "Açık Dikkat",
+        "attention_hint": "Redaction beklemede + silinmek üzere + yasal-tutma çelişkisi + auditsiz erişim"
+      },
+      "direction": {
+        "inbound": "Gelen",
+        "outbound": "Giden"
+      },
+      "outcome": {
+        "contained": "Otomasyonla çözüldü",
+        "transferred": "Aktarıldı",
+        "abandoned": "Vazgeçildi",
+        "voicemail": "Telesekreter",
+        "failed": "Başarısız"
+      },
+      "recording": {
+        "recorded": "Kayıtlı",
+        "disabled": "Kayıt kapalı",
+        "none": "Kayıt yok"
+      },
+      "transcript": {
+        "redacted": "Redaction'lı",
+        "pending": "Beklemede",
+        "not_required": "Gerekli değil",
+        "none": "Yok"
+      },
+      "retention": {
+        "held": "Yasal tutma",
+        "due": "Silinecek",
+        "active": "Saklanıyor",
+        "conflict": "Çelişki",
+        "legal_hold": "Yasal tutma",
+        "legal_hold_desc": "Silmeye karşı korunan kayıt; retention silmesini askıya alır (FR-REC-007).",
+        "imminent": "Silinmek üzere",
+        "imminent_desc": "Saklama süresi dolmak üzere; süre sonunda geri döndürülemez silinir (FR-REC-006/010).",
+        "conflict_row": "Saklama çelişkisi",
+        "conflict_desc": "Yasal tutma altında ama silme için işaretli kayıt; olmamalı (FR-REC-007)."
+      },
+      "access": {
+        "audited": "Audit'li",
+        "unaudited": "Auditsiz",
+        "audit": "Erişim audit'i",
+        "audit_desc": "Her kayıt/transkript erişimi WORM audit log'a yazılır (FR-REC-009).",
+        "redaction": "PII redaction",
+        "redaction_desc": "Transkript üzerinde PII redaction uygulanır; panel görüntülemelerinde de (FR-REC-004).",
+        "scrub": "Kart/parola/OTP gizleme",
+        "scrub_desc": "Kart, parola ve OTP kayıt ve transkriptten çıkarılır (FR-REC-005).",
+        "scrub_state": "Uygulanır"
+      },
+      "col": {
+        "call": "Çağrı",
+        "direction": "Yön",
+        "agent": "Agent",
+        "outcome": "Sonuç",
+        "duration": "Süre",
+        "recording": "Kayıt",
+        "transcript": "Transkript",
+        "retention": "Saklama",
+        "access": "Erişim",
+        "count": "Adet",
+        "share": "Pay",
+        "control": "Kontrol",
+        "purpose": "Amaç",
+        "value": "Değer"
+      },
+      "records_caption": "Çağrı kayıtları, durumları ve erişim sağlığı",
+      "records_hint": "Her satır bir çağrı kaydını (CDR) temsil eder; yön, agent, sonuç, süre ve kayıt/transkript/saklama/erişim durumunu gösterir. Çağrıyı dinleme ve transkripti görme yetkili kullanıcı için ayrı aksiyondur (A-12) ve her erişim audit edilir (FR-REC-008/009). Ham ses kaydı, transkript metni ve ham numara panelde yer almaz.",
+      "outcomes_caption": "Sonuca göre çağrı dağılımı",
+      "recording_states_caption": "Kayıt durumuna göre çağrı dağılımı",
+      "recording_states_hint": "Kayıt politikası tenant, ülke ve use-case bazında belirlenir ve ses kaydı tamamen kapatılabilir (FR-REC-001/002); tek veya çift kanallı kayıt desteklenir (FR-REC-003). Sayılar agregattır; ham ses gömülmez.",
+      "retention_caption": "Saklama, yasal tutma ve geri döndürülemez silme kontrolleri",
+      "retention_hint": "Saklama süresi otomatik uygulanır ve süre sonunda veriler geri döndürülemez biçimde silinir (FR-REC-006/010); yasal tutma silmeyi askıya alır (FR-REC-007). Bu kapılar retention motorunda zorlanır; panel çözümlenmiş durumu gösterir.",
+      "access_caption": "Erişim yetkisi, audit ve PII/kart-OTP gizleme kontrolleri",
+      "access_hint": "Yetkili kullanıcı çağrıyı dinleyebilir ve transkripti görebilir (FR-REC-008); her erişim audit edilir (FR-REC-009). PII redaction (FR-REC-004) ve kart/parola/OTP gizleme (FR-REC-005) panel görüntülemelerinde de uygulanır. Nihai yetki + erişim-audit backend'de.",
+      "no_records": "Bu tenant için çağrı kaydı yok.",
+      "action": {
+        "export": "Dışa aktar"
+      }
     }
   }
 }

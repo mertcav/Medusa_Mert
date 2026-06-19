@@ -1,0 +1,24 @@
+{
+  "$comment": "A-11 SORUNLU çağrı kaydı envanteri (WBS 13.4.11): 5 çağrı; dört DİKKAT kalemi: (1) C9105 transkript redaction BEKLEMEDE (FR-REC-004); (2) C9104 yasal-tutma altında AMA saklama silmesi için işaretli — ÇELİŞKİ (FR-REC-007; yasal tutma retention'ı askıya almalı, retention_imminent SAYMAZ); (3) C9103 erişim-audit yolu işaretsiz — AUDITSIZ (FR-REC-009); (4) C9102 saklama süresi dolmak üzere → silinecek (FR-REC-006/010). C9101 ses kaydı kapalı (FR-REC-002, info; dikkat değil). → recorded=4 + recording_disabled=1 + redaction_pending=1 + legal_hold=1 (C9104) + retention_imminent=1 (yalnız C9102; C9104 yasal-tutma nedeniyle hariç) + legal_hold_conflict=1 (C9104) + unaudited=1 (C9103) + attention=4 (1+1+1+1). assertNoPii temiz (yalnız ÇAĞRI META; ham içerik/PII yok).",
+  "$expect": {
+    "calls": 5,
+    "recorded": 4,
+    "recording_disabled": 1,
+    "redaction_pending": 1,
+    "legal_hold": 1,
+    "retention_imminent": 1,
+    "legal_hold_conflict": 1,
+    "unaudited": 1,
+    "attention": 4
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1003",
+  "tenantName": "Gamma Telekom",
+  "calls": [
+    { "callRef": "CALL-9105", "direction": "inbound", "agentRef": "AGT-401", "agentName": "Destek Botu", "startedAt": "2026-06-18T08:55:00.000Z", "durationSec": 210, "outcome": "transferred", "recordingState": "recorded", "channels": 2, "transcriptState": "pending", "retentionImminent": false, "legalHold": false, "accessAudited": true, "own": true },
+    { "callRef": "CALL-9104", "direction": "inbound", "agentRef": "AGT-401", "agentName": "Destek Botu", "startedAt": "2026-06-18T08:40:00.000Z", "durationSec": 175, "outcome": "abandoned", "recordingState": "recorded", "channels": 1, "transcriptState": "redacted", "retentionImminent": true, "legalHold": true, "accessAudited": true, "own": false },
+    { "callRef": "CALL-9103", "direction": "outbound", "agentRef": "AGT-402", "agentName": "Anket Botu", "startedAt": "2026-06-18T08:25:00.000Z", "durationSec": 64, "outcome": "failed", "recordingState": "recorded", "channels": 2, "transcriptState": "redacted", "retentionImminent": false, "legalHold": false, "accessAudited": false, "own": false },
+    { "callRef": "CALL-9102", "direction": "inbound", "agentRef": "AGT-402", "agentName": "Anket Botu", "startedAt": "2026-06-18T08:10:00.000Z", "durationSec": 130, "outcome": "contained", "recordingState": "recorded", "channels": 1, "transcriptState": "redacted", "retentionImminent": true, "legalHold": false, "accessAudited": true, "own": false },
+    { "callRef": "CALL-9101", "direction": "outbound", "agentRef": "AGT-401", "agentName": "Destek Botu", "startedAt": "2026-06-18T07:55:00.000Z", "durationSec": 88, "outcome": "voicemail", "recordingState": "disabled", "channels": 0, "transcriptState": "not_required", "retentionImminent": false, "legalHold": false, "accessAudited": true, "own": false }
+  ]
+}

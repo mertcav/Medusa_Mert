@@ -2533,6 +2533,126 @@
         "create": "Create campaign",
         "stop": "Stop campaign"
       }
+    },
+    "a11": {
+      "title": "Call Records",
+      "subtitle": "Record search & filtering",
+      "scope_note": "On this screen you search and filter your tenant's call records — scoped to your tenant only. Only call metadata and aggregate counts are shown; raw audio recordings, transcript text, raw numbers (e164), customer PII, card/OTP, object-store URIs and call summaries never appear in the panel. Listening to a call and viewing a transcript are a separate action for an authorised user (A-12) and every access is audited (FR-REC-008/009); this screen is a search/filter view.",
+      "as_of": "View time: {time}",
+      "tenant": "Tenant",
+      "calls_label": "Calls",
+      "ratio": "{a}/{b}",
+      "percent": "{n}%",
+      "own_badge": "Own",
+      "channels_fmt": "{n} channel(s)",
+      "duration_fmt": "{min}m {sec}s",
+      "alert": {
+        "legal_hold_conflict": "{count} record(s) are under legal hold but flagged for retention deletion; legal hold must suspend retention (FR-REC-007).",
+        "unaudited_access": "{count} record(s) have no access-audit path marked; every recording/transcript access must be audited (FR-REC-009).",
+        "redaction_pending": "{count} call(s) have transcript PII redaction pending; redaction must complete before access (FR-REC-004).",
+        "retention_imminent": "{count} record(s) are about to reach the end of their retention period and will be irreversibly deleted (FR-REC-006/010).",
+        "recording_disabled": "{count} call(s) have recording disabled; the recording policy is applied per tenant/country/use-case (FR-REC-001/002)."
+      },
+      "section": {
+        "summary": "Record Summary",
+        "records": "Call Records",
+        "outcomes": "Outcome Distribution",
+        "recording_states": "Recording State Distribution",
+        "retention": "Retention & Legal Hold Health",
+        "access": "Access & Redaction Health"
+      },
+      "kpi": {
+        "calls": "Call Records",
+        "calls_hint": "{inbound} inbound · {outbound} outbound",
+        "recorded": "Recorded Calls",
+        "recorded_hint": "{disabled} call(s) with recording off (FR-REC-002)",
+        "transcripts": "Transcripts",
+        "transcripts_hint": "{pending} pending redaction (FR-REC-004)",
+        "legal_hold": "Legal Hold",
+        "legal_hold_hint": "Records protected from deletion (FR-REC-007)",
+        "retention_due": "Due for Deletion",
+        "retention_due_hint": "Records reaching end of retention (FR-REC-006/010)",
+        "dual_channel": "Dual Channel",
+        "dual_channel_hint": "Dual-channel recordings (FR-REC-003)",
+        "redaction": "Redaction Coverage",
+        "redaction_hint": "Redaction complete / calls with transcript (FR-REC-004)",
+        "attention": "Open Attention",
+        "attention_hint": "Redaction pending + due for deletion + legal-hold conflict + unaudited access"
+      },
+      "direction": {
+        "inbound": "Inbound",
+        "outbound": "Outbound"
+      },
+      "outcome": {
+        "contained": "Contained",
+        "transferred": "Transferred",
+        "abandoned": "Abandoned",
+        "voicemail": "Voicemail",
+        "failed": "Failed"
+      },
+      "recording": {
+        "recorded": "Recorded",
+        "disabled": "Recording off",
+        "none": "No recording"
+      },
+      "transcript": {
+        "redacted": "Redacted",
+        "pending": "Pending",
+        "not_required": "Not required",
+        "none": "None"
+      },
+      "retention": {
+        "held": "Legal hold",
+        "due": "Due",
+        "active": "Retained",
+        "conflict": "Conflict",
+        "legal_hold": "Legal hold",
+        "legal_hold_desc": "Records protected from deletion; suspends retention deletion (FR-REC-007).",
+        "imminent": "Due for deletion",
+        "imminent_desc": "About to reach end of retention; irreversibly deleted at expiry (FR-REC-006/010).",
+        "conflict_row": "Retention conflict",
+        "conflict_desc": "Record under legal hold yet flagged for deletion; must not occur (FR-REC-007)."
+      },
+      "access": {
+        "audited": "Audited",
+        "unaudited": "Unaudited",
+        "audit": "Access audit",
+        "audit_desc": "Every recording/transcript access is written to the WORM audit log (FR-REC-009).",
+        "redaction": "PII redaction",
+        "redaction_desc": "PII redaction is applied on the transcript, including panel views (FR-REC-004).",
+        "scrub": "Card/password/OTP scrubbing",
+        "scrub_desc": "Card, password and OTP data are removed from recording and transcript (FR-REC-005).",
+        "scrub_state": "Applied"
+      },
+      "col": {
+        "call": "Call",
+        "direction": "Direction",
+        "agent": "Agent",
+        "outcome": "Outcome",
+        "duration": "Duration",
+        "recording": "Recording",
+        "transcript": "Transcript",
+        "retention": "Retention",
+        "access": "Access",
+        "count": "Count",
+        "share": "Share",
+        "control": "Control",
+        "purpose": "Purpose",
+        "value": "Value"
+      },
+      "records_caption": "Call records, their status and access health",
+      "records_hint": "Each row represents a call record (CDR) showing direction, agent, outcome, duration and recording/transcript/retention/access status. Listening to a call and viewing a transcript are a separate action for an authorised user (A-12) and every access is audited (FR-REC-008/009). Raw audio, transcript text and raw numbers never appear in the panel.",
+      "outcomes_caption": "Call distribution by outcome",
+      "recording_states_caption": "Call distribution by recording state",
+      "recording_states_hint": "The recording policy is set per tenant, country and use-case and audio recording can be fully disabled (FR-REC-001/002); single- or dual-channel recording is supported (FR-REC-003). Counts are aggregate; raw audio is never embedded.",
+      "retention_caption": "Retention, legal hold and irreversible deletion controls",
+      "retention_hint": "Retention is applied automatically and data is irreversibly deleted at the end of the period (FR-REC-006/010); legal hold suspends deletion (FR-REC-007). These gates are enforced in the retention engine; the panel shows the resolved state.",
+      "access_caption": "Access authorisation, audit and PII/card-OTP masking controls",
+      "access_hint": "An authorised user can listen to a call and view the transcript (FR-REC-008); every access is audited (FR-REC-009). PII redaction (FR-REC-004) and card/password/OTP masking (FR-REC-005) are applied in panel views too. Final authority + access audit live in the backend.",
+      "no_records": "No call records for this tenant.",
+      "action": {
+        "export": "Export"
+      }
     }
   }
 }

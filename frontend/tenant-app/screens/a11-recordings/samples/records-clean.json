@@ -1,0 +1,23 @@
+{
+  "$comment": "A-11 SAĞLIKLI çağrı kaydı envanteri (WBS 13.4.11): 4 çağrı; transkriptlerin hepsi redaction tamam ya da gerekli değil (FR-REC-004) + hepsi erişim-audit'li (FR-REC-009) + yasal-tutma çelişkisi yok (FR-REC-007) + silinmek-üzere kayıt yok (FR-REC-006/010). Bir kayıt yasal tutma altında (silmeye karşı korunur, çelişki DEĞİL); bir çağrıda ses kaydı kapalı (FR-REC-002, info). → recorded=2 + recording_disabled=1 + redaction_pending=0 + legal_hold=1 + retention_imminent=0 + legal_hold_conflict=0 + unaudited=0 + attention=0. assertNoPii temiz (yalnız ÇAĞRI META: yön/agent/sonuç/süre/kayıt-transkript-saklama-yasal-tutma-erişim bayrakları/kanal/sahiplik).",
+  "$expect": {
+    "calls": 4,
+    "recorded": 2,
+    "recording_disabled": 1,
+    "redaction_pending": 0,
+    "legal_hold": 1,
+    "retention_imminent": 0,
+    "legal_hold_conflict": 0,
+    "unaudited": 0,
+    "attention": 0
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-1002",
+  "tenantName": "Beta Finans",
+  "calls": [
+    { "callRef": "CALL-9004", "direction": "inbound", "agentRef": "AGT-301", "agentName": "Satış Botu", "startedAt": "2026-06-18T08:50:00.000Z", "durationSec": 180, "outcome": "contained", "recordingState": "recorded", "channels": 2, "transcriptState": "redacted", "retentionImminent": false, "legalHold": false, "accessAudited": true, "own": false },
+    { "callRef": "CALL-9003", "direction": "outbound", "agentRef": "AGT-301", "agentName": "Satış Botu", "startedAt": "2026-06-18T08:35:00.000Z", "durationSec": 92, "outcome": "transferred", "recordingState": "recorded", "channels": 1, "transcriptState": "redacted", "retentionImminent": false, "legalHold": true, "accessAudited": true, "own": false },
+    { "callRef": "CALL-9002", "direction": "outbound", "agentRef": "AGT-302", "agentName": "Bildirim Botu", "startedAt": "2026-06-18T08:20:00.000Z", "durationSec": 0, "outcome": "voicemail", "recordingState": "none", "channels": 0, "transcriptState": "none", "retentionImminent": false, "legalHold": false, "accessAudited": true, "own": false },
+    { "callRef": "CALL-9001", "direction": "inbound", "agentRef": "AGT-302", "agentName": "Bildirim Botu", "startedAt": "2026-06-18T08:05:00.000Z", "durationSec": 145, "outcome": "contained", "recordingState": "disabled", "channels": 0, "transcriptState": "not_required", "retentionImminent": false, "legalHold": false, "accessAudited": true, "own": false }
+  ]
+}
