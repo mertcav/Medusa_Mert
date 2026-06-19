@@ -1,0 +1,146 @@
+{
+  "$comment": "WBS 14.2.7 Agent sürümleri performans karşılaştırma — kaynak doğruluk. Analytics/Ops Plane'deki (SAD §4.2 ANALYTICS/OPS PLANE — async, batch; ADR-004/ADR-007) KARŞILAŞTIRMA (COMPARISON) motoru: 14.2.1 (auto_score, FR-ANA-001) + 14.2.3 (containment_rate/transfer_rate, FR-ANA-003) + 14.2.4/14.2.5 (critical_rate, FR-ANA-004/008) tarafından üretilen SÜRÜM-BAŞI agregat metrikleri (OLAP mv_agent_version_perf rollup; grain tenant_id+agent_id+agent_version_id) tüketir ve AYNI agent'ın İKİ (veya daha çok) sürümünü (baseline ↔ candidate) metrik-metrik YAN YANA KARŞILAŞTIRIR (SR-ANA-010). Bu motor metrikleri YENİDEN HESAPLAMAZ (14.2.1/14.2.3/14.2.4/14.2.5 üretir) — KARŞILAŞTIRIR: işaretli delta (candidate − baseline) + yön-duyarlı iyileşme (higher/lower_is_better) + İSTATİSTİKSEL ANLAMLILIK testi (oran metrikleri için iki-oran z-testi; ortalama metrikleri için büyük-örnek normal yaklaşımlı z) + küçük-örnek bastırma. BİRİNCİL HARD kapı = KARŞILAŞTIRMA BÜTÜNLÜĞÜ (apples-to-apples) — karşılaştırılan kollar AYNI agent_id + AYNI tenant + AYNI period + AYNI metrik tanımı taşır (cross-agent/cross-tenant/cross-period/cross-metric karşılaştırma YASAK); ve İKİNCİL çekirdek = ANLAMLILIK-OLMADAN-KAZANAN-YOK (bir sürüm yalnız delta istatistiksel anlamlı VE her iki kol yeterli örnek taşırsa 'improved'/'regressed' ilan edilir; aksi 'inconclusive' — gürültüden yapay kazanan üretilmez). Sır/credential, ham ses payload, transkript METNİ, PII DEĞERİ YOK — yalnız REDAKSİYONLU agregat metrik (sayım/oran/ortalama + yeterli istatistik) + düşük-kardinalite boyut anahtarı. Yayımlanan karşılaştırma per-call kimlik/serbest metin/PII taşımaz (pii_class low). KAPSAM AYRIMI: otomatik skor → 14.2.1 · per-call çıkarım → 14.2.2 · containment/transfer ORAN agregasyonu → 14.2.3 (bu motorun GİRDİSİNİ üretir) · yanlış-bilgi/tool-hata/güvenlik İŞARETİ → 14.2.4 · kritik işaretleme → 14.2.5 · MANUEL skor → 14.2.6 · dashboard/export → 14.2.8. Burada YALNIZ sürüm-arası karşılaştırma + apples-to-apples bütünlüğü + anlamlılık disiplini.",
+  "wbs": "14.2.7",
+  "version": "1.0",
+  "phase": "F2",
+  "priority": "Must",
+  "eval_doc": {
+    "fr": "FR-ANA-010 (Agent sürümleri arasında performans karşılaştırması yapılabilmelidir)",
+    "srs": "SR-ANA-010 (Yöntem A — İki sürümün metrikleri yan yana karşılaştırılır)",
+    "rtm": "FR-ANA-010 ↔ SR-ANA-010 ↔ TC-ANA-010 (A) ↔ WBS 1.1.9, 14.2.7",
+    "brd": "BRD §15 (Analitik & Gözlemlenebilirlik) + §18.1 (KPI: containment/transfer) + FR-AGT-005/006/008 (agent sürüm yaşam döngüsü/varyasyon) + §17 A-17 (Sürüm Geçmişi/rollback) + A-14 (Analytics)",
+    "sad": "SAD §4.2 (Analytics/Ops Plane — async batch) + §12.1 (OLAP rollup mv_agent_version_perf grain tenant_id+agent_id+agent_version_id) + §171 (FR-RES-011 async post-processing)",
+    "db": "DB.md §5.6 (call_evaluation auto_score/critical_flag — agregasyon kaynağı) + agent_version (sürüm kimliği)",
+    "olap": "analytics/olap-spec.json mv_agent_version_perf{calls, containment_rate, transfer_rate, critical_rate, e2e_p95_state} (source fct_call; dashboard_fr FR-ANA-010; A13 fct_call/fct_turn/fct_qa_evaluation agent_version_id taşır) + fct_qa_evaluation.auto_score (FR-ANA-001)",
+    "adr": "ADR-002 (vendor-neutral deterministik karşılaştırma) / ADR-004 (plane ayrımı) / ADR-007 (async event pipeline)",
+    "api": "API §11.6 (ErrorTaxonomy) + Analytics GET /analytics/{report} (FR-ANA-010 sürüm karşılaştırması)",
+    "upstream": "14.2.1 auto_score (FR-ANA-001) + 14.2.3 containment_rate/transfer_rate (FR-ANA-003) + 14.2.4/14.2.5 critical_rate (FR-ANA-004/008) → OLAP mv_agent_version_perf rollup → bu motor sürüm-başı agregatı KARŞILAŞTIRIR (yeniden hesaplamaz)"
+  },
+  "placement": {
+    "$comment": "Karşılaştırma motoru HOT-PATH'TE DEĞİL — Analytics/Ops Plane'de async batch (SAD §4.2/§171, FR-RES-011). Sürüm-başı agregatı (mv_agent_version_perf) tüketir ve karşılaştırır. Başarısızlığı CANLI çağrıyı ASLA etkilemez (non_blocking). from_trace=false: karşılaştırma agregat üzerinedir, trace span türetme değil. aggregates_only=true: per-call metriği yeniden TÜRETMEZ/HESAPLAMAZ (14.2.1/14.2.3/14.2.4/14.2.5), sürüm-başı agregatı KARŞILAŞTIRIR. deterministic=true: saf istatistik (z-testi sufficient-statistics'ten); random YOK.",
+    "in_analytics_plane": true,
+    "async_batch": true,
+    "non_blocking": true,
+    "from_redacted_content": true,
+    "aggregates_only": true,
+    "deterministic": true,
+    "idempotent": true,
+    "from_trace": false
+  },
+  "metric_catalog": {
+    "$comment": "Karşılaştırılabilir metrik KAPALI-KATALOĞU — mv_agent_version_perf (FR-ANA-010) + fct_qa_evaluation.auto_score (FR-ANA-001) ile BİREBİR (non-circular cross-check). Her metrik: type (proportion = oran, sufficient stats num/den → iki-oran z-testi · mean = ortalama, sufficient stats mean/var/n → büyük-örnek normal yaklaşımlı z) + direction (higher_is_better = büyük iyi · lower_is_better = küçük iyi). guardrail=true metrikler regresyon-koruması (candidate bunlarda anlamlı kötüleşirse promote ÖNERİLMEZ — SOFT). Bilinmeyen metrik karşılaştırılamaz (G4). e2e_p95_state (latency) sürüm karşılaştırmasında bu iskelette KAPSAM DIŞI — latency bütçesi disiplini 0.3.2'de; not olarak taşınır.",
+    "metrics": {
+      "containment_rate": {"type": "proportion", "direction": "higher_is_better", "guardrail": false, "primary": true, "source": "mv_agent_version_perf", "fr": "FR-ANA-003"},
+      "transfer_rate": {"type": "proportion", "direction": "lower_is_better", "guardrail": false, "primary": false, "source": "mv_agent_version_perf", "fr": "FR-ANA-003"},
+      "critical_rate": {"type": "proportion", "direction": "lower_is_better", "guardrail": true, "primary": false, "source": "mv_agent_version_perf", "fr": "FR-ANA-008"},
+      "auto_score": {"type": "mean", "direction": "higher_is_better", "guardrail": false, "primary": true, "source": "fct_qa_evaluation", "fr": "FR-ANA-001"}
+    },
+    "proportion_stats": ["num", "den"],
+    "mean_stats": ["mean", "var", "n"]
+  },
+  "significance": {
+    "$comment": "İSTATİSTİKSEL ANLAMLILIK — gürültüden yapay kazanan üretmemenin çekirdeği. proportion: iki-oran z-testi (pooled p = (num1+num2)/(den1+den2); SE = sqrt(p(1−p)(1/den1+1/den2)); z = (p2−p1)/SE). mean: büyük-örnek normal yaklaşım (SE = sqrt(var1/n1 + var2/n2); z = (m2−m1)/SE) — t-tablosu yerine n≥large_sample_n için normal yaklaşım (deterministik, sufficient-statistics'ten; not olarak beyan). Bir delta yalnız |z| ≥ z_critical(confidence) VE her iki kol yeterli örnek (≥min_sample_n) taşırsa ANLAMLI sayılır; aksi 'inconclusive'. SE=0 (varyans/oran yok) → z=0 → inconclusive (sıfıra-bölme yok). confidence profile'da SIKILAŞTIRILABİLİR (0.95→0.99).",
+    "confidence": 0.95,
+    "z_critical": {"0.90": 1.645, "0.95": 1.96, "0.99": 2.576},
+    "two_sided": true,
+    "large_sample_n": 30,
+    "mean_uses_normal_approx": true
+  },
+  "small_sample": {
+    "$comment": "Küçük-örnek bastırma (k-anonimlik + istatistiksel güvenilirlik). Bir kolun metriği için örnek (proportion→den, mean→n) min_sample_n altındaysa o metrik karşılaştırması YAYIMLANMAZ (verdict=insufficient_sample) — hem anlamsız (1-2 çağrıdan kazanan) hem re-identification riski. SESSİZCE düşürülmez: sufficient stats tutulur, verdict açık status taşır. min_sample_n profile'da SIKILAŞTIRILABİLİR.",
+    "min_sample_n": 30,
+    "suppressed_verdict": "insufficient_sample"
+  },
+  "comparison_grain": {
+    "$comment": "Karşılaştırma boyutu OLAP mv_agent_version_perf grain'i ile hizalı (tenant_id + agent_id + agent_version_id). Karşılaştırma TEK agent + TEK period içinde AYNI agent'ın sürümleri arasında yapılır. baseline = referans sürüm (ör. üretimdeki champion); candidate(s) = karşılaştırılan sürüm(ler) (challenger). pair = (baseline, candidate) — her candidate baseline'a karşı.",
+    "grain": ["tenant_id", "agent_id", "agent_version_id", "period"],
+    "comparison_key": ["agent_id", "baseline_version", "candidate_version", "period"],
+    "requires_same_agent": true,
+    "requires_same_period": true
+  },
+  "verdict_vocabulary": {
+    "$comment": "Metrik-başı KAPALI-SÖZLÜK verdict. improved/regressed YALNIZ anlamlı+yeterli-örnek delta ile (G3). inconclusive = delta gürültü içinde (anlamlı değil) VEYA yön belirsiz. insufficient_sample = kol örneği < min_sample_n (G6). winner: improved→candidate, regressed→baseline, aksi→none.",
+    "verdicts": ["improved", "regressed", "inconclusive", "insufficient_sample"],
+    "significant_verdicts": ["improved", "regressed"],
+    "winner_of": {"improved": "candidate", "regressed": "baseline", "inconclusive": "none", "insufficient_sample": "none"}
+  },
+  "recommendation": {
+    "$comment": "BİLGİLENDİRİCİ (SOFT) genel öneri — HARD kapı DEĞİL (kapılar karşılaştırma/istatistik DOĞRULUĞU içindir, iş kararı değil). promote_candidate: en az bir PRIMARY metrik anlamlı 'improved' VE hiçbir guardrail metrik anlamlı 'regressed' değil. keep_baseline: bir guardrail metrik anlamlı 'regressed' (kritik regresyon koruması). inconclusive: anlamlı sinyal yok. Bu öneri promote/rollback (FR-AGT-005/006, A-17) için insan kararını BESLER, otomatik dağıtım yapmaz.",
+    "values": ["promote_candidate", "keep_baseline", "inconclusive"],
+    "soft": true
+  },
+  "output_contract": {
+    "$comment": "Karşılaştırma satırı (pair × metrik) + öneri. metrics: per-metrik baseline/candidate value + işaretli delta + z + significant + verdict + winner. categorical/aggregate output: yalnız düşük-kardinalite boyut anahtarı + sayısal istatistik — per-call kimlik / serbest metin / PII YOK (yayımlanan karşılaştırma pii_class low). identity_fields zorunlu (tenant izolasyon + sürüm çifti + idempotency). consumes: mv_agent_version_perf + fct_qa_evaluation.auto_score. persists_to: mv_agent_version_perf (OLAP rollup; FR-ANA-010) — yeni topic üretmez.",
+    "pair_fields": ["agent_id", "baseline_version", "candidate_version", "period"],
+    "metric_fields": ["metric", "baseline_value", "candidate_value", "delta", "improvement", "z", "significant", "verdict", "winner"],
+    "identity_fields": ["tenant_id", "report_id", "schema_version"],
+    "consumes": ["mv_agent_version_perf.containment_rate", "mv_agent_version_perf.transfer_rate", "mv_agent_version_perf.critical_rate", "fct_qa_evaluation.auto_score"],
+    "persists_to": ["mv_agent_version_perf (OLAP rollup — FR-ANA-010)"]
+  },
+  "idempotency": {
+    "$comment": "Replay-güvenli (1.1.8 P3 idempotent consumers). Aynı (tenant_id, agent_id, baseline_version, candidate_version, period, schema_version) karşılaştırması bir kez yayımlanır — at-least-once teslimat çift-yayım üretmez (G5). Aynı kol bir sürüm için yalnız BİR kez (duplicate version arm → idempotency ihlali). Karşılaştırma deterministik: aynı sufficient stats → aynı verdict.",
+    "dedup_key": ["tenant_id", "agent_id", "baseline_version", "candidate_version", "period", "schema_version"],
+    "replay_safe": true
+  },
+  "feature_policy": {
+    "$comment": "Motor YALNIZ redaksiyonlu agregat metrik (sayım/oran/ortalama + yeterli istatistik) + düşük-kardinalite boyut anahtarı tüketir (FR-REC-004). Ham transkript METNİ / ses payload / PII DEĞERİ / per-call kimlik girdi olamaz (G8). allowed_input_keys whitelist; forbidden_input_keys + PII DEĞER deseni reddedilir.",
+    "allowed_input_keys": ["agent_id", "agent_version_id", "period", "tenant_id", "region", "metrics", "num", "den", "mean", "var", "n"],
+    "forbidden_input_keys": [
+      "transcript_text", "transcript", "audio_payload", "recording", "customer_name", "full_name",
+      "phone_number", "msisdn", "email", "national_id", "card_number", "pan", "cvv", "otp", "iban", "address",
+      "call_id", "human_comment"
+    ]
+  },
+  "isolation": {
+    "$comment": "Her karşılaştırma tek tenant_id taşır (FR-TEN-002 izolasyon); cross-tenant kol karışmaz; home-region (NFR 10.7 residency). Platform (L0) yalnız agregat metrik görür (altın kural) — karşılaştırma agregat olduğu için platform-görünür sınıftadır; içerik/per-call değil.",
+    "tenant_id_required": true,
+    "residency": "home-region",
+    "cross_tenant_forbidden": true
+  },
+  "gates": {
+    "max_comparison_integrity_violation": 0,
+    "max_significance_violation": 0,
+    "max_delta_violation": 0,
+    "max_vocab_violation": 0,
+    "max_idempotency_violation": 0,
+    "max_suppression_violation": 0,
+    "max_isolation_violation": 0,
+    "max_pii_violation": 0,
+    "max_blocking_violation": 0
+  },
+  "error_taxonomy": {
+    "$comment": "API §11.6 ErrorTaxonomy eşlemesi.",
+    "mapping": {
+      "malformed_comparison": "INVALID_REQUEST",
+      "unknown_metric": "INVALID_REQUEST",
+      "missing_context": "INVALID_REQUEST",
+      "incomparable_arms": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    }
+  },
+  "pii": {
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true
+  },
+  "metrics_emitted": {
+    "emitted": ["comparisons_total", "significant_total", "improved_total", "regressed_total", "inconclusive_total", "suppressed_total"]
+  },
+  "invariants": [
+    {"id": "I1", "desc": "Karşılaştırılan kollar AYNI agent_id + AYNI tenant_id + AYNI period + AYNI metrik tanımı taşır (apples-to-apples); cross-agent/cross-tenant/cross-period/cross-metric karşılaştırma YASAK; baseline_version ≠ candidate_version — BİRİNCİL", "trace": "FR-ANA-010, SR-ANA-010, comparison_grain"},
+    {"id": "I2", "desc": "Bir sürüm yalnız delta İSTATİSTİKSEL ANLAMLI (|z| ≥ z_critical(confidence)) VE her iki kol yeterli örnek (≥min_sample_n) taşırsa 'improved'/'regressed' ilan edilir; aksi 'inconclusive' (gürültüden yapay kazanan YOK) — İKİNCİL çekirdek", "trace": "significance, verdict_vocabulary, FR-ANA-010"},
+    {"id": "I3", "desc": "delta = candidate_value − baseline_value (işaretli); improvement = direction'a göre (higher_is_better→delta, lower_is_better→−delta); winner improved→candidate, regressed→baseline, aksi→none (delta/yön/verdict tutarlı)", "trace": "metric_catalog.direction, verdict_vocabulary.winner_of"},
+    {"id": "I4", "desc": "Karşılaştırılan metrik metric_catalog kapalı-kataloğunda + mv_agent_version_perf (FR-ANA-010) / fct_qa_evaluation.auto_score (FR-ANA-001) ile BİREBİR (non-circular cross-check); bilinmeyen metrik ihlal", "trace": "analytics/olap-spec.json mv_agent_version_perf, fct_qa_evaluation, FR-ANA-010/001"},
+    {"id": "I5", "desc": "Aynı (tenant_id, agent_id, baseline_version, candidate_version, period, schema_version) bir kez yayımlanır (idempotent/replay-safe); aynı sürüm için iki kol (duplicate version arm) ihlal", "trace": "1.1.8 P3, ADR-007, idempotency.dedup_key"},
+    {"id": "I6", "desc": "Bir kolun metrik örneği (proportion→den, mean→n) min_sample_n altındaysa o metrik karşılaştırması YAYIMLANMAZ (insufficient_sample) — istatistiksel güvenilirlik + k-anonimlik; sessizce düşürülmez (sufficient stats tutulur, açık status)", "trace": "small_sample, FR-REC-004 (re-identification)"},
+    {"id": "I7", "desc": "Her karşılaştırma tek tenant_id taşır (FR-TEN-002); cross-tenant kol karışmaz; home-region (NFR 10.7); platform yalnız agregat metrik görür (altın kural)", "trace": "FR-TEN-002, NFR 10.7, FR-IAM-008"},
+    {"id": "I8", "desc": "Yalnız redaksiyonlu agregat metrik (sufficient stats) + düşük-kardinalite boyut anahtarı tüketir; yayımlanan karşılaştırma per-call kimlik/serbest metin/PII DEĞERİ taşımaz (FR-REC-004; pii_class low)", "trace": "FR-REC-004, feature_policy, OLAP A4"},
+    {"id": "I9", "desc": "Analytics plane'de async/non-blocking (SAD §4.2/§171, FR-RES-011); karşılaştırma başarısızlığı canlı çağrıyı etkilemez; from_trace=false (hot-path dışı); aggregates_only=true (metriği yeniden hesaplamaz — 14.2.1/14.2.3 üretir)", "trace": "SAD §4.2/§171, FR-RES-011, ADR-004"},
+    {"id": "I10", "desc": "Karşılaştırma sağlayıcı-nötr (ADR-002) deterministik istatistik (sufficient-statistics'ten z-testi; random YOK); aynı stats → aynı verdict", "trace": "ADR-002, placement.deterministic"},
+    {"id": "I11", "desc": "İki-oran z-testi (pooled p, SE = sqrt(p(1−p)(1/den1+1/den2))) proportion için; ortalama metrik büyük-örnek normal yaklaşım (SE = sqrt(var1/n1+var2/n2)); SE=0 → z=0 → inconclusive (sıfıra-bölme yok)", "trace": "significance, I2"},
+    {"id": "I12", "desc": "Hata API §11.6 ErrorTaxonomy'ye eşlenir (malformed/unknown_metric/incomparable→INVALID_REQUEST, region→REGION_VIOLATION)", "trace": "API §11.6"},
+    {"id": "I13", "desc": "Genel öneri (promote_candidate/keep_baseline/inconclusive) SOFT bilgilendirici — HARD kapı DEĞİL; guardrail metrik anlamlı regresyonu keep_baseline'a iter; promote/rollback insan kararını besler (FR-AGT-005/006, A-17)", "trace": "recommendation.soft, FR-AGT-005/006"},
+    {"id": "I14", "desc": "Kapsam ayrımı: otomatik skor (FR-ANA-001→14.2.1) + per-call çıkarım (FR-ANA-002→14.2.2) + oran agregasyonu (FR-ANA-003→14.2.3, GİRDİ) + işaretler (FR-ANA-004→14.2.4) + kritik (FR-ANA-008→14.2.5) + dashboard/export (→14.2.8) bu dilimde kapsam dışı; burada YALNIZ sürüm-arası karşılaştırma", "trace": "FR-ANA-001/002/003/004/008, WBS"},
+    {"id": "I15", "desc": "spec/config'te sır/ham payload/transkript/PII DEĞERİ yok (yalnız metrik/boyut/kimlik/sözlük anahtarı ADLARI + sayısal eşik)", "trace": "FR-REC-004, ADR-002"}
+  ]
+}

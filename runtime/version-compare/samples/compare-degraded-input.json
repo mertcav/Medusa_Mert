@@ -1,0 +1,24 @@
+{
+  "name": "compare-degraded-input",
+  "$comment": "Zorlu ama GEÇERLİ karşılaştırma: baseline v1'e karşı İKİ candidate — v2 (n=1000, containment 0.60→0.70 anlamlı improved; critical 0.03→0.03 inconclusive) + v3 (n=15 < min_sample_n=30 → TÜM metrikler insufficient_sample BASTIRILIR). Önemli kanıt: küçük-örnek sürüm SESSİZCE DÜŞÜRÜLMEZ — sufficient stats tutulur, verdict insufficient_sample taşır (k-anon + istatistiksel güvenilirlik); v2'de küçük-ama-anlamsız delta gürültü olarak inconclusive kalır. Bunlar DOĞRU davranıştır → tüm HARD kapı GEÇER (suppressed>0, significance/delta/idempotency=0). PII DEĞERİ / ham transkript YOK.",
+  "expect": "pass",
+  "context": {"tenant_id": "t_globex", "region": "tr-central-1", "correlation_id": "corr-globex-021"},
+  "profile_obj": {"name": "tr-standard", "region": "tr-central-1", "schema_version": 1, "confidence": 0.95, "min_sample_n": 30},
+  "comparison": {
+    "agent_id": "ag_collections",
+    "period": "2026-06",
+    "baseline_version": "v1",
+    "candidate_versions": ["v2", "v3"],
+    "arms": [
+      {"agent_version_id": "v1", "agent_id": "ag_collections", "period": "2026-06",
+       "metrics": {"containment_rate": {"num": 600, "den": 1000}, "critical_rate": {"num": 30, "den": 1000}}},
+      {"agent_version_id": "v2", "agent_id": "ag_collections", "period": "2026-06",
+       "metrics": {"containment_rate": {"num": 700, "den": 1000}, "critical_rate": {"num": 30, "den": 1000}}},
+      {"agent_version_id": "v3", "agent_id": "ag_collections", "period": "2026-06",
+       "metrics": {"containment_rate": {"num": 13, "den": 15}, "critical_rate": {"num": 0, "den": 15}}}
+    ]
+  },
+  "expected": {"significance_violations": 0, "delta_violations": 0, "suppression_violations": 0,
+               "idempotency_violations": 0, "isolation_violations": 0, "pii_violations": 0},
+  "expected_derived": {"pairs_count": 2}
+}

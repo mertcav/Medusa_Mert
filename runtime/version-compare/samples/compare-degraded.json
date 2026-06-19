@@ -1,0 +1,20 @@
+{
+  "name": "compare-degraded",
+  "$comment": "BUGGY motor simülasyonu (expect=fail): policy ile İKİ kusur açılır — (1) require_significance KAPALI → anlamsız küçük delta (containment 0.60→0.61, n=1000) 'improved' ilan edilir (G3 anlamlılık eler: gürültüden yapay kazanan); (2) same_agent KAPALI → cross-agent kol (ag_sales) karşılaştırılır (G1 apples-to-apples eler). HARD kapılar bu kusurları yakalamalı → ELENİR. PII DEĞERİ / ham transkript YOK.",
+  "expect": "fail",
+  "context": {"tenant_id": "t_acme", "region": "eu-west-1", "correlation_id": "corr-acme-099"},
+  "profile_obj": {"name": "eu-standard", "region": "eu-west-1", "schema_version": 1, "confidence": 0.95, "min_sample_n": 30},
+  "policy": {"require_significance": false, "same_agent": false},
+  "comparison": {
+    "agent_id": "ag_support",
+    "period": "2026-06",
+    "baseline_version": "v1",
+    "candidate_version": "v2",
+    "arms": [
+      {"agent_version_id": "v1", "agent_id": "ag_support", "period": "2026-06",
+       "metrics": {"containment_rate": {"num": 600, "den": 1000}}},
+      {"agent_version_id": "v2", "agent_id": "ag_sales", "period": "2026-06",
+       "metrics": {"containment_rate": {"num": 610, "den": 1000}}}
+    ]
+  }
+}

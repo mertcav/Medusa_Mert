@@ -1,0 +1,24 @@
+{
+  "name": "compare-happy-path",
+  "$comment": "Açık kazanan: candidate v2, baseline v1'e karşı containment 0.62→0.74 (anlamlı↑) + transfer 0.30→0.20 (lower_is_better, anlamlı↑) + auto_score 0.79→0.86 (mean, anlamlı↑); guardrail critical_rate 0.030→0.025 (anlamlı değil, regresyon yok). Her kol n=1200 ≥ min_sample_n=30 → yayımlanır. İstatistiksel anlamlılık + yön-duyarlı iyileşme + apples-to-apples (aynı agent_id+period). primary improved + guardrail regresyon yok → öneri promote_candidate (SOFT). PII DEĞERİ / ham transkript YOK — yalnız redaksiyonlu agregat sufficient stats.",
+  "expect": "pass",
+  "context": {"tenant_id": "t_acme", "region": "eu-west-1", "correlation_id": "corr-acme-014"},
+  "profile_obj": {"name": "eu-standard", "region": "eu-west-1", "schema_version": 1, "confidence": 0.95, "min_sample_n": 30},
+  "comparison": {
+    "agent_id": "ag_support",
+    "period": "2026-06",
+    "baseline_version": "v1",
+    "candidate_version": "v2",
+    "arms": [
+      {"agent_version_id": "v1", "agent_id": "ag_support", "period": "2026-06",
+       "metrics": {"containment_rate": {"num": 744, "den": 1200}, "transfer_rate": {"num": 360, "den": 1200},
+                   "critical_rate": {"num": 36, "den": 1200}, "auto_score": {"mean": 0.79, "var": 0.02, "n": 1200}}},
+      {"agent_version_id": "v2", "agent_id": "ag_support", "period": "2026-06",
+       "metrics": {"containment_rate": {"num": 888, "den": 1200}, "transfer_rate": {"num": 240, "den": 1200},
+                   "critical_rate": {"num": 30, "den": 1200}, "auto_score": {"mean": 0.86, "var": 0.02, "n": 1200}}}
+    ]
+  },
+  "expected": {"comparison_integrity_violations": 0, "significance_violations": 0, "delta_violations": 0,
+               "isolation_violations": 0, "pii_violations": 0},
+  "expected_derived": {"pairs_count": 1, "comparisons": 4, "regressed": 0}
+}
