@@ -3207,6 +3207,134 @@
       "action": {
         "export": "Export report"
       }
+    },
+    "a16": {
+      "title": "Test & Simulation Centre",
+      "subtitle": "Browser testing, persona/scenario simulation and load testing",
+      "scope_note": "On this screen you test an agent candidate version before release (within your tenant only): suite breakdown by category (happy/edge/adversarial/robustness — FR-TST-003/007), persona and scenario simulation results (browser testing FR-TST-001/002), regression against the baseline version (FR-TST-004 / FR-ANA-010), the production promotion gate (FR-TST-005 — release is blocked below threshold) and load testing (concurrent calls FR-TST-006 + per-call resource under load FR-TST-009). All data is synthetic (FR-TST-008); it carries no real customer data, call content, transcript or PII, so no break-glass is required. Run/promote is a deep action; the actual execution + authorization + audit happen in the backend (test:run / agent:version:manage).",
+      "as_of": "View as of: {time}",
+      "tenant": "Tenant",
+      "agent": "Agent",
+      "version": "Candidate version",
+      "baseline": "Baseline",
+      "environment": "Environment",
+      "synthetic": "Synthetic data (FR-TST-008)",
+      "percent": "{n}%",
+      "ms": "{n} ms",
+      "mb": "{n} MB",
+      "na": "—",
+      "total": "Total",
+      "yes": "Yes",
+      "footnote": "Test/simulation results are fed by the Test & Simulation engine + the load test environment (0.4.8); per-call resource under load is measured by the Cost/Resource Meter (SAD §13.3). Score/latency/resource figures are illustrative engineering examples. Promotion is blocked to production unless regression/gate passes (FR-TST-005).",
+      "alert": {
+        "gate_blocked": "Promotion gate BLOCKED: {count} gate(s) failed; the candidate version cannot be released to production (FR-TST-005).",
+        "regression": "Regression detected: {category} score dropped by {delta} vs baseline (tolerance {tol}%); review it (FR-TST-004).",
+        "load_resource": "Per-call resource regression under load: resource consumption exceeds the baseline beyond tolerance (FR-TST-009).",
+        "concurrency_low": "Load test did not reach the target concurrency ({achieved}/{target}); capacity should be reviewed (FR-TST-006 / NFR 10.3)."
+      },
+      "section": {
+        "summary": "Summary KPIs",
+        "suites": "Suite / Category Breakdown",
+        "scenarios": "Scenario Results",
+        "regression": "Regression (Candidate vs Baseline)",
+        "gate": "Promotion Gate",
+        "load": "Load Test"
+      },
+      "kpi": {
+        "gate": "Promotion Gate",
+        "pass_rate": "Pass Rate",
+        "pass_rate_hint": "target ≥ {target}%",
+        "score": "Mean Score",
+        "score_hint": "target ≥ {target}",
+        "scenarios": "Scenarios",
+        "scenarios_hint": "{passed} passed · {failed} failed · {blocked} blocked",
+        "concurrency": "Load Concurrency",
+        "concurrency_hint": "target ≥ {target}",
+        "resource": "Memory Under Load (P95)",
+        "resource_hint": "budget ≤ {budget}"
+      },
+      "category": {
+        "happy": "Happy path",
+        "edge": "Edge case",
+        "adversarial": "Adversarial",
+        "robustness": "Robustness (noise/accent)"
+      },
+      "category_desc": {
+        "happy": "Expected happy-path flows",
+        "edge": "Boundary/exception cases (missing info, multi-intent)",
+        "adversarial": "Attack/jailbreak/data-extraction attempts",
+        "robustness": "Noise, accent, interruption, poor line quality (FR-TST-007)"
+      },
+      "status": {
+        "pass": "Passed",
+        "fail": "Failed",
+        "blocked": "Blocked"
+      },
+      "gate_state": {
+        "pass": "Passed",
+        "blocked": "Blocked"
+      },
+      "blocker": {
+        "pass_rate": "Pass rate below threshold",
+        "score": "Mean score below threshold",
+        "regression": "Regression against baseline",
+        "adversarial": "Adversarial scenario failed (critical)",
+        "load_resource": "Resource regression under load"
+      },
+      "trend": {
+        "up": "Improvement",
+        "down": "Regression",
+        "flat": "Flat"
+      },
+      "col": {
+        "category": "Category",
+        "total": "Total",
+        "passed": "Passed",
+        "failed": "Failed",
+        "blocked": "Blocked",
+        "pass_rate": "Pass Rate",
+        "scenario": "Scenario",
+        "persona": "Persona",
+        "status": "Status",
+        "score": "Score",
+        "turns": "Turns",
+        "latency": "Latency P95",
+        "baseline": "Baseline",
+        "current": "Candidate",
+        "delta": "Delta",
+        "metric": "Metric",
+        "target": "Target",
+        "achieved": "Achieved"
+      },
+      "suites_caption": "Test suite breakdown by category (happy/edge/adversarial/robustness; FR-TST-003/007)",
+      "suites_hint": "Suite totals reconcile with the scenario counts (each category total = the number of scenarios in that category; FR-TST-003).",
+      "scenarios_caption": "Persona/scenario simulation results (browser testing; FR-TST-001/002) — all synthetic (FR-TST-008)",
+      "scenarios_hint": "Persona is a synthetic label (not a real customer); scenario latency is compared with the NFR 10.1 target (≤ {target}).",
+      "no_scenarios": "No scenario results for this run.",
+      "regression_caption": "Candidate version vs baseline score comparison (FR-TST-004 / FR-ANA-010)",
+      "regression_hint": "The candidate score ({candidate}) is compared with the baseline ({baseline}); a drop beyond the tolerance ({tol}%) counts as a regression and blocks the gate.",
+      "regression_ok": "No regression beyond tolerance in any category; the candidate version preserves the baseline (FR-TST-004).",
+      "no_regression_items": "No regression comparison for this run.",
+      "gate_pass_msg": "Promotion gate PASSED: pass rate + score above threshold, no regression, adversarial passed, resource under load within budget. The candidate version can be released to production (FR-TST-005).",
+      "gate_blocked_msg": "Promotion gate BLOCKED: the gates below failed; the candidate version cannot be released to production (FR-TST-005). Promotion is also blocked in the backend (agent:version:manage).",
+      "gate_blockers_label": "Failed gates:",
+      "load_caption": "Load test: concurrent calls + per-call resource under load (FR-TST-006/009)",
+      "load_hint": "Per-call CPU/memory under load is compared with the baseline; an increase beyond tolerance ({tol}%) counts as a resource regression (FR-TST-009).",
+      "load_kpi": {
+        "concurrency": "Concurrent Calls",
+        "concurrency_hint": "target ≥ {target}",
+        "cps": "Calls/sec (CPS)",
+        "cps_hint": "load test arrival rate",
+        "success": "Success Rate",
+        "success_hint": "target ≥ {target}%",
+        "cpu": "Per-Call CPU (P95)",
+        "cpu_hint": "budget ≤ {budget} · baseline {baseline}",
+        "mem": "Per-Call Memory (P95)",
+        "mem_hint": "budget ≤ {budget} · baseline {baseline}"
+      },
+      "action": {
+        "run": "Start new run"
+      }
     }
   }
 }

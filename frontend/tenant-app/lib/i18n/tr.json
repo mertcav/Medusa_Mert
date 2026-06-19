@@ -3207,6 +3207,134 @@
       "action": {
         "export": "Raporu dışa aktar"
       }
+    },
+    "a16": {
+      "title": "Test & Simülasyon Merkezi",
+      "subtitle": "Tarayıcı testi, persona/senaryo simülasyonu ve yük testi",
+      "scope_note": "Bu ekranda bir agent aday sürümünü yayın öncesi test edersiniz (yalnız tenant'ınız kapsamında): kategori bazında suite kırılımı (happy/edge/adversarial/robustness — FR-TST-003/007), persona ve senaryo simülasyonu sonuçları (tarayıcı testi FR-TST-001/002), baseline sürüme karşı regresyon (FR-TST-004 / FR-ANA-010), production promotion gate (FR-TST-005 — eşik altıysa yayın engellenir) ve yük testi (eş zamanlı çağrı FR-TST-006 + yük altı çağrı başı kaynak FR-TST-009). Tüm veri sentetiktir (FR-TST-008); gerçek müşteri verisi, çağrı içeriği, transkript veya PII taşımaz, bu yüzden break-glass gerekmez. Koşu/promote derin aksiyondur; nihai çalıştırma + yetki + audit backend'de gerçekleşir (test:run / agent:version:manage).",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "agent": "Agent",
+      "version": "Aday sürüm",
+      "baseline": "Baseline",
+      "environment": "Ortam",
+      "synthetic": "Sentetik veri (FR-TST-008)",
+      "percent": "%{n}",
+      "ms": "{n} ms",
+      "mb": "{n} MB",
+      "na": "—",
+      "total": "Toplam",
+      "yes": "Evet",
+      "footnote": "Test/simülasyon sonuçları Test & Simulation motoru + yük test ortamından (0.4.8) beslenir; yük altı çağrı başı kaynak Cost/Resource Meter'dan (SAD §13.3) ölçülür. Skor/gecikme/kaynak değerleri illüstratif mühendislik örneğidir. Promote akışı regresyon/gate geçmeden production'a engellenir (FR-TST-005).",
+      "alert": {
+        "gate_blocked": "Promotion gate ENGELLİ: {count} kapı başarısız; aday sürüm production'a yayınlanamaz (FR-TST-005).",
+        "regression": "Regresyon tespit edildi: {category} skoru baseline'a göre {delta} düştü (tolerans %{tol}); inceleyin (FR-TST-004).",
+        "load_resource": "Yük altı çağrı başı kaynak regresyonu: kaynak tüketimi baseline'ı tolerans üstünde aşıyor (FR-TST-009).",
+        "concurrency_low": "Yük testi hedef eş zamanlılığa ulaşamadı ({achieved}/{target}); kapasite incelenmeli (FR-TST-006 / NFR 10.3)."
+      },
+      "section": {
+        "summary": "Özet KPI'ları",
+        "suites": "Suite / Kategori Kırılımı",
+        "scenarios": "Senaryo Sonuçları",
+        "regression": "Regresyon (Aday vs Baseline)",
+        "gate": "Promotion Gate",
+        "load": "Yük Testi"
+      },
+      "kpi": {
+        "gate": "Promotion Gate",
+        "pass_rate": "Geçme Oranı",
+        "pass_rate_hint": "hedef ≥ %{target}",
+        "score": "Ortalama Skor",
+        "score_hint": "hedef ≥ {target}",
+        "scenarios": "Senaryo",
+        "scenarios_hint": "{passed} geçti · {failed} kaldı · {blocked} bloke",
+        "concurrency": "Yük Eş Zamanlılığı",
+        "concurrency_hint": "hedef ≥ {target}",
+        "resource": "Yük Altı Bellek (P95)",
+        "resource_hint": "bütçe ≤ {budget}"
+      },
+      "category": {
+        "happy": "Happy path",
+        "edge": "Edge case",
+        "adversarial": "Adversarial",
+        "robustness": "Dayanıklılık (gürültü/aksan)"
+      },
+      "category_desc": {
+        "happy": "Beklenen mutlu yol akışları",
+        "edge": "Sınır/istisna durumları (eksik bilgi, çoklu niyet)",
+        "adversarial": "Saldırı/jailbreak/veri çıkarma denemeleri",
+        "robustness": "Gürültü, aksan, kesinti, düşük hat kalitesi (FR-TST-007)"
+      },
+      "status": {
+        "pass": "Geçti",
+        "fail": "Kaldı",
+        "blocked": "Bloke"
+      },
+      "gate_state": {
+        "pass": "Geçti",
+        "blocked": "Engelli"
+      },
+      "blocker": {
+        "pass_rate": "Geçme oranı eşiğin altında",
+        "score": "Ortalama skor eşiğin altında",
+        "regression": "Baseline'a karşı regresyon var",
+        "adversarial": "Adversarial senaryo başarısız (kritik)",
+        "load_resource": "Yük altı kaynak regresyonu"
+      },
+      "trend": {
+        "up": "İyileşme",
+        "down": "Gerileme",
+        "flat": "Sabit"
+      },
+      "col": {
+        "category": "Kategori",
+        "total": "Toplam",
+        "passed": "Geçen",
+        "failed": "Kalan",
+        "blocked": "Bloke",
+        "pass_rate": "Geçme Oranı",
+        "scenario": "Senaryo",
+        "persona": "Persona",
+        "status": "Durum",
+        "score": "Skor",
+        "turns": "Tur",
+        "latency": "Gecikme P95",
+        "baseline": "Baseline",
+        "current": "Aday",
+        "delta": "Fark",
+        "metric": "Metrik",
+        "target": "Hedef",
+        "achieved": "Ulaşılan"
+      },
+      "suites_caption": "Test suite kategori kırılımı (happy/edge/adversarial/robustness; FR-TST-003/007)",
+      "suites_hint": "Suite toplamları senaryo sayımıyla uzlaşır (her kategori toplamı = o kategorideki senaryo adedi; FR-TST-003).",
+      "scenarios_caption": "Persona/senaryo simülasyonu sonuçları (tarayıcı testi; FR-TST-001/002) — tümü sentetik (FR-TST-008)",
+      "scenarios_hint": "Persona bir sentetik etikettir (gerçek müşteri değildir); senaryo gecikmesi NFR 10.1 hedefiyle (≤ {target}) karşılaştırılır.",
+      "no_scenarios": "Bu koşu için senaryo sonucu bulunmuyor.",
+      "regression_caption": "Aday sürüm vs baseline skor karşılaştırması (FR-TST-004 / FR-ANA-010)",
+      "regression_hint": "Aday skoru ({candidate}) baseline ({baseline}) ile karşılaştırılır; toleransı (%{tol}) aşan düşüş regresyon sayılır ve gate'i engeller.",
+      "regression_ok": "Hiçbir kategoride toleransı aşan regresyon yok; aday sürüm baseline'ı koruyor (FR-TST-004).",
+      "no_regression_items": "Bu koşu için regresyon karşılaştırması bulunmuyor.",
+      "gate_pass_msg": "Promotion gate GEÇTİ: geçme oranı + skor eşik üstü, regresyon yok, adversarial geçti, yük altı kaynak bütçe içinde. Aday sürüm production'a yayınlanabilir (FR-TST-005).",
+      "gate_blocked_msg": "Promotion gate ENGELLİ: aşağıdaki kapılar başarısız; aday sürüm production'a yayınlanamaz (FR-TST-005). Promote akışı backend'de de engellenir (agent:version:manage).",
+      "gate_blockers_label": "Başarısız kapılar:",
+      "load_caption": "Yük testi: eş zamanlı çağrı + yük altı çağrı başı kaynak (FR-TST-006/009)",
+      "load_hint": "Yük altı çağrı başı CPU/bellek baseline ile karşılaştırılır; toleransı (%{tol}) aşan artış kaynak regresyonu sayılır (FR-TST-009).",
+      "load_kpi": {
+        "concurrency": "Eş Zamanlı Çağrı",
+        "concurrency_hint": "hedef ≥ {target}",
+        "cps": "Çağrı/sn (CPS)",
+        "cps_hint": "yük testi geliş hızı",
+        "success": "Başarı Oranı",
+        "success_hint": "hedef ≥ %{target}",
+        "cpu": "Çağrı Başı CPU (P95)",
+        "cpu_hint": "bütçe ≤ {budget} · baseline {baseline}",
+        "mem": "Çağrı Başı Bellek (P95)",
+        "mem_hint": "bütçe ≤ {budget} · baseline {baseline}"
+      },
+      "action": {
+        "run": "Yeni koşu başlat"
+      }
     }
   }
 }

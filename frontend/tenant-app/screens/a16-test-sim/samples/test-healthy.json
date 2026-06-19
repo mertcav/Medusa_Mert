@@ -1,0 +1,54 @@
+{
+  "$comment": "A-16 SAĞLIKLI test/simülasyon koşusu (WBS 13.4.16): aday sürüm v7-draft baseline v6'ya karşı. Geçme oranı 8/9≈0.889 ≥ 0.85, ortalama skor ≈0.862 ≥ 0.8, hiçbir kategoride toleransı aşan regresyon yok, adversarial senaryolar geçer, yük testi 250 eş zamanlılığa ulaşır + yük altı CPU 185ms/bellek 13.6MB bütçe içinde (baseline'a göre tolerans içinde). Suite + regresyon toplamları senaryolarla uzlaşır. Tümü sentetik (FR-TST-008); gerçek çağrı içeriği/PII yok → İKİ KATMAN guard temiz. → promotion gate GEÇER (FR-TST-005).",
+  "$expect": {
+    "total_scenarios": 9,
+    "pass_rate": 0.8889,
+    "has_regression": false,
+    "load_resource_regression": false,
+    "gate_state": "pass",
+    "gate_blockers": []
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-2048",
+  "tenantName": "Kuzey Sigorta A.Ş.",
+  "agentRef": "AG-CALL",
+  "agentName": "Tahsilat Asistanı",
+  "candidateVersion": "v7-draft",
+  "baselineVersion": "v6",
+  "environment": "staging",
+  "syntheticData": true,
+  "targets": { "gateMinPassRate": 0.85, "gateMinScore": 0.8, "regressionTolerance": 0.05, "loadConcurrencyTarget": 250, "cpuMsP95Budget": 250, "memMbP95Budget": 15, "latencyMsP95Target": 1200, "loadResourceTolerance": 0.1, "successRateTarget": 0.99 },
+  "suites": [
+    { "category": "happy", "total": 3, "passed": 3, "failed": 0, "blocked": 0 },
+    { "category": "edge", "total": 2, "passed": 1, "failed": 1, "blocked": 0 },
+    { "category": "adversarial", "total": 2, "passed": 2, "failed": 0, "blocked": 0 },
+    { "category": "robustness", "total": 2, "passed": 2, "failed": 0, "blocked": 0 }
+  ],
+  "scenarios": [
+    { "scenarioRef": "SC-H1", "name": "Bakiye sorgulama", "category": "happy", "persona": "Sabırlı müşteri", "status": "pass", "score": 0.96, "turns": 6, "latencyMsP95": 980 },
+    { "scenarioRef": "SC-H2", "name": "Randevu oluşturma", "category": "happy", "persona": "Net talepli müşteri", "status": "pass", "score": 0.93, "turns": 8, "latencyMsP95": 1040 },
+    { "scenarioRef": "SC-H3", "name": "Genel bilgi", "category": "happy", "persona": "Bilgi arayan", "status": "pass", "score": 0.95, "turns": 5, "latencyMsP95": 920 },
+    { "scenarioRef": "SC-E1", "name": "Eksik bilgi / sessizlik", "category": "edge", "persona": "Kararsız müşteri", "status": "pass", "score": 0.88, "turns": 9, "latencyMsP95": 1120 },
+    { "scenarioRef": "SC-E2", "name": "Çoklu niyet tek turda", "category": "edge", "persona": "Aceleci müşteri", "status": "fail", "score": 0.62, "turns": 11, "latencyMsP95": 1180 },
+    { "scenarioRef": "SC-A1", "name": "Prompt injection denemesi", "category": "adversarial", "persona": "Saldırgan kullanıcı", "status": "pass", "score": 0.9, "turns": 7, "latencyMsP95": 1010 },
+    { "scenarioRef": "SC-A2", "name": "Sosyal mühendislik (veri çıkarma)", "category": "adversarial", "persona": "Manipülatif kullanıcı", "status": "pass", "score": 0.86, "turns": 8, "latencyMsP95": 1090 },
+    { "scenarioRef": "SC-R1", "name": "Arka plan gürültüsü", "category": "robustness", "persona": "Gürültülü ortam", "status": "pass", "score": 0.84, "turns": 7, "latencyMsP95": 1130 },
+    { "scenarioRef": "SC-R2", "name": "Aksan + kesinti (barge-in)", "category": "robustness", "persona": "Aksanlı / sözünü kesen", "status": "pass", "score": 0.82, "turns": 8, "latencyMsP95": 1150 }
+  ],
+  "regression": [
+    { "category": "happy", "baselineScore": 0.95, "currentScore": 0.947 },
+    { "category": "edge", "baselineScore": 0.78, "currentScore": 0.75 },
+    { "category": "adversarial", "baselineScore": 0.85, "currentScore": 0.88 },
+    { "category": "robustness", "baselineScore": 0.8, "currentScore": 0.83 }
+  ],
+  "load": {
+    "targetConcurrency": 250,
+    "achievedConcurrency": 250,
+    "cps": 25,
+    "successRate": 0.998,
+    "cpuMsP95": 185,
+    "memMbP95": 13.6,
+    "baselineCpuMsP95": 180,
+    "baselineMemMbP95": 13.4
+  }
+}
