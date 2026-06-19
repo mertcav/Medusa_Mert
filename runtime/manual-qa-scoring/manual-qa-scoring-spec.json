@@ -1,0 +1,153 @@
+{
+  "$comment": "WBS 14.2.6 QA manuel skor + açıklama — kaynak doğruluk. Analytics/Ops Plane'deki (SAD §4.2 ANALYTICS/OPS PLANE — async; ADR-004/ADR-007) MANUEL QA SKORLAMA yüzeyi: yetkili bir QA ekibi üyesi (L2 qa_analyst / operations_manager, FR-IAM-011/ADR-012; permission-key qa:score) tamamlanmış bir çağrıya İNSAN skoru (human_score) + serbest-metin açıklama (comment) ekler (FR-ANA-009). Otomatik skordan (14.2.1, eval_type='automatic') AYRI: eval_type='manual' satırı call_evaluation'a (DB.md §5.6: scores JSONB + evaluator_id + comment + created_at) yazılır ve OLAP fct_qa_evaluation'a YALNIZ human_score (f32, [0,1] normalize) + human_comment_present (u8_bool, METİN DEĞİL) + evaluator_role (string_lc, düşük-kardinalite) projekte edilir; AÇIKLAMA METNİ tenant düzleminde (DB RLS) kalır, OLAP'a/platforma/event payload'una/spec'e ASLA çıkmaz (FR-REC-004; altın kural). BİRİNCİL HARD kapı = YETKİLENDİRME: yalnız qa:score izni olan submitter manuel skor ekleyebilir; yetkisiz reddedilir (AUTH); karar HER ZAMAN backend'de. Her kabul edilen skorlama KAYIPSIZ governance.audit.v1 (audit.event) WORM audit izi üretir (kim/ne zaman/hangi çağrı). Manuel skorlama analytics/ops plane'de async/non-blocking — canlı çağrıyı ASLA etkilemez (FR-RES-011). Sır/credential, ham ses payload, transkript METNİ, AÇIKLAMA METNİ, PII DEĞERİ YOK — örnekler yalnız sayısal skor + açıklama VARLIK/uzunluk göstergesi + düşük-kardinalite rol/kimlik anahtarı ADLARI + yetki bağlamı. KAPSAM AYRIMI: OTOMATİK kalite skoru → 14.2.1 · intent/disposition/completion ÇIKARIMI → 14.2.2 · containment/transfer ORANI → 14.2.3 · yanlış-bilgi/tool-hata/güvenlik İŞARETİ → 14.2.4 · KRİTİK işaretleme → 14.2.5 · agent sürüm KARŞILAŞTIRMA → 14.2.7 · dashboard/export → 14.2.8. Burada YALNIZ insan QA skoru + açıklama ekleme yüzeyi + yetki/izolasyon/PII-sınır/audit kapıları.",
+  "wbs": "14.2.6",
+  "version": "1.0",
+  "phase": "F2",
+  "priority": "Must",
+  "eval_doc": {
+    "fr": "FR-ANA-009 (QA ekibi çağrıya skor ve açıklama ekleyebilmelidir)",
+    "srs": "SR-ANA-009 (Yöntem D — manuel skor/yorum kaydedilir)",
+    "rtm": "FR-ANA-009 ↔ SR-ANA-009 ↔ TC-ANA-009 (D) ↔ WBS 14.2.6",
+    "brd": "BRD §9.15 (Analitik ve Kalite Yönetimi) + §17 (panel/RBAC: qa_analyst L2) + §16 (call_evaluation varlığı)",
+    "sad": "SAD §4.2 (Analytics/Ops Plane — async) + §171 (FR-RES-011 async post-processing) + §14.4 (L2 Operasyon paneli A-14 Analytics) + §12.1 (OLAP)",
+    "db": "DB.md §5.6 (call_evaluation: eval_type='manual', scores JSONB, evaluator_id REFERENCES app_user, comment, created_at) + §6.2 (tenant_isolation RLS)",
+    "olap": "analytics/olap-spec.json fct_qa_evaluation.human_score (f32, nullable, FR-ANA-009) + human_comment_present (u8_bool — yalnız VARLIK; METİN değil, FR-REC-004) + evaluator_role (string_lc, pii_class low)",
+    "iam": "FR-IAM-011 (sabit rol bundle) + ADR-012 (RBAC); permission-key qa:score (SAD §598/§611/§613: operations_manager + qa_analyst L2); FR-IAM-008 altın kural (platform içeriği görmez)",
+    "eventstream": "eventstream/topic-spec.json qa.evaluation.v1 (eval_type='manual' olayı, pii_class=redacted, produces qa.evaluation.completed, consumers=[qa-eval,analytics-ingest]) + governance.audit.v1 (audit.event, no-loss/WORM, kim/ne zaman/hangi çağrı skorladı)",
+    "adr": "ADR-002 (vendor-neutral) / ADR-004 (plane ayrımı) / ADR-007 (async event pipeline) / ADR-012 (RBAC) / ADR-001 (orchestrator çekirdek)",
+    "api": "API §11.6 (ErrorTaxonomy) + L2 Analytics yüzeyi (x-required-permission: qa:score)",
+    "upstream": "14.2.1 qa-eval (eval_type='automatic' satırı — manuel skor onunla COEXIST eder, overwrite YOK) + 14.2.2/14.2.4/14.2.5 (otomatik çıkarım/işaret — QA insanı bunları gözden geçirip manuel skor ekler)"
+  },
+  "placement": {
+    "$comment": "Manuel QA skorlama HOT-PATH'TE DEĞİL — L2 panel write (Analytics/Ops Plane, SAD §4.2/§14.4). İnsan QA üyesi çağrı bittikten SONRA skor+açıklama ekler. call_evaluation'a (eval_type='manual') yazar + qa.evaluation.v1 (manual) + governance.audit.v1 yayar → analytics-ingest → fct_qa_evaluation. Başarısızlığı CANLI çağrıyı ASLA etkilemez (non_blocking, FR-RES-011). from_trace=false: insan skoru bir değerlendirme kaydıdır, trace/metrik türetme değil. human_initiated=true: otomatik motor DEĞİL — yetkili insan write'ı (14.2.1 otomatik motorla zıt). all_calls=false: yalnız QA'nın seçtiği çağrılar manuel skorlanır (otomatik %100 değil; manuel ÖRNEKLEMDİR).",
+    "in_analytics_plane": true,
+    "human_initiated": true,
+    "non_blocking": true,
+    "from_redacted_content": false,
+    "all_calls": false,
+    "idempotent_versioned": true,
+    "from_trace": false
+  },
+  "authorization": {
+    "$comment": "BİRİNCİL HARD kapı (G1). Manuel skor ekleme YALNIZ qa:score izni olan submitter'a açık (SAD §611/§613: operations_manager + qa_analyst L2 seti; tenant_owner L1+L2 devralır). Yetki kararı HER ZAMAN backend'de (CLAUDE.md). Platform (L0) rolleri tenant iş içeriğine erişemez → manuel skor EKLEYEMEZ (altın kural, FR-IAM-008). human_agent/conversation_designer/billing_viewer/api_developer qa:score TAŞIMAZ → reddedilir. Karar PERMISSION-KEY tabanlı (rol listesi illüstratif; backend submitter.permissions içinde qa:score arar).",
+    "required_permission": "qa:score",
+    "decided_in_backend": true,
+    "illustrative_allowed_roles": ["qa_analyst", "operations_manager", "tenant_owner"],
+    "illustrative_forbidden_roles": ["platform_owner", "platform_sre", "platform_billing", "human_agent", "conversation_designer", "billing_viewer", "api_developer"],
+    "platform_l0_forbidden": true,
+    "unauthorized_error": "AUTH"
+  },
+  "scoring": {
+    "$comment": "İnsan QA skoru. human_score sıralı (ordinal) 1–5 ölçeğinde (1=çok kötü … 5=mükemmel); OLAP fct_qa_evaluation.human_score'a [0,1] f32 olarak NORMALİZE edilir: normalized=(score-min)/(max-min). human_score ZORUNLU (FR-ANA-009 'skor'); comment (açıklama) ZORUNLU değil ama desteklenir (FR-ANA-009 've açıklama'); skor + comment birlikte/ayrı kaydedilebilir ama EN AZINDAN skor olmalı (boş submission reddedilir). İsteğe bağlı dimension_scores (accuracy/compliance/helpfulness — 14.2.1 rubric boyutlarıyla hizalı) call_evaluation.scores JSONB'de tutulabilir; OLAP yalnız composite human_score taşır.",
+    "score_field": "human_score",
+    "scale": {"min": 1, "max": 5, "type": "ordinal_1_5"},
+    "normalize_to_olap": "(human_score - min) / (max - min) → [0,1] f32",
+    "score_required": true,
+    "comment_required": false,
+    "at_least_score": true,
+    "optional_dimension_scores": ["accuracy", "compliance", "helpfulness"]
+  },
+  "comment_policy": {
+    "$comment": "AÇIKLAMA (comment) serbest-metin (insan QA yazar) — PII İÇEREBİLİR. METİN YALNIZ tenant düzleminde call_evaluation.comment'te (DB.md §5.6, tenant_isolation RLS) saklanır; OLAP'a/platforma/event payload'una/bu spec'e ASLA çıkmaz (FR-REC-004; altın kural FR-IAM-008). OLAP yalnız human_comment_present (u8_bool — VARLIK) + evaluator_role (düşük-kardinalite) taşır. comment_max_chars sınırı; örneklerde/spec'te yalnız VARLIK + uzunluk göstergesi (comment_present/comment_chars), METİN YASAK (G5).",
+    "text_storage": "tenant-plane only (call_evaluation.comment, DB.md §5.6, RLS)",
+    "olap_projection": "human_comment_present (u8_bool) + evaluator_role (string_lc) — METİN değil",
+    "text_in_olap_forbidden": true,
+    "text_in_event_payload_forbidden": true,
+    "text_in_spec_forbidden": true,
+    "comment_max_chars": 4000
+  },
+  "eligibility": {
+    "$comment": "Manuel skor YALNIZ tamamlanmış (completed) çağrıya eklenebilir. evaluable_status → skorlanabilir. excluded_status → skorlanamaz ama açık reason_code TAŞIMALI (sessiz reddetme yok, G10). Bilinmeyen statü → reddedilir (INVALID_REQUEST).",
+    "evaluable_status": ["completed"],
+    "excluded_status": ["abandoned_pre_connect", "test_call", "in_progress", "blocked"],
+    "reason_codes": ["abandoned_pre_connect", "test_call", "in_progress", "blocked"]
+  },
+  "output_contract": {
+    "$comment": "Manuel değerlendirme satırı. eval_type='manual' (DB.md §5.6; otomatik=14.2.1 ile COEXIST — overwrite YOK). db_fields call_evaluation'a yazılır (comment METNİ tenant düzleminde). olap_score_fields OLAP fct_qa_evaluation'da human_score + human_comment_present + evaluator_role ile BİREBİR (probe non-circular cross-check). identity_fields her satırda zorunlu (tenant izolasyon + sürüm + idempotency). emits: qa.evaluation.v1 (eval_type='manual') → qa.evaluation.completed + governance.audit.v1 (audit.event). tenant_plane_only: comment METNİ.",
+    "eval_type": "manual",
+    "olap_score_fields": ["human_score", "human_comment_present", "evaluator_role"],
+    "db_fields": ["eval_type", "scores", "evaluator_id", "comment", "created_at"],
+    "identity_fields": ["tenant_id", "evaluation_id", "call_id", "schema_version"],
+    "tenant_plane_only_fields": ["comment"],
+    "emits_events": ["qa.evaluation.v1 (eval_type=manual)", "governance.audit.v1 (audit.event)"],
+    "persists_to": ["call_evaluation (DB.md §5.6, eval_type='manual')", "fct_qa_evaluation (OLAP, human_*/evaluator_role)"]
+  },
+  "coexistence": {
+    "$comment": "Manuel değerlendirme OTOMATİK değerlendirmeyi (14.2.1, eval_type='automatic') OVERWRITE ETMEZ — ikisi de call_evaluation'da AYRI satır olarak yaşar (eval_type ayrımı). fct_qa_evaluation'da auto_score (otomatik) ile human_score (manuel) AYRI sütunlar (analytics/olap-spec.json) → çakışmaz. Bir çağrı 0 veya çok sayıda manuel skor alabilir (her QA üyesi ayrı); otomatik tam 1.",
+    "manual_does_not_overwrite_automatic": true,
+    "separate_olap_columns": {"automatic": "auto_score", "manual": "human_score"},
+    "multiple_manual_per_call_allowed": true
+  },
+  "audit": {
+    "$comment": "Her KABUL edilen manuel skorlama KAYIPSIZ (no-loss) bir governance.audit.v1 (audit.event) WORM audit izi üretir: kim (evaluator_id+role), ne zaman (created_at), hangi çağrı (call_id), hangi aksiyon (manual_score_added). Audit append-only/WORM (DB.md WORM audit) — düzeltme YENİ sürüm üretir, sessiz overwrite/silme YOK. Audit alanlarında AÇIKLAMA METNİ / PII DEĞERİ yok (yalnız kimlik + aksiyon + skor).",
+    "required": true,
+    "topic": "governance.audit.v1",
+    "action_code": "manual_score_added",
+    "audit_fields": ["tenant_id", "call_id", "evaluator_id", "evaluator_role", "action_code", "created_at"],
+    "append_only_worm": true,
+    "no_silent_overwrite": true
+  },
+  "idempotency": {
+    "$comment": "Replay-güvenli + sürümlü. dedup_key (tenant_id, call_id, evaluator_id, schema_version): AYNI QA üyesinin AYNI çağrıyı yeniden skorlaması ÖNCEKİNİ SÜRÜMLER (yeni evaluation_id; önceki audit izinde kalır) — silent çift-satır üretmez (G8). FARKLI evaluator'lar AYNI çağrıya AYRI manuel skor ekleyebilir (multiple_manual_per_call). at-least-once teslimat çift-sayım yapmaz.",
+    "dedup_key": ["tenant_id", "call_id", "evaluator_id", "schema_version"],
+    "resubmit_supersedes": true,
+    "replay_safe": true
+  },
+  "isolation": {
+    "$comment": "submitter (evaluator) ile çağrı AYNI tenant_id olmalı (FR-TEN-002 izolasyon); cross-tenant skor reddedilir (cross_tenant_forbidden). home-region (NFR 10.7 residency). Platform (L0) tenant iş içeriğine erişemez → manuel skor ekleyemez (altın kural, FR-IAM-008; authorization.platform_l0_forbidden).",
+    "tenant_id_required": true,
+    "evaluator_tenant_must_match_call": true,
+    "residency": "home-region",
+    "cross_tenant_forbidden": true
+  },
+  "gates": {
+    "max_authz_violation": 0,
+    "max_missing_required": 0,
+    "max_score_domain_violation": 0,
+    "max_catalog_mismatch": 0,
+    "max_pii_leak": 0,
+    "max_isolation_violation": 0,
+    "max_audit_missing": 0,
+    "max_idempotency_violation": 0,
+    "max_blocking_violation": 0,
+    "max_eligibility_reason_missing": 0
+  },
+  "error_taxonomy": {
+    "$comment": "API §11.6 ErrorTaxonomy eşlemesi.",
+    "mapping": {
+      "unauthorized": "AUTH",
+      "missing_required": "INVALID_REQUEST",
+      "score_out_of_domain": "INVALID_REQUEST",
+      "ineligible_status": "INVALID_REQUEST",
+      "unknown_status": "INVALID_REQUEST",
+      "comment_text_leak": "INVALID_REQUEST",
+      "cross_tenant": "AUTH",
+      "region_mismatch": "REGION_VIOLATION"
+    }
+  },
+  "pii": {
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "comment_text_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true
+  },
+  "metrics_emitted": {
+    "emitted": ["manual_evaluations_total", "manual_score_avg", "manual_comment_present_total", "manual_authz_denied_total", "manual_eval_lag_seconds"]
+  },
+  "invariants": [
+    {"id": "I1", "desc": "Manuel skor ekleme YALNIZ qa:score izni olan submitter'a açık (yetki backend'de); yetkisiz reddedilir (AUTH) — BİRİNCİL kapı", "trace": "FR-ANA-009, FR-IAM-011, ADR-012, SAD §611/§613"},
+    {"id": "I2", "desc": "Platform (L0) rolleri tenant iş içeriğine erişemez → manuel skor EKLEYEMEZ (altın kural)", "trace": "FR-IAM-008, authorization.platform_l0_forbidden"},
+    {"id": "I3", "desc": "Geçerli manuel değerlendirme evaluator_id + human_score TAŞIMALI (skor zorunlu); skorsuz/boş submission reddedilir (INVALID_REQUEST)", "trace": "FR-ANA-009, scoring.score_required, DB.md §5.6 evaluator_id"},
+    {"id": "I4", "desc": "human_score ∈ [1,5] (ordinal); OLAP'a [0,1] normalize; domain dışı → reddedilir", "trace": "scoring.scale, olap fct_qa_evaluation.human_score"},
+    {"id": "I5", "desc": "eval_type='manual' (DB.md §5.6); OLAP çıktı alanları human_score+human_comment_present+evaluator_role ile BİREBİR (non-circular); otomatik (auto_score, 14.2.1) ile COEXIST — overwrite YOK", "trace": "analytics/olap-spec.json fct_qa_evaluation, DB.md §5.6, coexistence"},
+    {"id": "I6", "desc": "AÇIKLAMA METNİ yalnız tenant düzleminde (call_evaluation.comment, RLS); OLAP/platform/event payload/spec yalnız human_comment_present (VARLIK) + evaluator_role taşır; ham metin/PII DEĞERİ ASLA sızmaz (KEY)", "trace": "FR-REC-004, FR-IAM-008, comment_policy, olap-spec.json human_comment_present"},
+    {"id": "I7", "desc": "submitter (evaluator) ile çağrı aynı tenant_id (FR-TEN-002); cross-tenant skor reddedilir; home-region (NFR 10.7)", "trace": "FR-TEN-002, NFR 10.7, isolation"},
+    {"id": "I8", "desc": "Her kabul edilen manuel skorlama KAYIPSIZ governance.audit.v1 (audit.event) WORM izi üretir (kim/ne zaman/hangi çağrı/aksiyon); append-only — düzeltme yeni sürüm, sessiz overwrite/silme yok", "trace": "audit, eventstream governance.audit.v1, DB WORM audit"},
+    {"id": "I9", "desc": "(tenant_id,call_id,evaluator_id,schema_version) dedup: aynı evaluator yeniden skoru SÜRÜMLER (silent çift-satır yok); farklı evaluator'lar ayrı manuel skor ekleyebilir; at-least-once çift-sayım yapmaz", "trace": "idempotency, coexistence.multiple_manual_per_call_allowed"},
+    {"id": "I10", "desc": "Manuel skorlama analytics/ops plane'de async/non-blocking (SAD §4.2/§171, FR-RES-011); canlı çağrıyı etkilemez; from_trace=false (hot-path dışı)", "trace": "placement, SAD §4.2/§171, FR-RES-011, ADR-004"},
+    {"id": "I11", "desc": "Yalnız completed çağrı manuel skorlanır; uygun-olmayan statü açık reason_code taşır (sessiz reddetme yok)", "trace": "eligibility"},
+    {"id": "I12", "desc": "Hata API §11.6 ErrorTaxonomy'ye eşlenir (unauthorized/cross_tenant→AUTH, missing/domain/ineligible/leak→INVALID_REQUEST, region→REGION_VIOLATION)", "trace": "API §11.6, error_taxonomy"},
+    {"id": "I13", "desc": "Kapsam ayrımı: otomatik skor (FR-ANA-001→14.2.1) + çıkarım (FR-ANA-002→14.2.2) + oran (FR-ANA-003→14.2.3) + işaret (FR-ANA-004→14.2.4) + kritik (FR-ANA-008→14.2.5) + sürüm karşılaştırma (FR-ANA-010→14.2.7) bu dilimde kapsam dışı; burada YALNIZ insan QA skoru + açıklama", "trace": "FR-ANA-001/002/003/004/008/010, WBS"},
+    {"id": "I14", "desc": "spec/config'te sır/ham payload/transkript/AÇIKLAMA METNİ/PII DEĞERİ yok (yalnız sayısal skor + VARLIK/uzunluk + rol/kimlik/aksiyon anahtarı ADLARI)", "trace": "FR-REC-004, ADR-002, comment_policy"}
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "$comment": "WBS 14.2.6 manuel QA skorlama yüzeyi deployment profilleri (illüstratif; sır YOK, AÇIKLAMA METNİ YOK, PII DEĞERİ YOK). Her profil yüzeyin (Analytics/Ops Plane, L2 panel write — SAD §4.2/§14.4) DEPLOYMENT parametrelerini taşır: region (residency home-region pini, NFR 10.7), schema_version (sürüm — idempotency/yeniden-türetme), require_comment (tenant override — yalnız SIKILAŞTIRMA yönünde: regüle tenant'ta açıklama zorunlu kılınabilir; spec varsayılanı opsiyonel). Skor ölçeği (1–5), yetki (qa:score), comment PII sınırı spec'te SABİTtir. Vendor-neutral (ADR-002). Gerçek değerler canlı analytics plane'de (call_evaluation eval_type='manual' + qa.evaluation.v1 + governance.audit.v1 → fct_qa_evaluation; SAD §12.1; ADR-007) ayarlanır. Bölge değerleri ${ENV} ile çözülür.",
+  "version": "1.0",
+  "default_profile": "eu-standard",
+  "profiles": [
+    {
+      "name": "eu-standard",
+      "$comment": "Standart EU dağıtımı. L2 qa_analyst/operations_manager (qa:score) manuel skor ekler; başarısızlık canlı çağrıyı ASLA etkilemez (non-blocking, FR-RES-011). Açıklama opsiyonel (spec varsayılanı).",
+      "region": "${RUNTIME_REGION_EU}",
+      "schema_version": 1,
+      "require_comment": false
+    },
+    {
+      "name": "tr-standard",
+      "$comment": "TR home-region (residency NFR 10.7). Manuel skor + açıklama tenant home-region'ında üretilir ve oradan çıkmaz; açıklama METNİ tenant düzleminde (RLS) kalır.",
+      "region": "${RUNTIME_REGION_TR}",
+      "schema_version": 1,
+      "require_comment": false
+    },
+    {
+      "name": "regulated-dedicated",
+      "$comment": "Regüle/dedicated tenant (finans/sağlık). Platform (L0) tenant içeriğini görmez/skorlayamaz (altın kural, FR-IAM-008). QA disiplini için AÇIKLAMA ZORUNLU kılınır (require_comment=true) — tenant override yalnız sıkılaştırma yönünde. Açıklama METNİ tenant düzleminde (RLS), OLAP yalnız human_comment_present.",
+      "region": "${RUNTIME_REGION_EU}",
+      "schema_version": 1,
+      "require_comment": true
+    }
+  ]
+}

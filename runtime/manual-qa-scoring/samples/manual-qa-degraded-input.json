@@ -1,0 +1,24 @@
+{
+  "$comment": "WBS 14.2.6 degraded-input: kısmen eksik ama HÂLÂ geçerli/kabul edilebilir submission'lar — yorumsuz skor, sınır skorlar, farklı evaluator AYNI çağrıya (çoklu manuel skor izinli). Hiçbiri kapı elemez (kabul). Yetki/izolasyon/PII bütün. expect: hepsi kabul.",
+  "submissions": [
+    {
+      "tenant_id": "tenant-alpha", "call_id": "call-3001", "status": "completed", "schema_version": 1,
+      "submitter": {"evaluator_id": "qa-001", "evaluator_role": "qa_analyst",
+                    "permissions": ["qa:score", "calls:read"], "tenant_id": "tenant-alpha"},
+      "human_score": 2, "comment_present": false
+    },
+    {
+      "tenant_id": "tenant-alpha", "call_id": "call-3001", "status": "completed", "schema_version": 1,
+      "submitter": {"evaluator_id": "qa-002", "evaluator_role": "qa_analyst",
+                    "permissions": ["qa:score", "calls:read"], "tenant_id": "tenant-alpha"},
+      "human_score": 4, "comment_present": true, "comment_chars": 30
+    },
+    {
+      "tenant_id": "tenant-alpha", "call_id": "call-3002", "status": "completed", "schema_version": 1,
+      "submitter": {"evaluator_id": "owner-1", "evaluator_role": "tenant_owner",
+                    "permissions": ["qa:score", "calls:read", "tenant:manage"], "tenant_id": "tenant-alpha"},
+      "human_score": 5, "comment_present": true, "comment_chars": 1
+    }
+  ],
+  "expect": {"accept": [0, 1, 2], "reject": []}
+}

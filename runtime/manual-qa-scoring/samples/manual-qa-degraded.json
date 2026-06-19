@@ -1,0 +1,51 @@
+{
+  "$comment": "WBS 14.2.6 BİLİNÇLİ BOZUK: her submission en az bir HARD kapıyı tetikler — yetkisiz, platform L0, cross-tenant, skorsuz, domain-dışı, AÇIKLAMA METNİ sızıntısı, PII DEĞER, uygun-olmayan-statü. expect: hepsi RED. Doğru motor hepsini reddetmeli (kabul=0 → kapılar geçer; yanlış motor kabul ederse kapı 🔴).",
+  "submissions": [
+    {
+      "$case": "yetkisiz: qa:score yok (human_agent)",
+      "tenant_id": "tenant-alpha", "call_id": "call-4001", "status": "completed", "schema_version": 1,
+      "submitter": {"evaluator_id": "ha-1", "evaluator_role": "human_agent",
+                    "permissions": ["calls:read:own", "transcript:read"], "tenant_id": "tenant-alpha"},
+      "human_score": 4
+    },
+    {
+      "$case": "platform L0 → altın kural ihlali",
+      "tenant_id": "tenant-alpha", "call_id": "call-4002", "status": "completed", "schema_version": 1,
+      "submitter": {"evaluator_id": "sre-1", "evaluator_role": "platform_sre",
+                    "permissions": ["qa:score"], "tenant_id": "tenant-alpha"},
+      "human_score": 5
+    },
+    {
+      "$case": "cross-tenant: evaluator tenant-beta, call tenant-alpha",
+      "tenant_id": "tenant-alpha", "call_id": "call-4003", "status": "completed", "schema_version": 1,
+      "submitter": {"evaluator_id": "qa-x", "evaluator_role": "qa_analyst",
+                    "permissions": ["qa:score"], "tenant_id": "tenant-beta"},
+      "human_score": 3
+    },
+    {
+      "$case": "skorsuz submission (skor zorunlu)",
+      "tenant_id": "tenant-alpha", "call_id": "call-4004", "status": "completed", "schema_version": 1,
+      "submitter": {"evaluator_id": "qa-1", "evaluator_role": "qa_analyst", "permissions": ["qa:score"], "tenant_id": "tenant-alpha"},
+      "comment_present": true, "comment_chars": 90
+    },
+    {
+      "$case": "skor domain dışı (7)",
+      "tenant_id": "tenant-alpha", "call_id": "call-4005", "status": "completed", "schema_version": 1,
+      "submitter": {"evaluator_id": "qa-1", "evaluator_role": "qa_analyst", "permissions": ["qa:score"], "tenant_id": "tenant-alpha"},
+      "human_score": 7
+    },
+    {
+      "$case": "AÇIKLAMA METNİ sızıntısı (comment_text)",
+      "tenant_id": "tenant-alpha", "call_id": "call-4006", "status": "completed", "schema_version": 1,
+      "submitter": {"evaluator_id": "qa-1", "evaluator_role": "qa_analyst", "permissions": ["qa:score"], "tenant_id": "tenant-alpha"},
+      "human_score": 4, "comment_text": "agent yanlis bilgi verdi"
+    },
+    {
+      "$case": "uygun-olmayan statü (in_progress)",
+      "tenant_id": "tenant-alpha", "call_id": "call-4007", "status": "in_progress", "schema_version": 1,
+      "submitter": {"evaluator_id": "qa-1", "evaluator_role": "qa_analyst", "permissions": ["qa:score"], "tenant_id": "tenant-alpha"},
+      "human_score": 4
+    }
+  ],
+  "expect": {"accept": [], "reject": [0, 1, 2, 3, 4, 5, 6]}
+}

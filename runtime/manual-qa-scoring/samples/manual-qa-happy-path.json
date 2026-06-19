@@ -1,0 +1,31 @@
+{
+  "$comment": "WBS 14.2.6 happy-path: yetkili QA üyeleri tamamlanmış çağrılara geçerli manuel skor + açıklama VARLIĞI ekler. Tüm submission'lar 10 HARD kapıyı geçer. AÇIKLAMA METNİ YOK — yalnız comment_present/comment_chars (varlık/uzunluk); skor 1–5; sayısal/kimlik/rol anahtarları. expect: hepsi kabul.",
+  "submissions": [
+    {
+      "tenant_id": "tenant-alpha", "call_id": "call-1001", "status": "completed", "schema_version": 1,
+      "submitter": {"evaluator_id": "qa-001", "evaluator_role": "qa_analyst",
+                    "permissions": ["calls:read", "transcript:read", "qa:score", "analytics:read"], "tenant_id": "tenant-alpha"},
+      "human_score": 5, "comment_present": true, "comment_chars": 142
+    },
+    {
+      "tenant_id": "tenant-alpha", "call_id": "call-1002", "status": "completed", "schema_version": 1,
+      "submitter": {"evaluator_id": "qa-002", "evaluator_role": "qa_analyst",
+                    "permissions": ["calls:read", "transcript:read", "qa:score", "analytics:read"], "tenant_id": "tenant-alpha"},
+      "human_score": 3, "comment_present": true, "comment_chars": 64,
+      "dimension_scores": {"accuracy": 3, "compliance": 4, "helpfulness": 2}
+    },
+    {
+      "tenant_id": "tenant-alpha", "call_id": "call-1003", "status": "completed", "schema_version": 1,
+      "submitter": {"evaluator_id": "om-001", "evaluator_role": "operations_manager",
+                    "permissions": ["campaign:manage", "calls:read", "transcript:manage", "qa:score", "analytics:read"], "tenant_id": "tenant-alpha"},
+      "human_score": 4, "comment_present": false
+    },
+    {
+      "tenant_id": "tenant-beta", "call_id": "call-2001", "status": "completed", "schema_version": 1,
+      "submitter": {"evaluator_id": "qa-101", "evaluator_role": "qa_analyst",
+                    "permissions": ["calls:read", "transcript:read", "qa:score", "analytics:read"], "tenant_id": "tenant-beta"},
+      "human_score": 1, "comment_present": true, "comment_chars": 200
+    }
+  ],
+  "expect": {"accept": [0, 1, 2, 3], "reject": []}
+}
