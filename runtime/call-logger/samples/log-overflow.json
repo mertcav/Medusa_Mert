@@ -1,0 +1,28 @@
+{
+  "name": "log-overflow",
+  "$comment": "ASENKRON BACKPRESSURE (SR-RES-012) — sampled-in çağrı (corr-acme-027, kesir 0.0856 < 0.2) + KÜÇÜK bounded ring buffer (queue_capacity=5) → 8 kayıt tutulur ama buffer 5'e doldu → 3 fazla. overflow_policy=drop_sampleable_first: yalnız SAMPLEABLE (normal telemetry; 4 adet) düşürülür → 3 normal düşer (dropped_overflow=3), 4 GARANTİLİ (WARN/ERROR/security/audit) + 1 normal KORUNUR (emitted=5). HİÇBİR garantili kayıt overflow ile kaybolmaz → overflow_violations=0 → G4 GEÇER. Bu örnek aşırı yükte non-blocking yazımın kritik sinyali koruyarak graceful düşürdüğünü kanıtlar (hot-path bloklanmadan).",
+  "profile": "eu-shared-default",
+  "expect": "pass",
+  "async_buffer": {"queue_capacity": 5},
+  "context": {
+    "tenant_id": "t_acme", "org_unit": "ou_support", "agent_id": "ag_inbound",
+    "correlation_id": "corr-acme-027", "trace_id": "tr-acme-027", "call_id": "call-acme-027"
+  },
+  "expected": {
+    "blocking_violations": 0,
+    "overflow_violations": 0,
+    "dropped_overflow": 3,
+    "emitted": 5,
+    "sampled_out": 0
+  },
+  "records": [
+    {"level": "INFO", "kind": "telemetry", "event": "call_connected", "ts": "t0", "fields": {"sip_code": "200"}},
+    {"level": "DEBUG", "kind": "telemetry", "event": "stt_partial", "ts": "t1", "fields": {"seq": 3}},
+    {"level": "INFO", "kind": "telemetry", "event": "llm_first_token", "ts": "t2", "fields": {"tier": "small"}},
+    {"level": "WARN", "kind": "telemetry", "event": "stt_retry", "ts": "t3", "fields": {"attempt": 2}},
+    {"level": "ERROR", "kind": "telemetry", "event": "tool_error", "ts": "t4", "fields": {"tool": "crm_lookup"}},
+    {"level": "INFO", "kind": "security", "event": "consent_skip_blocked", "ts": "t5", "fields": {"reason": "no_consent"}},
+    {"level": "INFO", "kind": "audit", "event": "human_transfer", "ts": "t6", "fields": {"target": "queue_billing"}},
+    {"level": "INFO", "kind": "telemetry", "event": "call_ended", "ts": "t7", "fields": {"outcome": "resolved"}}
+  ]
+}

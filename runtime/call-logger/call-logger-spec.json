@@ -1,0 +1,141 @@
+{
+  "$comment": "WBS 14.1.4 — Yapılandırılmış asenkron + örneklemeli loglama. Conversation Orchestrator (Çekirdek IP, SAD §6) gözlemlenebilirlik EMİSYON yolundaki STRUCTURED ASYNC SAMPLED LOGGER sözleşmesi: SAD §17.1 'Logs: Yapılandırılmış, örneklemeli, asenkron (FR-RES-012)' + FR-RES-012 'Loglama örnekleme (sampling) ve yapılandırılmış asenkron yazımla yapılmalıdır' + SR-RES-012 (I) 'Log yazımı çağrı hot-path'ini bloklamaz' runtime karşılığı. 14.1.1 (call-trace) çağrı span'lerini + zaman damgalarını üretir; 14.1.2 (call-metrics) BRD §15 teknik metrik DEĞERLERİNİ hesaplar; 14.1.3 (call-resource) per-call CPU/bellek/eşzamanlılığı ÖLÇER. 14.1.4 ÜÇÜNCÜ sinyali — LOGS — taşır: çağrı runtime'ı yapılandırılmış (structured JSON) log kayıtları üretir; bunlar (a) HEAD-BASED örneklenir (normal trafik base_rate ile; WARN+/security/audit HER ZAMAN tutulur — logs_always), (b) ASENKRON + bloklamayan bir tampona yazılır (hot-path'i bloklamaz — SR-RES-012), (c) stream label disiplinine uyar (DÜŞÜK kardinalite stream label tenant_id/region/service/level; yüksek-kardinalite kimlik correlation_id/call_id LOG GÖVDESİ alanı, stream label DEĞİL — Loki 0.4.7), (d) PII redaction L7'ye uyar (label'da PII anahtarı yok + gövde DEĞERİNDE ham PII/transkript/ses yok — FR-REC-004), (e) AUDIT log'ları (FR-IAM-006 WORM) ASLA örneklenmez + AYRI WORM hattına yönlendirilir (0.4.7 sampling.note). KAPSAM AYRIMI: span üretimi + zaman damgası → 14.1.1; teknik metrik DEĞERLERİ → 14.1.2; per-call CPU/bellek → 14.1.3; metrik/alarm KATALOĞU + collector/Loki guard → 0.4.7 (observability omurgası); alarm kuralları → 14.1.5; gerçek zamanlı operasyon ekranı → 14.1.6/FR-ANA-012; bağlam İLİŞTİRME + kardinalite/PII enforcement (genel) → 3.1.5; redaction ÜRETİMİ L7 → ileri WBS (burada yalnız label/gövde PII-yokluğu kapısı); WORM audit deposu + retention → DB §6.5/§9 + FR-IAM-006. Burada YALNIZ log üretim yolu: yapılandırma (structured) + örnekleme (head-based) + asenkron/bloklamama + stream-label kardinalite + label/gövde PII + audit ayrımı disiplini. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): Logger çekirdeği minimal+deterministik (saf, random YOK — örnekleme sabit hash; sink soyut); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3) bounded ring buffer + non-blocking enqueue + OpenTelemetry/Loki backend (SAD §11/§17.1). Sır/credential, ham ses payload'ı, transkript ve PII DEĞERİ spec/config/örneklerde TUTULMAZ — örnekler yalnız log SİNYALİ (level/event/kind) + kimlik/etiket anahtarı ADLARI taşır (PII DEĞER yok).",
+  "version": "1.0",
+  "wbs": "14.1.4",
+  "phase": "F1",
+  "priority": "Should",
+  "logger_doc": {
+    "fr": ["FR-RES-012", "FR-IAM-006", "FR-REC-004", "FR-ANA-012", "FR-TEN-002", "FR-TOOL-010"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "sad": ["§6", "§6.2", "§6.3", "§11", "§13.3", "§16.6", "§17", "§17.1", "§20"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003", "ADR-004"],
+    "api": ["§11.6 ErrorTaxonomy"],
+    "srs": ["SR-RES-012"],
+    "rtm": ["TC-RES-012"],
+    "brd": ["§10.3 (lean runtime / ölçüm ucuz)", "§15 (saklanan teknik veri — log)", "§17.7 (panel PII maskeleme)"],
+    "observability": ["sampling.logs_base_rate (0.4.7) — base_rate BİREBİR (0.2)", "sampling.logs_always (0.4.7) — always_classes BİREBİR (level>=WARN/security_event/audit)", "sampling.note (0.4.7) — audit WORM ASLA örneklenmez BİREBİR", "label_policy.high_cardinality_keys (0.4.7) — kimlik stream label değil BİREBİR", "label_policy.trace_log_required_keys (0.4.7) — required gövde anahtarı (tenant_id/correlation_id) BİREBİR", "pipelines.logs (0.4.7) — Yapılandırılmış asenkron logger kaynağı + Loki backend", "config/loki.yaml (0.4.7) — DÜŞÜK kardinalite stream label tenant_id/region/service/level"]
+  },
+
+  "placement": {
+    "$comment": "Structured Async Sampled Logger Conversation Orchestrator gözlemlenebilirlik emisyon yolundadır (SAD §6.2/§6.3, §17.1 'Logs:'). Çağrı yaşam döngüsü boyunca yapılandırılmış log kayıtları üretilir; HEAD-BASED örneklenir (normal trafik base_rate; WARN+/security/audit her zaman), ASENKRON + bloklamayan bir tampona (bounded ring buffer) yazılır → hot-path bloklanmaz (SR-RES-012). Collector/Loki ağır işlemeyi üstlenir (BRD §10.3 'measure everything cheaply'; §20 gecikme bütçesi korunur). AUDIT (FR-IAM-006 WORM) AYRI hatta — telemetri sink'inden ayrı, ASLA örneklenmez (0.4.7).",
+    "in_orchestrator": true,
+    "emission_path": true,
+    "structured": true,
+    "async_non_blocking": true,
+    "sampling_strategy": "head-based",
+    "audit_separate_worm_sink": true,
+    "from_trace": false,
+    "trace": "SAD §6.2, SAD §6.3, SAD §17.1, BRD §10.3, FR-RES-012, SR-RES-012, FR-IAM-006, ADR-003, ADR-004"
+  },
+
+  "record_model": {
+    "$comment": "Logger'a giren tek log kaydı (record) şekli. PII DEĞER yok — yalnız log SİNYALİ + kimlik/etiket anahtarı ADLARI + güvenli yapılandırılmış alanlar. level: log seviyesi (levels). kind: telemetry (örneklenebilir) / security (her zaman) / audit (her zaman + AYRI WORM). event: makine-okunur olay adı (düşük kardinalite). fields: güvenli yapılandırılmış gövde alanları (sayım/durum/id ADI; ham PII DEĞERİ değil — Logger redaction L7 ile temizler). correlation_id/call_id/trace_id GÖVDE alanı (stream label DEĞİL).",
+    "levels": ["DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
+    "kinds": ["telemetry", "security", "audit"],
+    "required_record_keys": ["level", "event", "kind"],
+    "trace": "SAD §17.1, FR-RES-012, FR-IAM-006"
+  },
+
+  "structured": {
+    "$comment": "Yapılandırılmış (structured) log: her yayılan kayıt makine-okunur JSON; ZORUNLU gövde anahtarları taşır. required_body_keys 0.4.7 label_policy.trace_log_required_keys (tenant_id/correlation_id) ile BİREBİR + level + event + ts (zaman damgası adı). correlation_id/call_id GÖVDE alanı olarak taşınır (stream label değil — Loki düşük-kardinalite). G1: yayılan her kayıt required_body_keys'in HEPSİNİ taşır (structure_missing=0).",
+    "required_body_keys": ["tenant_id", "correlation_id", "level", "event", "ts"],
+    "body_identity_keys": ["correlation_id", "call_id", "trace_id"],
+    "trace": "SAD §17.1, observability 0.4.7 trace_log_required_keys, FR-RES-012"
+  },
+
+  "sampling": {
+    "$comment": "HEAD-BASED örnekleme (SAD §17.1 'örneklemeli'; FR-RES-012). 0.4.7 sampling.logs_base_rate (0.2) + sampling.logs_always (level>=WARN/security_event/audit) ile BİREBİR (probe validate çapraz-kontrol eder). Karar TUTARLI: çağrı correlation_id'sine göre (aynı çağrının TÜM kayıtları birlikte tutulur/düşer) sabit hash ile — base_rate altındaki çağrılar tutulur. logs_always SINIFLARI (level>=WARN / security / audit) örnekleme kararından BAĞIMSIZ HER ZAMAN tutulur (asla düşmez). Audit ek olarak ASLA örneklenmez + AYRI WORM (audit bloğu). G3: logs_always bir kayıt örneklemeyle DÜŞMEZ (sampling_violation=0).",
+    "base_rate": 0.2,
+    "always_classes": ["level>=WARN", "security_event", "audit"],
+    "always_levels": ["WARN", "ERROR", "FATAL"],
+    "always_kinds": ["security", "audit"],
+    "consistent_key": "correlation_id",
+    "trace": "SAD §17.1, FR-RES-012, observability 0.4.7 sampling"
+  },
+
+  "async_buffer": {
+    "$comment": "ASENKRON + bloklamayan yazım (SR-RES-012 'log yazımı çağrı hot-path'ini bloklamaz'). Logger kayıtları bounded ring buffer'a NON-BLOCKING enqueue eder; collector ağır işlemeyi üstlenir (0.4.7 otel-collector batch). Aşırı yükte (overflow) buffer dolarsa SAMPLEABLE (telemetry, logs_always OLMAYAN) kayıtlar ÖNCE düşürülür; GARANTİLİ kayıtlar (logs_always: WARN+/security/audit) ASLA overflow ile düşürülmez. G4: non_blocking=true (senkron yazım yok, blocking_violation=0) + garantili kayıt overflow ile kaybolmaz (overflow_violation=0). queue_capacity örnek başına override edilebilir (canlıda worker-seviyesi ring buffer).",
+    "non_blocking": true,
+    "queue_capacity": 256,
+    "overflow_policy": "drop_sampleable_first",
+    "guaranteed_classes": ["level>=WARN", "security_event", "audit"],
+    "trace": "SR-RES-012, FR-RES-012, SAD §6.3, observability 0.4.7 otel-collector batch"
+  },
+
+  "stream_label_policy": {
+    "$comment": "Loki stream label DİSİPLİNİ (0.4.7 config/loki.yaml + label_policy ile hizalı; probe validate çapraz-kontrol eder). Stream label'lar DÜŞÜK kardinalite OLMALI: yalnız tenant_id/region/service/level. Yüksek-kardinalite kimlik (correlation_id/call_id/customer_id/session_id) stream label OLAMAZ — log GÖVDESİNDE yapılandırılmış alan (G5 cardinality). PII anahtarı (telefon/token/...) hiçbir stream label'da olamaz (G6 pii; BRD §17.7/FR-REC-004). stream_labels_allowed: her yayılan kaydın stream label'ları bu kümenin alt kümesi (G5 label).",
+    "stream_labels_allowed": ["tenant_id", "region", "service", "level"],
+    "high_cardinality_keys": ["correlation_id", "call_id", "customer_id", "session_id"],
+    "pii_forbidden_keys": ["phone_number", "msisdn", "customer_name", "full_name", "email", "national_id", "card_number", "pan", "cvv", "otp", "password", "token", "ssn", "iban", "address", "transcript_text", "audio_payload"],
+    "max_stream_label_names": 15,
+    "trace": "SAD §13.3, BRD §17.7, FR-REC-004, observability 0.4.7 loki.yaml/label_policy"
+  },
+
+  "redaction": {
+    "$comment": "Gövde DEĞERİ redaction L7 (FR-REC-004). Yapılandırılmış gövde alanları (fields) ham PII DEĞERİ TAŞIYAMAZ — Logger redact_body ile temizler: ≥7 ardışık rakam (telefon/kart/IBAN) + e-posta + kart bloğu deseni gövde DEĞERLERİNDE yasak. correlation_id/call_id/trace_id KİMLİK (PII değil) → izinli. G6: yayılan kayıt gövdesinde ham PII DEĞERİ yok (redaction_violation=0). Redaction ÜRETİMİ (asıl scrub motoru) → ileri WBS; burada yalnız yayılan kaydın temiz olduğu KAPISI.",
+    "body_value_forbidden_patterns": ["digit_run_ge_7", "email", "card_block", "iban"],
+    "identity_allowed_in_body": ["correlation_id", "call_id", "trace_id"],
+    "trace": "FR-REC-004, BRD §17.7"
+  },
+
+  "audit": {
+    "$comment": "Audit log AYRIMI (FR-IAM-006 'Kullanıcı işlemleri değiştirilemez audit log'a kaydedilmelidir'). 0.4.7 sampling.note: 'Audit log'lar (WORM, FR-IAM-006) ASLA örneklenmez — runtime telemetri ayrı hat'. Logger kind=audit kayıtlarını (a) ASLA örneklemez, (b) AYRI WORM sink'ine yönlendirir (telemetri/Loki sink'ine DEĞİL), (c) overflow ile düşürmez (garantili). G7: audit kaydı örneklenmez + WORM sink'e gider (audit_violation=0). WORM deposu + retention/legal-hold → DB §6.5/§9 (kapsam dışı).",
+    "never_sampled": true,
+    "separate_worm_sink": true,
+    "telemetry_sink": "loki",
+    "worm_sink": "worm-audit",
+    "trace": "FR-IAM-006, observability 0.4.7 sampling.note, DB §6.5"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (yapılandırılmış asenkron örneklemeli log üretimi). (G1) max_structure_missing=0: yayılan her kayıt required_body_keys'in hepsini taşır (yapılandırılmış). (G2) max_level_violation=0: her kaydın level ∈ levels + kind ∈ kinds (bilinmeyen taksonomi yok). (G3) max_sampling_violation=0: logs_always (level>=WARN/security/audit) kayıt örneklemeyle DÜŞMEZ; yalnız normal telemetry örneklenir. (G4) max_blocking_violation=0 + max_overflow_violation=0: yazım non-blocking (hot-path bloklanmaz, SR-RES-012) + garantili kayıt overflow ile kaybolmaz. (G5) max_cardinality_violation=0 + max_label_violation=0: hiçbir stream label yüksek-kardinalite kimlik taşımaz + yalnız stream_labels_allowed alt kümesi. (G6) max_pii_violation=0 + max_redaction_violation=0: stream label'da PII anahtarı yok + gövde DEĞERİNDE ham PII yok (FR-REC-004). (G7) max_audit_violation=0: audit kaydı örneklenmez + AYRI WORM sink'e gider (FR-IAM-006).",
+    "max_structure_missing": 0,
+    "max_level_violation": 0,
+    "max_sampling_violation": 0,
+    "max_blocking_violation": 0,
+    "max_overflow_violation": 0,
+    "max_cardinality_violation": 0,
+    "max_label_violation": 0,
+    "max_pii_violation": 0,
+    "max_redaction_violation": 0,
+    "max_audit_violation": 0,
+    "trace": "FR-RES-012, SR-RES-012, FR-IAM-006, FR-REC-004, BRD §15, observability 0.4.7"
+  },
+
+  "metrics_emitted": {
+    "$comment": "Logger'ın KENDİ sağlık metrikleri (gözlemlenebilirliğe). Kendi disiplinini kendine uygular: yüksek-kardinalite kimlik metrik LABEL'ı OLMAZ. log_records_total/log_records_sampled_out_total/log_records_dropped_overflow_total → 0.4.7 collector örnekleme/drop sayaçlarıyla hizalı.",
+    "emitted": ["log_records_total", "log_records_emitted_total", "log_records_sampled_out_total", "log_records_dropped_overflow_total", "log_audit_records_total"],
+    "trace": "SAD §17.1, observability 0.4.7"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Log üretimi hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Eksik/bozuk kayıt demeti veya bilinmeyen level/kind → INVALID_REQUEST; bölge uyumsuz log hedefi (residency) → REGION_VIOLATION. Yüksek sampling/overflow sayıları bir HATA değil yük/disiplin SİNYALİdir (kapılar).",
+    "mapping": {
+      "malformed_record": "INVALID_REQUEST",
+      "unknown_level": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, NFR 10.7"
+  },
+
+  "pii": {
+    "$comment": "Spec/config/örnekler yalnız log SİNYALİ (level/event/kind) + kimlik/etiket anahtarı ADLARI + güvenli yapılandırılmış alanlar taşır; HAM SES payload'ı, transkript, müşteri/PII DEĞERLERİ TUTULMAZ. PII anahtar adları (stream_label_policy.pii_forbidden_keys) yalnız YASAK LİSTESİ olarak referans edilir; bir örnek bir label'ı 'attempted' anahtar ADI olarak gösterebilir ama DEĞER yoktur (Logger zaten reddeder/redakte eder).",
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true,
+    "trace": "BRD §14, BRD §17.7, FR-REC-004"
+  },
+
+  "invariants": [
+    { "id": "G1", "desc": "Yayılan her log kaydı yapılandırılmıştır (structured): required_body_keys'in (tenant_id/correlation_id/level/event/ts; 0.4.7 trace_log_required_keys BİREBİR) HEPSİNİ taşır; structure_missing=0 (SAD §17.1 'Yapılandırılmış'; FR-RES-012).", "trace": "SAD §17.1, FR-RES-012, observability 0.4.7" },
+    { "id": "G2", "desc": "Her kaydın level ∈ record_model.levels + kind ∈ record_model.kinds taşır; bilinmeyen/uyumsuz taksonomi yok; level_violation=0.", "trace": "SAD §17.1, FR-RES-012" },
+    { "id": "G3", "desc": "Örnekleme HEAD-BASED + TUTARLI (correlation_id); logs_always SINIFLARI (level>=WARN / security / audit; 0.4.7 logs_always BİREBİR) örnekleme kararından BAĞIMSIZ her zaman tutulur — örneklemeyle DÜŞMEZ; sampling_violation=0 (SAD §17.1 'örneklemeli'; FR-RES-012).", "trace": "SAD §17.1, FR-RES-012, observability 0.4.7" },
+    { "id": "G4", "desc": "Log yazımı ASENKRON + NON-BLOCKING (bounded ring buffer): hot-path bloklanmaz (blocking_violation=0; SR-RES-012 kabul ölçütü) + aşırı yükte overflow yalnız SAMPLEABLE kayıtları düşürür, GARANTİLİ (logs_always) kayıt overflow ile kaybolmaz (overflow_violation=0).", "trace": "SR-RES-012, FR-RES-012, SAD §6.3" },
+    { "id": "G5", "desc": "Hiçbir stream label yüksek-kardinalite kimlik (correlation_id/call_id/customer_id/session_id) taşımaz — kimlik log GÖVDESİ alanıdır (cardinality_violation=0) + her stream label yalnız stream_labels_allowed (tenant_id/region/service/level; Loki düşük-kardinalite, 0.4.7) alt kümesi (label_violation=0).", "trace": "SAD §13.3, observability 0.4.7 loki.yaml" },
+    { "id": "G6", "desc": "Hiçbir stream label PII anahtarı taşımaz (pii_violation=0) + yayılan kayıt GÖVDE DEĞERİNDE ham PII/transkript/ses DEĞERİ yok (redaction_violation=0; redaction L7, FR-REC-004); correlation_id/call_id/trace_id KİMLİK (PII değil) izinli.", "trace": "BRD §17.7, FR-REC-004" },
+    { "id": "G7", "desc": "Audit kaydı (kind=audit; FR-IAM-006 WORM) ASLA örneklenmez + AYRI WORM sink'ine (telemetri/Loki sink'ine DEĞİL) yönlendirilir + overflow ile düşürülmez; audit_violation=0 (0.4.7 sampling.note 'audit ASLA örneklenmez').", "trace": "FR-IAM-006, observability 0.4.7, DB §6.5" },
+    { "id": "G8", "desc": "Structured Async Sampled Logger Conversation Orchestrator emisyon yolundadır; yapılandırılmış (structured) + head-based örneklemeli + ASENKRON/non-blocking (hot-path'i bloklamaz, SR-RES-012); from_trace DEĞİL (log üretimi, trace türetme değil); audit AYRI WORM hattı.", "trace": "SAD §6.2, SAD §6.3, SAD §17.1, FR-RES-012, SR-RES-012, ADR-003, ADR-004" },
+    { "id": "G9", "desc": "sampling.base_rate (0.2) 0.4.7 sampling.logs_base_rate ile + sampling.always_classes 0.4.7 sampling.logs_always ile + audit.never_sampled 0.4.7 sampling.note ile + stream_label_policy.high_cardinality_keys 0.4.7 label_policy.high_cardinality_keys ile + structured.required_body_keys ⊇ 0.4.7 label_policy.trace_log_required_keys ile BİREBİR/tutarlı — tek kaynak doğruluk, probe-sabiti değil.", "trace": "observability 0.4.7, SAD §17.1" },
+    { "id": "G10", "desc": "Log üretimi hataları ortak ErrorTaxonomy'ye (API §11.6) eşlenir (malformed/unknown→INVALID_REQUEST, region→REGION_VIOLATION); spec/config/örneklerde literal sır, ham ses payload'ı, transkript veya PII DEĞERİ yok (yalnız log sinyali + etiket/kimlik anahtarı ADLARI).", "trace": "API §11.6, BRD §14, BRD §17.7, FR-REC-004" }
+  ]
+}

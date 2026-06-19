@@ -1,0 +1,37 @@
+{
+  "$comment": "WBS 14.1.4 yapılandırılmış asenkron örneklemeli log profilleri (illüstratif; sır YOK, PII DEĞERİ YOK). Her profil log emisyonunun home-region pinini (residency NFR 10.7) + servis adını + emisyon disiplinini (head-based örnekleme + asenkron/non-blocking, FR-RES-012; 0.4.7 sampling/Loki ile hizalı) taşır. Örnekleme oranı (base_rate=0.2; 0.4.7 logs_base_rate) + logs_always (WARN+/security/audit) + stream-label kardinalite + label/gövde PII + audit ayrımı invariant'ları SPEC'tedir (sampling/async_buffer/stream_label_policy/audit/gates); profil yalnız dağıtım/emisyon + region/service bağlamını sağlar. Vendor-neutral (ADR-002): region pini NFR 10.7. Gerçek değerler canlı runtime'da (Go/Rust + bounded ring buffer + non-blocking enqueue + OpenTelemetry/Loki, ADR-003/SAD §11/§17.1) gerçek telemetri ile ayarlanır. Bölge değerleri ${ENV} ile çözülür (canlı); illüstratif sabit isimler yalnız simülasyon içindir. Audit log'ları (FR-IAM-006 WORM) ayrı hatta — bölgeden bağımsız ASLA örneklenmez (0.4.7 sampling.note).",
+  "version": "1.0",
+  "default_profile": "eu-shared-default",
+  "profiles": [
+    {
+      "name": "eu-shared-default",
+      "$comment": "Paylaşımlı (shared tenant) izolasyon (SAD §13.1): tek runtime havuzu, log stream label'ı tenant_id (+region/service/level) taşır. EU home-region. Head-based örnekleme (base_rate=0.2; 0.4.7) + asenkron/non-blocking yazım (SR-RES-012). Yüksek-kardinalite kimlik (correlation_id/call_id) log GÖVDESİ alanı, stream label DEĞİL (Loki düşük-kardinalite, 0.4.7).",
+      "isolation": "logical-shared",
+      "region": "${RUNTIME_REGION_EU}",
+      "service": "orchestrator",
+      "emission": "async-sampled",
+      "telemetry_sink": "loki",
+      "worm_sink": "worm-audit"
+    },
+    {
+      "name": "tr-shared-default",
+      "$comment": "Paylaşımlı izolasyon, TR home-region (residency NFR 10.7). Diğer her şey eu-shared ile aynı disiplin. Tenant log'ları home-region store'a yazılır (0.4.7 loki.yaml residency).",
+      "isolation": "logical-shared",
+      "region": "${RUNTIME_REGION_TR}",
+      "service": "orchestrator",
+      "emission": "async-sampled",
+      "telemetry_sink": "loki",
+      "worm_sink": "worm-audit"
+    },
+    {
+      "name": "dedicated-regulated",
+      "$comment": "Ayrılmış (dedicated) izolasyon (SAD §13.1, regüle/Faz 2): ayrı namespace/region. Regüle tenant için örnekleme oranı yükseltilebilir (audit yoğunluğu) ama logs_always + audit ayrımı disiplini aynı; audit ASLA örneklenmez. Asenkron/non-blocking yazım korunur (hot-path bloklanmaz).",
+      "isolation": "physical-dedicated",
+      "region": "${RUNTIME_REGION_DEDICATED}",
+      "service": "orchestrator",
+      "emission": "async-full",
+      "telemetry_sink": "loki",
+      "worm_sink": "worm-audit"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "log-degraded",
+  "$comment": "BİLİNÇLİ degrade — çoklu kapı eler (expect=fail). Bozuk/sızdıran Logger (sampled-in, base_rate=1.0; kayıtlar yayılır): (1) structure_keys KAPALI → tenant_id gövdeden düşer → her yayılan kayıtta yapı eksik → G1 eler; (2) non_blocking KAPALI → senkron yazım hot-path'i bloklar → G4 eler (SR-RES-012 ihlali); (3) enforce_cardinality KAPALI → correlation_id STREAM LABEL → G5 eler (Loki kardinalite patlaması); (4) enforce_pii KAPALI → phone_number STREAM LABEL → G6 eler; (5) redact_body KAPALI → ham telefon DEĞERİ gövdede kalır (record[0].fields.note) → G6 redaction eler (FR-REC-004); (6) separate_audit KAPALI → audit telemetri sink'e + örneklenebilir → G7 eler (FR-IAM-006 ihlali). Bu örnek kapı sağlığını kanıtlar. NOT: fields.note'taki '0555...' bir PII DEĞERİ DEĞİL — sentetik bir desen; Logger doğru çalışsa redakte ederdi (redact_body AÇIK), burada KAPALI olduğu için kapı yakalar.",
+  "profile": "eu-shared-default",
+  "expect": "fail",
+  "context": {
+    "tenant_id": "t_acme", "org_unit": "ou_support", "agent_id": "ag_inbound",
+    "correlation_id": "corr-acme-deg", "trace_id": "tr-acme-deg", "call_id": "call-acme-deg"
+  },
+  "sampling": {"base_rate": 1.0},
+  "policy": {
+    "structure_keys": false,
+    "non_blocking": false,
+    "enforce_cardinality": false,
+    "enforce_pii": false,
+    "redact_body": false,
+    "separate_audit": false
+  },
+  "expected": {
+    "audit_violations": 1,
+    "redaction_violations": 1
+  },
+  "records": [
+    {"level": "INFO", "kind": "telemetry", "event": "call_connected", "ts": "t0", "fields": {"note": "ara 0555 123 4567"}},
+    {"level": "DEBUG", "kind": "telemetry", "event": "stt_partial", "ts": "t1", "fields": {"seq": 3}},
+    {"level": "WARN", "kind": "telemetry", "event": "stt_retry", "ts": "t2", "fields": {"attempt": 2}},
+    {"level": "ERROR", "kind": "telemetry", "event": "tool_error", "ts": "t3", "fields": {"tool": "crm_lookup"}},
+    {"level": "INFO", "kind": "security", "event": "consent_skip_blocked", "ts": "t4", "fields": {"reason": "no_consent"}},
+    {"level": "INFO", "kind": "audit", "event": "human_transfer", "ts": "t5", "fields": {"target": "queue_billing"}},
+    {"level": "INFO", "kind": "telemetry", "event": "call_ended", "ts": "t6", "fields": {"outcome": "resolved"}}
+  ]
+}
