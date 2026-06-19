@@ -1,0 +1,38 @@
+{
+  "name": "metrics-transfer",
+  "$comment": "İnsan aktarımlı çağrı (tool yok): conditional transfer_result_total yayılır (outcome=succeeded), termination_reason=transferred. tool_latency YOK (tool kullanılmadı) → conditional, required değil. provider_error_ratio: stt 1 hata / 4 istek = 0.25 (≤1, geçer). Tüm kapılar geçer.",
+  "profile": "tr-shared-default",
+  "expect": "pass",
+  "context": {
+    "tenant_id": "t_finco", "org_unit": "ou_collections", "agent_id": "ag_outbound",
+    "provider": "prov_b", "category": "large", "correlation_id": "corr-finco-7", "trace_id": "tr-finco-7"
+  },
+  "must_cover": [
+    "voice_packet_loss_ratio", "voice_jitter_ms", "voice_codec_info", "telephony_sip_response_total",
+    "stt_latency_ms", "stt_word_confidence", "llm_latency_ms", "llm_tokens_total", "tts_latency_ms",
+    "e2e_response_latency_ms", "barge_in_total", "silence_duration_ms", "retry_fallback_total",
+    "call_termination_total", "provider_error_ratio", "cost_per_minute", "transfer_result_total"
+  ],
+  "expected": {
+    "metric_missing": 0,
+    "catalog_violations": 0,
+    "value_violations": 0,
+    "cardinality_violations": 0,
+    "pii_violations": 0,
+    "ratio_violations": 0
+  },
+  "bundle": {
+    "trace": {"timestamps": {
+      "call_connected": 0, "first_audio_received": 40, "speech_started": 90, "speech_ended": 1100,
+      "stt_final": 1260, "llm_request_started": 1270, "llm_first_token": 1520, "tts_request": 1560,
+      "tts_first_audio": 1740, "audio_played": 1900, "call_transferred": 3200, "call_ended": 4800
+    }},
+    "media": {"packets_received": 1190, "packets_lost": 10, "jitter_ms": 18.5, "codec": "pcmu", "sip_code": "200"},
+    "stt": {"word_confidences": [0.82, 0.88, 0.79], "provider": "prov_b"},
+    "llm": {"prompt_tokens": 540, "completion_tokens": 120, "provider": "prov_b", "category": "large"},
+    "dialogue": {"barge_in_events": 2, "silence_segments_ms": [400]},
+    "reliability": {"retries": 1, "fallbacks": 0, "provider_requests": {"stt": 4, "llm": 2}, "provider_errors": {"stt": 1, "llm": 0}},
+    "outcome": {"transfer_result": "succeeded", "termination_reason": "transferred"},
+    "cost": {"amount": 0.12, "currency": "TRY", "billable_minutes": 1.5}
+  }
+}

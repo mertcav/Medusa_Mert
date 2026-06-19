@@ -1,0 +1,36 @@
+{
+  "name": "metrics-happy-path",
+  "$comment": "Tam tek-turlu inbound çağrı (tool dahil): 14.1.1 trace zaman damgalarından e2e/STT/LLM/TTS/tool gecikmeleri türetilir + medya/STT/LLM/diyalog sinyallerinden BRD §15 teknik metrik DEĞERLERİ hesaplanır. packet_loss=0.02, jitter=12ms, word_confidence=0.905, tokens=400, silence=350ms, cost/min=0.02. 17 distinct metrik (16 required + tool_latency conditional), provider_error_ratio 3 kategori → 19 gözlem. Tüm kapılar geçer.",
+  "profile": "eu-shared-default",
+  "expect": "pass",
+  "context": {
+    "tenant_id": "t_acme", "org_unit": "ou_support", "agent_id": "ag_inbound",
+    "provider": "prov_a", "category": "small", "correlation_id": "corr-acme-001", "trace_id": "tr-acme-001"
+  },
+  "expected": {
+    "metric_missing": 0,
+    "catalog_violations": 0,
+    "value_violations": 0,
+    "cardinality_violations": 0,
+    "label_violations": 0,
+    "pii_violations": 0,
+    "ratio_violations": 0,
+    "distinct_metrics": 17,
+    "observations_total": 19
+  },
+  "bundle": {
+    "trace": {"timestamps": {
+      "call_connected": 0, "first_audio_received": 50, "speech_started": 100, "speech_ended": 1200,
+      "stt_partial": 300, "stt_final": 1350, "llm_request_started": 1360, "llm_first_token": 1560,
+      "tool_request": 1600, "tool_response": 1750, "tts_request": 1800, "tts_first_audio": 1950,
+      "audio_played": 2100, "call_ended": 5000
+    }},
+    "media": {"packets_received": 980, "packets_lost": 20, "jitter_ms_samples": [10, 12, 14], "codec": "opus", "sip_code": "200"},
+    "stt": {"word_confidences": [0.9, 0.95, 0.85, 0.92], "provider": "prov_a"},
+    "llm": {"prompt_tokens": 320, "completion_tokens": 80, "provider": "prov_a", "category": "small"},
+    "dialogue": {"barge_in_events": 1, "silence_segments_ms": [200, 150]},
+    "reliability": {"retries": 0, "fallbacks": 1, "provider_requests": {"stt": 1, "llm": 1, "tts": 1}, "provider_errors": {"stt": 0, "llm": 0, "tts": 0}},
+    "outcome": {"transfer_result": null, "termination_reason": "completed"},
+    "cost": {"amount": 0.05, "currency": "EUR", "billable_minutes": 2.5}
+  }
+}

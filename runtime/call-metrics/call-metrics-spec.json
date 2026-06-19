@@ -1,0 +1,159 @@
+{
+  "$comment": "WBS 14.1.2 — Teknik metrikler (packet loss/jitter/STT-LLM-TTS latency/token/...). Conversation Orchestrator (Çekirdek IP, SAD §6) gözlemlenebilirlik EMİSYON yolundaki CALL METRIC EXTRACTOR sözleşmesi: SAD §17.1 'Metrics:' satırı + BRD §15 'saklanması gereken teknik metrikler' runtime karşılığı. 14.1.1 (call-trace) çağrı başına SPAN AĞACINI üretir ve 5 gecikmeyi (e2e/STT/LLM/TTS/tool) TÜRETİR; 14.1.2 ise BRD §15'in TÜM teknik metrik DEĞERLERİNİ hesaplar (14.1.1'in ertelediği 'metrik DEĞER hesaplama') ve 0.4.7 observability-spec metrics.catalog'a UYGUN gözlem (observation) olarak yayar. KAPSAM AYRIMI: span üretimi + zaman damgası kaydı → 14.1.1 (call-trace); metrik/alarm KATALOĞU + collector guard → 0.4.7 (observability omurgası); per-call CPU/bellek/eşzamanlılık DEĞERLERİ → 14.1.3/3.1.4 (call_cpu_seconds/call_memory_bytes burada KAPSAM DIŞI); yapılandırılmış asenkron + örneklemeli loglama → 14.1.4; alarm kuralları → 14.1.5; aggregasyon/dashboard/raporlama → 0.4.7 + A-14/A-15; bağlam İLİŞTİRME + kardinalite/PII enforcement → 3.1.5. Burada YALNIZ çağrı başına teknik metrik DEĞER HESABI + katalog uyumu + kardinalite/etiket/PII disiplini. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): Extractor çekirdeği minimal+deterministik (saf aritmetik, random YOK); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3) + OpenTelemetry/Prometheus (SAD §11/§17.1). Sır/credential, ham ses payload'ı, transkript ve PII DEĞERİ spec/config/örneklerde TUTULMAZ — örnekler yalnız sayısal SİNYAL + kimlik/etiket anahtarı ADLARI taşır (PII DEĞER yok).",
+  "version": "1.0",
+  "wbs": "14.1.2",
+  "phase": "F1",
+  "metrics_doc": {
+    "fr": ["FR-ANA-012", "FR-ANA-013", "FR-BIL-002", "FR-RES-012", "FR-REC-004"],
+    "nfr": ["NFR 10.1", "NFR 10.7"],
+    "sad": ["§6", "§6.2", "§6.3", "§11", "§17", "§17.1", "§17.2", "§17.3", "§20", "§13.3"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003"],
+    "api": ["§11.1 UsageRecord(tokens/cost)", "§11.6 ErrorTaxonomy"],
+    "srs": ["SR-RES-012", "SR-BIL-002"],
+    "rtm": ["TC-RES-012", "TC-BIL-002"],
+    "brd": ["§15 (saklanması gereken teknik metrikler)", "§17.7 (panel PII maskeleme)"],
+    "observability": ["metrics.catalog (0.4.7) — BİREBİR kaynak (name/type/unit/labels)", "label_policy (0.4.7) — kardinalite/PII disiplini BİREBİR", "call-trace 14.1.1 derived_latencies — BİREBİR gecikme türetme tanımı"]
+  },
+
+  "placement": {
+    "$comment": "Call Metric Extractor Conversation Orchestrator gözlemlenebilirlik emisyon yolundadır (SAD §6.2/§6.3, §17.1). Çağrı SONUNDA (ve gerektiğinde tur-bazlı) trace zaman damgalarından + medya/sağlayıcı/diyalog sinyallerinden teknik metrik DEĞERLERİNİ hesaplar ve Prometheus/OTel gözlemleri olarak yayar. Gecikmeleri YENİDEN ÖLÇMEZ — 14.1.1 trace zaman damgalarından TÜRETİR (from_trace). Emisyon bloklamaz (asenkron/sampling, FR-RES-012 — hot-path'i bloklamaz; tail-based 0.4.7).",
+    "in_orchestrator": true,
+    "emission_path": true,
+    "from_trace": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "trace": "SAD §6.2, SAD §6.3, SAD §17.1, ADR-003, FR-RES-012"
+  },
+
+  "inputs": {
+    "$comment": "Extractor'a giren per-call sinyal demeti (bundle). PII DEĞER yok — yalnız sayısal sinyal + kimlik/etiket anahtarı ADLARI. trace.timestamps 14.1.1 çıktısıdır (zaman damgası adı → sanal zaman). Diğer sinyaller medya gateway (RTP/RTCP), STT/LLM adapter, diyalog/turn state machine ve güvenilirlik/maliyet sayaçlarından gelir.",
+    "trace": "14.1.1 call-trace zaman damgaları {ts_adı: t_ms}",
+    "media": "packets_received/packets_lost (paket kaybı), jitter_ms_samples|jitter_ms, codec, sip_code",
+    "stt": "word_confidences[] (kelime güveni), provider",
+    "llm": "prompt_tokens, completion_tokens, provider, category",
+    "dialogue": "barge_in_events (barge-in sayısı), silence_segments_ms[] (sessizlik süresi)",
+    "reliability": "retries, fallbacks, provider_requests{kategori:n}, provider_errors{kategori:n}",
+    "outcome": "transfer_result (varsa), termination_reason",
+    "cost": "amount, currency, billable_minutes",
+    "context": "tenant_id, org_unit, agent_id, region, provider, category (etiket DEĞER kaynağı)"
+  },
+
+  "derived_from_trace": {
+    "$comment": "14.1.1 call-trace derived_latencies ile BİREBİR (probe validate çapraz-kontrol eder; tek kaynak doğruluk). Gecikme DEĞERİ = t[to] − t[from]; her ikisi kaydedilmişse hesaplanır ve NON-NEGATIVE + finite olmalı. e2e: end-of-utterance (speech_ended) → ilk agent sesi (tts_first_audio) — SAD §20 / NFR 10.1 / 0.3.2 ile aynı tanım. Bu metrikler 14.1.1'de TÜRETİLİR, 14.1.2'de DEĞER hesaplanıp gözlem olarak yayılır.",
+    "map": {
+      "e2e_response_latency_ms": ["speech_ended", "tts_first_audio"],
+      "stt_latency_ms": ["speech_ended", "stt_final"],
+      "llm_latency_ms": ["llm_request_started", "llm_first_token"],
+      "tts_latency_ms": ["tts_request", "tts_first_audio"],
+      "tool_latency_ms": ["tool_request", "tool_response"]
+    },
+    "trace": "BRD §15, SAD §17.1, SAD §20, call-trace 14.1.1"
+  },
+
+  "value_domains": {
+    "$comment": "Hesaplanan DEĞERİN geçerlilik alanı (G3). Her metrik bir domain SINIFINA bağlanır (catalog[].domain). ratio01: oran ∈[0,1] float. nonneg_ms: gecikme/süre ms ≥0 + finite. nonneg_int: sayaç tamsayı ≥0. currency: para ≥0 + finite. info_one: info gauge = 1 (varlık göstergesi).",
+    "classes": {
+      "ratio01": {"min": 0.0, "max": 1.0, "kind": "float", "desc": "oran/güven ∈[0,1]"},
+      "nonneg_ms": {"min": 0.0, "kind": "float", "desc": "gecikme/süre ms ≥0 + finite"},
+      "nonneg_int": {"min": 0, "kind": "int", "desc": "sayaç tamsayı ≥0"},
+      "currency": {"min": 0.0, "kind": "float", "desc": "dakika başı maliyet ≥0 + finite"},
+      "info_one": {"min": 1, "max": 1, "kind": "int", "desc": "info gauge sabit 1"}
+    }
+  },
+
+  "catalog": {
+    "$comment": "BRD §15 teknik metrik DEĞERLERİ — 14.1.2 KAPSAMI. Her giriş 0.4.7 observability-spec metrics.catalog ile BİREBİR (name/type/unit/labels; probe validate çapraz-kontrol eder). 'source': değer kaynağı. 'derived': trace zaman damgalarından türetilir (derived_from_trace). 'ratio_derived': bölme ile hesaplanan oran (G7 payda>0 + sonuç∈[0,1]). 'group': required (her tamamlanan çağrı) / conditional (yalnız ilgili özellik varsa). 'per': obs çoğulluğu (call: tek; category: kategori başına bir obs). Domain: value_domains.classes anahtarı. KAPSAM DIŞI (out_of_scope): call_cpu_seconds/call_memory_bytes → 14.1.3.",
+    "items": [
+      {"name": "voice_packet_loss_ratio", "brd15": "packet loss", "type": "gauge", "unit": "ratio", "labels": ["tenant_id", "region", "codec"], "domain": "ratio01", "source": "media.packets_lost / (received+lost)", "ratio_derived": true, "group": "required", "per": "call"},
+      {"name": "voice_jitter_ms", "brd15": "jitter", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "region", "codec"], "domain": "nonneg_ms", "source": "mean(media.jitter_ms_samples)", "group": "required", "per": "call"},
+      {"name": "voice_codec_info", "brd15": "codec", "type": "gauge", "unit": "info", "labels": ["tenant_id", "codec"], "domain": "info_one", "source": "1 (codec etiketli varlık)", "group": "required", "per": "call"},
+      {"name": "telephony_sip_response_total", "brd15": "SIP response code", "type": "counter", "unit": "1", "labels": ["tenant_id", "sip_code"], "domain": "nonneg_int", "source": "+1 (sip_code etiketli)", "group": "required", "per": "call"},
+      {"name": "stt_latency_ms", "brd15": "STT latency", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "provider"], "domain": "nonneg_ms", "source": "trace: speech_ended→stt_final", "derived": true, "group": "required", "per": "call"},
+      {"name": "stt_word_confidence", "brd15": "word confidence", "type": "histogram", "unit": "ratio", "labels": ["tenant_id", "provider"], "domain": "ratio01", "source": "mean(stt.word_confidences)", "group": "required", "per": "call"},
+      {"name": "llm_latency_ms", "brd15": "LLM latency", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "provider", "category"], "domain": "nonneg_ms", "source": "trace: llm_request_started→llm_first_token", "derived": true, "group": "required", "per": "call"},
+      {"name": "llm_tokens_total", "brd15": "token kullanımı", "type": "counter", "unit": "1", "labels": ["tenant_id", "provider", "category"], "domain": "nonneg_int", "source": "llm.prompt_tokens + llm.completion_tokens", "group": "required", "per": "call"},
+      {"name": "tool_latency_ms", "brd15": "tool latency", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "agent_id"], "domain": "nonneg_ms", "source": "trace: tool_request→tool_response", "derived": true, "group": "conditional", "per": "call"},
+      {"name": "tts_latency_ms", "brd15": "TTS latency", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "provider"], "domain": "nonneg_ms", "source": "trace: tts_request→tts_first_audio", "derived": true, "group": "required", "per": "call"},
+      {"name": "e2e_response_latency_ms", "brd15": "end-to-end response latency", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "agent_id"], "domain": "nonneg_ms", "source": "trace: speech_ended→tts_first_audio", "derived": true, "group": "required", "per": "call"},
+      {"name": "barge_in_total", "brd15": "barge-in sayısı", "type": "counter", "unit": "1", "labels": ["tenant_id", "agent_id"], "domain": "nonneg_int", "source": "dialogue.barge_in_events", "group": "required", "per": "call"},
+      {"name": "silence_duration_ms", "brd15": "silence süresi", "type": "histogram", "unit": "ms", "labels": ["tenant_id", "agent_id"], "domain": "nonneg_ms", "source": "sum(dialogue.silence_segments_ms)", "group": "required", "per": "call"},
+      {"name": "retry_fallback_total", "brd15": "retry/fallback", "type": "counter", "unit": "1", "labels": ["tenant_id", "provider", "category"], "domain": "nonneg_int", "source": "reliability.retries + reliability.fallbacks", "group": "required", "per": "call"},
+      {"name": "transfer_result_total", "brd15": "transfer sonucu", "type": "counter", "unit": "1", "labels": ["tenant_id", "outcome"], "domain": "nonneg_int", "source": "+1 (outcome=transfer_result)", "group": "conditional", "per": "call"},
+      {"name": "call_termination_total", "brd15": "çağrı sonlandırma nedeni", "type": "counter", "unit": "1", "labels": ["tenant_id", "outcome"], "domain": "nonneg_int", "source": "+1 (outcome=termination_reason)", "group": "required", "per": "call"},
+      {"name": "provider_error_ratio", "brd15": "provider hata oranı", "type": "gauge", "unit": "ratio", "labels": ["tenant_id", "provider", "category"], "domain": "ratio01", "source": "provider_errors[cat] / provider_requests[cat]", "ratio_derived": true, "group": "required", "per": "category"},
+      {"name": "cost_per_minute", "brd15": "dakika başı maliyet", "type": "gauge", "unit": "currency", "labels": ["tenant_id", "provider", "category"], "domain": "currency", "source": "cost.amount / cost.billable_minutes", "group": "required", "per": "call"}
+    ],
+    "out_of_scope": [
+      {"name": "call_cpu_seconds", "brd15": "çağrı başına CPU", "owner": "14.1.3 / 3.1.4"},
+      {"name": "call_memory_bytes", "brd15": "çağrı başına bellek", "owner": "14.1.3 / 3.1.4"}
+    ],
+    "trace": "BRD §15, SAD §17.1, observability 0.4.7"
+  },
+
+  "required_for_completed": [
+    "voice_packet_loss_ratio", "voice_jitter_ms", "voice_codec_info", "telephony_sip_response_total",
+    "stt_latency_ms", "stt_word_confidence", "llm_latency_ms", "llm_tokens_total", "tts_latency_ms",
+    "e2e_response_latency_ms", "barge_in_total", "silence_duration_ms", "retry_fallback_total",
+    "call_termination_total", "provider_error_ratio", "cost_per_minute"
+  ],
+  "conditional": ["tool_latency_ms", "transfer_result_total"],
+
+  "label_policy": {
+    "$comment": "0.4.7 observability-spec label_policy ile BİREBİR (probe validate çapraz-kontrol eder). Yüksek-kardinalite kimlik (correlation_id/call_id/customer_id/session_id) metrik LABEL'ı OLAMAZ — yalnız EXEMPLAR olarak trace'e bağlanır (G4). PII anahtarı (telefon/token/...) hiçbir label'da olamaz (G6, BRD §17.7/FR-REC-004). metric_labels_allowed: tüm metriklerin label'ları bu kümenin alt kümesi (G5).",
+    "metric_labels_allowed": ["tenant_id", "org_unit", "agent_id", "region", "provider", "category", "sip_code", "codec", "outcome"],
+    "high_cardinality_keys": ["correlation_id", "call_id", "customer_id", "session_id"],
+    "pii_forbidden_keys": ["phone_number", "msisdn", "customer_name", "full_name", "email", "national_id", "card_number", "pan", "cvv", "otp", "password", "token", "ssn", "iban", "address", "transcript_text", "audio_payload"],
+    "exemplar_keys": ["correlation_id", "trace_id"],
+    "trace": "SAD §13.3, BRD §17.7, FR-REC-004, observability 0.4.7"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (çağrı başına teknik metrik hesabı). (G1) max_metric_missing=0: required (+ özellik varsa conditional) BRD §15 metriklerinin hepsi hesaplanıp yayılır. (G2) max_catalog_violation=0: her gözlem 0.4.7 metrics.catalog'da MEVCUT name + doğru type + doğru unit; bilinmeyen metrik yok. (G3) max_value_violation=0: her DEĞER domain SINIFINA uyar (ratio∈[0,1], ms≥0+finite, sayaç int≥0, info=1). (G4) max_cardinality_violation=0: hiçbir metrik yüksek-kardinalite kimliği (correlation_id/call_id/...) LABEL olarak taşımaz; kimlik yalnız exemplar. (G5) max_label_violation=0: her metrik yalnız catalog[].labels (⊆ metric_labels_allowed) kullanır. (G6) max_pii_violation=0: hiçbir label PII anahtarı taşımaz. (G7) max_ratio_violation=0: ratio_derived metrikler payda>0 ile (veya tanımlı 0) hesaplanır + sonuç∈[0,1].",
+    "max_metric_missing": 0,
+    "max_catalog_violation": 0,
+    "max_value_violation": 0,
+    "max_cardinality_violation": 0,
+    "max_label_violation": 0,
+    "max_pii_violation": 0,
+    "max_ratio_violation": 0,
+    "trace": "BRD §15, SAD §17.1, FR-REC-004, observability 0.4.7"
+  },
+
+  "metrics_emitted": {
+    "$comment": "Extractor'ın KENDİ sağlık metrikleri (gözlemlenebilirliğe). Yüksek-kardinalite kimlik metrik LABEL'ı OLMAZ — kendi disiplinini kendine uygular.",
+    "emitted": ["call_metrics_emitted_total", "call_metrics_missing_total", "call_metrics_value_violation_total", "call_metrics_cardinality_violation_total"],
+    "computes_catalog": ["voice_packet_loss_ratio", "voice_jitter_ms", "voice_codec_info", "telephony_sip_response_total", "stt_latency_ms", "stt_word_confidence", "llm_latency_ms", "llm_tokens_total", "tool_latency_ms", "tts_latency_ms", "e2e_response_latency_ms", "barge_in_total", "silence_duration_ms", "retry_fallback_total", "transfer_result_total", "call_termination_total", "provider_error_ratio", "cost_per_minute"],
+    "trace": "BRD §15, SAD §17.1, observability 0.4.7"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Metrik hesabı hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Eksik/bozuk sinyal demeti veya bilinmeyen metrik adı → INVALID_REQUEST; bölge uyumsuz emisyon hedefi → REGION_VIOLATION. Yüksek missing/value/cardinality sayıları bir HATA değil degrade SİNYALİdir (kapılar).",
+    "mapping": {
+      "malformed_bundle": "INVALID_REQUEST",
+      "unknown_metric": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, NFR 10.7"
+  },
+
+  "pii": {
+    "$comment": "Spec/config/örnekler yalnız sayısal SİNYAL + kimlik/etiket anahtarı ADLARI + sanal zaman taşır; HAM SES payload'ı, transkript, müşteri/PII DEĞERLERİ TUTULMAZ. PII anahtar adları (label_policy.pii_forbidden_keys) yalnız YASAK LİSTESİ olarak referans edilir; örneklerde bir label 'attempted' anahtar ADI olarak görünebilir ama DEĞER yoktur (Extractor zaten reddeder/çıkarır).",
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true,
+    "trace": "BRD §14, BRD §17.7, FR-REC-004"
+  },
+
+  "invariants": [
+    { "id": "G1", "desc": "required (+ özellik varsa conditional) BRD §15 teknik metriklerinin hepsi çağrı başına hesaplanıp gözlem olarak yayılır; metric_missing=0 (BRD §15 'saklanması gereken teknik metrikler'; SAD §17.1 'Metrics:').", "trace": "BRD §15, SAD §17.1" },
+    { "id": "G2", "desc": "Her gözlem 0.4.7 metrics.catalog'da MEVCUT name + doğru type + doğru unit taşır; bilinmeyen/uyumsuz metrik yok; catalog_violation=0.", "trace": "SAD §17.1, observability 0.4.7" },
+    { "id": "G3", "desc": "Her hesaplanan DEĞER value_domains sınıfına uyar (ratio∈[0,1], gecikme/süre ms≥0+finite, sayaç tamsayı≥0, info=1); value_violation=0.", "trace": "BRD §15, SAD §17.1" },
+    { "id": "G4", "desc": "Hiçbir metrik yüksek-kardinalite kimliği (correlation_id/call_id/customer_id/session_id) LABEL olarak taşımaz; kimlik yalnız exemplar olarak trace'e bağlanır; cardinality_violation=0 (TSDB kardinalite disiplini, 0.4.7 label_policy birebir).", "trace": "SAD §13.3, observability 0.4.7" },
+    { "id": "G5", "desc": "Her metrik yalnız catalog[].labels (⊆ label_policy.metric_labels_allowed) kullanır; izinsiz label yok; label_violation=0.", "trace": "observability 0.4.7" },
+    { "id": "G6", "desc": "Hiçbir label PII anahtarı (label_policy.pii_forbidden_keys) taşımaz; pii_violation=0 (BRD §17.7, FR-REC-004; redaction L7).", "trace": "BRD §17.7, FR-REC-004" },
+    { "id": "G7", "desc": "ratio_derived metrikler (packet_loss, provider_error_ratio) payda>0 ile (veya payda=0 → tanımlı 0) hesaplanır ve sonuç∈[0,1]; sıfıra bölme / >1 yok; ratio_violation=0.", "trace": "BRD §15, SAD §17.1" },
+    { "id": "G8", "desc": "Call Metric Extractor Conversation Orchestrator emisyon yolundadır; gecikmeleri YENİDEN ÖLÇMEZ (from_trace: 14.1.1 zaman damgalarından türetir); emisyon olay-tetikli + bloklamaz (asenkron/sampling, FR-RES-012; tail-based 0.4.7).", "trace": "SAD §6.2, SAD §6.3, ADR-003, FR-RES-012" },
+    { "id": "G9", "desc": "catalog.items 0.4.7 observability-spec metrics.catalog ile BİREBİR (name/type/unit/labels) ve derived_from_trace 14.1.1 call-trace derived_latencies ile BİREBİR — tek kaynak doğruluk, probe-sabiti değil.", "trace": "observability 0.4.7, call-trace 14.1.1, SAD §17.1" },
+    { "id": "G10", "desc": "Metrik hesabı hataları ortak ErrorTaxonomy'ye (API §11.6) eşlenir (malformed/unknown→INVALID_REQUEST, region→REGION_VIOLATION); spec/config/örneklerde literal sır, ham ses payload'ı, transkript veya PII DEĞERİ yok (yalnız sayısal sinyal + etiket/kimlik anahtarı ADLARI + sanal zaman).", "trace": "API §11.6, BRD §14, BRD §17.7, FR-REC-004" }
+  ]
+}

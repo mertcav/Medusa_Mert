@@ -1,0 +1,31 @@
+{
+  "name": "metrics-poor-quality",
+  "$comment": "KÖTÜ ÇAĞRI KALİTESİ ama DOĞRU metrik hesabı: yüksek paket kaybı (0.08), yüksek jitter (45ms), düşük word_confidence (0.61), çoklu fallback, silent-call sonlandırma, provider_error_ratio llm 0.40. Tüm DEĞERLER domain-içi (ratio∈[0,1], ms≥0) ve katalog uyumlu → TÜM KAPILAR GEÇER. Kanıt: 'kötü çağrı kalitesi' ≠ 'bozuk metrik çıkarımı' — Extractor degrade çağrıyı DOĞRU ölçer (alarm üretimi 14.1.5; bu metrikler onun girdisi).",
+  "profile": "eu-shared-default",
+  "expect": "pass",
+  "context": {
+    "tenant_id": "t_acme", "agent_id": "ag_inbound", "provider": "prov_c", "category": "small",
+    "correlation_id": "corr-acme-degr", "trace_id": "tr-acme-degr"
+  },
+  "expected": {
+    "metric_missing": 0,
+    "value_violations": 0,
+    "ratio_violations": 0,
+    "cardinality_violations": 0,
+    "pii_violations": 0
+  },
+  "bundle": {
+    "trace": {"timestamps": {
+      "call_connected": 0, "first_audio_received": 80, "speech_started": 200, "speech_ended": 1500,
+      "stt_final": 1900, "llm_request_started": 1910, "llm_first_token": 2350, "tts_request": 2400,
+      "tts_first_audio": 2780, "audio_played": 3000, "call_ended": 3200
+    }},
+    "media": {"packets_received": 920, "packets_lost": 80, "jitter_ms_samples": [40, 45, 50], "codec": "opus", "sip_code": "200"},
+    "stt": {"word_confidences": [0.55, 0.62, 0.66], "provider": "prov_c"},
+    "llm": {"prompt_tokens": 280, "completion_tokens": 60, "provider": "prov_c", "category": "small"},
+    "dialogue": {"barge_in_events": 0, "silence_segments_ms": [1200, 900]},
+    "reliability": {"retries": 2, "fallbacks": 3, "provider_requests": {"stt": 5, "llm": 5}, "provider_errors": {"stt": 1, "llm": 2}},
+    "outcome": {"transfer_result": null, "termination_reason": "silent"},
+    "cost": {"amount": 0.03, "currency": "EUR", "billable_minutes": 0.9}
+  }
+}

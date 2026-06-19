@@ -1,0 +1,31 @@
+{
+  "$comment": "WBS 14.1.2 call metric profilleri (illüstratif; sır YOK, PII DEĞERİ YOK). Her profil teknik metrik emisyonunun home-region pinini ve emisyon disiplinini (örneklemeli/asenkron, FR-RES-012; tail-based ile hizalı 0.4.7) taşır. Metrik hesabı + katalog/kardinalite/etiket/PII invariant'ları SPEC'tedir (gates); profil yalnız dağıtım/emisyon bağlamını sağlar. Vendor-neutral (ADR-002): region pini NFR 10.7. Gerçek değerler canlı runtime'da (Go/Rust + OpenTelemetry/Prometheus, ADR-003/SAD §11/§17.1) gerçek telemetri ile ayarlanır. Bölge değerleri ${ENV} ile çözülür (canlı); illüstratif sabit isimler yalnız simülasyon içindir.",
+  "version": "1.0",
+  "default_profile": "eu-shared-default",
+  "profiles": [
+    {
+      "name": "eu-shared-default",
+      "$comment": "Paylaşımlı (shared tenant) izolasyon (SAD §13.1): tek runtime havuzu, her metrik tenant_id label'ı taşır. EU home-region. Örneklemeli + asenkron emisyon (FR-RES-012); yüksek-kardinalite kimlik exemplar olarak trace'e bağlanır (0.4.7 label_policy).",
+      "isolation": "logical-shared",
+      "region": "${RUNTIME_REGION_EU}",
+      "emission": "async-sampled",
+      "currency": "EUR"
+    },
+    {
+      "name": "tr-shared-default",
+      "$comment": "Paylaşımlı izolasyon, TR home-region (residency NFR 10.7). Diğer her şey eu-shared ile aynı disiplin.",
+      "isolation": "logical-shared",
+      "region": "${RUNTIME_REGION_TR}",
+      "emission": "async-sampled",
+      "currency": "TRY"
+    },
+    {
+      "name": "dedicated-regulated",
+      "$comment": "Ayrılmış (dedicated) izolasyon (SAD §13.1, regüle/Faz 2): ayrı namespace/region. Tam metrik emisyonu audit yoğunluğu için; metrik disiplini aynı (her metrik yalnız izinli label, yüksek-kardinalite/PII label yok).",
+      "isolation": "physical-dedicated",
+      "region": "${RUNTIME_REGION_DEDICATED}",
+      "emission": "async-full",
+      "currency": "EUR"
+    }
+  ]
+}
