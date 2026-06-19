@@ -1,0 +1,21 @@
+{
+  "name": "qa-happy-path",
+  "$comment": "Sağlıklı QA batch'i: 3 uygun (completed) + 2 uygun-olmayan (abandoned/test, reason'lı). 3 uygun çağrının her biri otomatik değerlendirme alır (kapsam %100, coverage_gap=0). c1 mükemmel (auto 1.0), c2 orta (handoff+1 policy ihlali, auto 0.61), c3 öznitelik yok → degraded ama YİNE değerlendirilir (atlanmaz). Skorlar [0,1], composite=ağırlıklı toplam, tenant_id taşınır, redaksiyonlu öznitelik. PII DEĞERİ / ham transkript YOK — yalnız redaksiyonlu öznitelik + kimlik anahtarı ADLARI.",
+  "profile": "eu-standard",
+  "expect": "pass",
+  "context": {"tenant_id": "t_acme", "region": "eu-west-1", "correlation_id": "corr-acme-001"},
+  "calls": [
+    {"call_id": "c1", "status": "completed", "features": {
+      "disclosure_given": true, "consent_required": true, "consent_verified": true, "policy_violations": 0,
+      "grounded_answers": 10, "total_answers": 10, "tool_calls": 2, "tool_errors": 0,
+      "resolved": true, "dead_air_events": 0, "barge_in_respected": 2, "barge_in_total": 2}},
+    {"call_id": "c2", "status": "completed", "features": {
+      "disclosure_given": true, "consent_required": false, "consent_verified": false, "policy_violations": 1,
+      "grounded_answers": 6, "total_answers": 10, "tool_calls": 1, "tool_errors": 0,
+      "resolved": false, "unresolved_handoff": true, "dead_air_events": 1, "barge_in_respected": 1, "barge_in_total": 2}},
+    {"call_id": "c3", "status": "completed", "features": {}},
+    {"call_id": "c4", "status": "abandoned_pre_connect", "reason": "abandoned_pre_connect"},
+    {"call_id": "c5", "status": "test_call", "reason": "test_call"}
+  ],
+  "expected": {"coverage_gap": 0, "produced": 3, "pii_violations": 0, "isolation_violations": 0}
+}

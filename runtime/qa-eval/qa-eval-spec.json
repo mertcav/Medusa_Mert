@@ -1,0 +1,147 @@
+{
+  "$comment": "WBS 14.2.1 Otomatik kalite değerlendirme (tüm çağrılar) — kaynak doğruluk. Analytics/Ops Plane'deki (SAD §4.2 ANALYTICS/OPS PLANE — async, batch; ADR-004/ADR-007) QA/EVAL ENGINE (SAD §164 'QA/Eval Engine'): event stream üzerinden (qa.evaluation.v1, 1.1.8) PII-REDAKSİYONLU içerikle çalışır, TÜM çağrılara (FR-ANA-001; SR-ANA-001 %100 kapsam) deterministik bir kalite-skorkartı (rubric) uygular ve sonucu call_evaluation (DB.md §5.6, eval_type='automatic') + OLAP fct_qa_evaluation (analytics/olap-spec.json) ile BİREBİR alanlarla yayımlar. BİRİNCİL HARD kapı = %100 kapsam (her uygun tamamlanmış çağrı → tam bir otomatik değerlendirme). Sır/credential, ham ses payload, transkript METNİ, PII DEĞERİ YOK — yalnız REDAKSİYONLU sayısal/kategorik öznitelik + alan/kimlik anahtarı ADLARI. KAPSAM AYRIMI: intent/disposition/completion → 14.2.2 · containment/transfer oranı → 14.2.3 · yanlış bilgi/tool hatası/güvenlik İŞARETİ → 14.2.4 · kritik konuşma işaretleme → 14.2.5 · QA MANUEL skor+yorum → 14.2.6 · agent sürüm karşılaştırma → 14.2.7. Burada YALNIZ otomatik skorkart motoru + %100 kapsam.",
+  "wbs": "14.2.1",
+  "version": "1.0",
+  "phase": "F2",
+  "priority": "Must",
+  "eval_doc": {
+    "fr": "FR-ANA-001 (tüm çağrılar otomatik kalite değerlendirmesine alınmalıdır)",
+    "srs": "SR-ANA-001 (Yöntem A — %100 çağrı için QA skoru üretilir)",
+    "rtm": "FR-ANA-001 ↔ SR-ANA-001 ↔ TC-ANA-001 (A) ↔ WBS 14.2.1",
+    "brd": "BRD §9.15 (Analitik ve Kalite Yönetimi) + §14.2 (AI disclosure) + §15",
+    "sad": "SAD §4.2 (Analytics/Ops Plane — async batch) + §164 (QA/Eval Engine) + §171 (FR-RES-011 async post-processing)",
+    "db": "DB.md §5.6 (call_evaluation: eval_type='automatic', scores JSONB, flags JSONB)",
+    "olap": "analytics/olap-spec.json fct_qa_evaluation (auto_score + score_accuracy/compliance/helpfulness BİREBİR)",
+    "eventstream": "eventstream/topic-spec.json qa.evaluation.v1 (pii_class=redacted, consumers=[qa-eval,analytics-ingest], produces qa.evaluation.completed)",
+    "adr": "ADR-002 (vendor-neutral rubric) / ADR-004 (plane ayrımı) / ADR-007 (async event pipeline)",
+    "api": "API §11.6 (ErrorTaxonomy) + Analytics GET /analytics/{report} (FR-ANA-001..011)",
+    "upstream": "14.1.1 call-trace + 14.1.2 call-metrics + recording/redaction pipeline (PII redaction L7) → redaksiyonlu öznitelikler"
+  },
+  "placement": {
+    "$comment": "QA/Eval Engine HOT-PATH'TE DEĞİL — Analytics/Ops Plane'de async batch (SAD §4.2/§171, FR-RES-011). Çağrı bittikten sonra event stream'den (qa.evaluation.v1) PII-redaksiyonlu içerikle çalışır. QA başarısızlığı CANLI çağrıyı ASLA etkilemez (non_blocking). from_trace=false: skor üretimi rubric değerlendirmesidir, trace türetme değil (trace=14.1.1, metrik=14.1.2). all_calls=true: FR-ANA-001 — tüm uygun çağrılar (%100, SR-ANA-001).",
+    "in_analytics_plane": true,
+    "async_batch": true,
+    "non_blocking": true,
+    "from_redacted_content": true,
+    "all_calls": true,
+    "deterministic_rubric": true,
+    "idempotent": true,
+    "from_trace": false
+  },
+  "coverage": {
+    "$comment": "BİRİNCİL HARD kapı (G1) — FR-ANA-001/SR-ANA-001 %100. Her UYGUN (evaluable_status) tamamlanmış çağrı tam olarak BİR otomatik değerlendirme üretir; üretilen == uygun (coverage_gap=0). Öznitelik eksik/zayıf çağrı yine değerlendirilir (degraded=true) — SESSİZCE ATLANMAZ (atlamak %100'ü bozar). Uygun-olmayan statüler (eligibility) açık reason_code taşımalı (G8) — kapsam bütünlüğü.",
+    "metric": "produced / eligible == 1.0",
+    "target": 1.0,
+    "degraded_still_counts": true
+  },
+  "eligibility": {
+    "$comment": "Hangi çağrı otomatik değerlendirmeye UYGUN. evaluable_status → değerlendirilir (kapsam paydası). excluded_status → değerlendirilmez ama açık reason_code TAŞIMALI (sessiz atlama yok, G8). Bilinmeyen statü → reddedilir (INVALID_REQUEST).",
+    "evaluable_status": ["completed"],
+    "excluded_status": ["abandoned_pre_connect", "test_call", "in_progress", "blocked"],
+    "reason_codes": ["abandoned_pre_connect", "test_call", "in_progress", "blocked"]
+  },
+  "rubric": {
+    "$comment": "Sağlayıcı-nötr (ADR-002) deterministik kalite-skorkartı. Her boyut REDAKSİYONLU sayısal/kategorik özniteliklerden saf aritmetikle [0,1] aralığında hesaplanır (random YOK). composite auto_score = ağırlıklı toplam (ağırlık toplamı = 1.0). Boyut→OLAP fct_qa_evaluation sütunu BİREBİR. İsteğe bağlı LLM-judge canlıda bu deterministik zarfın ARDINA takılabilir (vendor-neutral); skor zarfı + kapılar değişmez. Yanlış-bilgi/tool-hata/güvenlik İŞARETLERİ (FR-ANA-004→14.2.4) ve kritik işaretleme (FR-ANA-008→14.2.5) ile MANUEL skor (FR-ANA-009→14.2.6) BU dilimde KAPSAM DIŞI.",
+    "score_domain": [0.0, 1.0],
+    "weights_sum": 1.0,
+    "composite_column": "auto_score",
+    "dimensions": [
+      {
+        "name": "accuracy",
+        "weight": 0.35,
+        "output_column": "score_accuracy",
+        "method": "groundedness = grounded_answers / total_answers (total=0 → 1.0; ham metin yok)",
+        "features": ["grounded_answers", "total_answers"],
+        "fr": ["FR-KB-006", "FR-KB-007"]
+      },
+      {
+        "name": "compliance",
+        "weight": 0.35,
+        "output_column": "score_compliance",
+        "method": "1.0 − (disclosure_given? 0:0.5) − (consent_required & !consent_verified? 0.3:0) − 0.2·policy_violations → clamp[0,1]",
+        "features": ["disclosure_given", "consent_required", "consent_verified", "policy_violations"],
+        "fr": ["BRD §14.2", "FR-OUT-001", "FR-KB-007"]
+      },
+      {
+        "name": "helpfulness",
+        "weight": 0.30,
+        "output_column": "score_helpfulness",
+        "method": "resolution(resolved=1.0 / uygun handoff=0.6 / çözümsüz=0.2) − dead_air − barge_in penalty → clamp[0,1]",
+        "features": ["resolved", "unresolved_handoff", "dead_air_events", "barge_in_respected", "barge_in_total"],
+        "fr": ["FR-ANA-005"]
+      }
+    ]
+  },
+  "output_contract": {
+    "$comment": "Otomatik değerlendirme satırı. score_fields OLAP fct_qa_evaluation'da auto_score + score_* sütunlarıyla BİREBİR (probe non-circular türetir). eval_type='automatic' (DB.md §5.6; manuel=14.2.6). identity_fields her satırda zorunlu (tenant izolasyon + sürüm + idempotency). flags/critical/human_* alanları KAPSAM DIŞI (14.2.4/14.2.5/14.2.6).",
+    "eval_type": "automatic",
+    "score_fields": ["auto_score", "score_accuracy", "score_compliance", "score_helpfulness"],
+    "identity_fields": ["tenant_id", "evaluation_id", "call_id", "agent_id", "agent_version_id", "schema_version"],
+    "emits_event": "qa.evaluation.completed",
+    "persists_to": ["call_evaluation (DB.md §5.6)", "fct_qa_evaluation (OLAP)"]
+  },
+  "idempotency": {
+    "$comment": "Replay-güvenli (1.1.8 P3 idempotent consumers). Aynı (tenant_id, call_id, schema_version) bir değerlendirmeye daraltılır — at-least-once teslimat çift skor üretmez (G4). schema_version değişince yeni rubric sürümü yeni satır üretir (yeniden-değerlendirme).",
+    "dedup_key": ["tenant_id", "call_id", "schema_version"],
+    "replay_safe": true
+  },
+  "feature_policy": {
+    "$comment": "Motor YALNIZ redaksiyonlu sayısal/kategorik öznitelik tüketir (FR-REC-004). Ham transkript METNİ / ses payload / PII DEĞERİ öznitelik olamaz (G6). allowed_feature_keys whitelist; forbidden_feature_keys + PII DEĞER deseni reddedilir.",
+    "allowed_feature_keys": [
+      "disclosure_given", "consent_required", "consent_verified", "policy_violations",
+      "grounded_answers", "total_answers", "tool_calls", "tool_errors",
+      "resolved", "unresolved_handoff", "dead_air_events", "barge_in_respected", "barge_in_total"
+    ],
+    "forbidden_feature_keys": [
+      "transcript_text", "transcript", "audio_payload", "recording", "customer_name", "full_name",
+      "phone_number", "msisdn", "email", "national_id", "card_number", "pan", "cvv", "otp", "iban", "address"
+    ]
+  },
+  "isolation": {
+    "$comment": "Her değerlendirme tenant_id taşır (FR-TEN-002 izolasyon); cross-tenant öznitelik karışmaz; home-region (NFR 10.7 residency). Platform (L0) içeriği görmez — yalnız agregat metrik (altın kural); QA içeriği tenant düzlemindedir.",
+    "tenant_id_required": true,
+    "residency": "home-region",
+    "cross_tenant_forbidden": true
+  },
+  "gates": {
+    "max_coverage_gap": 0,
+    "max_catalog_mismatch": 0,
+    "max_score_domain_violation": 0,
+    "max_idempotency_violation": 0,
+    "max_blocking_violation": 0,
+    "max_pii_violation": 0,
+    "max_isolation_violation": 0,
+    "max_eligibility_reason_missing": 0
+  },
+  "error_taxonomy": {
+    "$comment": "API §11.6 ErrorTaxonomy eşlemesi.",
+    "mapping": {
+      "malformed_call": "INVALID_REQUEST",
+      "unknown_status": "INVALID_REQUEST",
+      "missing_context": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    }
+  },
+  "pii": {
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true
+  },
+  "metrics_emitted": {
+    "emitted": ["qa_evaluations_total", "qa_coverage_ratio", "qa_auto_score", "qa_eval_lag_seconds", "qa_degraded_total"]
+  },
+  "invariants": [
+    {"id": "I1", "desc": "Her UYGUN (evaluable_status) tamamlanmış çağrı tam olarak BİR otomatik değerlendirme üretir; üretilen==uygun (%100, coverage_gap=0) — BİRİNCİL kapı", "trace": "FR-ANA-001, SR-ANA-001, BRD §9.15"},
+    {"id": "I2", "desc": "Çıktı skor alanları OLAP fct_qa_evaluation'da auto_score + score_* sütunlarıyla BİREBİR (non-circular türetilir)", "trace": "analytics/olap-spec.json fct_qa_evaluation, FR-ANA-001"},
+    {"id": "I3", "desc": "Her boyut + composite ∈ [0,1]; rubric ağırlık toplamı = 1.0; composite = ağırlıklı toplam (saf aritmetik)", "trace": "ADR-002, rubric"},
+    {"id": "I4", "desc": "Aynı (tenant_id, call_id, schema_version) bir değerlendirmeye daraltılır (idempotent/replay-safe); at-least-once çift skor üretmez", "trace": "1.1.8 P3, ADR-007"},
+    {"id": "I5", "desc": "Analytics plane'de async/non-blocking (SAD §4.2/§171, FR-RES-011); QA başarısızlığı canlı çağrıyı etkilemez; from_trace=false (hot-path dışı)", "trace": "SAD §4.2/§171, FR-RES-011, ADR-004"},
+    {"id": "I6", "desc": "Yalnız PII-redaksiyonlu öznitelik tüketir; ham transkript METNİ/ses payload/PII DEĞERİ öznitelik/skor/çıktıda yok (FR-REC-004; topic pii_class=redacted)", "trace": "FR-REC-004, eventstream qa.evaluation.v1, BRD §17.7"},
+    {"id": "I7", "desc": "Her değerlendirme tenant_id taşır (FR-TEN-002); cross-tenant öznitelik karışmaz; home-region (NFR 10.7); platform içeriği görmez (altın kural)", "trace": "FR-TEN-002, NFR 10.7, FR-IAM-008"},
+    {"id": "I8", "desc": "Uygun-olmayan statü açık reason_code taşır (sessiz atlama yok) — kapsam bütünlüğü", "trace": "FR-ANA-001, eligibility"},
+    {"id": "I9", "desc": "Skorkart rubric'i sağlayıcı-nötr (ADR-002); LLM-judge isteğe bağlı, deterministik zarfın ardına takılır; kapılar değişmez", "trace": "ADR-002, SAD §8.4"},
+    {"id": "I10", "desc": "Hata API §11.6 ErrorTaxonomy'ye eşlenir (malformed/unknown→INVALID_REQUEST, region→REGION_VIOLATION)", "trace": "API §11.6"},
+    {"id": "I11", "desc": "eval_type='automatic' (DB.md §5.6); MANUEL skor+yorum (FR-ANA-009→14.2.6) ayrı; flags (FR-ANA-004→14.2.4) + kritik işaretleme (FR-ANA-008→14.2.5) bu dilimde kapsam dışı", "trace": "DB.md §5.6, FR-ANA-009/004/008"},
+    {"id": "I12", "desc": "spec/config'te sır/ham payload/transkript/PII DEĞERİ yok (yalnız öznitelik/alan/kimlik anahtarı ADLARI)", "trace": "FR-REC-004, ADR-002"}
+  ]
+}

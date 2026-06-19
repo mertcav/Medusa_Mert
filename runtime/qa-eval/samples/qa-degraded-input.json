@@ -1,0 +1,19 @@
+{
+  "name": "qa-degraded-input",
+  "$comment": "Zorlu ama GEÇERLİ batch: 4 uygun çağrının 3'ü eksik/zayıf öznitelikli (degraded). Önemli kanıt: degraded çağrılar SESSİZCE ATLANMAZ — her biri yine bir otomatik değerlendirme alır (FR-ANA-001 %100 kapsam korunur). Kötü kalite ≠ değerlendirme atlama. Kapsam tam (coverage_gap=0), kapılar geçer. PII DEĞERİ / ham transkript YOK.",
+  "profile": "eu-standard",
+  "expect": "pass",
+  "context": {"tenant_id": "t_globex", "region": "eu-west-1", "correlation_id": "corr-globex-007"},
+  "calls": [
+    {"call_id": "d1", "status": "completed", "features": {}},
+    {"call_id": "d2", "status": "completed", "features": {
+      "disclosure_given": false, "grounded_answers": 1, "total_answers": 4, "resolved": false}},
+    {"call_id": "d3", "status": "completed", "features": {
+      "disclosure_given": true, "policy_violations": 3, "grounded_answers": 0, "total_answers": 2,
+      "resolved": false, "dead_air_events": 5}},
+    {"call_id": "d4", "status": "completed", "features": {
+      "disclosure_given": true, "consent_required": true, "consent_verified": true, "policy_violations": 0,
+      "grounded_answers": 8, "total_answers": 8, "resolved": true, "barge_in_respected": 3, "barge_in_total": 3}}
+  ],
+  "expected": {"coverage_gap": 0, "produced": 4, "score_domain_violations": 0}
+}

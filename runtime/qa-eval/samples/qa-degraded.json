@@ -1,0 +1,15 @@
+{
+  "name": "qa-degraded",
+  "$comment": "BİLİNÇLİ bozuk motor — çoklu kapı eler (negatif kapı kanıtı). evaluate_all kapalı → degraded çağrı sessizce atlanır (G1 kapsam %100 bozulur). isolate_tenant kapalı → değerlendirmede tenant_id yok (G7). non_blocking kapalı → QA çağrıyı bloklar (G5). clamp_scores kapalı → negatif compliance (G3). enforce_redaction kapalı yerine açık ama ham transkript özniteliği gelir → ayrıca G6. Bir uygun-olmayan çağrı reason'sız (G8). Beklenen: ELENİR (expect=fail).",
+  "profile_obj": {"name": "broken", "region": "eu-west-1", "schema_version": 1, "batch_interval_s": 30},
+  "expect": "fail",
+  "context": {"tenant_id": "t_acme", "region": "eu-west-1", "correlation_id": "corr-acme-099"},
+  "policy": {"evaluate_all": false, "isolate_tenant": false, "non_blocking": false, "clamp_scores": false},
+  "calls": [
+    {"call_id": "b1", "status": "completed", "features": {}},
+    {"call_id": "b2", "status": "completed", "features": {
+      "disclosure_given": false, "policy_violations": 5, "grounded_answers": 0, "total_answers": 1, "resolved": false,
+      "transcript_text": "ham metin sızıntısı"}},
+    {"call_id": "b3", "status": "abandoned_pre_connect"}
+  ]
+}
