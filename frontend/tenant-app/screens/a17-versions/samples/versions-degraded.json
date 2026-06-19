@@ -1,0 +1,30 @@
+{
+  "$comment": "A-17 BOZUK/DİKKAT GEREKTİREN agent sürüm geçmişi (WBS 13.4.17): bütünlük + WORM köken ihlalleri. activeVersionNo=99 var olmayan sürümü işaret ediyor (kopuk referans → missing_active). v4 var olmayan v9'u geri yüklüyor olarak işaretli (rollback köken ihlali; WORM append-only DB §6.5). v3 yinelenmiş (iki kez versionNo=3 → ayırt edilemez). v5 test'te başarısız + arşivlenmemiş (FR-AGT-010 → production engellenir). Yalnız sürüm META; snapshot gövdesi/PII yok → İKİ KATMAN guard yine temiz. → açık dikkat=4.",
+  "$expect": {
+    "versions": 6,
+    "active": null,
+    "recallable": 4,
+    "rollback_target": 4,
+    "can_rollback": true,
+    "distinguishable": false,
+    "rollback_refs_resolve": false,
+    "attention": 4
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-2048",
+  "tenantName": "Kuzey Sigorta A.Ş.",
+  "agent": {
+    "agentRef": "AGT-221",
+    "agentName": "Tahsilat Asistanı",
+    "lifecycleState": "production",
+    "activeVersionNo": 99,
+    "versions": [
+      { "versionNo": 5, "versionId": "AV-5x1", "stage": "test", "isPublished": false, "testStatus": "failed", "publishedBy": "Mert Aydın", "publishedAt": "2026-06-15T10:00:00.000Z", "changeNote": "Yeni tahsilat akışı denemesi", "rollbackOfNo": null, "promptVersionNo": 6, "flowVersionNo": 3, "voiceProfile": "tr-Standart-Erkek", "modelProfile": "Küçük tier (hız)", "sttProfile": "tr-8kHz-telefon" },
+      { "versionNo": 4, "versionId": "AV-4x2", "stage": "staging", "isPublished": true, "testStatus": "passed", "publishedBy": "Mert Aydın", "publishedAt": "2026-06-08T09:00:00.000Z", "changeNote": "Hazırlık ortamına alındı", "rollbackOfNo": 9, "promptVersionNo": 5, "flowVersionNo": 3, "voiceProfile": "tr-Standart-Erkek", "modelProfile": "Küçük tier (hız)", "sttProfile": "tr-8kHz-telefon" },
+      { "versionNo": 3, "versionId": "AV-3x3", "stage": "production", "isPublished": true, "testStatus": "passed", "publishedBy": "Derya Kaya", "publishedAt": "2026-05-20T08:00:00.000Z", "changeNote": "Önceki canlı sürüm", "rollbackOfNo": null, "promptVersionNo": 4, "flowVersionNo": 2, "voiceProfile": "tr-Standart-Erkek", "modelProfile": "Küçük tier (hız)", "sttProfile": "tr-8kHz-telefon" },
+      { "versionNo": 3, "versionId": "AV-3x3b", "stage": "archived", "isPublished": true, "testStatus": "passed", "publishedBy": "Derya Kaya", "publishedAt": "2026-05-10T08:00:00.000Z", "changeNote": "Yinelenen sürüm numarası (bütünlük ihlali)", "rollbackOfNo": null, "promptVersionNo": 3, "flowVersionNo": 2, "voiceProfile": "tr-Standart-Erkek", "modelProfile": "Küçük tier (hız)", "sttProfile": "tr-8kHz-telefon" },
+      { "versionNo": 2, "versionId": "AV-2x4", "stage": "archived", "isPublished": true, "testStatus": "passed", "publishedBy": "Derya Kaya", "publishedAt": "2026-04-28T08:00:00.000Z", "changeNote": "İlk yayınlanan sürüm", "rollbackOfNo": null, "promptVersionNo": 2, "flowVersionNo": null, "voiceProfile": "tr-Standart-Erkek", "modelProfile": "Küçük tier (hız)", "sttProfile": "tr-8kHz-telefon" },
+      { "versionNo": 1, "versionId": "AV-1x5", "stage": "archived", "isPublished": false, "testStatus": "not_run", "publishedBy": "Derya Kaya", "publishedAt": "2026-04-20T08:00:00.000Z", "changeNote": "İlk sürüm", "rollbackOfNo": null, "promptVersionNo": 1, "flowVersionNo": null, "voiceProfile": "tr-Standart-Erkek", "modelProfile": "Küçük tier (hız)", "sttProfile": "tr-8kHz-telefon" }
+    ]
+  }
+}

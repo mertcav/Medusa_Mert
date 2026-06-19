@@ -3335,6 +3335,113 @@
       "action": {
         "run": "Yeni koşu başlat"
       }
+    },
+    "a17": {
+      "title": "Sürüm Geçmişi (agent)",
+      "subtitle": "Agent versiyonları ve rollback",
+      "scope_note": "Bu ekranda agent'ınızın yayın/sürüm geçmişini ve geri alma (rollback) seçeneklerini görüntülersiniz (yalnız tenant'ınız kapsamında). Yalnız sürüm meta verisi gösterilir; bağlanan yapılandırmanın donmuş kopyası (snapshot gövdesi) gösterilmez. Geri al/yeni-sürüm/promote nihai yetkisi backend'de uygulanır (WORM append-only); bu ekran sürüm geçmişi görünümüdür.",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "agent_label": "Agent",
+      "lifecycle": "Yaşam döngüsü",
+      "none": "—",
+      "yes": "Var",
+      "no": "Yok",
+      "total": "Toplam",
+      "alert": {
+        "not_distinguishable": "Sürüm bütünlüğü ihlali: {count} yinelenen sürüm numarası/kimliği var. Her sürüm ayırt edilebilir olmalı (DB UNIQUE(tenant,agent,version_no)).",
+        "missing_active": "Aktif (production) sürüm işaret ediliyor ancak eşleşen sürüm bulunamadı (kopuk referans); sürüm geçmişini doğrulayın.",
+        "rollback_ref_broken": "Rollback köken bütünlüğü ihlali: bir sürüm var olmayan veya daha yüksek numaralı bir sürümü geri yüklüyor olarak işaretlenmiş (WORM append-only ihlali; DB §6.5).",
+        "test_blocked": "{count} sürüm otomatik testten geçemedi; production'a almadan önce testi geçmeli (FR-AGT-010).",
+        "no_active": "Henüz yayınlanmış (production) sürüm yok; bir sürümü yayınlayarak canlıya alın (FR-AGT-005).",
+        "pending_changes": "Aktif sürümden daha yeni bir sürüm var (bekleyen değişiklik); test ve yayın akışını izleyin (FR-AGT-004)."
+      },
+      "section": {
+        "summary": "Sürüm Özeti",
+        "history": "Sürüm Geçmişi",
+        "stages": "Aşama Dağılımı",
+        "rollback": "Geri Alma (Rollback)"
+      },
+      "kpi": {
+        "versions": "Sürüm",
+        "versions_hint": "Toplam agent sürümü (DB §5.2 agent_version)",
+        "active": "Aktif Sürüm",
+        "active_hint": "Canlı (production) sürüm — rollback kaynağı",
+        "published": "Yayınlı",
+        "published_hint": "Yayınlanmış sürüm sayısı",
+        "latest": "En Son",
+        "latest_hint": "En yüksek numaralı sürüm",
+        "recallable": "Geri Çağrılabilir",
+        "recallable_hint": "Önceki yayınlanmış (rollback hedefi) sürüm (FR-AGT-006)",
+        "pending": "Bekleyen Değişiklik",
+        "pending_hint": "Aktiften daha yeni sürüm var mı (FR-AGT-004)",
+        "rollbacks": "Geri Alma",
+        "rollbacks_hint": "Geçmişte rollback ile üretilen sürüm sayısı",
+        "attention": "Açık Dikkat",
+        "attention_hint": "Bütünlük ihlali + başarısız test toplamı"
+      },
+      "stage": {
+        "draft": "Taslak",
+        "test": "Test",
+        "staging": "Hazırlık",
+        "production": "Production",
+        "archived": "Arşiv"
+      },
+      "stage_desc": {
+        "draft": "Üzerinde çalışılan taslak sürüm",
+        "test": "Otomatik testte olan sürüm (FR-AGT-010)",
+        "staging": "Yayın öncesi hazırlık ortamı",
+        "production": "Canlı yayında olan sürüm",
+        "archived": "Arşivlenen önceki sürüm"
+      },
+      "status": {
+        "active": "Aktif",
+        "published": "Yayınlı",
+        "draft": "Taslak"
+      },
+      "test": {
+        "passed": "Geçti",
+        "failed": "Başarısız",
+        "not_run": "Çalışmadı"
+      },
+      "badge": {
+        "active": "Aktif",
+        "rollback": "Geri alma (v{from})",
+        "default_target": "Varsayılan hedef"
+      },
+      "col": {
+        "version": "Sürüm",
+        "stage": "Aşama",
+        "status": "Durum",
+        "test": "Test",
+        "config": "Bağlanan yapılandırma",
+        "published_by": "Yayınlayan",
+        "published_at": "Yayın zamanı",
+        "change": "Değişiklik notu",
+        "purpose": "Açıklama",
+        "count": "Adet",
+        "action": "İşlem"
+      },
+      "config_summary": "Prompt v{prompt} · Flow {flow} · {model} · {voice} · {stt}",
+      "history_caption": "Agent sürüm geçmişi ve bağlanan yapılandırma sürümleri",
+      "history_hint": "Her sürüm değişmezdir (WORM/immutable) ve ayırt edilebilir kimlik taşır (DB §5.2 agent_version). Bağlanan yapılandırmanın donmuş kopyası (snapshot gövdesi) gösterilmez; yalnız sürüm/profil adları yansıtılır.",
+      "stages_caption": "Aşamaya göre sürüm dağılımı",
+      "no_versions": "Bu agent için gösterilecek sürüm yok.",
+      "no_recallable": "Geri çağrılabilir önceki yayınlanmış sürüm yok.",
+      "rollback": {
+        "eligible": "Geri alınabilir",
+        "not_eligible": "Geri alınamaz",
+        "active": "Aktif sürüm: {version} ({id}).",
+        "no_active": "Aktif (production) sürüm yok; geri alınacak yayınlanmış sürüm bulunmuyor.",
+        "target": "Tek-işlem geri alma varsayılan hedefi: {target} ({id}) — “{note}”."
+      },
+      "rollback_caption": "Geri çağrılabilir (önceki yayınlanmış) sürümler — rollback hedefleri",
+      "rollback_hint": "Geri al yalnız görsel kapıdır; nihai yetki + tek-işlem rollback backend'de WORM append-only uygulanır (geri alma = yeni sürüm satırı, eski satır korunur; FR-AGT-006 / DB §6.5).",
+      "action": {
+        "new_version": "Yeni sürüm",
+        "rollback_to": "{target} sürümüne dön"
+      },
+      "footnote": "Sürüm/yayın zamanı/sayı değerleri illüstratif mühendislik örneğidir; gerçek veri Agent Registry (DB §5.2 agent_version + agent.active_version_id) tenant-scope (RLS) çıktısıyla beslenir. Geri al/promote/yeni-sürüm derin aksiyondur (agent:version:manage — API §8.1); nihai yetki + işlem + audit backend'de."
     }
   }
 }

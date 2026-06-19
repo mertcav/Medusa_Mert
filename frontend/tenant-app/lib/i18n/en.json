@@ -3335,6 +3335,113 @@
       "action": {
         "run": "Start new run"
       }
+    },
+    "a17": {
+      "title": "Version History (agent)",
+      "subtitle": "Agent versions and rollback",
+      "scope_note": "On this screen you view your agent's release/version history and rollback options (scoped to your tenant only). Only version metadata is shown; the frozen copy of the bound configuration (snapshot body) is not shown. Rollback/new-version/promote authorization is enforced in the backend (WORM append-only); this screen is a version-history view.",
+      "as_of": "View time: {time}",
+      "tenant": "Tenant",
+      "agent_label": "Agent",
+      "lifecycle": "Lifecycle",
+      "none": "—",
+      "yes": "Yes",
+      "no": "No",
+      "total": "Total",
+      "alert": {
+        "not_distinguishable": "Version integrity violation: {count} duplicate version number/identifier(s). Each version must be distinguishable (DB UNIQUE(tenant,agent,version_no)).",
+        "missing_active": "An active (production) version is referenced but no matching version was found (dangling reference); verify the version history.",
+        "rollback_ref_broken": "Rollback lineage integrity violation: a version is marked as restoring a non-existent or higher-numbered version (WORM append-only violation; DB §6.5).",
+        "test_blocked": "{count} version(s) failed automated tests; they must pass before going to production (FR-AGT-010).",
+        "no_active": "No published (production) version yet; publish a version to go live (FR-AGT-005).",
+        "pending_changes": "A version newer than the active one exists (pending change); follow the test and release flow (FR-AGT-004)."
+      },
+      "section": {
+        "summary": "Version Summary",
+        "history": "Version History",
+        "stages": "Stage Distribution",
+        "rollback": "Rollback"
+      },
+      "kpi": {
+        "versions": "Versions",
+        "versions_hint": "Total agent versions (DB §5.2 agent_version)",
+        "active": "Active Version",
+        "active_hint": "Live (production) version — rollback source",
+        "published": "Published",
+        "published_hint": "Number of published versions",
+        "latest": "Latest",
+        "latest_hint": "Highest-numbered version",
+        "recallable": "Recallable",
+        "recallable_hint": "Previous published (rollback target) versions (FR-AGT-006)",
+        "pending": "Pending Change",
+        "pending_hint": "Is there a version newer than active (FR-AGT-004)",
+        "rollbacks": "Rollbacks",
+        "rollbacks_hint": "Number of versions produced by rollback in history",
+        "attention": "Open Attention",
+        "attention_hint": "Integrity violations + failed tests total"
+      },
+      "stage": {
+        "draft": "Draft",
+        "test": "Test",
+        "staging": "Staging",
+        "production": "Production",
+        "archived": "Archived"
+      },
+      "stage_desc": {
+        "draft": "Draft version being worked on",
+        "test": "Version under automated test (FR-AGT-010)",
+        "staging": "Pre-release staging environment",
+        "production": "Version live in production",
+        "archived": "Archived previous version"
+      },
+      "status": {
+        "active": "Active",
+        "published": "Published",
+        "draft": "Draft"
+      },
+      "test": {
+        "passed": "Passed",
+        "failed": "Failed",
+        "not_run": "Not run"
+      },
+      "badge": {
+        "active": "Active",
+        "rollback": "Rollback (v{from})",
+        "default_target": "Default target"
+      },
+      "col": {
+        "version": "Version",
+        "stage": "Stage",
+        "status": "Status",
+        "test": "Test",
+        "config": "Bound configuration",
+        "published_by": "Published by",
+        "published_at": "Published at",
+        "change": "Change note",
+        "purpose": "Description",
+        "count": "Count",
+        "action": "Action"
+      },
+      "config_summary": "Prompt v{prompt} · Flow {flow} · {model} · {voice} · {stt}",
+      "history_caption": "Agent version history and bound configuration versions",
+      "history_hint": "Each version is immutable (WORM) and carries a distinguishable identifier (DB §5.2 agent_version). The frozen copy of the bound configuration (snapshot body) is not shown; only version/profile names are reflected.",
+      "stages_caption": "Version distribution by stage",
+      "no_versions": "No versions to show for this agent.",
+      "no_recallable": "No recallable previous published version.",
+      "rollback": {
+        "eligible": "Rollback available",
+        "not_eligible": "Rollback unavailable",
+        "active": "Active version: {version} ({id}).",
+        "no_active": "No active (production) version; there is no published version to roll back to.",
+        "target": "Default one-click rollback target: {target} ({id}) — “{note}”."
+      },
+      "rollback_caption": "Recallable (previous published) versions — rollback targets",
+      "rollback_hint": "Rollback here is a visual gate only; final authorization + one-click rollback is enforced WORM append-only in the backend (rollback = new version row, old row preserved; FR-AGT-006 / DB §6.5).",
+      "action": {
+        "new_version": "New version",
+        "rollback_to": "Roll back to {target}"
+      },
+      "footnote": "Version/published-at/count values are illustrative engineering examples; real data is fed from the Agent Registry (DB §5.2 agent_version + agent.active_version_id) tenant-scoped (RLS) output. Rollback/promote/new-version is a deep action (agent:version:manage — API §8.1); final authorization + operation + audit are in the backend."
     }
   }
 }

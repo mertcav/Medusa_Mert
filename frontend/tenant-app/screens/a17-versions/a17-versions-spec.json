@@ -1,0 +1,78 @@
+{
+  "$schema": "internal://chanteur/screen-spec",
+  "wbs": "13.4.17",
+  "screen": "A-17",
+  "title": "Sürüm Geçmişi (agent) + rollback",
+  "plane": "tenant_application_plane",
+  "tier": "L2",
+  "source": [
+    "BRD §17.5 (A-17 Sürüm Geçmişi (agent) — Agent versiyonları ve rollback)",
+    "BRD §17.6 (RBAC — conversation_designer=Yönet · operations_manager=Görüntüle · qa_analyst=— · human_agent=—)",
+    "BRD §17.7 (hijyen + PII redaction panel görüntülemelerinde de uygulanır + izolasyon)",
+    "FR-AGT-006 (yayınlanan sürüm tek işlemle önceki sürüme döndürülebilmelidir — rollback; A-17 ÇEKİRDEK)",
+    "FR-AGT-004 (prompt/workflow versiyonlanmalıdır) · FR-AGT-005 (draft/test/staging/production ortamları)",
+    "FR-AGT-010 (canlıya almadan önce otomatik test — testStatus) · FR-TST-005 (promotion gate detayı A-16)",
+    "FR-REC-004/005 (PII redaction + kart/OTP gizleme — sürüm META panosunda ham PII yok)",
+    "FR-TEN-002 (tenant scope) ",
+    "DB §5.2 (agent_version — WORM/DEĞİŞMEZ snapshot, version_no, prompt_id/flow_id/voice/model/stt FK, published_by/at; agent.active_version_id production sürüm)",
+    "DB §6.5 (WORM/append-only zorlama agent_version — rollback = YENİ satır, eski satır korunur)",
+    "NFR 10.6 (sır/credential + nesne-depo URI + snapshot gövdesi panele konmaz)",
+    "API §8.1 (agent:version:manage — GET/POST /agents/{id}/versions, POST .../{v}:promote, :rollback) · §8.2 (promote regresyon geçmeden engellenir)",
+    "SAD §14.4.1 (UI görsel kapı; nihai rollback/promote + yetki + audit backend)",
+    "ADR-002 (vendor-neutral)"
+  ],
+  "rbac": {
+    "conversation_designer": "manage",
+    "operations_manager": "view",
+    "qa_analyst": "none",
+    "human_agent": "none",
+    "note": "BRD §17.6 A-17 satırı: operations_manager=Görüntüle · conversation_designer=Yönet · qa_analyst=— · human_agent=— (erişim YOK). tenant_owner kural 17.7 ile Yönet. UI yalnız görsel kapı; nihai yetki backend'de + RLS. Geri al/promote/yeni-sürüm derin aksiyondur (agent:version:manage — API §8.1); tek-işlem rollback WORM append-only backend'de (DB §6.5). Permission-key: agent:version:manage.",
+    "delta_from_a16": "A-16'ya göre fark: A-17'de conversation_designer (Yönet) + operations_manager (Görüntüle); qa_analyst erişemez (A-16'da Görüntüle idi). A-17 sürüm geçmişi/rollback (agent:version:manage); A-16 test/simülasyon (test:run). A-17, A-16 promotion gate'inin (FR-TST-005) çıktısına dayanır."
+  },
+  "content_brd_17_5": [
+    "özet KPI'ları (sürüm sayısı / aktif sürüm / yayınlı / en son / geri çağrılabilir / bekleyen değişiklik / geri alma sayısı / açık dikkat)",
+    "sürüm geçmişi (sürüm no + kimliği + aşama + durum + test + bağlanan config + yayınlayan + zaman + değişiklik notu + rollback kökeni; DB §5.2 agent_version WORM)",
+    "aşama dağılımı (draft/test/staging/production/archived — FR-AGT-005)",
+    "rollback (geri çağrılabilir önceki yayınlanmış sürümler + tek-işlem varsayılan hedef; FR-AGT-006)"
+  ],
+  "stages": ["draft", "test", "staging", "production", "archived"],
+  "test_statuses": ["passed", "failed", "not_run"],
+  "version_statuses": ["active", "published", "draft"],
+  "mask_token": "[•••]",
+  "invariants": {
+    "S1": "A-17 ekran sayfası mevcut + data-screen=\"A-17\" işaretli (iskelet değil).",
+    "S2": "Sayfa tasarım sistemi (lib/ui) + i18n (lib/i18n) + veri seam (lib/tenant/agent-versions) kullanır + sunucu-tarafı locale.",
+    "S3": "Tüm kullanıcı-görünür ETİKET metni i18n katalogundan (screen.a17.*); hardcoded TR/EN cümle yok. (Sürüm no/sayı/tarih çağrı verisidir — locale-duyarlı biçimlenir; etiket değildir.)",
+    "S4": "Veri katmanı İKİ KATMAN guard: (1) yapısal anahtar (assertNoForbiddenKeys) — ham kimlik/iş-içeriği (transkript/ses kaydı/ham numara/müşteri PII/CDR) + agent_version snapshot JSONB GÖVDESİ (snapshot/prompt gövdesi/flow tanımı/body) + sır/credential/nesne-depo URI taşımaz (FORBIDDEN_PII_KEYS + FORBIDDEN_SECRET_KEYS); (2) içerik redaction (assertRedactionClean) — hiçbir STRING değer ham PII DESENİ taşımaz (RAW_PII_PATTERNS); sürüm no/sayılar string değildir, taranmaz; assertSafe ikisini çağırır (HİJYEN BRD §17.7 + FR-REC-004/005 + GÜVENLİK NFR 10.6).",
+    "S5": "BRD §17.5 içerik öğeleri (özet + sürüm geçmişi + aşama dağılımı + rollback) + FR-AGT-006 rollback (recallableVersions/previousPublishedVersion/canRollback/isRollback/rollbackCount/rollbackRefsResolve) + FR-AGT-004 versiyonlama (sortedVersions/hasPendingChanges/distinguishable) + FR-AGT-005 aşama (countByStage/STAGE_ORDER) + FR-AGT-010 test (failedTestVersions/testStatus) i18n bölüm + alt-anahtarlarıyla karşılanır.",
+    "S6": "screen.a17.* anahtarları TR↔EN birebir (key + placeholder) + boş değer yok; referans verilen tüm anahtarlar katalogda var.",
+    "S7": "Saf türetme yardımcıları (sortedVersions/versionByNo/activeVersion/latestVersion/countByStage/publishedVersions/draftVersions/isActive/versionStatus/isRollback/rollbackCount/recallableVersions/previousPublishedVersion/canRollback/hasPendingChanges/failedTestVersions/duplicateVersionNos/duplicateVersionIds/distinguishable/missingActiveVersion/rollbackRefsResolve/openAttentionCount/stageTone/statusTone/testTone) deterministik; Date.now/rastgelelik yok. *_ORDER sabitleri tanımlı.",
+    "S8": "Vendor-neutral (ADR-002): veri seam belirli LLM/STT/TTS sağlayıcısını bağlamaz; sır/credential yok. Sürüm/zaman/sayı değerleri illüstratif mühendislik örneği."
+  },
+  "referenced_keys": [
+    "title", "subtitle", "scope_note", "as_of", "tenant", "agent_label", "lifecycle", "none", "yes", "no", "total", "footnote",
+    "alert.not_distinguishable", "alert.missing_active", "alert.rollback_ref_broken", "alert.test_blocked", "alert.no_active", "alert.pending_changes",
+    "section.summary", "section.history", "section.stages", "section.rollback",
+    "kpi.versions", "kpi.versions_hint", "kpi.active", "kpi.active_hint", "kpi.published", "kpi.published_hint", "kpi.latest", "kpi.latest_hint", "kpi.recallable", "kpi.recallable_hint", "kpi.pending", "kpi.pending_hint", "kpi.rollbacks", "kpi.rollbacks_hint", "kpi.attention", "kpi.attention_hint",
+    "stage.draft", "stage.test", "stage.staging", "stage.production", "stage.archived",
+    "stage_desc.draft", "stage_desc.test", "stage_desc.staging", "stage_desc.production", "stage_desc.archived",
+    "status.active", "status.published", "status.draft",
+    "test.passed", "test.failed", "test.not_run",
+    "badge.active", "badge.rollback", "badge.default_target",
+    "col.version", "col.stage", "col.status", "col.test", "col.config", "col.published_by", "col.published_at", "col.change", "col.purpose", "col.count", "col.action",
+    "config_summary", "history_caption", "history_hint", "stages_caption", "no_versions", "no_recallable",
+    "rollback.eligible", "rollback.not_eligible", "rollback.active", "rollback.no_active", "rollback.target",
+    "rollback_caption", "rollback_hint",
+    "action.new_version", "action.rollback_to"
+  ],
+  "placeholders": {
+    "as_of": ["time"],
+    "alert.not_distinguishable": ["count"],
+    "alert.test_blocked": ["count"],
+    "badge.rollback": ["from"],
+    "config_summary": ["prompt", "flow", "model", "voice", "stt"],
+    "rollback.active": ["version", "id"],
+    "rollback.target": ["target", "id", "note"],
+    "action.rollback_to": ["target"]
+  }
+}
