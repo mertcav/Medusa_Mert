@@ -1,0 +1,145 @@
+{
+  "$comment": "WBS 14.1.3 — Per-call CPU/bellek/eşzamanlılık ölçümü. Conversation Orchestrator (Çekirdek IP, SAD §6) gözlemlenebilirlik EMİSYON yolundaki PER-CALL RESOURCE ACCOUNTANT sözleşmesi: BRD §15 'çağrı başına kaynak tüketimi (CPU/bellek)' + FR-ANA-013 '(CPU/bellek/eşzamanlılık) raporlanmalıdır' + FR-RES-016 'çağrı başına kaynak bütçesi (bellek/CPU) tanımlanmalı ve aşımı izlenmelidir' + NFR 10.2 (aktif çağrı başına orkestratör belleği MEDYA HARİÇ ≤ ~15MB; referans işçi başına eş zamanlı oturum ≥250–500) runtime karşılığı. 14.1.2 (call-metrics) BRD §15'in 18 teknik metrik DEĞERİNİ hesaplar ve call_cpu_seconds/call_memory_bytes'ı AÇIKÇA 14.1.3'e ertelemiştir (out_of_scope). 14.1.3 bu boşluğu doldurur: çağrı başına CPU/bellek (MEDYA TAMPONLARI HARİÇ) ÖLÇÜLÜR + eşzamanlılık (worker_active_sessions / tenant_concurrency) anlık-görüntü alınır; bütçe (FR-RES-016 ≤15MB) ve density (NFR 10.2 ≥250) kapıları uygulanır; her gözlem 0.4.7 observability-spec metrics.catalog (call_cpu_seconds/call_memory_bytes BİREBİR) + kardinalite/etiket/PII disiplinine UYGUN gözlem olarak yayılır. KAPSAM AYRIMI: span üretimi + zaman damgası → 14.1.1 (call-trace); teknik metrik (latency/token/...) DEĞERLERİ → 14.1.2 (call-metrics); metrik/alarm KATALOĞU + collector guard → 0.4.7 (observability omurgası); kapasite/density TASARIM TAHMİNİ → 0.3.3/0.3.4 (bu modülün TASARIM girdisi); yapılandırılmış asenkron + örneklemeli loglama → 14.1.4; alarm kuralları → 14.1.5; aggregasyon/dashboard/raporlama → 0.4.7 + A-01/A-15 + P-01/P-03; bağlam İLİŞTİRME + kardinalite/PII enforcement → 3.1.5. Burada YALNIZ çağrı başına KAYNAK (CPU/bellek/eşzamanlılık) ÖLÇÜMÜ + bütçe/density kapısı + katalog/kardinalite/etiket/PII disiplini. KAYNAK DOĞRULUK; çelişkide BRD/SAD esastır. Vendor-neutral (ADR-002): Accountant çekirdeği minimal+deterministik (saf aritmetik, random YOK); canlı sistemde Go/Rust async runtime (ADR-003, SAD §6.3) cgroup/RSS/cpu-time accounting + OpenTelemetry/Prometheus (SAD §11/§17.1). Sır/credential, ham ses payload'ı, transkript ve PII DEĞERİ spec/config/örneklerde TUTULMAZ — örnekler yalnız sayısal SİNYAL + kimlik/etiket anahtarı ADLARI taşır (PII DEĞER yok).",
+  "version": "1.0",
+  "wbs": "14.1.3",
+  "phase": "F1",
+  "resource_doc": {
+    "fr": ["FR-ANA-013", "FR-RES-016", "FR-RES-013", "FR-RES-001", "FR-TEN-007", "FR-RES-012", "FR-REC-004", "FR-ANA-012"],
+    "nfr": ["NFR 10.1", "NFR 10.2", "NFR 10.7"],
+    "sad": ["§6", "§6.2", "§6.3", "§11", "§13.1", "§17", "§17.1", "§17.2", "§20"],
+    "adr": ["ADR-001", "ADR-002", "ADR-003", "ADR-009"],
+    "api": ["§11.6 ErrorTaxonomy"],
+    "srs": ["SR-DEN-001", "SR-RES-016"],
+    "rtm": ["TC-DEN-001", "TC-ANA-013"],
+    "brd": ["§10.2 (kaynak verimliliği / lean runtime)", "§15 (saklanması gereken teknik metrikler — çağrı başına CPU/bellek)", "§17.7 (panel PII maskeleme)"],
+    "observability": ["metrics.catalog (0.4.7) — call_cpu_seconds/call_memory_bytes BİREBİR (name/type/unit/labels)", "alerts ResourceBudgetExceeded (0.4.7) — 15MB bellek bütçesi eşiği BİREBİR", "alerts TenantCapacity80 (0.4.7) — tenant_concurrency girdisi", "label_policy (0.4.7) — kardinalite/PII disiplini BİREBİR"],
+    "poc": ["0.3.3 density-measurement (oturum/worker ≤15MB + density ≥250 — TASARIM girdisi; density CPU-bağlı bulgusu)", "0.3.4 media-placement / ADR-009 hibrit (medya ayrı katman → orkestratör belleği medya HARİÇ)"]
+  },
+
+  "placement": {
+    "$comment": "Per-call Resource Accountant Conversation Orchestrator gözlemlenebilirlik emisyon yolundadır (SAD §6.2/§6.3, §17.1; Resource Manager katmanı BRD §10.2). Çağrı SONUNDA (ve gerektiğinde örneklemeli) cgroup/RSS/cpu-time accounting'ten çağrı başına CPU saniyesi + orkestratör oturum belleğini (MEDYA TAMPONLARI HARİÇ — ADR-009 hibrit: ağır medya ayrı/eş-konumsuz katman) ÖLÇER + eşzamanlılık anlık-görüntüsünü (worker_active_sessions / tenant_concurrency) alır; Prometheus/OTel gözlemleri olarak yayar. 14.1.2'den FARK: gecikmeleri trace'ten TÜRETMEZ — CPU/bellek RUNTIME'da ÖLÇÜLÜR (measured, from_trace değil). Emisyon bloklamaz (asenkron/örneklemeli, FR-RES-012; hot-path'i bloklamaz; tail-based 0.4.7).",
+    "in_orchestrator": true,
+    "emission_path": true,
+    "measured": true,
+    "from_trace": false,
+    "excludes_media": true,
+    "event_driven": true,
+    "non_blocking": true,
+    "trace": "SAD §6.2, SAD §6.3, SAD §17.1, BRD §10.2 (Resource Manager), ADR-003, ADR-009, FR-RES-012"
+  },
+
+  "inputs": {
+    "$comment": "Accountant'a giren per-call kaynak sinyal demeti (bundle). PII DEĞER yok — yalnız sayısal sinyal + kimlik/etiket anahtarı ADLARI. cpu/memory cgroup/RSS/cpu-time accounting'ten; concurrency runtime oturum sayacından; worker referans düğüm tanımından (yoksa spec.density.reference_worker varsayılır). memory.session_rss_bytes orkestratör oturum belleği MEDYA HARİÇ (budget + density metriği); memory.media_buffer_bytes ayrı medya tamponu (budget DIŞI; ADR-009 hibritte ~0/offloaded).",
+    "cpu": "user_ms, system_ms (cpu-time accounting → call_cpu_seconds)",
+    "memory": "session_rss_bytes (orkestratör oturum belleği MEDYA HARİÇ → call_memory_bytes + budget + density), media_buffer_bytes (ayrı medya tamponu; budget DIŞI)",
+    "concurrency": "worker_active_sessions (worker eş zamanlı oturum — density numerator), tenant_concurrent_calls (tenant eş zamanlı çağrı), tenant_concurrency_limit (FR-TEN-007 kotası)",
+    "worker": "vcpu, memory_bytes, session_memory_pool_bytes (referans işçi; yoksa spec.density.reference_worker)",
+    "context": "tenant_id, org_unit, agent_id, region, provider (etiket DEĞER kaynağı)"
+  },
+
+  "value_domains": {
+    "$comment": "Hesaplanan/ölçülen DEĞERİN geçerlilik alanı (G3). Her metrik bir domain SINIFINA bağlanır (catalog[].domain). nonneg_seconds: CPU saniye ≥0 + finite. nonneg_bytes: bellek bayt tamsayı ≥0. nonneg_count: eş zamanlı oturum/çağrı tamsayı ≥0. ratio01: kullanım/headroom oranı ∈[0,1].",
+    "classes": {
+      "nonneg_seconds": {"min": 0.0, "kind": "float", "desc": "CPU saniye ≥0 + finite"},
+      "nonneg_bytes": {"min": 0, "kind": "int", "desc": "bellek bayt tamsayı ≥0"},
+      "nonneg_count": {"min": 0, "kind": "int", "desc": "eş zamanlı oturum/çağrı tamsayı ≥0"},
+      "ratio01": {"min": 0.0, "max": 1.0, "kind": "float", "desc": "kullanım/headroom oranı ∈[0,1]"}
+    }
+  },
+
+  "catalog": {
+    "$comment": "BRD §15 çağrı başına kaynak (CPU/bellek) + FR-ANA-013 eşzamanlılık DEĞERLERİ — 14.1.3 KAPSAMI. 'in_observability_catalog': true olanlar (call_cpu_seconds/call_memory_bytes) 0.4.7 observability-spec metrics.catalog ile BİREBİR (name/type/unit/labels; probe validate çapraz-kontrol eder). 'proposed_for_observability': true olanlar (call_media_buffer_bytes/worker_active_sessions/tenant_concurrency) 14.1.3 tarafından ÖNERİLİR — eşzamanlılık (FR-ANA-013) BRD §15 'çağrı başına CPU/bellek' kanonik listesinde YOK; bunlar gelecek bir 0.4.7 iterasyonunda kataloğa promote edilir (tenant_concurrency zaten 0.4.7 TenantCapacity80 alarmında REFERANS edilir). 'budget_metric': bütçe (FR-RES-016 ≤15MB) uygulanan metrik. 'budget_excluded': bütçeden HARİÇ (medya tamponu). 'group': required (her tamamlanan çağrı) / conditional (yalnız ilgili özellik/medya eş-konumu varsa). 'per': obs çoğulluğu (call/worker/tenant). Domain: value_domains.classes anahtarı.",
+    "items": [
+      {"name": "call_cpu_seconds", "brd15": "çağrı başına CPU", "type": "histogram", "unit": "s", "labels": ["tenant_id"], "domain": "nonneg_seconds", "source": "(cpu.user_ms + cpu.system_ms) / 1000", "group": "required", "per": "call", "in_observability_catalog": true},
+      {"name": "call_memory_bytes", "brd15": "çağrı başına bellek", "type": "histogram", "unit": "bytes", "labels": ["tenant_id"], "domain": "nonneg_bytes", "source": "memory.session_rss_bytes (orkestratör oturum belleği MEDYA HARİÇ)", "group": "required", "per": "call", "budget_metric": true, "in_observability_catalog": true},
+      {"name": "call_media_buffer_bytes", "brd15": "çağrı başına medya tamponu (budget DIŞI)", "type": "histogram", "unit": "bytes", "labels": ["tenant_id"], "domain": "nonneg_bytes", "source": "memory.media_buffer_bytes", "group": "conditional", "per": "call", "budget_excluded": true, "proposed_for_observability": true},
+      {"name": "worker_active_sessions", "brd15": "eş zamanlı oturum (density)", "type": "gauge", "unit": "sessions", "labels": ["region"], "domain": "nonneg_count", "source": "concurrency.worker_active_sessions", "group": "required", "per": "worker", "proposed_for_observability": true},
+      {"name": "tenant_concurrency", "brd15": "tenant eş zamanlı çağrı", "type": "gauge", "unit": "calls", "labels": ["tenant_id"], "domain": "nonneg_count", "source": "concurrency.tenant_concurrent_calls", "group": "required", "per": "tenant", "proposed_for_observability": true}
+    ],
+    "trace": "BRD §15, FR-ANA-013, SAD §17.1, observability 0.4.7"
+  },
+
+  "required_for_completed": [
+    "call_cpu_seconds", "call_memory_bytes", "worker_active_sessions", "tenant_concurrency"
+  ],
+  "conditional": ["call_media_buffer_bytes"],
+  "observability_overlap": ["call_cpu_seconds", "call_memory_bytes"],
+
+  "budget": {
+    "$comment": "FR-RES-016: çağrı başına kaynak bütçesi (bellek) tanımlanır ve aşımı izlenir. NFR 10.2: aktif çağrı başına orkestratör belleği MEDYA TAMPONLARI HARİÇ ≤ ~15MB / oturum. 0.4.7 alerts.ResourceBudgetExceeded: histogram_quantile(0.95, call_memory_bytes) > 15728640 (BİREBİR — probe validate çapraz-kontrol eder). 15728640 = 15 × 1024 × 1024 (15 MiB). Bütçe call_memory_bytes'a (MEDYA HARİÇ) uygulanır; call_media_buffer_bytes bütçe DIŞIDIR. CPU için BRD §10.2 sayısal eşik tanımlamaz ('Steady-state çağrı başına CPU: Düşük; çekirdek paylaşımlı') → CPU ölçülür+raporlanır, HARD bütçe yok.",
+    "per_call_memory_budget_bytes": 15728640,
+    "budget_excludes_media": true,
+    "budget_metric": "call_memory_bytes",
+    "cpu_hard_threshold": null,
+    "trace": "FR-RES-016, NFR 10.2, BRD §10.2, observability 0.4.7 ResourceBudgetExceeded"
+  },
+
+  "density": {
+    "$comment": "NFR 10.2: referans işçi düğümü (8 vCPU / 16 GB) başına eş zamanlı oturum ≥ 250–500 (medya işleme konumuna göre). 0.3.3 density-measurement bulgusu: density CPU-BAĞLI — bellek tavanı density'yi BAĞLAMAZ (16GB worker'da 15MB bütçe ~1300 oturuma yer verir; tavanı CPU koyar). Bu kapı (G5) belleğin density floor'unu BOZMADIĞINI garanti eder: çağrı başına bellek footprint'i referans işçide ≥250 density'ye yer vermeli → call_memory_bytes × density_floor ≤ session_memory_pool_bytes. Gözlenen worker_active_sessions ≥250/≥500 SOFT bilgi flag'idir (trafiğe bağlı; HARD kapı değil). reference_worker bundle.worker ile override edilebilir.",
+    "reference_worker": {"vcpu": 8, "memory_bytes": 17179869184, "session_memory_pool_bytes": 14602888806},
+    "density_floor": 250,
+    "density_stretch": 500,
+    "consistency_rule": "call_memory_bytes × density_floor ≤ session_memory_pool_bytes",
+    "trace": "NFR 10.2, BRD §10.2, poc 0.3.3 density-measurement, poc 0.3.4 ADR-009"
+  },
+
+  "label_policy": {
+    "$comment": "0.4.7 observability-spec label_policy ile BİREBİR (probe validate çapraz-kontrol eder). Yüksek-kardinalite kimlik (correlation_id/call_id/customer_id/session_id) metrik LABEL'ı OLAMAZ — yalnız EXEMPLAR olarak trace'e bağlanır (G6). PII anahtarı (telefon/token/...) hiçbir label'da olamaz (G7-pii, BRD §17.7/FR-REC-004). metric_labels_allowed: tüm metriklerin label'ları bu kümenin alt kümesi (G7-label).",
+    "metric_labels_allowed": ["tenant_id", "org_unit", "agent_id", "region", "provider", "category", "sip_code", "codec", "outcome"],
+    "high_cardinality_keys": ["correlation_id", "call_id", "customer_id", "session_id"],
+    "pii_forbidden_keys": ["phone_number", "msisdn", "customer_name", "full_name", "email", "national_id", "card_number", "pan", "cvv", "otp", "password", "token", "ssn", "iban", "address", "transcript_text", "audio_payload"],
+    "exemplar_keys": ["correlation_id", "trace_id"],
+    "trace": "SAD §13.3, BRD §17.7, FR-REC-004, observability 0.4.7"
+  },
+
+  "gates": {
+    "$comment": "HARD kapılar (çağrı başına kaynak ölçümü). (G1) max_resource_missing=0: required (+ özellik/medya-eş-konumu varsa conditional) kaynak metriklerinin hepsi ölçülüp yayılır. (G2) max_catalog_violation=0: her gözlem 14.1.3 catalog'da MEVCUT name + doğru type + doğru unit; overlap (cpu/mem) 0.4.7 ile BİREBİR; bilinmeyen metrik yok. (G3) max_value_violation=0: her DEĞER domain SINIFINA uyar (cpu_s≥0+finite, byte int≥0, sayım int≥0, ratio∈[0,1]). (G4) max_budget_violation=0: çağrı başına orkestratör belleği (MEDYA HARİÇ) ≤ per_call_memory_budget_bytes (FR-RES-016 ≤15MB; 0.4.7 ResourceBudgetExceeded). (G5) max_density_violation=0: bellek footprint'i referans işçide ≥density_floor density'ye yer verir (call_memory_bytes × density_floor ≤ session_memory_pool_bytes; NFR 10.2). (G6) max_cardinality_violation=0: hiçbir metrik yüksek-kardinalite kimliği LABEL olarak taşımaz. (G7) max_label_violation=0 + max_pii_violation=0: her metrik yalnız catalog[].labels (⊆ allowed) kullanır + label'da PII anahtarı yok.",
+    "max_resource_missing": 0,
+    "max_catalog_violation": 0,
+    "max_value_violation": 0,
+    "max_budget_violation": 0,
+    "max_density_violation": 0,
+    "max_cardinality_violation": 0,
+    "max_label_violation": 0,
+    "max_pii_violation": 0,
+    "trace": "FR-RES-016, NFR 10.2, BRD §15, FR-ANA-013, FR-REC-004, observability 0.4.7"
+  },
+
+  "metrics_emitted": {
+    "$comment": "Accountant'ın KENDİ sağlık metrikleri (gözlemlenebilirliğe). Yüksek-kardinalite kimlik metrik LABEL'ı OLMAZ — kendi disiplinini kendine uygular.",
+    "emitted": ["call_resource_emitted_total", "call_resource_missing_total", "call_resource_budget_violation_total", "call_resource_density_violation_total"],
+    "computes_catalog": ["call_cpu_seconds", "call_memory_bytes", "call_media_buffer_bytes", "worker_active_sessions", "tenant_concurrency"],
+    "trace": "BRD §15, FR-ANA-013, SAD §17.1, observability 0.4.7"
+  },
+
+  "error_taxonomy": {
+    "$comment": "Kaynak ölçümü hataları API §11.6 ortak ErrorTaxonomy'ye çevrilir. Eksik/bozuk kaynak demeti veya bilinmeyen metrik adı → INVALID_REQUEST; bölge uyumsuz emisyon hedefi → REGION_VIOLATION. Yüksek missing/budget/density sayıları bir HATA değil degrade SİNYALİdir (kapılar).",
+    "mapping": {
+      "malformed_bundle": "INVALID_REQUEST",
+      "unknown_metric": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    },
+    "trace": "API §11.6, NFR 10.7"
+  },
+
+  "pii": {
+    "$comment": "Spec/config/örnekler yalnız sayısal SİNYAL + kimlik/etiket anahtarı ADLARI taşır; HAM SES payload'ı, transkript, müşteri/PII DEĞERLERİ TUTULMAZ. PII anahtar adları (label_policy.pii_forbidden_keys) yalnız YASAK LİSTESİ olarak referans edilir; örneklerde bir label 'attempted' anahtar ADI olarak görünebilir ama DEĞER yoktur (Accountant zaten reddeder/çıkarır).",
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true,
+    "trace": "BRD §14, BRD §17.7, FR-REC-004"
+  },
+
+  "invariants": [
+    { "id": "G1", "desc": "required (+ özellik/medya-eş-konumu varsa conditional) çağrı başına kaynak metriklerinin hepsi çağrı başına ölçülüp gözlem olarak yayılır; resource_missing=0 (BRD §15 'çağrı başına CPU/bellek'; FR-ANA-013 '(CPU/bellek/eşzamanlılık) raporlanmalıdır').", "trace": "BRD §15, FR-ANA-013, SAD §17.1" },
+    { "id": "G2", "desc": "Her gözlem 14.1.3 catalog'da MEVCUT name + doğru type + doğru unit taşır; overlap (call_cpu_seconds/call_memory_bytes) 0.4.7 ile BİREBİR; bilinmeyen/uyumsuz metrik yok; catalog_violation=0.", "trace": "SAD §17.1, observability 0.4.7" },
+    { "id": "G3", "desc": "Her ölçülen DEĞER value_domains sınıfına uyar (CPU saniye≥0+finite, bellek bayt tamsayı≥0, eş zamanlı sayım tamsayı≥0, oran∈[0,1]); value_violation=0.", "trace": "BRD §15, FR-ANA-013" },
+    { "id": "G4", "desc": "Çağrı başına orkestratör belleği (MEDYA TAMPONLARI HARİÇ) ≤ per_call_memory_budget_bytes (15 MiB); budget_violation=0 (FR-RES-016 'çağrı başına kaynak bütçesi tanımlanmalı ve aşımı izlenmeli'; NFR 10.2; 0.4.7 ResourceBudgetExceeded eşiği BİREBİR).", "trace": "FR-RES-016, NFR 10.2, observability 0.4.7" },
+    { "id": "G5", "desc": "Çağrı başına bellek footprint'i referans işçide (8vCPU/16GB) ≥density_floor (250) density'ye yer verir: call_memory_bytes × density_floor ≤ session_memory_pool_bytes; density_violation=0 (NFR 10.2; 0.3.3 bulgusu: density CPU-bağlı, bellek floor'u bozmamalı).", "trace": "NFR 10.2, poc 0.3.3, poc 0.3.4 ADR-009" },
+    { "id": "G6", "desc": "Hiçbir metrik yüksek-kardinalite kimliği (correlation_id/call_id/customer_id/session_id) LABEL olarak taşımaz; kimlik yalnız exemplar olarak trace'e bağlanır; cardinality_violation=0 (TSDB kardinalite disiplini, 0.4.7 label_policy birebir).", "trace": "SAD §13.3, observability 0.4.7" },
+    { "id": "G7", "desc": "Her metrik yalnız catalog[].labels (⊆ label_policy.metric_labels_allowed) kullanır (label_violation=0) ve hiçbir label PII anahtarı taşımaz (pii_violation=0; BRD §17.7, FR-REC-004; redaction L7).", "trace": "observability 0.4.7, BRD §17.7, FR-REC-004" },
+    { "id": "G8", "desc": "Per-call Resource Accountant Conversation Orchestrator emisyon yolundadır; CPU/bellek RUNTIME'da ÖLÇÜLÜR (measured; from_trace DEĞİL) ve orkestratör belleği MEDYA TAMPONLARINI HARİÇ tutar (ADR-009 hibrit: ağır medya ayrı/eş-konumsuz katman); emisyon olay-tetikli + bloklamaz (asenkron/örneklemeli, FR-RES-012; tail-based 0.4.7).", "trace": "SAD §6.2, SAD §6.3, ADR-003, ADR-009, FR-RES-012" },
+    { "id": "G9", "desc": "catalog overlap (call_cpu_seconds/call_memory_bytes) 0.4.7 observability-spec metrics.catalog ile BİREBİR (name/type/unit/labels) + budget per_call_memory_budget_bytes 0.4.7 ResourceBudgetExceeded eşiği (15728640) ile BİREBİR + density_floor NFR 10.2 (≥250) ile tutarlı — tek kaynak doğruluk, probe-sabiti değil.", "trace": "observability 0.4.7, NFR 10.2, SAD §17.1" },
+    { "id": "G10", "desc": "Kaynak ölçümü hataları ortak ErrorTaxonomy'ye (API §11.6) eşlenir (malformed/unknown→INVALID_REQUEST, region→REGION_VIOLATION); spec/config/örneklerde literal sır, ham ses payload'ı, transkript veya PII DEĞERİ yok (yalnız sayısal sinyal + etiket/kimlik anahtarı ADLARI).", "trace": "API §11.6, BRD §14, BRD §17.7, FR-REC-004" }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "resource-degraded",
+  "$comment": "BİLİNÇLİ degrade — çoklu kapı eler (expect=fail). Bozuk/sızdıran Accountant: (1) exclude_media KAPALI → medya tamponu (20 MiB) orkestratör belleğine (50 MiB) dahil edilir → 70 MiB; (2) 70 MiB > 15MB bütçe → G4 eler (FR-RES-016 aşımı); (3) 70 MiB × 250 > pool → ≥250 density'ye yer vermez → G5 eler (NFR 10.2); (4) enforce_cardinality KAPALI → correlation_id label → G6 eler; (5) enforce_pii KAPALI → phone_number label → G7 eler. worker 190 oturum (gözlenen density floor<250 SOFT). Bu örnek kapı sağlığını kanıtlar.",
+  "profile": "eu-shared-default",
+  "expect": "fail",
+  "context": {
+    "tenant_id": "t_acme", "org_unit": "ou_support", "agent_id": "ag_inbound",
+    "provider": "prov_a", "correlation_id": "corr-acme-degraded", "trace_id": "tr-acme-degraded"
+  },
+  "policy": {
+    "exclude_media": false,
+    "enforce_cardinality": false,
+    "enforce_pii": false
+  },
+  "bundle": {
+    "cpu": {"user_ms": 900, "system_ms": 350},
+    "memory": {"session_rss_bytes": 52428800, "media_buffer_bytes": 20971520},
+    "concurrency": {"worker_active_sessions": 190, "tenant_concurrent_calls": 96, "tenant_concurrency_limit": 100}
+  }
+}

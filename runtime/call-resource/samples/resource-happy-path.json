@@ -1,0 +1,27 @@
+{
+  "name": "resource-happy-path",
+  "$comment": "Tam tek-turlu inbound çağrı — ADR-009 HİBRİT topoloji (ağır medya ayrı/eş-konumsuz katman → media_buffer_bytes=0). Orkestratör oturum belleği 11 MiB (MEDYA HARİÇ) ≤15MB bütçe; CPU 0.22s; worker 420 eş zamanlı oturum (floor≥250 ✓, stretch≥500 ✗); tenant 37/100 eş zamanlı çağrı. 4 required metrik (cpu/mem + worker/tenant eşzamanlılık); medya conditional yayılmaz → 4 gözlem. Tüm kapılar (G1–G7) geçer.",
+  "profile": "eu-shared-default",
+  "expect": "pass",
+  "context": {
+    "tenant_id": "t_acme", "org_unit": "ou_support", "agent_id": "ag_inbound",
+    "provider": "prov_a", "correlation_id": "corr-acme-001", "trace_id": "tr-acme-001"
+  },
+  "expected": {
+    "resource_missing": 0,
+    "catalog_violations": 0,
+    "value_violations": 0,
+    "budget_violations": 0,
+    "density_violations": 0,
+    "cardinality_violations": 0,
+    "label_violations": 0,
+    "pii_violations": 0,
+    "distinct_metrics": 4,
+    "observations_total": 4
+  },
+  "bundle": {
+    "cpu": {"user_ms": 180, "system_ms": 40},
+    "memory": {"session_rss_bytes": 11534336, "media_buffer_bytes": 0},
+    "concurrency": {"worker_active_sessions": 420, "tenant_concurrent_calls": 37, "tenant_concurrency_limit": 100}
+  }
+}

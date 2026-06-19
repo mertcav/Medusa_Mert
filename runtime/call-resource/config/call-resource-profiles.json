@@ -1,0 +1,34 @@
+{
+  "$comment": "WBS 14.1.3 per-call resource profilleri (illüstratif; sır YOK, PII DEĞERİ YOK). Her profil çağrı başına kaynak (CPU/bellek/eşzamanlılık) emisyonunun home-region pinini ve emisyon disiplinini (örneklemeli/asenkron, FR-RES-012; tail-based ile hizalı 0.4.7) taşır. Bütçe (FR-RES-016 ≤15MB MEDYA HARİÇ) + density (NFR 10.2 ≥250) + katalog/kardinalite/etiket/PII invariant'ları SPEC'tedir (gates/budget/density); profil yalnız dağıtım/emisyon + referans işçi bağlamını sağlar. Vendor-neutral (ADR-002): region pini NFR 10.7. Gerçek değerler canlı runtime'da (Go/Rust + cgroup/RSS/cpu-time accounting + OpenTelemetry/Prometheus, ADR-003/SAD §11/§17.1) gerçek telemetri ile ayarlanır. Bölge değerleri ${ENV} ile çözülür (canlı); illüstratif sabit isimler yalnız simülasyon içindir.",
+  "version": "1.0",
+  "default_profile": "eu-shared-default",
+  "profiles": [
+    {
+      "name": "eu-shared-default",
+      "$comment": "Paylaşımlı (shared tenant) izolasyon (SAD §13.1): tek runtime havuzu, çağrı başına bellek metriği tenant_id label'ı taşır. EU home-region. ADR-009 hibrit topoloji: ağır medya ayrı katman → orkestratör belleği MEDYA HARİÇ ölçülür. Örneklemeli + asenkron emisyon (FR-RES-012); yüksek-kardinalite kimlik exemplar olarak trace'e bağlanır (0.4.7 label_policy). Referans işçi 8 vCPU / 16 GiB (NFR 10.2).",
+      "isolation": "logical-shared",
+      "region": "${RUNTIME_REGION_EU}",
+      "media_topology": "hybrid",
+      "emission": "async-sampled",
+      "reference_worker": {"vcpu": 8, "memory_bytes": 17179869184, "session_memory_pool_bytes": 14602888806}
+    },
+    {
+      "name": "tr-shared-default",
+      "$comment": "Paylaşımlı izolasyon, TR home-region (residency NFR 10.7). Diğer her şey eu-shared ile aynı disiplin.",
+      "isolation": "logical-shared",
+      "region": "${RUNTIME_REGION_TR}",
+      "media_topology": "hybrid",
+      "emission": "async-sampled",
+      "reference_worker": {"vcpu": 8, "memory_bytes": 17179869184, "session_memory_pool_bytes": 14602888806}
+    },
+    {
+      "name": "dedicated-regulated",
+      "$comment": "Ayrılmış (dedicated) izolasyon (SAD §13.1, regüle/Faz 2): ayrı namespace/region. Edge medya eş-konumu mümkün (call_media_buffer_bytes yayılır) ama bütçe yine MEDYA HARİÇ orkestratör belleğine uygulanır. Kaynak emisyonu audit yoğunluğu için tam; disiplin aynı (her metrik yalnız izinli label, yüksek-kardinalite/PII label yok).",
+      "isolation": "physical-dedicated",
+      "region": "${RUNTIME_REGION_DEDICATED}",
+      "media_topology": "edge-colocated",
+      "emission": "async-full",
+      "reference_worker": {"vcpu": 8, "memory_bytes": 17179869184, "session_memory_pool_bytes": 14602888806}
+    }
+  ]
+}

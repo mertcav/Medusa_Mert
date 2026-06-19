@@ -1,0 +1,22 @@
+{
+  "name": "resource-media-colocated",
+  "$comment": "Medya EŞ-KONUMLU topoloji (edge/central; dedicated-regulated profil): media_buffer_bytes=13 MiB ayrı ölçülür → call_media_buffer_bytes (conditional) yayılır. KRİTİK: bütçe (FR-RES-016 ≤15MB) yine MEDYA HARİÇ orkestratör belleğine (12 MiB) uygulanır → geçer. Medya tamponu bütçe DIŞIDIR (NFR 10.2 'medya tamponları hariç'). 5 distinct gözlem (media conditional dahil). Tüm kapılar geçer.",
+  "profile": "dedicated-regulated",
+  "expect": "pass",
+  "context": {
+    "tenant_id": "t_bank", "org_unit": "ou_retail", "agent_id": "ag_collections",
+    "provider": "prov_b", "correlation_id": "corr-bank-009", "trace_id": "tr-bank-009"
+  },
+  "expected": {
+    "resource_missing": 0,
+    "budget_violations": 0,
+    "density_violations": 0,
+    "distinct_metrics": 5,
+    "observations_total": 5
+  },
+  "bundle": {
+    "cpu": {"user_ms": 200, "system_ms": 60},
+    "memory": {"session_rss_bytes": 12582912, "media_buffer_bytes": 13631488},
+    "concurrency": {"worker_active_sessions": 320, "tenant_concurrent_calls": 41, "tenant_concurrency_limit": 100}
+  }
+}

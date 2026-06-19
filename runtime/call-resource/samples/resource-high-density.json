@@ -1,0 +1,21 @@
+{
+  "name": "resource-high-density",
+  "$comment": "Stretch hedef noktası (NFR 10.2 ≥500): lean oturum belleği 8 MiB (MEDYA HARİÇ) → footprint referans işçide ~1825 oturuma yer verir (bellek density'yi BAĞLAMAZ; tavanı CPU koyar — 0.3.3 bulgusu). worker 540 eş zamanlı oturum → gözlenen density floor≥250 ✓ + stretch≥500 ✓ (SOFT bilgi). Tüm kapılar geçer.",
+  "profile": "eu-shared-default",
+  "expect": "pass",
+  "context": {
+    "tenant_id": "t_acme", "org_unit": "ou_sales", "agent_id": "ag_outbound",
+    "provider": "prov_a", "correlation_id": "corr-acme-771", "trace_id": "tr-acme-771"
+  },
+  "expected": {
+    "resource_missing": 0,
+    "budget_violations": 0,
+    "density_violations": 0,
+    "distinct_metrics": 4
+  },
+  "bundle": {
+    "cpu": {"user_ms": 120, "system_ms": 30},
+    "memory": {"session_rss_bytes": 8388608, "media_buffer_bytes": 0},
+    "concurrency": {"worker_active_sessions": 540, "tenant_concurrent_calls": 58, "tenant_concurrency_limit": 120}
+  }
+}
