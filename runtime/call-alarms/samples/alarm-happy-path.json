@@ -1,0 +1,17 @@
+{
+  "name": "alarm-happy-path",
+  "$comment": "Sağlıklı alarm değerlendirmesi: birkaç sinyal eşiği aşar (P95 latency + STT hata + consent atlama + tenant kapasite), birkaçı aşmaz. 11/11 kural kapsanır, her kural detection latency = 40s ek-yük + for_s ≤ 120s (NFR 10.1), alarm-label kardinalite/PII temiz, tenant-scope alarmı tenant_id taşır, severity→kanal yönlenir. PII DEĞERİ YOK — yalnız sinyal + kimlik/etiket anahtarı ADLARI.",
+  "profile": "eu-standard",
+  "expect": "pass",
+  "context": {"tenant_id": "t_acme", "org_unit": "ou_support", "region": "eu-west-1", "correlation_id": "corr-acme-001"},
+  "signals": [
+    {"rule": "E2EP95LatencyHigh", "value": 1850},
+    {"rule": "STTErrorRateHigh", "value": 4},
+    {"rule": "LLMProviderErrorRateHigh", "value": 0.01},
+    {"rule": "HandoffFailure", "value": 0},
+    {"rule": "ConsentSkipDetected", "value": 1},
+    {"rule": "TenantCapacity80", "value": 0.86},
+    {"rule": "ResourceBudgetExceeded", "value": 11000000}
+  ],
+  "expected": {"fired": 4, "budget_violations": 0, "coverage_missing": 0}
+}

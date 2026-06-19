@@ -1,0 +1,31 @@
+{
+  "$comment": "WBS 14.1.5 alarm üretim deployment profilleri (illüstratif; sır YOK, PII DEĞERİ YOK). Her profil alarm üretim zincirinin DEPLOYMENT zamanlamasını taşır: ingest_scrape_s (metrik scrape periyodu) + eval_interval_s (kural değerlendirme periyodu) + notify_lag_s (alertmanager group_wait + dispatch). Detection latency = ingest+eval+for(kural)+notify ≤ 120s (NFR 10.1, spec detection_budget). Kural başına for_s SPEC'tedir; profil yalnız altyapı zamanlamasını + region pinini (residency NFR 10.7) sağlar. Vendor-neutral (ADR-002). Gerçek değerler canlı runtime'da (Prometheus scrape/eval + Alertmanager, SAD §11/§17.2; ADR-003 Go/Rust runtime tarafı sinyal emisyonu) ayarlanır. Bölge değerleri ${ENV} ile çözülür.",
+  "version": "1.0",
+  "default_profile": "eu-standard",
+  "profiles": [
+    {
+      "name": "eu-standard",
+      "$comment": "Standart EU dağıtımı. scrape 15s + eval 15s + notify 10s = 40s sabit ek yük; en geniş for_s (60s) + bu ek yük = 100s ≤ 120s (NFR 10.1 headroom 20s).",
+      "region": "${RUNTIME_REGION_EU}",
+      "ingest_scrape_s": 15,
+      "eval_interval_s": 15,
+      "notify_lag_s": 10
+    },
+    {
+      "name": "tr-standard",
+      "$comment": "TR home-region (residency NFR 10.7). Aynı zamanlama disiplini; tenant alarmları home-region alertmanager'a yönlenir.",
+      "region": "${RUNTIME_REGION_TR}",
+      "ingest_scrape_s": 15,
+      "eval_interval_s": 15,
+      "notify_lag_s": 10
+    },
+    {
+      "name": "low-latency-critical",
+      "$comment": "Sıkı zamanlama (kritik tenant): scrape 10s + eval 10s + notify 5s = 25s ek yük → daha fazla for_s headroom. NFR 10.1'i geniş marjla karşılar.",
+      "region": "${RUNTIME_REGION_EU}",
+      "ingest_scrape_s": 10,
+      "eval_interval_s": 10,
+      "notify_lag_s": 5
+    }
+  ]
+}

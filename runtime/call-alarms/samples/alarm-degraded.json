@@ -1,0 +1,13 @@
+{
+  "name": "alarm-degraded",
+  "$comment": "BİLİNÇLİ bozuk yapılandırma — çoklu kapı eler (negatif kapı kanıtı). Yavaş profil (40+40+20=100s ek-yük) + honor_budget kapalı (for_s şişer) → G3 detection bütçe aşımı. scope_tenant kapalı → tenant alarmı tenant_id taşımaz (G6 izolasyon). enforce_pii kapalı → phone_number alarm label (G6). route_severity kapalı → unrouted (G8). dedup kapalı + çift consent → G7. Beklenen: ELENİR (expect=fail).",
+  "profile_obj": {"name": "slow-broken", "region": "eu-west-1", "ingest_scrape_s": 40, "eval_interval_s": 40, "notify_lag_s": 20},
+  "expect": "fail",
+  "context": {"tenant_id": "t_acme", "region": "eu-west-1", "correlation_id": "corr-acme-009"},
+  "policy": {"honor_budget": false, "scope_tenant": false, "enforce_pii": false, "route_severity": false, "dedup": false},
+  "signals": [
+    {"rule": "E2EP95LatencyHigh", "value": 2200},
+    {"rule": "ConsentSkipDetected", "value": 1},
+    {"rule": "ConsentSkipDetected", "value": 3}
+  ]
+}

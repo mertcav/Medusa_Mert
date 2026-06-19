@@ -1,0 +1,12 @@
+{
+  "name": "alarm-security-instant",
+  "$comment": "Güvenlik/uyumluluk alarmları (consent atlama + bilgi sızıntısı): for_s=0 → anında üretim (geçici-blip toleransı yok, her tetik gerçek). Tenant-scope → tenant_id taşır, tenant security_compliance_officer'a + RMC'ye yönlenir. low-latency-critical profilde detection latency = 25s ek-yük + 0 for = 25s ≪ 120s. PII DEĞERİ YOK.",
+  "profile": "low-latency-critical",
+  "expect": "pass",
+  "context": {"tenant_id": "t_regulated_bank", "region": "eu-west-1", "correlation_id": "corr-bank-007"},
+  "signals": [
+    {"rule": "ConsentSkipDetected", "value": 1, "transient": true},
+    {"rule": "InfoLeakDetected", "value": 2}
+  ],
+  "expected": {"fired": 2, "flap_violations": 0, "scope_violations": 0, "budget_violations": 0}
+}

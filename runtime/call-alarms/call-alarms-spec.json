@@ -1,0 +1,297 @@
+{
+  "$comment": "WBS 14.1.5 Alarm kuralları (BRD §15) + ≤2dk üretim — kaynak doğruluk. Conversation Orchestrator gözlemlenebilirlik emisyon yolundaki ALARM RULE ENGINE (SAD §17.2 'Alarm (BRD §15)' runtime karşılığı): 14.1.2 (call-metrics) + 14.1.3 (call-resource) metrik sinyallerini + güvenlik/kapasite sinyallerini değerlendirir, BRD §15 kritik alarm kataloğunu (11 madde) kural olarak taşır ve her alarmı ≤2dk (NFR 10.1 'alarm ≤2dk üretim'; detection_budget_s≤120) ÜRETİR. Alarm kataloğu (name/severity) 0.4.7 observability-spec alerts.catalog + config/alerts.yaml ile BİREBİR (probe çapraz-kontrol eder; non-circular). Sır/credential, ham ses payload, transkript, PII DEĞERİ YOK — yalnız sinyal adı + etiket/kimlik anahtarı ADLARI.",
+  "wbs": "14.1.5",
+  "version": "1.0",
+  "phase": "F1",
+  "priority": "Must",
+  "alarm_doc": {
+    "brd": "BRD §15 (kritik alarm örnekleri: P95>1.5sn, STT hata artışı, LLM sağlayıcı hata, handoff başarısızlığı, tool hata, silent call, consent atlama, bilgi sızıntısı, tenant kapasitesi %80, harcama limiti, kaynak bütçesi)",
+    "nfr": "NFR 10.1 (alarm ≤2dk üretim — detection_budget_s ≤ 120)",
+    "sad": "SAD §17.2 (Alarm) + §17.1 (İzleme Omurgası: Metrics/Trace/Logs)",
+    "adr": "ADR-001 (bağımsız Orchestrator) / ADR-002 (vendor-neutral) / ADR-003 (Go/Rust runtime) / ADR-004",
+    "api": "API §11.6 (ErrorTaxonomy)",
+    "fr": "FR-ANA-012 (gerçek zamanlı op ≤60sn — 14.1.6) / FR-RES-016 (per-call ≤15MB) / FR-REC-004 (PII redaction)",
+    "observability": "0.4.7 observability-spec.json alerts.catalog (11) + label_policy + config/alerts.yaml (BİREBİR)",
+    "upstream": "14.1.2 call-metrics (metrik DEĞERLERİ) + 14.1.3 call-resource (per-call CPU/bellek) + 14.1.1 call-trace + 14.1.4 call-logger"
+  },
+  "placement": {
+    "$comment": "Alarm Rule Engine orchestrator gözlemlenebilirlik emisyon yolunda; metrik/güvenlik/kapasite sinyallerini kural-tabanlı değerlendirir, severity'ye göre yönlendirir. from_trace=false: alarm üretimi sinyal değerlendirmesidir, trace türetme değil (trace=14.1.1, metrik=14.1.2/14.1.3).",
+    "in_orchestrator": true,
+    "emission_path": true,
+    "rule_based": true,
+    "severity_routing": true,
+    "tenant_scoped_routing": true,
+    "from_trace": false
+  },
+  "detection_budget": {
+    "$comment": "NFR 10.1 'alarm ≤2dk üretim'. Uçtan-uca alarm üretim gecikmesi = ingest (metrik scrape) + eval (kural değerlendirme periyodu) + for (pending→firing bekleme/flap kontrolü) + notify (alertmanager group_wait + dispatch). Her kural için bu toplam ≤ max_detection_budget_s olmalı. scrape/eval/notify zamanlaması config profilinden (deployment), for_s kural başına spec'ten. Bu, 14.1.5'in BİRİNCİL HARD kapısı (G3).",
+    "max_detection_budget_s": 120,
+    "components": ["ingest_scrape_s", "eval_interval_s", "for_s", "notify_lag_s"],
+    "formula": "ingest_scrape_s + eval_interval_s + for_s + notify_lag_s <= max_detection_budget_s"
+  },
+  "label_policy": {
+    "$comment": "0.4.7 observability-spec label_policy ile hizalı (probe çapraz-kontrol eder). Alarm etiketleri DÜŞÜK-kardinalite: alarm yönlendirme/gruplama için. Yüksek-kardinalite kimlik (correlation_id/call_id) alarm LABEL'ı OLAMAZ — yalnız annotation'da exemplar/trace bağı (G5). PII anahtarı hiçbir alarm label'ında olamaz (G6, BRD §17.7/FR-REC-004).",
+    "alarm_labels_allowed": ["alertname", "severity", "tenant_id", "org_unit", "region", "category", "provider", "outcome"],
+    "high_cardinality_keys": ["correlation_id", "call_id", "customer_id", "session_id"],
+    "pii_forbidden_keys": ["phone_number", "msisdn", "customer_name", "full_name", "email", "national_id", "card_number", "pan", "cvv", "otp", "password", "token", "ssn", "iban", "address", "transcript_text", "audio_payload"],
+    "annotation_exemplar_keys": ["correlation_id", "trace_id"]
+  },
+  "signal_catalog": {
+    "$comment": "Her kuralın 'signal'i bu katalogda olmalı (G4: orphan sinyal yok). metric_signals 0.4.7 observability-spec metrics.catalog (20) ile BİREBİR (probe çapraz-kontrol). security_capacity_signals metrik kataloğunda DEĞİL — üretici alt-sistemden gelir (consent enforcement / DLP-info-leak / tenant kapasite-kota BRD §10.2 / billing-spend); alerts.yaml ile aynı adlandırma.",
+    "metric_signals": [
+      "voice_packet_loss_ratio", "voice_jitter_ms", "voice_codec_info", "telephony_sip_response_total",
+      "stt_latency_ms", "stt_word_confidence", "llm_latency_ms", "llm_tokens_total", "tool_latency_ms",
+      "tts_latency_ms", "e2e_response_latency_ms", "barge_in_total", "silence_duration_ms",
+      "retry_fallback_total", "transfer_result_total", "call_termination_total", "provider_error_ratio",
+      "cost_per_minute", "call_cpu_seconds", "call_memory_bytes"
+    ],
+    "security_capacity_signals": [
+      {"name": "consent_skip_total", "kind": "security", "source": "consent enforcement (BRD §14.2 / FR-COM)"},
+      {"name": "info_leak_total", "kind": "security", "source": "DLP / bilgi sızıntısı tespiti (THREAT_MODEL SEC / FR-REC-004)"},
+      {"name": "tenant_concurrency", "kind": "capacity", "source": "tenant kapasite/kota yöneticisi (BRD §10.2/§10.3)"},
+      {"name": "tenant_concurrency_limit", "kind": "capacity", "source": "tenant kota planı (FR-TEN)"},
+      {"name": "tenant_spend", "kind": "cost", "source": "billing/maliyet ölçer (14.1.x cost / FR-ANA-013)"},
+      {"name": "tenant_spend_limit", "kind": "cost", "source": "tenant harcama limiti (FR-BIL)"}
+    ]
+  },
+  "comparators": ["gt", "ge"],
+  "rules": [
+    {
+      "name": "E2EP95LatencyHigh",
+      "brd15": "P95 yanıt gecikmesinin 1,5 sn aşması",
+      "sad172": "P95 > 1.5sn",
+      "signal": "e2e_response_latency_ms",
+      "signal_kind": "metric",
+      "aggregation": "histogram_quantile(0.95)",
+      "comparator": "gt",
+      "threshold": 1500,
+      "unit": "ms",
+      "severity": "critical",
+      "scope": "platform",
+      "category": "latency",
+      "for_s": 60,
+      "expr_hint": "histogram_quantile(0.95, e2e_response_latency_ms) > 1500"
+    },
+    {
+      "name": "STTErrorRateHigh",
+      "brd15": "STT hata oranı artışı",
+      "sad172": "STT hata artışı",
+      "signal": "retry_fallback_total",
+      "signal_kind": "metric",
+      "aggregation": "increase[5m]{category=stt}",
+      "comparator": "gt",
+      "threshold": 0,
+      "unit": "count",
+      "severity": "critical",
+      "scope": "platform",
+      "category": "stt",
+      "for_s": 45,
+      "expr_hint": "increase(retry_fallback_total{category=\"stt\"}[5m]) > 0"
+    },
+    {
+      "name": "LLMProviderErrorRateHigh",
+      "brd15": "bir LLM sağlayıcısında hata artışı",
+      "sad172": "LLM sağlayıcı hata artışı",
+      "signal": "provider_error_ratio",
+      "signal_kind": "metric",
+      "aggregation": "max{category=llm}",
+      "comparator": "gt",
+      "threshold": 0.05,
+      "unit": "ratio",
+      "severity": "critical",
+      "scope": "platform",
+      "category": "llm",
+      "for_s": 45,
+      "expr_hint": "max(provider_error_ratio{category=\"llm\"}) > 0.05"
+    },
+    {
+      "name": "HandoffFailure",
+      "brd15": "insan aktarımının başarısız olması",
+      "sad172": "handoff başarısızlığı",
+      "signal": "transfer_result_total",
+      "signal_kind": "metric",
+      "aggregation": "increase[5m]{outcome=failed}",
+      "comparator": "gt",
+      "threshold": 0,
+      "unit": "count",
+      "severity": "critical",
+      "scope": "platform",
+      "category": "handoff",
+      "for_s": 30,
+      "expr_hint": "increase(transfer_result_total{outcome=\"failed\"}[5m]) > 0"
+    },
+    {
+      "name": "ToolErrorRateHigh",
+      "brd15": "tool hata oranı artışı",
+      "sad172": "tool hata artışı",
+      "signal": "retry_fallback_total",
+      "signal_kind": "metric",
+      "aggregation": "increase[5m]{category=tool}",
+      "comparator": "gt",
+      "threshold": 0,
+      "unit": "count",
+      "severity": "warning",
+      "scope": "platform",
+      "category": "tool",
+      "for_s": 60,
+      "expr_hint": "increase(retry_fallback_total{category=\"tool\"}[5m]) > 0"
+    },
+    {
+      "name": "SilentCallDetected",
+      "brd15": "silent call oluşması",
+      "sad172": "silent call",
+      "signal": "call_termination_total",
+      "signal_kind": "metric",
+      "aggregation": "increase[5m]{outcome=silent}",
+      "comparator": "gt",
+      "threshold": 0,
+      "unit": "count",
+      "severity": "critical",
+      "scope": "platform",
+      "category": "silent_call",
+      "for_s": 30,
+      "expr_hint": "increase(call_termination_total{outcome=\"silent\"}[5m]) > 0"
+    },
+    {
+      "name": "ConsentSkipDetected",
+      "brd15": "consent kontrolünün atlanması",
+      "sad172": "consent kontrolü atlama",
+      "signal": "consent_skip_total",
+      "signal_kind": "security",
+      "aggregation": "increase[5m]",
+      "comparator": "gt",
+      "threshold": 0,
+      "unit": "count",
+      "severity": "critical",
+      "scope": "tenant",
+      "category": "compliance",
+      "for_s": 0,
+      "expr_hint": "increase(consent_skip_total[5m]) > 0"
+    },
+    {
+      "name": "InfoLeakDetected",
+      "brd15": "bilgi sızıntısı tespiti",
+      "sad172": "bilgi sızıntısı tespiti",
+      "signal": "info_leak_total",
+      "signal_kind": "security",
+      "aggregation": "increase[5m]",
+      "comparator": "gt",
+      "threshold": 0,
+      "unit": "count",
+      "severity": "critical",
+      "scope": "tenant",
+      "category": "security",
+      "for_s": 0,
+      "expr_hint": "increase(info_leak_total[5m]) > 0"
+    },
+    {
+      "name": "TenantCapacity80",
+      "brd15": "tenant kapasitesinin %80'e ulaşması",
+      "sad172": "tenant kapasitesi %80",
+      "signal": "tenant_concurrency",
+      "signal_kind": "capacity",
+      "aggregation": "tenant_concurrency / tenant_concurrency_limit",
+      "comparator": "gt",
+      "threshold": 0.8,
+      "unit": "ratio",
+      "severity": "warning",
+      "scope": "tenant",
+      "category": "capacity",
+      "for_s": 60,
+      "expr_hint": "(tenant_concurrency / tenant_concurrency_limit) > 0.8"
+    },
+    {
+      "name": "SpendLimitExceeded",
+      "brd15": "harcama limitinin aşılması",
+      "sad172": "harcama limiti aşımı",
+      "signal": "tenant_spend",
+      "signal_kind": "cost",
+      "aggregation": "tenant_spend / tenant_spend_limit",
+      "comparator": "gt",
+      "threshold": 1.0,
+      "unit": "ratio",
+      "severity": "warning",
+      "scope": "tenant",
+      "category": "cost",
+      "for_s": 30,
+      "expr_hint": "(tenant_spend / tenant_spend_limit) > 1.0"
+    },
+    {
+      "name": "ResourceBudgetExceeded",
+      "brd15": "kaynak kullanımının bütçe eşiğini aşması",
+      "sad172": "kaynak bütçesi aşımı",
+      "signal": "call_memory_bytes",
+      "signal_kind": "metric",
+      "aggregation": "histogram_quantile(0.95)",
+      "comparator": "gt",
+      "threshold": 15728640,
+      "unit": "bytes",
+      "severity": "warning",
+      "scope": "platform",
+      "category": "resource",
+      "for_s": 60,
+      "expr_hint": "histogram_quantile(0.95, call_memory_bytes) > 15Mi (FR-RES-016 15MB)"
+    }
+  ],
+  "routing": {
+    "$comment": "Severity → bildirim kanalı + scope → hedef kitle. critical = sayfalama/on-call (anında), warning = bilet/pano. scope=platform → RMC L0 SRE (cross-tenant), scope=tenant → tenant L1 security_compliance_officer/operations_manager (+ RMC). Tenant-scoped alarm tenant_id taşımalı (G6 izolasyon).",
+    "severity_channels": {
+      "critical": ["pager", "oncall"],
+      "warning": ["ticket", "dashboard"]
+    },
+    "scope_audience": {
+      "platform": ["rmc_l0_sre"],
+      "tenant": ["tenant_security_compliance_officer", "tenant_operations_manager", "rmc_l0_sre"]
+    }
+  },
+  "flap_control": {
+    "$comment": "for_s>0 pending→firing bekleme süresi flap (titreme) bastırır: geçici (transient) eşik-aşımı for_s'ten kısaysa alarm üretilmez. for_s=0 olan güvenlik alarmları (consent/info_leak) anında üretilir — bu alarmlar için her tetik gerçektir (geçici-blip toleransı yok). Dedup: aynı (alertname, tenant_id) grubu tek alarma daraltılır; auto-resolve sinyal eşiğin altına dönünce.",
+    "debounce_via_for": true,
+    "dedup_group_keys": ["alertname", "tenant_id"],
+    "auto_resolve": true
+  },
+  "gates": {
+    "max_coverage_missing": 0,
+    "max_catalog_mismatch": 0,
+    "max_budget_violation": 0,
+    "max_orphan_signal": 0,
+    "max_cardinality_violation": 0,
+    "max_label_violation": 0,
+    "max_pii_violation": 0,
+    "max_scope_violation": 0,
+    "max_flap_violation": 0,
+    "max_dedup_violation": 0,
+    "max_routing_violation": 0
+  },
+  "error_taxonomy": {
+    "$comment": "API §11.6 ErrorTaxonomy eşlemesi.",
+    "mapping": {
+      "malformed_signal": "INVALID_REQUEST",
+      "unknown_rule": "INVALID_REQUEST",
+      "missing_context": "INVALID_REQUEST",
+      "region_mismatch": "REGION_VIOLATION"
+    }
+  },
+  "pii": {
+    "raw_payload_in_spec_forbidden": true,
+    "transcript_in_spec_forbidden": true,
+    "pii_values_in_spec_forbidden": true
+  },
+  "metrics_emitted": {
+    "emitted": ["alarm_fired_total", "alarm_detection_latency_seconds", "alarm_dedup_total", "alarm_routing_total"]
+  },
+  "invariants": [
+    {"id": "I1", "desc": "BRD §15 kritik alarm kataloğunun her maddesi bir kural taşır (kapsam 11/11); katalog 0.4.7 observability-spec'ten türetilir (non-circular)", "trace": "BRD §15, SAD §17.2, 0.4.7 alerts.catalog"},
+    {"id": "I2", "desc": "Kural adı + severity 0.4.7 observability-spec alerts.catalog + alerts.yaml ile BİREBİR", "trace": "0.4.7 alerts.catalog/alerts.yaml"},
+    {"id": "I3", "desc": "Her kural için ingest+eval+for+notify ≤ 120s (NFR 10.1 alarm ≤2dk üretim)", "trace": "NFR 10.1, SAD §17.2"},
+    {"id": "I4", "desc": "Her kuralın sinyali signal_catalog'da (metric_signals 0.4.7 metrics.catalog BİREBİR) — orphan sinyal yok", "trace": "14.1.2/14.1.3, 0.4.7 metrics.catalog"},
+    {"id": "I5", "desc": "Alarm etiketi yüksek-kardinalite kimlik (correlation_id/call_id) taşımaz + yalnız alarm_labels_allowed", "trace": "0.4.7 label_policy, SAD §13.3"},
+    {"id": "I6", "desc": "Alarm etiketinde PII anahtarı yok (BRD §17.7/FR-REC-004)", "trace": "FR-REC-004, BRD §17.7"},
+    {"id": "I7", "desc": "scope=tenant alarmı tenant_id taşır (tenant'a yönlendirilir; cross-tenant sızıntı yok); scope=platform global", "trace": "FR-TEN-002, SAD §13.1, altın kural"},
+    {"id": "I8", "desc": "for_s>0 flap bastırır (geçici blip alarm üretmez); for_s=0 güvenlik alarmı anında", "trace": "SAD §17.2"},
+    {"id": "I9", "desc": "Aynı (alertname, tenant_id) tek alarma daraltılır (dedup); auto-resolve", "trace": "SAD §17.2"},
+    {"id": "I10", "desc": "Her üretilen alarm severity→kanal + scope→kitleye yönlendirilir (unrouted alarm yok)", "trace": "SAD §17.2, routing"},
+    {"id": "I11", "desc": "Hata API §11.6 ErrorTaxonomy'ye eşlenir (malformed/unknown→INVALID_REQUEST, region→REGION_VIOLATION)", "trace": "API §11.6"},
+    {"id": "I12", "desc": "spec/config'te sır/ham payload/transkript/PII DEĞERİ yok (yalnız sinyal/etiket anahtarı ADLARI)", "trace": "FR-REC-004, ADR-002"}
+  ]
+}
