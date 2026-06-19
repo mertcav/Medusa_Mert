@@ -2802,6 +2802,168 @@
         "export": "Export",
         "play": "Play recording"
       }
+    },
+    "a13": {
+      "title": "QA Evaluation",
+      "subtitle": "Automatic + manual quality scoring",
+      "scope_note": "On this screen you inspect the quality evaluation of the selected call — scoped to your tenant only: the automatic scorecard (FR-ANA-001), critical flags (FR-ANA-004/008), the manual review (FR-ANA-009) and a cross-version comparison (FR-ANA-010). This screen shows scores and flags; it does not carry transcript content (content lives in A-12, behind redaction + access audit). Raw audio, raw transcript, raw numbers, card/OTP and object-store URIs never appear in the panel; PII appears only masked ([•••]). The QA comment is authored by the reviewer and kept redacted. Final score/comment writes and access audit are in the backend (qa:score).",
+      "as_of": "View time: {time}",
+      "tenant": "Tenant",
+      "call_label": "Call",
+      "agent_label": "Agent",
+      "percent": "{n}%",
+      "points": "{n} pts",
+      "duration_fmt": "{min}m {sec}s",
+      "weak_badge": "weak",
+      "overall": "Overall score",
+      "overall_desc": "Weighted dimension score (FR-ANA-001)",
+      "alert": {
+        "access_blocked": "Call-content access for this evaluation is not audited; every recording/transcript access must be audited (FR-REC-009).",
+        "critical": "{count} critical flag(s); this conversation was auto-flagged and requires manual review (FR-ANA-008).",
+        "needs_review": "This call is awaiting manual review (critical flag or low automatic score — FR-ANA-008/009).",
+        "calibration_gap": "The gap between automatic and manual scores is high ({delta}); calibration should be reviewed (FR-ANA-009)."
+      },
+      "section": {
+        "summary": "Evaluation Summary",
+        "scorecard": "Automatic Scorecard",
+        "flags": "Critical Flags",
+        "review": "Manual Review",
+        "benchmark": "Version Comparison"
+      },
+      "kpi": {
+        "auto_score": "Automatic Score",
+        "auto_score_hint": "All calls are auto-evaluated (FR-ANA-001)",
+        "band": "Band",
+        "band_hint": "Pass ≥{pass} · Borderline ≥{fail}",
+        "critical": "Critical Flags",
+        "critical_hint": "Critical-severity flags (FR-ANA-008)",
+        "open_flags": "Open Flags",
+        "open_flags_hint": "{auto} auto-detected (FR-ANA-004)",
+        "review": "Manual Review",
+        "review_hint": "QA score + comment status (FR-ANA-009)",
+        "calibration": "Calibration",
+        "calibration_hint": "Automatic − manual delta (tolerance {tol})"
+      },
+      "meta": {
+        "direction": "Direction",
+        "outcome": "Outcome",
+        "duration": "Duration"
+      },
+      "direction": {
+        "inbound": "Inbound",
+        "outbound": "Outbound"
+      },
+      "outcome": {
+        "contained": "Resolved by automation",
+        "transferred": "Transferred",
+        "abandoned": "Abandoned",
+        "voicemail": "Voicemail",
+        "failed": "Failed"
+      },
+      "band": {
+        "pass": "Pass",
+        "borderline": "Borderline",
+        "fail": "Fail"
+      },
+      "dimension": {
+        "compliance": "Compliance",
+        "accuracy": "Accuracy",
+        "resolution": "Resolution",
+        "tooling": "Tool use",
+        "communication": "Communication",
+        "safety": "Safety"
+      },
+      "dimension_desc": {
+        "compliance": "AI disclosure, consent and disclosure (BRD §14.2)",
+        "accuracy": "Accuracy of information given (FR-ANA-004)",
+        "resolution": "Resolution / containment (FR-ANA-002/003)",
+        "tooling": "Tool/API call success (FR-ANA-004)",
+        "communication": "Clarity, empathy and flow",
+        "safety": "PII protection and security (FR-ANA-004)"
+      },
+      "flag": {
+        "misinformation": "Misinformation",
+        "tool_error": "Tool/API error",
+        "security_violation": "Security violation",
+        "pii_exposure": "PII exposure",
+        "escalation_missed": "Escalation missed",
+        "compliance_gap": "Compliance gap",
+        "low_confidence": "Low STT confidence"
+      },
+      "severity": {
+        "critical": "Critical",
+        "high": "High",
+        "medium": "Medium",
+        "info": "Info"
+      },
+      "source": {
+        "auto": "Automatic",
+        "manual": "Manual"
+      },
+      "flag_state": {
+        "open": "Open",
+        "resolved": "Resolved"
+      },
+      "review_status": {
+        "pending": "Pending",
+        "in_review": "In review",
+        "scored": "Scored"
+      },
+      "disposition": {
+        "approved": "Approved",
+        "coaching": "Coaching",
+        "failed": "Failed",
+        "escalated": "Escalated"
+      },
+      "review": {
+        "status": "Status",
+        "score": "Manual score",
+        "disposition": "Outcome",
+        "reviewer": "Reviewer",
+        "calibration": "Calibration",
+        "comment": "Comment"
+      },
+      "calibration": {
+        "na": "—",
+        "agree": "Aligned (Δ {delta})",
+        "gap": "Divergence (Δ {delta})"
+      },
+      "benchmark": {
+        "version": "This version ({v})",
+        "agent": "Agent average",
+        "delta": "Delta",
+        "sample": "Sample",
+        "sample_fmt": "{n} evaluated calls"
+      },
+      "col": {
+        "dimension": "Dimension",
+        "purpose": "Purpose",
+        "weight": "Weight",
+        "score": "Score",
+        "flag": "Flag",
+        "severity": "Severity",
+        "source": "Source",
+        "evidence": "Evidence",
+        "status": "Status",
+        "field": "Field",
+        "value": "Value",
+        "metric": "Metric"
+      },
+      "scorecard_caption": "Automatic scorecard dimensions and weights",
+      "scorecard_hint": "The automatic scorecard is applied to all calls (FR-ANA-001); the overall score is the weighted dimension score. {weak} dimension(s) below threshold (weak). Scores are derived; transcript content is not carried on this screen.",
+      "no_flags": "No critical flags for this call.",
+      "flags_caption": "Automatic and manual critical flags",
+      "flags_hint": "Critical flags cover misinformation, tool errors and security violations (FR-ANA-004); critical conversations are auto-flagged (FR-ANA-008). Evidence is structural (turn surrogate reference); no raw transcript text is carried.",
+      "review_caption": "Manual QA score, outcome and comment",
+      "review_hint": "The QA team adds a score and comment to the call (FR-ANA-009); the comment is kept redacted (no raw PII). Automatic and manual scores are calibrated. Final write + authorisation + audit are in the backend (qa:score — API §8.1).",
+      "benchmark_caption": "Performance across agent versions",
+      "benchmark_hint": "This version's average quality score is compared against the agent average (FR-ANA-010); a positive delta indicates improvement. Version management lives in A-17.",
+      "action": {
+        "export": "Export",
+        "score": "Score",
+        "rescore": "Re-score",
+        "assign": "Assign"
+      }
     }
   }
 }

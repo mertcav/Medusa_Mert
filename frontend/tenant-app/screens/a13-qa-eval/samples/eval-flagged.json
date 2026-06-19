@@ -1,0 +1,48 @@
+{
+  "$comment": "A-13 SORUNLU QA değerlendirmesi (WBS 13.4.13): outbound, aktarımla biten bir çağrı. Otomatik skor düşük (0.53, fail band) ve ağırlıklı boyut skoruyla tutarlı (FR-ANA-001); iki kritik işaret (yanlış bilgi + güvenlik ihlali) + bir yüksek işaret (tool hatası) → kritik konuşma otomatik işaretlendi (FR-ANA-004/008); manuel inceleme BEKLEMEDE (FR-ANA-009 — kalibrasyon henüz yok); erişim audit'li (FR-REC-009). Kanıt yapısaldır (turnRef), açıklama redaction'lı, ham PII yok → İKİ KATMAN guard temiz. → dimensions=6 + flags=3 + critical_flags=2 + open_flags=3 + weak_dimensions=5 + band=fail + needs_review=true + review_complete=false + access_blocked=false.",
+  "$expect": {
+    "dimensions": 6,
+    "flags": 3,
+    "critical_flags": 2,
+    "open_flags": 3,
+    "weak_dimensions": 5,
+    "band": "fail",
+    "needs_review": true,
+    "review_complete": false,
+    "access_blocked": false
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-7700",
+  "tenantName": "Beta Finans",
+  "thresholds": { "pass": 0.85, "fail": 0.6 },
+  "evaluation": {
+    "callRef": "CALL-7711",
+    "direction": "outbound",
+    "agentRef": "AGT-509",
+    "agentName": "Tahsilat Asistanı",
+    "agentVersion": "v2",
+    "outcome": "transferred",
+    "startedAt": "2026-06-18T08:40:00.000Z",
+    "durationSec": 188,
+    "autoScore": 0.53,
+    "dimensions": [
+      { "key": "compliance", "score": 0.6, "weight": 0.2 },
+      { "key": "accuracy", "score": 0.5, "weight": 0.2 },
+      { "key": "resolution", "score": 0.55, "weight": 0.2 },
+      { "key": "tooling", "score": 0.4, "weight": 0.15 },
+      { "key": "communication", "score": 0.7, "weight": 0.1 },
+      { "key": "safety", "score": 0.45, "weight": 0.15 }
+    ],
+    "flags": [
+      { "flagRef": "FL-01", "type": "misinformation", "severity": "critical", "auto": true, "turnRef": "T-12", "resolved": false, "note": "ödeme tarihi hatalı bildirildi" },
+      { "flagRef": "FL-02", "type": "security_violation", "severity": "critical", "auto": true, "turnRef": "T-18", "resolved": false, "note": "kimlik doğrulaması tamamlanmadan bakiye paylaşıldı" },
+      { "flagRef": "FL-03", "type": "tool_error", "severity": "high", "auto": true, "turnRef": "T-15", "resolved": false, "note": "tahsilat tool çağrısı zaman aşımına uğradı" }
+    ],
+    "critical": true,
+    "review": {
+      "status": "pending"
+    },
+    "accessAudited": true
+  },
+  "benchmark": { "agentAvgScore": 0.74, "versionAvgScore": 0.68, "sampleSize": 310 }
+}

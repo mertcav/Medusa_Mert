@@ -2802,6 +2802,168 @@
         "export": "Dışa aktar",
         "play": "Kaydı dinle"
       }
+    },
+    "a13": {
+      "title": "QA Değerlendirme",
+      "subtitle": "Otomatik + manuel kalite skorlama",
+      "scope_note": "Bu ekranda seçili çağrının kalite değerlendirmesini incelersiniz (yalnız tenant'ınız kapsamında): otomatik skorkart (FR-ANA-001), kritik işaretler (FR-ANA-004/008), manuel değerlendirme (FR-ANA-009) ve agent sürümleri arası karşılaştırma (FR-ANA-010). Bu ekran skor ve işaret gösterir; transkript içeriğini taşımaz (içerik A-12'de, redaction + erişim audit'iyle). Ham ses, ham transkript, ham numara, kart/OTP ve nesne-depo URI'si panelde yer almaz; PII yalnız maskeli ([•••]) görünür. QA açıklaması değerlendiren tarafından girilir ve redaction'lı tutulur. Nihai skor/açıklama yazımı ve erişim audit'i backend'dedir (qa:score).",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "call_label": "Çağrı",
+      "agent_label": "Agent",
+      "percent": "%{n}",
+      "points": "{n} puan",
+      "duration_fmt": "{min} dk {sec} sn",
+      "weak_badge": "zayıf",
+      "overall": "Genel skor",
+      "overall_desc": "Ağırlıklı boyut skoru (FR-ANA-001)",
+      "alert": {
+        "access_blocked": "Bu değerlendirmede çağrı içeriği erişimi audit edilmemiş; her kayıt/transkript erişimi audit edilmelidir (FR-REC-009).",
+        "critical": "{count} kritik işaret var; bu konuşma otomatik olarak işaretlendi ve manuel inceleme gerektirir (FR-ANA-008).",
+        "needs_review": "Bu çağrı manuel inceleme bekliyor (kritik işaret veya düşük otomatik skor — FR-ANA-008/009).",
+        "calibration_gap": "Otomatik ve manuel skor arasındaki fark yüksek ({delta}); kalibrasyon gözden geçirilmeli (FR-ANA-009)."
+      },
+      "section": {
+        "summary": "Değerlendirme Özeti",
+        "scorecard": "Otomatik Skorkart",
+        "flags": "Kritik İşaretler",
+        "review": "Manuel Değerlendirme",
+        "benchmark": "Sürüm Karşılaştırması"
+      },
+      "kpi": {
+        "auto_score": "Otomatik Skor",
+        "auto_score_hint": "Tüm çağrılar otomatik değerlendirilir (FR-ANA-001)",
+        "band": "Band",
+        "band_hint": "Geçer ≥{pass} · Sınırda ≥{fail}",
+        "critical": "Kritik İşaret",
+        "critical_hint": "Kritik şiddetli işaret (FR-ANA-008)",
+        "open_flags": "Açık İşaret",
+        "open_flags_hint": "{auto} otomatik tespit (FR-ANA-004)",
+        "review": "Manuel İnceleme",
+        "review_hint": "QA skor + açıklama durumu (FR-ANA-009)",
+        "calibration": "Kalibrasyon",
+        "calibration_hint": "Otomatik − manuel fark (tolerans {tol})"
+      },
+      "meta": {
+        "direction": "Yön",
+        "outcome": "Sonuç",
+        "duration": "Süre"
+      },
+      "direction": {
+        "inbound": "Gelen",
+        "outbound": "Giden"
+      },
+      "outcome": {
+        "contained": "Otomasyonla çözüldü",
+        "transferred": "Aktarıldı",
+        "abandoned": "Vazgeçildi",
+        "voicemail": "Telesekreter",
+        "failed": "Başarısız"
+      },
+      "band": {
+        "pass": "Geçer",
+        "borderline": "Sınırda",
+        "fail": "Kalır"
+      },
+      "dimension": {
+        "compliance": "Uyumluluk",
+        "accuracy": "Doğruluk",
+        "resolution": "Çözüm",
+        "tooling": "Araç Kullanımı",
+        "communication": "İletişim",
+        "safety": "Güvenlik"
+      },
+      "dimension_desc": {
+        "compliance": "AI bildirimi, consent ve disclosure (BRD §14.2)",
+        "accuracy": "Verilen bilginin doğruluğu (FR-ANA-004)",
+        "resolution": "Çözüm / containment (FR-ANA-002/003)",
+        "tooling": "Tool/API çağrısı başarısı (FR-ANA-004)",
+        "communication": "Anlaşılırlık, empati ve akış",
+        "safety": "PII koruma ve güvenlik (FR-ANA-004)"
+      },
+      "flag": {
+        "misinformation": "Yanlış bilgi",
+        "tool_error": "Araç/API hatası",
+        "security_violation": "Güvenlik ihlali",
+        "pii_exposure": "PII sızıntısı",
+        "escalation_missed": "Aktarım kaçırıldı",
+        "compliance_gap": "Uyumluluk eksiği",
+        "low_confidence": "Düşük STT güveni"
+      },
+      "severity": {
+        "critical": "Kritik",
+        "high": "Yüksek",
+        "medium": "Orta",
+        "info": "Bilgi"
+      },
+      "source": {
+        "auto": "Otomatik",
+        "manual": "Manuel"
+      },
+      "flag_state": {
+        "open": "Açık",
+        "resolved": "Kapatıldı"
+      },
+      "review_status": {
+        "pending": "Beklemede",
+        "in_review": "İncelemede",
+        "scored": "Skorlandı"
+      },
+      "disposition": {
+        "approved": "Onaylandı",
+        "coaching": "Koçluk",
+        "failed": "Başarısız",
+        "escalated": "Yükseltildi"
+      },
+      "review": {
+        "status": "Durum",
+        "score": "Manuel skor",
+        "disposition": "Sonuç",
+        "reviewer": "Değerlendiren",
+        "calibration": "Kalibrasyon",
+        "comment": "Açıklama"
+      },
+      "calibration": {
+        "na": "—",
+        "agree": "Uyumlu (Δ {delta})",
+        "gap": "Sapma (Δ {delta})"
+      },
+      "benchmark": {
+        "version": "Bu sürüm ({v})",
+        "agent": "Agent ortalaması",
+        "delta": "Fark",
+        "sample": "Örneklem",
+        "sample_fmt": "{n} değerlendirilmiş çağrı"
+      },
+      "col": {
+        "dimension": "Boyut",
+        "purpose": "Amaç",
+        "weight": "Ağırlık",
+        "score": "Skor",
+        "flag": "İşaret",
+        "severity": "Şiddet",
+        "source": "Kaynak",
+        "evidence": "Kanıt",
+        "status": "Durum",
+        "field": "Alan",
+        "value": "Değer",
+        "metric": "Metrik"
+      },
+      "scorecard_caption": "Otomatik skorkart boyutları ve ağırlıkları",
+      "scorecard_hint": "Otomatik skorkart tüm çağrılara uygulanır (FR-ANA-001); genel skor ağırlıklı boyut skorudur. {weak} boyut eşik altında (zayıf). Skorlar türetilmiştir; transkript içeriği bu ekranda taşınmaz.",
+      "no_flags": "Bu çağrı için kritik işaret yok.",
+      "flags_caption": "Otomatik ve manuel kritik işaretler",
+      "flags_hint": "Kritik işaretler yanlış bilgi, tool hatası ve güvenlik ihlalini kapsar (FR-ANA-004); kritik konuşmalar otomatik işaretlenir (FR-ANA-008). Kanıt yapısaldır (tur vekil referansı); ham transkript metni taşınmaz.",
+      "review_caption": "Manuel QA skoru, sonucu ve açıklaması",
+      "review_hint": "QA ekibi çağrıya skor ve açıklama ekler (FR-ANA-009); açıklama redaction'lı tutulur (ham PII yok). Otomatik ile manuel skor kalibre edilir. Nihai yazım + yetki + audit backend'de (qa:score — API §8.1).",
+      "benchmark_caption": "Agent sürümleri arası performans",
+      "benchmark_hint": "Bu sürümün ortalama kalite skoru agent ortalamasıyla karşılaştırılır (FR-ANA-010); pozitif fark iyileşmeyi gösterir. Sürüm yönetimi A-17'dedir.",
+      "action": {
+        "export": "Dışa aktar",
+        "score": "Skorla",
+        "rescore": "Yeniden skorla",
+        "assign": "Ata"
+      }
     }
   }
 }

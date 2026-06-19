@@ -1,0 +1,49 @@
+{
+  "$comment": "A-13 SAĞLIKLI QA değerlendirmesi (WBS 13.4.13): inbound, otomasyonla çözülen bir çağrı. Otomatik skor yüksek (0.90, pass band) ve ağırlıklı boyut skoruyla tutarlı (FR-ANA-001); kritik işaret yok (FR-ANA-008); manuel inceleme tamamlanmış ve otomatik skorla kalibre (FR-ANA-009); erişim audit'li (FR-REC-009). PII yok, açıklama redaction'lı → İKİ KATMAN guard temiz. → dimensions=6 + flags=0 + critical_flags=0 + open_flags=0 + weak_dimensions=0 + band=pass + needs_review=false + review_complete=true + access_blocked=false.",
+  "$expect": {
+    "dimensions": 6,
+    "flags": 0,
+    "critical_flags": 0,
+    "open_flags": 0,
+    "weak_dimensions": 0,
+    "band": "pass",
+    "needs_review": false,
+    "review_complete": true,
+    "access_blocked": false
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-7700",
+  "tenantName": "Beta Finans",
+  "thresholds": { "pass": 0.85, "fail": 0.6 },
+  "evaluation": {
+    "callRef": "CALL-7700",
+    "direction": "inbound",
+    "agentRef": "AGT-501",
+    "agentName": "Fatura Asistanı",
+    "agentVersion": "v4",
+    "outcome": "contained",
+    "startedAt": "2026-06-18T08:50:00.000Z",
+    "durationSec": 96,
+    "autoScore": 0.9,
+    "dimensions": [
+      { "key": "compliance", "score": 0.95, "weight": 0.2 },
+      { "key": "accuracy", "score": 0.9, "weight": 0.2 },
+      { "key": "resolution", "score": 0.92, "weight": 0.2 },
+      { "key": "tooling", "score": 0.85, "weight": 0.15 },
+      { "key": "communication", "score": 0.88, "weight": 0.1 },
+      { "key": "safety", "score": 0.88, "weight": 0.15 }
+    ],
+    "flags": [],
+    "critical": false,
+    "review": {
+      "status": "scored",
+      "score": 0.9,
+      "reviewerRef": "USR-QA-014",
+      "disposition": "approved",
+      "comment": "Karşılama ve KVKK bildirimi eksiksiz; fatura sorgusu doğru, kart bilgisi istenmedi. Otomatik skorla uyumlu.",
+      "scoredAt": "2026-06-18T11:00:00.000Z"
+    },
+    "accessAudited": true
+  },
+  "benchmark": { "agentAvgScore": 0.86, "versionAvgScore": 0.89, "sampleSize": 820 }
+}
