@@ -2653,6 +2653,155 @@
       "action": {
         "export": "Dışa aktar"
       }
+    },
+    "a12": {
+      "title": "Çağrı Detayı / Transkript & Timeline",
+      "subtitle": "Çağrı zaman çizelgesi, transkript ve olaylar",
+      "scope_note": "Bu ekranda seçili çağrının detayını incelersiniz (yalnız tenant'ınız kapsamında): çağrı künyesi, olay zaman çizelgesi ve transkript. Transkript içeriği yalnız PII redaction tamamlandığında (FR-REC-004) ve erişim audit edildiğinde (FR-REC-009) gösterilir; redaction beklemedeyse veya erişim audit edilmediyse içerik gizlenir. PII yalnız maskeli ([•••]) görünür; ham ses kaydı, ham transkript, ham numara (e164), kart/OTP ve nesne-depo URI'si panelde yer almaz. Kayıt dinleme yetkili kullanıcı için ayrı bir aksiyondur ve her erişim audit edilir (FR-REC-008/009).",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "call_label": "Çağrı",
+      "own_badge": "Kendi",
+      "ratio": "{a}/{b}",
+      "percent": "%{n}",
+      "channels_fmt": "{n} kanal",
+      "duration_fmt": "{min} dk {sec} sn",
+      "offset_fmt": "{min}:{sec}",
+      "masked_badge": "maskelendi",
+      "alert": {
+        "access_blocked": "Bu çağrıda erişim-audit yolu işaretsiz; transkript içeriği gizlendi. Her kayıt/transkript erişimi audit edilmelidir (FR-REC-009).",
+        "redaction_pending": "Transkript PII redaction'ı beklemede; içerik, redaction tamamlanana kadar gizlenir (FR-REC-004).",
+        "recording_disabled": "Bu çağrıda ses kaydı kapalı; kayıt politikası tenant/ülke/use-case bazında uygulanır (FR-REC-001/002).",
+        "low_confidence": "{count} turda STT güveni düşük; gözden geçirme önerilir (BRD §15)."
+      },
+      "section": {
+        "summary": "Çağrı Özeti",
+        "meta": "Çağrı Künyesi",
+        "timeline": "Olay Zaman Çizelgesi",
+        "transcript": "Transkript",
+        "access": "Erişim & Redaction Sağlığı"
+      },
+      "kpi": {
+        "duration": "Süre",
+        "duration_hint": "Sonuç: {outcome}",
+        "turns": "Konuşma Turu",
+        "turns_hint": "{caller} arayan · {agent} agent",
+        "events": "Olay",
+        "events_hint": "Yapısal çağrı olayı (DB §23)",
+        "tools": "Araç Çağrısı",
+        "tools_hint": "Tool/API çağrısı (FR-TOOL)",
+        "barge_in": "Barge-in",
+        "barge_in_hint": "Agent sözünün kesilmesi (ADR-005)",
+        "low_confidence": "Düşük Güven",
+        "low_confidence_hint": "STT güveni eşik altı tur (BRD §15)",
+        "masked": "Maskeli Tur",
+        "masked_hint": "PII/kart/OTP maskelenen tur (FR-REC-005)",
+        "access": "Erişim",
+        "access_hint": "Erişim-audit durumu (FR-REC-009)"
+      },
+      "direction": {
+        "inbound": "Gelen",
+        "outbound": "Giden"
+      },
+      "outcome": {
+        "contained": "Otomasyonla çözüldü",
+        "transferred": "Aktarıldı",
+        "abandoned": "Vazgeçildi",
+        "voicemail": "Telesekreter",
+        "failed": "Başarısız"
+      },
+      "recording": {
+        "recorded": "Kayıtlı",
+        "disabled": "Kayıt kapalı",
+        "none": "Kayıt yok"
+      },
+      "transcript": {
+        "redacted": "Redaction'lı",
+        "pending": "Beklemede",
+        "not_required": "Gerekli değil",
+        "none": "Yok"
+      },
+      "speaker": {
+        "caller": "Arayan",
+        "agent": "Agent",
+        "human": "Temsilci"
+      },
+      "event": {
+        "call_connected": "Çağrı bağlandı",
+        "greeting": "Karşılama (AI bildirimi)",
+        "recording_started": "Kayıt başladı",
+        "kb_lookup": "Bilgi tabanı sorgusu",
+        "tool_invoked": "Araç çağrısı",
+        "barge_in": "Barge-in",
+        "transfer_initiated": "Aktarım başladı",
+        "transfer_completed": "Aktarım tamamlandı",
+        "voicemail": "Telesekreter bırakıldı",
+        "recording_stopped": "Kayıt durdu",
+        "call_ended": "Çağrı sonlandı"
+      },
+      "retention": {
+        "held": "Yasal tutma",
+        "due": "Silinecek",
+        "active": "Saklanıyor",
+        "conflict": "Çelişki"
+      },
+      "meta": {
+        "direction": "Yön",
+        "agent": "Agent",
+        "outcome": "Sonuç",
+        "duration": "Süre",
+        "recording": "Kayıt",
+        "transcript": "Transkript",
+        "retention": "Saklama",
+        "access": "Erişim"
+      },
+      "transcript_gated": {
+        "access": "Erişim audit edilmediği için transkript içeriği gösterilmiyor (FR-REC-009).",
+        "redaction": "PII redaction beklemede; içerik, redaction tamamlanana kadar gösterilmiyor (FR-REC-004).",
+        "absent": "Bu çağrı için transkript yok."
+      },
+      "access": {
+        "audited": "Audit'li",
+        "unaudited": "Auditsiz",
+        "audit": "Erişim audit'i",
+        "audit_desc": "Bu çağrı detayına her erişim WORM audit log'a yazılır (FR-REC-009).",
+        "redaction": "Transkript redaction",
+        "redaction_desc": "Transkript yalnız PII redaction tamamlandığında görüntülenir (FR-REC-004).",
+        "scrub": "Kart/parola/OTP gizleme",
+        "scrub_desc": "Kart, parola ve OTP kayıt ve transkriptten çıkarılır (FR-REC-005).",
+        "masked_fmt": "{n} tur maskeli",
+        "recording": "Kayıt erişimi",
+        "recording_desc": "Ses dinleme audit'li derin aksiyondur; ham ses/nesne-depo URI'si panele konmaz (NFR 10.6).",
+        "recording_gate": "Audit'li aksiyon",
+        "transfer": "İnsan aktarımı",
+        "transfer_desc": "Çağrıdaki insan aktarımı olayları (FR-HND)."
+      },
+      "col": {
+        "field": "Alan",
+        "value": "Değer",
+        "time": "Zaman",
+        "event": "Olay",
+        "detail": "Detay",
+        "speaker": "Konuşmacı",
+        "utterance": "İfade",
+        "confidence": "Güven",
+        "control": "Kontrol",
+        "purpose": "Amaç"
+      },
+      "meta_caption": "Çağrı künyesi ve durumları",
+      "meta_hint": "Çağrı künyesi yalnız META gösterir; ham numara, müşteri PII ve nesne-depo URI'si panelde yer almaz. Tenant-scope (FR-TEN-002) middleware + RLS ile sabitlenir.",
+      "timeline_caption": "Çağrı olaylarının zaman çizelgesi",
+      "timeline_hint": "Olaylar yapısaldır (DB §23 call_event; BRD §15 zaman damgası taksonomisi + SAD §6.1 turn state machine). Zaman, çağrı başlangıcından ofsettir; ham içerik taşınmaz.",
+      "transcript_caption": "Çağrı transkripti (redaction uygulanmış)",
+      "transcript_hint": "Transkript redaction uygulanmış olarak gösterilir (FR-REC-004/005); PII/kart/OTP yalnız maskeli ([•••]) görünür ve panel görüntülemelerinde de redaction uygulanır (BRD §17.7). İçerik yalnız redaction tamam + erişim audit'li ise görüntülenir; her erişim audit edilir (FR-REC-008/009).",
+      "no_events": "Bu çağrı için olay yok.",
+      "no_turns": "Bu çağrı için transkript turu yok.",
+      "access_caption": "Erişim yetkisi, audit ve PII/kart-OTP gizleme kontrolleri",
+      "access_hint": "Yetkili kullanıcı çağrıyı dinleyebilir ve transkripti görebilir (FR-REC-008); her erişim audit edilir (FR-REC-009). PII redaction (FR-REC-004) ve kart/parola/OTP gizleme (FR-REC-005) panel görüntülemelerinde de uygulanır. Nihai yetki + erişim-audit backend'de.",
+      "action": {
+        "export": "Dışa aktar",
+        "play": "Kaydı dinle"
+      }
     }
   }
 }

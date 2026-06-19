@@ -1,0 +1,53 @@
+{
+  "$comment": "A-12 SAĞLIKLI çağrı detayı (WBS 13.4.12): inbound, otomasyonla çözülen bir çağrı. Transkript redaction TAMAM (FR-REC-004) + erişim AUDIT'li (FR-REC-009) → içerik GÖRÜNTÜLENEBİLİR. 7 yapısal olay (1 tool çağrısı; barge-in/transfer yok), 6 tur (3 arayan / 3 agent), 1 maskeli tur (FR-REC-005), düşük-güven tur yok. PII yalnız maskeli ([•••]); ham numara/kart/e-posta yok → İKİ KATMAN guard (assertNoForbiddenKeys + assertRedactionClean) temiz. → turns=6 + events=7 + caller=3 + agent=3 + tool=1 + barge=0 + transfer=0 + masked=1 + low_conf=0 + viewable=true + redaction_pending=false + access_blocked=false.",
+  "$expect": {
+    "turns": 6,
+    "events": 7,
+    "caller_turns": 3,
+    "agent_turns": 3,
+    "tool_events": 1,
+    "barge_in_events": 0,
+    "transfer_events": 0,
+    "masked_turns": 1,
+    "low_confidence_turns": 0,
+    "viewable": true,
+    "redaction_pending": false,
+    "access_blocked": false
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-7700",
+  "tenantName": "Beta Finans",
+  "call": {
+    "callRef": "CALL-7700",
+    "direction": "inbound",
+    "agentRef": "AGT-501",
+    "agentName": "Fatura Asistanı",
+    "startedAt": "2026-06-18T08:50:00.000Z",
+    "durationSec": 96,
+    "outcome": "contained",
+    "recordingState": "recorded",
+    "channels": 2,
+    "transcriptState": "redacted",
+    "retentionImminent": false,
+    "legalHold": false,
+    "accessAudited": true,
+    "own": false,
+    "events": [
+      { "eventRef": "EV-01", "type": "call_connected", "offsetMs": 0 },
+      { "eventRef": "EV-02", "type": "greeting", "offsetMs": 1500 },
+      { "eventRef": "EV-03", "type": "recording_started", "offsetMs": 1600 },
+      { "eventRef": "EV-04", "type": "kb_lookup", "offsetMs": 40000, "detail": "fatura_donemi" },
+      { "eventRef": "EV-05", "type": "tool_invoked", "offsetMs": 55000, "detail": "fatura.sorgu" },
+      { "eventRef": "EV-06", "type": "recording_stopped", "offsetMs": 95000 },
+      { "eventRef": "EV-07", "type": "call_ended", "offsetMs": 96000 }
+    ],
+    "turns": [
+      { "turnRef": "T-01", "speaker": "agent", "offsetMs": 1500, "text": "Merhaba, görüşmemiz kayıt altına alınmaktadır; nasıl yardımcı olabilirim?", "redacted": false, "confidence": 0.99 },
+      { "turnRef": "T-02", "speaker": "caller", "offsetMs": 7000, "text": "Fatura tutarımı öğrenebilir miyim?", "redacted": false, "confidence": 0.93 },
+      { "turnRef": "T-03", "speaker": "agent", "offsetMs": 10000, "text": "Hesabınızı doğrulamak için adınızı alabilir miyim?", "redacted": false, "confidence": 0.97 },
+      { "turnRef": "T-04", "speaker": "caller", "offsetMs": 14000, "text": "Adım [•••].", "redacted": true, "confidence": 0.82 },
+      { "turnRef": "T-05", "speaker": "agent", "offsetMs": 18000, "text": "Teşekkürler, güncel bakiyeniz hesabınızda görünüyor.", "redacted": false, "confidence": 0.96 },
+      { "turnRef": "T-06", "speaker": "caller", "offsetMs": 26000, "text": "Tamamdır, teşekkür ederim.", "redacted": false, "confidence": 0.95 }
+    ]
+  }
+}

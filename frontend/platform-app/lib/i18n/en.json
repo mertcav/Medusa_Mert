@@ -2653,6 +2653,155 @@
       "action": {
         "export": "Export"
       }
+    },
+    "a12": {
+      "title": "Call Detail / Transcript & Timeline",
+      "subtitle": "Call timeline, transcript and events",
+      "scope_note": "On this screen you inspect the detail of the selected call — scoped to your tenant only: call header, event timeline and transcript. Transcript content is shown only once PII redaction is complete (FR-REC-004) and access is audited (FR-REC-009); if redaction is pending or access is not audited, the content is withheld. PII appears only masked ([•••]); raw audio recordings, raw transcript, raw numbers (e164), card/OTP and object-store URIs never appear in the panel. Listening to a recording is a separate action for an authorised user and every access is audited (FR-REC-008/009).",
+      "as_of": "View time: {time}",
+      "tenant": "Tenant",
+      "call_label": "Call",
+      "own_badge": "Own",
+      "ratio": "{a}/{b}",
+      "percent": "{n}%",
+      "channels_fmt": "{n} channel(s)",
+      "duration_fmt": "{min}m {sec}s",
+      "offset_fmt": "{min}:{sec}",
+      "masked_badge": "masked",
+      "alert": {
+        "access_blocked": "This call has no access-audit path marked; transcript content has been withheld. Every recording/transcript access must be audited (FR-REC-009).",
+        "redaction_pending": "Transcript PII redaction is pending; content is withheld until redaction completes (FR-REC-004).",
+        "recording_disabled": "Recording is disabled for this call; the recording policy is applied per tenant/country/use-case (FR-REC-001/002).",
+        "low_confidence": "{count} turn(s) have low STT confidence; review is recommended (BRD §15)."
+      },
+      "section": {
+        "summary": "Call Summary",
+        "meta": "Call Header",
+        "timeline": "Event Timeline",
+        "transcript": "Transcript",
+        "access": "Access & Redaction Health"
+      },
+      "kpi": {
+        "duration": "Duration",
+        "duration_hint": "Outcome: {outcome}",
+        "turns": "Turns",
+        "turns_hint": "{caller} caller · {agent} agent",
+        "events": "Events",
+        "events_hint": "Structural call events (DB §23)",
+        "tools": "Tool Calls",
+        "tools_hint": "Tool/API invocations (FR-TOOL)",
+        "barge_in": "Barge-in",
+        "barge_in_hint": "Agent speech interruptions (ADR-005)",
+        "low_confidence": "Low Confidence",
+        "low_confidence_hint": "Turns below STT confidence threshold (BRD §15)",
+        "masked": "Masked Turns",
+        "masked_hint": "Turns with PII/card/OTP masked (FR-REC-005)",
+        "access": "Access",
+        "access_hint": "Access-audit status (FR-REC-009)"
+      },
+      "direction": {
+        "inbound": "Inbound",
+        "outbound": "Outbound"
+      },
+      "outcome": {
+        "contained": "Resolved by automation",
+        "transferred": "Transferred",
+        "abandoned": "Abandoned",
+        "voicemail": "Voicemail",
+        "failed": "Failed"
+      },
+      "recording": {
+        "recorded": "Recorded",
+        "disabled": "Recording off",
+        "none": "No recording"
+      },
+      "transcript": {
+        "redacted": "Redacted",
+        "pending": "Pending",
+        "not_required": "Not required",
+        "none": "None"
+      },
+      "speaker": {
+        "caller": "Caller",
+        "agent": "Agent",
+        "human": "Human agent"
+      },
+      "event": {
+        "call_connected": "Call connected",
+        "greeting": "Greeting (AI disclosure)",
+        "recording_started": "Recording started",
+        "kb_lookup": "Knowledge base lookup",
+        "tool_invoked": "Tool invocation",
+        "barge_in": "Barge-in",
+        "transfer_initiated": "Transfer initiated",
+        "transfer_completed": "Transfer completed",
+        "voicemail": "Voicemail left",
+        "recording_stopped": "Recording stopped",
+        "call_ended": "Call ended"
+      },
+      "retention": {
+        "held": "Legal hold",
+        "due": "Due for deletion",
+        "active": "Retained",
+        "conflict": "Conflict"
+      },
+      "meta": {
+        "direction": "Direction",
+        "agent": "Agent",
+        "outcome": "Outcome",
+        "duration": "Duration",
+        "recording": "Recording",
+        "transcript": "Transcript",
+        "retention": "Retention",
+        "access": "Access"
+      },
+      "transcript_gated": {
+        "access": "Transcript content is not shown because access is not audited (FR-REC-009).",
+        "redaction": "PII redaction is pending; content is not shown until redaction completes (FR-REC-004).",
+        "absent": "No transcript for this call."
+      },
+      "access": {
+        "audited": "Audited",
+        "unaudited": "Unaudited",
+        "audit": "Access audit",
+        "audit_desc": "Every access to this call detail is written to the WORM audit log (FR-REC-009).",
+        "redaction": "Transcript redaction",
+        "redaction_desc": "The transcript is shown only once PII redaction is complete (FR-REC-004).",
+        "scrub": "Card/password/OTP masking",
+        "scrub_desc": "Card, password and OTP are stripped from the recording and transcript (FR-REC-005).",
+        "masked_fmt": "{n} turn(s) masked",
+        "recording": "Recording access",
+        "recording_desc": "Listening to audio is an audited deep action; raw audio/object-store URIs never enter the panel (NFR 10.6).",
+        "recording_gate": "Audited action",
+        "transfer": "Human handoff",
+        "transfer_desc": "Human handoff events in the call (FR-HND)."
+      },
+      "col": {
+        "field": "Field",
+        "value": "Value",
+        "time": "Time",
+        "event": "Event",
+        "detail": "Detail",
+        "speaker": "Speaker",
+        "utterance": "Utterance",
+        "confidence": "Confidence",
+        "control": "Control",
+        "purpose": "Purpose"
+      },
+      "meta_caption": "Call header and statuses",
+      "meta_hint": "The call header shows META only; raw numbers, customer PII and object-store URIs never appear in the panel. Tenant scope (FR-TEN-002) is enforced via middleware + RLS.",
+      "timeline_caption": "Timeline of call events",
+      "timeline_hint": "Events are structural (DB §23 call_event; BRD §15 timestamp taxonomy + SAD §6.1 turn state machine). Time is the offset from call start; no raw content is carried.",
+      "transcript_caption": "Call transcript (redaction applied)",
+      "transcript_hint": "The transcript is shown with redaction applied (FR-REC-004/005); PII/card/OTP appear only masked ([•••]) and redaction is applied in panel views too (BRD §17.7). Content is shown only when redaction is complete and access is audited; every access is audited (FR-REC-008/009).",
+      "no_events": "No events for this call.",
+      "no_turns": "No transcript turns for this call.",
+      "access_caption": "Access authorisation, audit and PII/card-OTP masking controls",
+      "access_hint": "An authorised user may listen to the call and view the transcript (FR-REC-008); every access is audited (FR-REC-009). PII redaction (FR-REC-004) and card/password/OTP masking (FR-REC-005) are applied in panel views too. Final authorisation + access audit are in the backend.",
+      "action": {
+        "export": "Export",
+        "play": "Play recording"
+      }
     }
   }
 }

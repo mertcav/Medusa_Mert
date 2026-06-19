@@ -1,0 +1,55 @@
+{
+  "$comment": "A-12 SORUNLU çağrı detayı (WBS 13.4.12): inbound, insana aktarılan bir çağrı. ERİŞİM-AUDIT yolu işaretSİZ (accessAudited=false — FR-REC-009 ihlali, danger) → transkript içeriği GİZLENİR (access_blocked, viewable=false). Transkript redaction TAMAM (pending değil); tek gizleme nedeni erişim audit'inin olmamasıdır. 10 yapısal olay (1 tool + 1 barge-in + 2 transfer), 5 tur (2 arayan / 2 agent / 1 insan temsilci), 1 maskeli tur (FR-REC-005), 2 düşük-güven tur (BRD §15). Ham PII içeriği YOK (yalnız maskeli [•••]) → İKİ KATMAN guard temiz; gizleme operasyoneldir (sızıntı değil). → turns=5 + events=10 + caller=2 + agent=2 + tool=1 + barge=1 + transfer=2 + masked=1 + low_conf=2 + viewable=false + redaction_pending=false + access_blocked=true.",
+  "$expect": {
+    "turns": 5,
+    "events": 10,
+    "caller_turns": 2,
+    "agent_turns": 2,
+    "tool_events": 1,
+    "barge_in_events": 1,
+    "transfer_events": 2,
+    "masked_turns": 1,
+    "low_confidence_turns": 2,
+    "viewable": false,
+    "redaction_pending": false,
+    "access_blocked": true
+  },
+  "generatedAt": "2026-06-18T09:00:00.000Z",
+  "tenantRef": "TEN-7805",
+  "tenantName": "Gamma Telekom",
+  "call": {
+    "callRef": "CALL-7805",
+    "direction": "inbound",
+    "agentRef": "AGT-601",
+    "agentName": "Destek Asistanı",
+    "startedAt": "2026-06-18T08:40:00.000Z",
+    "durationSec": 181,
+    "outcome": "transferred",
+    "recordingState": "recorded",
+    "channels": 2,
+    "transcriptState": "redacted",
+    "retentionImminent": false,
+    "legalHold": false,
+    "accessAudited": false,
+    "own": false,
+    "events": [
+      { "eventRef": "EV-01", "type": "call_connected", "offsetMs": 0 },
+      { "eventRef": "EV-02", "type": "greeting", "offsetMs": 1500 },
+      { "eventRef": "EV-03", "type": "recording_started", "offsetMs": 1600 },
+      { "eventRef": "EV-04", "type": "kb_lookup", "offsetMs": 30000, "detail": "ariza_kayit" },
+      { "eventRef": "EV-05", "type": "tool_invoked", "offsetMs": 45000, "detail": "hesap.sorgu" },
+      { "eventRef": "EV-06", "type": "barge_in", "offsetMs": 60000 },
+      { "eventRef": "EV-07", "type": "transfer_initiated", "offsetMs": 65000, "detail": "support_queue" },
+      { "eventRef": "EV-08", "type": "transfer_completed", "offsetMs": 72000 },
+      { "eventRef": "EV-09", "type": "recording_stopped", "offsetMs": 180000 },
+      { "eventRef": "EV-10", "type": "call_ended", "offsetMs": 181000 }
+    ],
+    "turns": [
+      { "turnRef": "T-01", "speaker": "agent", "offsetMs": 1500, "text": "Merhaba, görüşmemiz kayıt altına alınmaktadır.", "redacted": false, "confidence": 0.99 },
+      { "turnRef": "T-02", "speaker": "caller", "offsetMs": 6000, "text": "Bir sorunum var, yardımcı olur musunuz?", "redacted": false, "confidence": 0.6 },
+      { "turnRef": "T-03", "speaker": "agent", "offsetMs": 9000, "text": "Tabii, sizi bir temsilciye aktarıyorum.", "redacted": false, "confidence": 0.98 },
+      { "turnRef": "T-04", "speaker": "caller", "offsetMs": 15000, "text": "Müşteri numaram [•••].", "redacted": true, "confidence": 0.71 },
+      { "turnRef": "T-05", "speaker": "human", "offsetMs": 120000, "text": "Merhaba, size nasıl yardımcı olabilirim?", "redacted": false, "confidence": 0.97 }
+    ]
+  }
+}
