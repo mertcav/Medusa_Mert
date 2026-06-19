@@ -2329,6 +2329,210 @@
         "connect": "Kaynak bağla",
         "reindex": "Yeniden indeksle"
       }
+    },
+    "a09": {
+      "title": "Tool/API Bağlama",
+      "subtitle": "Tanımlı tool'ları agent'a bağlama (kullanım)",
+      "scope_note": "Bu ekranda tenant'ınızda tanımlı tool'ların agent'lara bağlanmasını (kullanımını) görüntülersiniz (yalnız tenant'ınız kapsamında). Tool'lar T-05'te tanımlanır; bu ekran bağ sağlığını gösterir. Yalnız tool/bağ meta verisi gösterilir; tool endpoint URL'i, JSON schema gövdesi, istek/yanıt payload'ı ve credential panelde yer almaz. Bağla/çöz/yetki ver nihai yetkisi backend'de uygulanır; bu ekran yapılandırma görünümüdür.",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "tools_label": "Tool",
+      "ratio": "{a}/{b}",
+      "percent": "%{n}",
+      "read_write": "{read} okuma · {write} yazma",
+      "none": "—",
+      "yes": "Evet",
+      "no": "Hayır",
+      "orphan": "Tanımsız tool",
+      "escalated": "Yetki yükseltme",
+      "blocked": "Engellendi",
+      "alert": {
+        "orphan_binding": "Bütünlük ihlali: {count} bağ katalogda olmayan bir tool'a işaret ediyor; tanım eksik veya silinmiş (FR-TOOL-004).",
+        "unapproved_endpoint": "{count} aktif bağ onaylanmamış endpoint'li tool kullanıyor; erişim engellenmelidir (FR-TOOL-012).",
+        "escalated_grant": "{count} bağ okuma-seviyesi tool'a yazma yetkisi veriyor; yetki yükseltme engellenmelidir (FR-TOOL-005).",
+        "unvalidated_schema": "{count} aktif bağ JSON schema ile doğrulanmamış tool kullanıyor; input/output doğrulanmalı (FR-TOOL-002).",
+        "unconfirmed_sensitive": "{count} hassas işlem tool'u müşteri teyidi gerektirmiyor; para/sözleşme/kişisel veri değişikliği için teyit + ek doğrulama zorunludur (FR-TOOL-006/007).",
+        "sensitive_write": "{count} aktif yazma bağı hassas işlem tool'una; bu çağrılar ek doğrulama gerektirir (FR-TOOL-007)."
+      },
+      "section": {
+        "summary": "Bağlama Özeti",
+        "bindings": "Agent Başına Bağlar",
+        "catalog": "Tool Kataloğu",
+        "protocols": "Protokol Dağılımı",
+        "health": "Güvenlik & Uyum Sağlığı"
+      },
+      "kpi": {
+        "tools": "Tool",
+        "tools_hint": "{read} okuma · {write} yazma seviyesi (FR-TOOL-005)",
+        "agents": "Agent",
+        "agents_hint": "Tool bağı olan agent sayısı",
+        "bindings": "Aktif Bağ",
+        "bindings_hint": "{disabled} devre dışı bağ",
+        "write_grants": "Yazma Yetkisi",
+        "write_grants_hint": "Yazma grant'lı bağ (FR-TOOL-004/005)",
+        "confirmation": "Teyit Gerektiren",
+        "confirmation_hint": "Müşteri teyidi gerektiren tool (FR-TOOL-006)",
+        "sensitive": "Hassas İşlem",
+        "sensitive_hint": "Para/sözleşme/PII değişikliği tool'u (FR-TOOL-007)",
+        "async": "Asenkron",
+        "async_hint": "Uzun süren işlem (asenkron workflow — FR-TOOL-011)",
+        "attention": "Açık Dikkat",
+        "attention_hint": "Onaysız endpoint + doğrulanmamış schema + yetki yükseltme + tanımsız tool + teyitsiz hassas"
+      },
+      "protocol": {
+        "rest": "REST",
+        "soap": "SOAP",
+        "graphql": "GraphQL",
+        "webhook": "Webhook"
+      },
+      "access": {
+        "read": "Okuma",
+        "write": "Yazma"
+      },
+      "status": {
+        "active": "Aktif",
+        "disabled": "Devre dışı"
+      },
+      "col": {
+        "agent": "Agent",
+        "tool": "Tool",
+        "protocol": "Protokol",
+        "grant": "Yetki",
+        "confirmation": "Teyit",
+        "status": "Durum",
+        "access": "Erişim",
+        "schema": "Schema",
+        "endpoint": "Endpoint",
+        "sensitive": "Hassas",
+        "async": "Async",
+        "bindings": "Bağ",
+        "count": "Adet",
+        "share": "Pay",
+        "control": "Kontrol",
+        "purpose": "Açıklama",
+        "value": "Değer"
+      },
+      "bindings_caption": "Agent başına bağlı tool'lar ve yetkileri",
+      "bindings_hint": "Her bağ bir agent'a tek tool'u belirli bir yetkiyle (okuma/yazma) bağlar (FR-TOOL-004). Yazma yetkisi yalnız yazma-seviyesi tool'a verilebilir (FR-TOOL-005); onaylanmamış endpoint'li tool engellenir (FR-TOOL-012). Bağlama/çözme nihai yetki + işlem backend'de uygulanır (A8).",
+      "catalog_caption": "Tenant tool kataloğu ve güvenlik bayrakları",
+      "catalog_hint": "Tool kataloğu T-05'te (L1) tanımlanır; bu ekran yalnız bağlama (kullanım) içindir. Yalnız tool meta verisi gösterilir (protokol · erişim seviyesi · schema/endpoint/teyit/hassas/async bayrakları + bağ sayısı). Endpoint URL'i, JSON schema gövdesi ve çağrı payload'ı panele konmaz.",
+      "protocols_caption": "Protokol türüne göre tool dağılımı",
+      "health_caption": "Güvenlik ve uyum kontrollerinin durumu",
+      "health_hint": "Bu özet tool kataloğunun güvenlik duruşunu gösterir: JSON schema doğrulama (FR-TOOL-002), endpoint allowlist (FR-TOOL-012), okuma/yazma ayrımı (FR-TOOL-005) ve hassas işlem teyit kapısı (FR-TOOL-006/007). Çalışma-anı zorlama (timeout/retry/circuit breaker/idempotency) orchestrator + Integration Gateway'dedir (WBS 7.x).",
+      "no_bindings": "Bu tenant için tanımlı tool bağı yok; bir agent'a tool bağlayın.",
+      "no_tools": "Bu tenant için tanımlı tool yok; tool'lar T-05'te tanımlanır.",
+      "health": {
+        "schema": "JSON Schema Doğrulama",
+        "schema_desc": "Input/output JSON schema ile doğrulanan tool oranı (FR-TOOL-002)",
+        "endpoint": "Endpoint Allowlist",
+        "endpoint_desc": "Onaylı endpoint'e sahip tool oranı (FR-TOOL-012)",
+        "access_split": "Okuma/Yazma Ayrımı",
+        "access_split_desc": "Erişim seviyesine göre tool dağılımı (FR-TOOL-005)",
+        "confirmation": "Hassas İşlem Teyidi",
+        "confirmation_desc": "Müşteri teyidi olan hassas tool oranı (FR-TOOL-006/007)"
+      },
+      "action": {
+        "bind": "Tool bağla",
+        "manage": "Kataloğu yönet"
+      }
+    },
+    "a10": {
+      "title": "Outbound Kampanya Yönetimi",
+      "subtitle": "Liste, zamanlama, consent/suppression, disposition",
+      "scope_note": "Bu ekranda tenant'ınızın outbound kampanyalarını ve uyum/disposition sağlığını görüntülersiniz (yalnız tenant'ınız kapsamında). Yalnız kampanya meta verisi ve agregat sayılar gösterilir; aranacak ham numara, müşteri adı, kontak özellikleri, CRM kaydı ve script/teklif gövdesi panelde yer almaz. Liste yükleme/CRM çekme, kampanya oluştur/durdur ve dialer nihai yetkisi backend'de (Campaign Manager + Consent Engine) uygulanır; bu ekran yapılandırma görünümüdür.",
+      "as_of": "Görünüm zamanı: {time}",
+      "tenant": "Tenant",
+      "campaigns_label": "Kampanya",
+      "ratio": "{a}/{b}",
+      "percent": "%{n}",
+      "ab_badge": "A/B",
+      "script_missing": "Eksik",
+      "on": "Açık",
+      "off": "Kapalı",
+      "configured": "Yapılandırıldı",
+      "unconfigured": "Tanımsız",
+      "over_cap": "Kapasite aşımı",
+      "alert": {
+        "consent_disabled": "{count} aktif kampanyada consent ön-kontrolü kapalı; outbound arama öncesi consent kontrolü zorunludur (FR-OUT-003).",
+        "suppression_disabled": "{count} aktif kampanyada DNC/suppression kapalı; \"bir daha aramayın\" listesi gerçek zamanlı uygulanmalıdır (FR-OUT-006).",
+        "calling_hours_missing": "{count} aktif kampanyada arama saati yapılandırması yok; ülke/bölge arama saatleri uygulanmalıdır (FR-OUT-004).",
+        "capacity_exceeded": "{count} kampanyada kapasite üst sınırı mevcut agent+trunk kapasitesini aşıyor; silent/abandoned çağrı riski (FR-OUT-007).",
+        "missing_script": "{count} aktif kampanyada script/teklif versiyonu tanımlı değil; çağrı bazında versiyon kaydı gerekir (FR-OUT-009)."
+      },
+      "section": {
+        "summary": "Kampanya Özeti",
+        "campaigns": "Kampanyalar",
+        "compliance": "Uyum & Suppression Sağlığı",
+        "status": "Durum Dağılımı",
+        "dispositions": "Disposition Dağılımı"
+      },
+      "kpi": {
+        "campaigns": "Çalışan Kampanya",
+        "campaigns_hint": "{active} aktif (çalışan + duraklatılmış)",
+        "contacts": "Kontak",
+        "contacts_hint": "{reachable} aranabilir",
+        "dnc": "DNC / Suppression",
+        "dnc_hint": "Aranmayacak listesindeki kontak (FR-OUT-006)",
+        "consent_missing": "Consent Eksik",
+        "consent_missing_hint": "Geçerli consent kaydı olmayan kontak (FR-OUT-003)",
+        "capacity": "Kapasite Kullanımı",
+        "capacity_hint": "Aktif kampanya cap / mevcut kapasite (FR-OUT-007)",
+        "dispositions": "Disposition",
+        "dispositions_hint": "{answered} cevaplandı",
+        "exhausted": "Deneme Tükendi",
+        "exhausted_hint": "Maksimum denemeye ulaşan kontak (FR-OUT-005)",
+        "attention": "Açık Dikkat",
+        "attention_hint": "Consent kapalı + suppression kapalı + arama saati eksik + kapasite aşımı + script eksik"
+      },
+      "status": {
+        "draft": "Taslak",
+        "running": "Çalışıyor",
+        "paused": "Duraklatıldı",
+        "stopped": "Durduruldu",
+        "completed": "Tamamlandı"
+      },
+      "disposition": {
+        "answered": "Cevaplandı",
+        "voicemail": "Telesekreter",
+        "busy": "Meşgul",
+        "no_answer": "Cevapsız",
+        "invalid_number": "Geçersiz numara",
+        "failed": "Başarısız"
+      },
+      "source": {
+        "upload": "Liste yükleme",
+        "crm": "CRM"
+      },
+      "col": {
+        "campaign": "Kampanya",
+        "agent": "Agent",
+        "status": "Durum",
+        "source": "Kaynak",
+        "contacts": "Kontak",
+        "attempts": "Deneme",
+        "script": "Script",
+        "consent": "Consent",
+        "suppression": "Suppression",
+        "calling_hours": "Arama Saati",
+        "capacity": "Kapasite",
+        "count": "Adet",
+        "share": "Pay",
+        "disposition": "Disposition"
+      },
+      "attempts_fmt": "Maks {max} · {retry} dk",
+      "campaigns_caption": "Outbound kampanyalar, durumları ve zamanlaması",
+      "campaigns_hint": "Her kampanya bir agent'a, müşteri listesine (yükleme veya CRM — FR-OUT-001/002) ve zamanlama/deneme kuralına (FR-OUT-005) bağlıdır; script/teklif versiyonu çağrı bazında kaydedilir (FR-OUT-009). Oluştur/durdur (FR-OUT-010) nihai yetki + işlem backend'de uygulanır (A8).",
+      "compliance_caption": "Kampanya başına consent, suppression, arama saati ve kapasite kapıları",
+      "compliance_hint": "Outbound çağrı öncesi Consent Engine (SAD §19.1) consent + suppression + arama saati + kapasite kontrollerini zorunlu kılar: consent ön-kontrol (FR-OUT-003), DNC/suppression (FR-OUT-006), ülke/bölge arama saatleri (FR-OUT-004) ve kapasite ≤ agent+trunk (FR-OUT-007). Bu kapılar çalışma-anında backend'de uygulanır; panel çözümlenmiş durumu gösterir.",
+      "status_caption": "Duruma göre kampanya dağılımı",
+      "dispositions_caption": "Disposition türüne göre çağrı dağılımı",
+      "dispositions_hint": "Çağrı başına disposition otomatik oluşturulur (FR-OUT-011); telesekreter, meşgul, cevapsız ve geçersiz numara ayrı kaydedilir (FR-OUT-008). Sayılar agregattır; çağrı/numara bazında detay panelde yer almaz (A-11/A-12).",
+      "no_campaigns": "Bu tenant için tanımlı outbound kampanya yok; bir kampanya oluşturun.",
+      "no_dispositions": "Henüz disposition kaydı yok; kampanya çağrıları başladığında dolar.",
+      "action": {
+        "create": "Kampanya oluştur",
+        "stop": "Kampanyayı durdur"
+      }
     }
   }
 }

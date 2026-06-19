@@ -2435,6 +2435,104 @@
         "bind": "Bind tool",
         "manage": "Manage catalogue"
       }
+    },
+    "a10": {
+      "title": "Outbound Campaign Management",
+      "subtitle": "List, scheduling, consent/suppression, disposition",
+      "scope_note": "On this screen you view your tenant's outbound campaigns and their compliance/disposition health — scoped to your tenant only. Only campaign metadata and aggregate counts are shown; the raw numbers to dial, customer names, contact attributes, CRM records and script/offer bodies never appear in the panel. Final authority for list upload/CRM fetch, campaign create/stop and the dialer is enforced in the backend (Campaign Manager + Consent Engine); this screen is a configuration view.",
+      "as_of": "View time: {time}",
+      "tenant": "Tenant",
+      "campaigns_label": "Campaigns",
+      "ratio": "{a}/{b}",
+      "percent": "{n}%",
+      "ab_badge": "A/B",
+      "script_missing": "Missing",
+      "on": "On",
+      "off": "Off",
+      "configured": "Configured",
+      "unconfigured": "Not set",
+      "over_cap": "Over capacity",
+      "alert": {
+        "consent_disabled": "{count} active campaign(s) have consent pre-check disabled; a consent check before outbound dialing is mandatory (FR-OUT-003).",
+        "suppression_disabled": "{count} active campaign(s) have DNC/suppression disabled; the \"do not call\" list must be applied in real time (FR-OUT-006).",
+        "calling_hours_missing": "{count} active campaign(s) have no calling-hours configuration; country/region calling hours must be applied (FR-OUT-004).",
+        "capacity_exceeded": "{count} campaign(s) have a capacity cap exceeding available agent+trunk capacity; risk of silent/abandoned calls (FR-OUT-007).",
+        "missing_script": "{count} active campaign(s) have no script/offer version set; per-call version recording is required (FR-OUT-009)."
+      },
+      "section": {
+        "summary": "Campaign Summary",
+        "campaigns": "Campaigns",
+        "compliance": "Compliance & Suppression Health",
+        "status": "Status Distribution",
+        "dispositions": "Disposition Distribution"
+      },
+      "kpi": {
+        "campaigns": "Running Campaigns",
+        "campaigns_hint": "{active} active (running + paused)",
+        "contacts": "Contacts",
+        "contacts_hint": "{reachable} reachable",
+        "dnc": "DNC / Suppression",
+        "dnc_hint": "Contacts on the do-not-call list (FR-OUT-006)",
+        "consent_missing": "Consent Missing",
+        "consent_missing_hint": "Contacts without a valid consent record (FR-OUT-003)",
+        "capacity": "Capacity Utilisation",
+        "capacity_hint": "Active campaign cap / available capacity (FR-OUT-007)",
+        "dispositions": "Dispositions",
+        "dispositions_hint": "{answered} answered",
+        "exhausted": "Attempts Exhausted",
+        "exhausted_hint": "Contacts that reached max attempts (FR-OUT-005)",
+        "attention": "Open Attention",
+        "attention_hint": "Consent off + suppression off + calling hours missing + capacity exceeded + script missing"
+      },
+      "status": {
+        "draft": "Draft",
+        "running": "Running",
+        "paused": "Paused",
+        "stopped": "Stopped",
+        "completed": "Completed"
+      },
+      "disposition": {
+        "answered": "Answered",
+        "voicemail": "Voicemail",
+        "busy": "Busy",
+        "no_answer": "No answer",
+        "invalid_number": "Invalid number",
+        "failed": "Failed"
+      },
+      "source": {
+        "upload": "List upload",
+        "crm": "CRM"
+      },
+      "col": {
+        "campaign": "Campaign",
+        "agent": "Agent",
+        "status": "Status",
+        "source": "Source",
+        "contacts": "Contacts",
+        "attempts": "Attempts",
+        "script": "Script",
+        "consent": "Consent",
+        "suppression": "Suppression",
+        "calling_hours": "Calling Hours",
+        "capacity": "Capacity",
+        "count": "Count",
+        "share": "Share",
+        "disposition": "Disposition"
+      },
+      "attempts_fmt": "Max {max} · {retry} min",
+      "campaigns_caption": "Outbound campaigns, their status and scheduling",
+      "campaigns_hint": "Each campaign is bound to an agent, a contact list (upload or CRM — FR-OUT-001/002) and a scheduling/attempt rule (FR-OUT-005); the script/offer version is recorded per call (FR-OUT-009). Final authority for create/stop (FR-OUT-010) plus execution is enforced in the backend (A8).",
+      "compliance_caption": "Per-campaign consent, suppression, calling-hours and capacity gates",
+      "compliance_hint": "Before an outbound call the Consent Engine (SAD §19.1) enforces consent + suppression + calling-hours + capacity checks: consent pre-check (FR-OUT-003), DNC/suppression (FR-OUT-006), country/region calling hours (FR-OUT-004) and capacity ≤ agent+trunk (FR-OUT-007). These gates are enforced at runtime in the backend; the panel shows the resolved state.",
+      "status_caption": "Campaign distribution by status",
+      "dispositions_caption": "Call distribution by disposition type",
+      "dispositions_hint": "A disposition is created automatically per call (FR-OUT-011); voicemail, busy, no-answer and invalid number are recorded separately (FR-OUT-008). Counts are aggregate; per-call/per-number detail is not shown in this panel (A-11/A-12).",
+      "no_campaigns": "No outbound campaigns defined for this tenant; create a campaign.",
+      "no_dispositions": "No dispositions recorded yet; this fills in once campaign calls begin.",
+      "action": {
+        "create": "Create campaign",
+        "stop": "Stop campaign"
+      }
     }
   }
 }
